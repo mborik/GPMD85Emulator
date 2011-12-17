@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- entities definition -->
+<!ENTITY % Boolean "(true | false)">
+<!ENTITY % Integer "CDATA">
+<!ENTITY % Address "#PCDATA">
+<!ENTITY % FileName "#PCDATA">
+<!ENTITY % DirName "#PCDATA">
+<!ENTITY % ModuleName "CDATA">
+<!ENTITY % Colors "(black | maroon | green | olive | navy | purple | teal
+                    | gray | silver | red | lime | yellow | blue | fuchsia
+                    | aqua | white)">
+<!ENTITY % Port "(gpio0 | gpio1 | ims2)">
+<!ENTITY % Radix "(hex | dec)">
+<!ENTITY % JoyType "(none | keys | axes | pov | buttons)">
+
+<!-- DTD definition -->
+<!ELEMENT GPMD85Emulator (General, Model, RomPackages, Snapshot, Screen, Sound,
+                          Controls, Storages, Printer, TapeBrowser, Debugger,
+                          MemReadWrite, Poke)>
+<!ATTLIST GPMD85Emulator version CDATA #REQUIRED>
+
+<!ELEMENT General EMPTY>
+<!ATTLIST General pause-on-focus-lost %Boolean; #IMPLIED>
+
+<!ELEMENT Model (Model-1, Model-2, Model-2A, Model-3, Model-Mato, Model-Alfa, Model-Alfa2, Model-C2717)>
+<!ATTLIST Model current (Model-1 | Model-2 | Model-2A | Model-3 | Model-Mato | Model-Alfa | Model-Alfa2 | Model-C2717) #REQUIRED>
+
+<!ELEMENT Model-1 (RomFile, RomModule)>
+
+<!ELEMENT Model-2 (RomFile, RomModule)>
+
+<!ELEMENT Model-2A (RomFile, RomModule)>
+
+<!ELEMENT Model-3 (RomFile, RomModule)>
+<!ATTLIST Model-3 compatibility-mode %Boolean; #IMPLIED>
+
+<!ELEMENT Model-Mato (RomFile)>
+
+<!ELEMENT Model-Alfa (RomFile, RomModule)>
+
+<!ELEMENT Model-Alfa2 (RomFile, RomModule)>
+
+<!ELEMENT Model-C2717 (RomFile, RomModule)>
+
+<!ELEMENT RomFile (%FileName;)>
+
+<!ELEMENT RomModule EMPTY>
+<!ATTLIST RomModule inserted %Boolean; #IMPLIED
+                    name %ModuleName; #REQUIRED>
+
+<!ELEMENT RomPackages (RomPackage*)>
+
+<!ELEMENT RomPackage (RomFile+)>
+<!ATTLIST RomPackage name %ModuleName; #REQUIRED>
+
+<!ELEMENT Snapshot (%FileName;)>
+<!ATTLIST Snapshot save-snapshot-compressed %Boolean; "true"
+                   save-snapshot-with-monitor %Boolean; "false"
+                   dont-run-snapshot-on-load %Boolean; "false">
+
+<!ELEMENT Screen EMPTY>
+<!ATTLIST Screen border %Integer; "0"
+                 size (normal | double | triple) "normal"
+                 half-pass (lcd | off | b75 | b50 | b25 | b0) "b50"
+                 color-profile (mono | standard | color | multicolor) "standard"
+                 color-pallette (rgb | video | defined) "defined"
+                 attr00 %Colors; "white"
+                 attr01 %Colors; "green"
+                 attr10 %Colors; "aqua"
+                 attr11 %Colors; "yellow">
+
+<!ELEMENT Sound EMPTY>
+<!ATTLIST Sound out-type (sdl) "sdl"
+                hw-buff %Boolean; "true"
+                volume %Integer; "64"
+                mute %Boolean; "false"
+                if-musica %Boolean; "false">
+
+<!ELEMENT Controls (Keyboard, Joystick, Mouse)>
+
+<!ELEMENT Keyboard EMPTY>
+<!ATTLIST Keyboard change-zy %Boolean; "false"
+                   use-numpad %Boolean; "false"
+                   mato-ctrl %Boolean; "false">
+
+<!ELEMENT Joystick (Gpio0, Gpio1)>
+<!ELEMENT Gpio0 EMPTY>
+<!ATTLIST Gpio0 connected %Boolean; "false"
+                type %JoyType; "none"
+                guid CDATA ""
+                left %Integer; "-1"
+                right %Integer; "-1"
+                up %Integer; "-1"
+                down %Integer; "-1"
+                fire %Integer; "-1"
+                sensitivity %Integer; #IMPLIED
+                pov %Integer; "-1">
+<!ELEMENT Gpio1 EMPTY>
+<!ATTLIST Gpio1 connected %Boolean; "false"
+                type %JoyType; "none"
+                guid CDATA ""
+                left %Integer; "-1"
+                right %Integer; "-1"
+                up %Integer; "-1"
+                down %Integer; "-1"
+                fire %Integer; "-1"
+                sensitivity %Integer; #IMPLIED
+                pov %Integer; "-1">
+
+<!ELEMENT Mouse EMPTY>
+<!ATTLIST Mouse type (none | m602 | poly8) "none"
+                hide-cursor %Boolean; "true">
+
+<!ELEMENT Storages (PMD-32, PMD-30, KZD-1, RaomModule, IFD-5)>
+
+<!ELEMENT PMD-32 (RomFile, DriveA, DriveB, DriveC, DriveD, SD-Root)>
+<!ATTLIST PMD-32 connected %Boolean; "false">
+<!ATTLIST PMD-32 extra-commands %Boolean; "false">
+
+<!ELEMENT DriveA (%FileName;)>
+<!ATTLIST DriveA write-protect %Boolean; "true">
+
+<!ELEMENT DriveB (%FileName;)>
+<!ATTLIST DriveB write-protect %Boolean; "true">
+
+<!ELEMENT DriveC (%FileName;)>
+<!ATTLIST DriveC write-protect %Boolean; "true">
+
+<!ELEMENT DriveD (%FileName;)>
+<!ATTLIST DriveD write-protect %Boolean; "true">
+
+<!ELEMENT SD-Root (%DirName;)>
+
+<!ELEMENT PMD-30 (%FileName;)>
+<!ATTLIST PMD-30 connected %Boolean; "false"
+                 write-protect %Boolean; "true"
+                 address %Integer; "1"
+                 ram-4kB %Boolean; "false"
+                 master-mode %Boolean; "false">
+
+<!ELEMENT KZD-1 (%FileName;)>
+<!ATTLIST KZD-1 connected %Boolean; "false"
+                port %Port; #REQUIRED
+                write-protect %Boolean; "true">
+
+<!ELEMENT RaomModule (%FileName;)>
+<!ATTLIST RaomModule hw-version (chtf | kuvi) #REQUIRED
+                     inserted %Boolean; #IMPLIED
+                     name %ModuleName; #REQUIRED>
+
+<!ELEMENT IFD-5 (RomFile, DriveA, DriveB)>
+<!ATTLIST IFD-5 connected %Boolean; "false"
+                base-address (168 | 172 | 108) #REQUIRED
+                unit %Integer; "0">
+
+<!ELEMENT Printer EMPTY>
+<!ATTLIST Printer type (none | bt100 | xy41xx | centronics) "none"
+                  on-lpt %Boolean; "false"
+                  neg-data %Boolean; "false"
+                  port %Port; #REQUIRED
+                  mode (normal | file | lpt) "normal"
+                  only-text %Boolean; "false"
+                  lpt-port CDATA "">
+
+<!ELEMENT TapeBrowser (%FileName;)>
+<!ATTLIST TapeBrowser monitoring %Boolean; "false"
+                      flash %Boolean; "false"
+                      auto-stop (off | next-head | cursor) "next-head">
+
+<!ELEMENT Debugger (List, BreakPoints)>
+<!ATTLIST Debugger x %Integer; "100"
+                   y %Integer; "100"
+                   radix %Radix; #REQUIRED
+                   notation (i8080 | z80) #REQUIRED
+                   highlight-color %Integer; "15714740">
+
+<!ELEMENT List (%Address;)>
+<!ATTLIST List source (mem | hl | de | bc |af | pc | sp) #REQUIRED
+               type (dump | ascii | disassembly) #REQUIRED>
+
+<!ELEMENT BreakPoints (BP1, BP2, BP3, BP4, BP5, BP6)>
+
+<!ELEMENT BP1 (%Address;)>
+<!ATTLIST BP1 active %Boolean; "false">
+
+<!ELEMENT BP2 (%Address;)>
+<!ATTLIST BP2 active %Boolean; "false">
+
+<!ELEMENT BP3 (%Address;)>
+<!ATTLIST BP3 active %Boolean; "false">
+
+<!ELEMENT BP4 (%Address;)>
+<!ATTLIST BP4 active %Boolean; "false">
+
+<!ELEMENT BP5 (%Address;)>
+<!ATTLIST BP5 active %Boolean; "false">
+
+<!ELEMENT BP6 (%Address;)>
+<!ATTLIST BP6 active %Boolean; "false">
+
+<!ELEMENT MemReadWrite (%FileName;)>
+<!ATTLIST MemReadWrite start %Integer; #IMPLIED
+                       length %Integer; #IMPLIED
+                       source (ram | rom) "ram"
+                       radix %Radix; #REQUIRED
+                       remapping %Boolean; "false">
+
+<!ELEMENT Poke EMPTY>
+<!ATTLIST Poke radix %Radix; #REQUIRED
+               remapping %Boolean; "false">
+
