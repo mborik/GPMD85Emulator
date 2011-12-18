@@ -20,10 +20,9 @@
 //-----------------------------------------------------------------------------
 int main(int argc, char** argv)
 {
-	printf("= %s v%s ~ Copyright (c) 2011 RM-TEAM =\n", PACKAGE_NAME, VERSION);
-	printf("- This program comes with ABSOLUTELY NO WARRANTY.\n");
-	printf("- This is free software, and you are welcome\n");
-	printf("- to redistribute it under certain conditions.\n\n");
+	printf("\n= %s v%s ~ Copyright (c) 2011 RM-TEAM =", PACKAGE_NAME, VERSION);
+	printf("\n- This program comes with ABSOLUTELY NO WARRANTY. This is free software,");
+	printf("\n- and you are welcome to redistribute it under certain conditions.\n\n");
 
 	PathUserHome = SDL_getenv("HOME");
 	PathApplication = get_current_dir_name();
