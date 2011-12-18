@@ -2,8 +2,8 @@
 # mborik, 10/2011
 
 AC_PREREQ([2.61])
-AC_INIT([GPMD85emulator], [0.9.1212], [mborik@users.sourceforge.net], [gpmd85emu], [http://gpmd85emulator.sourceforge.net/])
-AM_INIT_AUTOMAKE([GPMD85emulator], [0.9.1212])
+AC_INIT([GPMD85emulator], [0.9.1112], [mborik@users.sourceforge.net], [gpmd85emu], [http://gpmd85emulator.sourceforge.net/])
+AM_INIT_AUTOMAKE([GPMD85emulator], [0.9.1112])
 AC_CONFIG_SRCDIR([GPMD85emu.cpp])
 AC_CONFIG_HEADERS([config.h])
 
