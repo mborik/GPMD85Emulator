@@ -43,6 +43,12 @@ scalerMethodPrototype(point3xHP2);
 scalerMethodPrototype(point3xHP3);
 scalerMethodPrototype(point3xHP4);
 scalerMethodPrototype(point3xLCD);
+scalerMethodPrototype(point4x);
+scalerMethodPrototype(point4xHP1);
+scalerMethodPrototype(point4xHP2);
+scalerMethodPrototype(point4xHP3);
+scalerMethodPrototype(point4xHP4);
+scalerMethodPrototype(point4xLCD);
 //-----------------------------------------------------------------------------
 class ScreenPMD85
 {

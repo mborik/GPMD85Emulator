@@ -22,6 +22,8 @@
 //-----------------------------------------------------------------------------
 UserInterface::UserInterface()
 {
+	debug("[GUI] Initializing");
+
 #pragma pack(push, 1)
 	struct FNT_HEADER {
 		WORD  version;
@@ -89,6 +91,8 @@ UserInterface::UserInterface()
 
 	if (fontData == NULL)
 		error("Can't load font resource file");
+
+	debug("[GUI] Font loaded");
 
 	frameSave = NULL;
 	cMenu_data = NULL;

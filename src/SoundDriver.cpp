@@ -37,6 +37,10 @@ SoundDriver::SoundDriver(int numChn, char totalAmpl)
 		memset(channels[ii].sampleBuff, 0, FRAME_SIZE);
 	}
 
+	char *driverName = new char[64];
+	debug("[Sound] SDL initializing %s driver", SDL_AudioDriverName(driverName, 63));
+	delete [] driverName;
+
 	SDL_AudioSpec desired;
 	memset(&desired, 0, sizeof(desired));
 
@@ -49,6 +53,7 @@ SoundDriver::SoundDriver(int numChn, char totalAmpl)
 
 	initOK = (SDL_OpenAudio(&desired, NULL) != -1);
 	if (initOK) {
+		debug("[Sound] Initialized to %dHz/%dbit with %dB buffer", desired.freq, desired.format, desired.samples);
 		silence = desired.silence;
 		SetVolume(totalAmpl);
 		SDL_PauseAudio(0);

@@ -401,69 +401,74 @@ bool TFormMain::TestHotkeys()
 		i = key & 0x01FF;
 
 		switch (i) {
-			case SDLK_1:
+			case SDLK_1:	// SCREEN SIZE 1x1
 				if (gvi.wm)
 					ActionSizeChange(1);
 				break;
 
-			case SDLK_2:
+			case SDLK_2:	// SCREEN SIZE 2x2
 				if (gvi.wm)
 					ActionSizeChange(2);
 				break;
 
-			case SDLK_3:
+			case SDLK_3:	// SCREEN SIZE 3x3
 				if (gvi.wm)
 					ActionSizeChange(3);
 				break;
 
-			case SDLK_4:
+			case SDLK_4:	// SCREEN SIZE 4x4
 				if (gvi.wm)
 					ActionSizeChange(4);
 				break;
 
-			case SDLK_5:
+			case SDLK_5:	// SCALER: LCD EMULATION
 				video->SetLcdMode(true);
 				video->SetHalfPassMode(HP_OFF);
 				Settings->Screen->lcdMode = true;
 				Settings->Screen->halfPass = HP_OFF;
 				break;
 
-			case SDLK_6:
+			case SDLK_6:	// SCALER: HALFPASS 0%
 				video->SetLcdMode(false);
 				video->SetHalfPassMode(HP_0);
 				Settings->Screen->lcdMode = false;
 				Settings->Screen->halfPass = HP_0;
 				break;
 
-			case SDLK_7:
+			case SDLK_7:	// SCALER: HALFPASS 25%
 				video->SetLcdMode(false);
 				video->SetHalfPassMode(HP_25);
 				Settings->Screen->lcdMode = false;
 				Settings->Screen->halfPass = HP_25;
 				break;
 
-			case SDLK_8:
+			case SDLK_8:	// SCALER: HALFPASS 50%
 				video->SetLcdMode(false);
 				video->SetHalfPassMode(HP_50);
 				Settings->Screen->lcdMode = false;
 				Settings->Screen->halfPass = HP_50;
 				break;
 
-			case SDLK_9:
+			case SDLK_9:	// SCALER: HALFPASS 75%
 				video->SetLcdMode(false);
 				video->SetHalfPassMode(HP_75);
 				Settings->Screen->lcdMode = false;
 				Settings->Screen->halfPass = HP_75;
 				break;
 
-			case SDLK_0:
+			case SDLK_0:	// SCALER: PIXEL PRECISE
 				video->SetLcdMode(false);
 				video->SetHalfPassMode(HP_OFF);
 				Settings->Screen->lcdMode = false;
 				Settings->Screen->halfPass = HP_OFF;
 				break;
 
-			case SDLK_m:
+			case SDLK_f:	// FULL-SCREEN
+				if (gvi.wm && (gvi.w + gvi.h))
+					ActionSizeChange(0);
+				break;
+
+			case SDLK_m:	// MONO/STANDARD MODES
 				if (video->GetColorProfile() == CP_STANDARD) {
 					video->SetColorProfile(CP_MONO);
 					Settings->Screen->colorProfile = CP_MONO;
@@ -474,7 +479,7 @@ bool TFormMain::TestHotkeys()
 				}
 				break;
 
-			case SDLK_c:
+			case SDLK_c:	// COLOR MODES
 				if (video->GetColorProfile() == CP_COLOR) {
 					video->SetColorProfile(CP_MULTICOLOR);
 					Settings->Screen->colorProfile = CP_MULTICOLOR;
@@ -485,12 +490,12 @@ bool TFormMain::TestHotkeys()
 				}
 				break;
 
-			case SDLK_F1:
+			case SDLK_F1:	// MAIN MENU
 				ActionPlayPause(false, false);
 				video->GUI->menuOpen(UserInterface::GUI_TYPE_MENU, NULL);
 				break;
 
-			case SDLK_F2:
+			case SDLK_F2:	// LOAD/SAVE TAPE
 			/*
 				if (key & KM_SHIFT)
 					ActionSaveTape();
@@ -499,38 +504,38 @@ bool TFormMain::TestHotkeys()
 			*/
 				break;
 
-			case SDLK_F3:
+			case SDLK_F3:	// PLAY/PAUSE
 				ActionPlayPause();
 				break;
 
-			case SDLK_F4:
+			case SDLK_F4:	// EXIT
 				ActionExit();
 				break;
 
-			case SDLK_F5:
+			case SDLK_F5:	// RESET
 				if (key & KM_SHIFT)
 					ActionHardReset();
 				else
 					ActionReset();
 				break;
 
-			case SDLK_F6:
+			case SDLK_F6:	// DISK IMAGES
 				ActionPlayPause(false, false);
 				video->GUI->menuOpen(UserInterface::GUI_TYPE_DISKIMAGES, NULL);
 				break;
 
-			case SDLK_F7:
+			case SDLK_F7:	// LOAD/SAVE SNAPSHOT
 				if (key & KM_SHIFT)
 					ActionSaveSnap();
 				else
 					ActionLoadSnap();
 				break;
 
-			case SDLK_F8:
+			case SDLK_F8:	// SOUND ON/OFF
 				ActionSound(!Settings->Sound->mute);
 				break;
 
-			case SDLK_F9:
+			case SDLK_F9:	// MODEL SELECT/MEMORY MENU
 				ActionPlayPause(false, false);
 				if (key & KM_SHIFT)
 					video->GUI->menuOpen(UserInterface::GUI_TYPE_MEMORY, NULL);
@@ -538,7 +543,7 @@ bool TFormMain::TestHotkeys()
 					video->GUI->menuOpen(UserInterface::GUI_TYPE_SELECT, NULL);
 				break;
 
-			case SDLK_F10:
+			case SDLK_F10:	// PERIPHERALS
 				ActionPlayPause(false, false);
 				video->GUI->menuOpen(UserInterface::GUI_TYPE_PERIPHERALS, NULL);
 				break;
@@ -779,6 +784,9 @@ void TFormMain::ActionSizeChange(int mode)
 			newMode = DM_TRIPLESIZE;
 			break;
 		case 4:
+			newMode = DM_QUADRUPLESIZE;
+			break;
+		case 0:
 			newMode = DM_FULLSCREEN;
 			break;
 	}
