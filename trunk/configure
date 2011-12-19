@@ -698,6 +698,7 @@ ac_user_opts='
 enable_option_checking
 enable_dependency_tracking
 enable_debug
+enable_trace
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1336,6 +1337,7 @@ Optional Features:
   --disable-dependency-tracking  speeds up one-time build
   --enable-dependency-tracking   do not reject slow dependency extractors
   --enable-debug          enable debugging, default: no
+  --enable-trace          enable tracing statements, default: no
 
 Some influential environment variables:
   CXX         C++ compiler command
@@ -4204,7 +4206,7 @@ fi
 
 
 
-# Check if we have enable debug support:
+# Check if we have enable debugging:
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking debugging enabled" >&5
 $as_echo_n "checking debugging enabled... " >&6; }
 # Check whether --enable-debug was given.
@@ -4232,6 +4234,28 @@ else
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${debug}" >&5
 $as_echo "${debug}" >&6; }
+
+# Check if we have enable only tracing statements (not full debug mode):
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking tracing statements enabled" >&5
+$as_echo_n "checking tracing statements enabled... " >&6; }
+# Check whether --enable-trace was given.
+if test "${enable_trace+set}" = set; then :
+  enableval=$enable_trace; case "${enableval}" in
+		yes) trace=yes ;;
+		no)  trace=no  ;;
+		*)   as_fn_error $? "bad value ${enableval} for --enable-trace" "$LINENO" 5 ;;
+	esac
+else
+  trace=no
+
+fi
+
+if test "x$trace" = "xyes"; then
+	CXXFLAGS="-DDEBUG"
+	CFLAGS="-DDEBUG"
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${trace}" >&5
+$as_echo "${trace}" >&6; }
 
 
 

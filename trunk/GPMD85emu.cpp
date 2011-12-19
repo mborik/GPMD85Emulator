@@ -92,10 +92,12 @@ int main(int argc, char** argv)
 			warning("Can't load icon resource file");
 	}
 
-	debug("Initialization started...");
+	debug("Initialization process started...");
 
 	TFormMain *FormMain = new TFormMain();
 	FormMain->ProcessSettings(-1);
+
+	debug("Starting %d FPS refresh timer", GPU_FRAMES_PER_SEC);
 	FormMain->BaseTimer = SDL_AddTimer(GPU_TIMER_INTERVAL, FormMain_BaseTimerCallback, FormMain);
 	FormMain->ActionPlayPause(true);
 
@@ -105,6 +107,7 @@ int main(int argc, char** argv)
 	SDL_Event event;
 	bool waitForRelease = false;
 
+	debug("Starting main CPU %dHz loop", CPU_FRAMES_PER_SEC);
 	while (FormMain->isActive) {
 		nextTick = SDL_GetTicks() + CPU_TIMER_INTERVAL;
 

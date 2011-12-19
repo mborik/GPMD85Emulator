@@ -23,6 +23,8 @@ TSettings::TSettings()
 	int i = 0, j, k;
 	char *buf;
 
+	debug("[Settings] libXML2 parser initialization");
+
 	if (LocateResource("GPMD85Emu.dtd", true) == NULL)
 		warning("Configuration scheme not found!");
 	else
@@ -34,6 +36,8 @@ TSettings::TSettings()
 	xmlDoc = xmlReadFile(buf, "UTF-8", i);
 	if (xmlDoc == NULL)
 		error("Couldn't parse configuration file:\n> %s", buf);
+
+	debug("[Settings] Configuration XML parsed, reading elements");
 
 	xmlRoot = xmlDocGetRootElement(xmlDoc);
 	if (xmlStrcmp(xmlRoot->name, (const xmlChar *) "GPMD85Emulator") != 0)
@@ -202,6 +206,8 @@ TSettings::TSettings()
 		Screen->size = DM_DOUBLESIZE;
 	else if (cfgIsAttributeToken(n, "size", "triple"))
 		Screen->size = DM_TRIPLESIZE;
+	else if (cfgIsAttributeToken(n, "size", "quadraple"))
+		Screen->size = DM_QUADRUPLESIZE;
 	else
 		Screen->size = DM_NORMAL;
 
@@ -361,6 +367,7 @@ TSettings::TSettings()
 		RaomModule->inserted = false;
 
 	xmlFree(s);
+	debug("[Settings] Configuration loaded");
 }
 //-----------------------------------------------------------------------------
 TSettings::~TSettings()

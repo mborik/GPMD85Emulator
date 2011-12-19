@@ -115,7 +115,8 @@ static GUI_MENU_ENTRY gui_view_size_menu[] = {
 	{ MI_RADIO, "\a100%", "1", SDLK_1, NULL, ccb_view_size, dcb_view_size_state, true, false, DM_NORMAL },
 	{ MI_RADIO, "\a200%", "2", SDLK_2, NULL, ccb_view_size, dcb_view_size_state, true, false, DM_DOUBLESIZE },
 	{ MI_RADIO, "\a300%", "3", SDLK_3, NULL, ccb_view_size, dcb_view_size_state, true, false, DM_TRIPLESIZE },
-	{ MI_RADIO, "\aFULLSCREEN", "4", SDLK_f, NULL, ccb_view_size, dcb_view_size_state, true, false, DM_FULLSCREEN },
+	{ MI_RADIO, "\a400%", "4", SDLK_4, NULL, ccb_view_size, dcb_view_size_state, true, false, DM_QUADRUPLESIZE },
+	{ MI_RADIO, "\aFULLSCREEN", "F", SDLK_f, NULL, ccb_view_size, dcb_view_size_state, true, false, DM_FULLSCREEN },
 	{ MENU_END }
 };
 static GUI_MENU_ENTRY gui_view_cmode_menu[] = {

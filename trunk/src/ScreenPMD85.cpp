@@ -26,6 +26,7 @@ ScreenPMD85::ScreenPMD85(TDisplayMode dispMode, int border)
 	BlitRectDest = NULL;
 	bufferScreen = NULL;
 
+	debug("[Screen] Loading resources");
 	StatusBarIcons = SDL_LoadBMP(LocateResource("statusbar.bmp", false));
 	if (!StatusBarIcons)
 		warning("Can't load status bar resource file");
@@ -300,7 +301,7 @@ void ScreenPMD85::InitScreenSize(TDisplayMode reqDispMode, bool reqWidth384)
 	FullScreenScaleMode = (TDisplayMode) -1;
 
 	if ((DispMode == DM_FULLSCREEN || !gvi.wm) && (gvi.w + gvi.h))
-		reqDispMode = DM_TRIPLESIZE;
+		reqDispMode = DM_QUADRUPLESIZE;
 
 	while (true) {
 		switch (reqDispMode) {
@@ -319,11 +320,17 @@ void ScreenPMD85::InitScreenSize(TDisplayMode reqDispMode, bool reqWidth384)
 				Width = (reqWidth384) ? 1152 : 864;
 				Height = 768;
 				break;
+			case DM_QUADRUPLESIZE:
+				Width = (reqWidth384) ? 1536 : 1152;
+				Height = 1024;
+				break;
 		}
 
 		if (DispMode == DM_FULLSCREEN || !gvi.wm) {
 			if (Width > gvi.w || Height + STATUSBAR_HEIGHT > gvi.h) {
-				if (reqDispMode == DM_TRIPLESIZE)
+				if (reqDispMode == DM_QUADRUPLESIZE)
+					reqDispMode = DM_TRIPLESIZE;
+				else if (reqDispMode == DM_TRIPLESIZE)
 					reqDispMode = DM_DOUBLESIZE;
 				else if (reqDispMode == DM_DOUBLESIZE)
 					reqDispMode = DM_NORMAL;
@@ -388,11 +395,13 @@ void ScreenPMD85::InitScreenBuffer()
 void ScreenPMD85::PrepareVideoMode()
 {
 	if (DispMode == DM_FULLSCREEN || !gvi.wm) {
+		debug("[Screen] Full-screen mode: %dx%d/%dbit", gvi.w, gvi.h, gvi.depth);
 		Screen = SDL_SetVideoMode(gvi.w, gvi.h, gvi.depth,
 			SDL_FULLSCREEN | SDL_DOUBLEBUF |
 			(gvi.hw ? SDL_HWSURFACE : SDL_SWSURFACE));
 	}
 	else {
+		debug("[Screen] Windowed mode: %dx%d/%dbit", Width, Height, gvi.depth);
 		Screen = SDL_SetVideoMode(
 			Width, Height, gvi.depth, SDL_DOUBLEBUF |
 			(gvi.hw ? SDL_HWSURFACE | SDL_HWPALETTE : SDL_SWSURFACE));
@@ -576,6 +585,25 @@ void ScreenPMD85::SetScaler()
 				}
 			}
 			break;
+
+		case DM_QUADRUPLESIZE:
+			if (LCDmode)
+				Scaler = &point4xLCD;
+			else {
+				switch (HalfPass) {
+					case HP_OFF:
+						Scaler = &point4x; break;
+					case HP_75:
+						Scaler = &point4xHP1; break;
+					case HP_50:
+						Scaler = &point4xHP2; break;
+					case HP_25:
+						Scaler = &point4xHP3; break;
+					case HP_0:
+						Scaler = &point4xHP4; break;
+				}
+			}
+			break;
 	}
 }
 
@@ -595,7 +623,7 @@ scalerMethodPrototype(point1x)
 // E = hilited dot, D = 75%, C = 50%, B = 25%, A = 0% of bright
 //   normal        75%          50%          25%          0%           LCD
 // | E | E |    | E | E |    | E | E |    | E | E |    | E | E |    | E | D |
-// | E | E |    | D | D |    | C | C |    | B | B |    | A | A |    | A | B |
+// | E | E |    | D | D |    | C | C |    | B | B |    | A | A |    | B | C |
 //-----------------------------------------------------------------------------
 scalerMethodPrototype(point2x)
 {
@@ -703,8 +731,8 @@ scalerMethodPrototype(point2xLCD)
 			c = *(src + i);
 			*(p) = c;
 			*(p + 1) = c + 16;
-			*(p + dstPitch) = c + 64;
-			*(p + dstPitch + 1) = c + 48;
+			*(p + dstPitch) = c + 48;
+			*(p + dstPitch + 1) = c + 32;
 		}
 		dst += dstPitch * 2;
 		src += srcPitch;
@@ -862,6 +890,205 @@ scalerMethodPrototype(point3xLCD)
 			*(p + dstPitch + dstPitch + 2) = c + 64;
 		}
 		dst += dstPitch * 3;
+		src += srcPitch;
+	}
+}
+//-----------------------------------------------------------------------------
+// one point is zoomed to sixteen-dot square with HalfPass or LCD emulation
+// E = hilited dot, D = 75%, C = 50%, B = 25%, A = 0% of bright
+//       normal                  75%                   50%
+//  | E | E | E | E |     | E | E | E | E |     | E | E | E | E |
+//  | E | E | E | E |     | E | E | E | E |     | E | E | E | E |
+//  | E | E | E | E |     | E | E | E | E |     | D | D | D | D |
+//  | E | E | E | E |     | D | D | D | D |     | C | C | C | C |
+//         25%                    0%                   LCD
+//  | E | E | E | E |     | E | E | E | E |     | E | E | E | D |
+//  | D | D | D | D |     | C | C | C | C |     | E | D | D | E |
+//  | C | C | C | C |     | B | B | B | B |     | E | D | D | E |
+//  | B | B | B | B |     | A | A | A | A |     | A | B | B | A |
+//-----------------------------------------------------------------------------
+scalerMethodPrototype(point4x)
+{
+	static int i;
+	static BYTE c;
+
+	while (h--) {
+		BYTE *p = dst;
+		for (i = 0; i < w; ++i, p += 4) {
+			c = *(src + i);
+			*(p) = c;
+			*(p + 1) = c;
+			*(p + 2) = c;
+			*(p + 3) = c;
+			*(p + dstPitch) = c;
+			*(p + dstPitch + 1) = c;
+			*(p + dstPitch + 2) = c;
+			*(p + dstPitch + 3) = c;
+			*(p + dstPitch + dstPitch) = c;
+			*(p + dstPitch + dstPitch + 1) = c;
+			*(p + dstPitch + dstPitch + 2) = c;
+			*(p + dstPitch + dstPitch + 3) = c;
+			*(p + dstPitch + dstPitch + dstPitch) = c;
+			*(p + dstPitch + dstPitch + dstPitch + 1) = c;
+			*(p + dstPitch + dstPitch + dstPitch + 2) = c;
+			*(p + dstPitch + dstPitch + dstPitch + 3) = c;
+		}
+		dst += dstPitch * 4;
+		src += srcPitch;
+	}
+}
+//-----------------------------------------------------------------------------
+scalerMethodPrototype(point4xHP1)
+{
+	static int i;
+	static BYTE c;
+
+	while (h--) {
+		BYTE *p = dst;
+		for (i = 0; i < w; ++i, p += 4) {
+			c = *(src + i);
+			*(p) = c;
+			*(p + 1) = c;
+			*(p + 2) = c;
+			*(p + 3) = c;
+			*(p + dstPitch) = c;
+			*(p + dstPitch + 1) = c;
+			*(p + dstPitch + 2) = c;
+			*(p + dstPitch + 3) = c;
+			*(p + dstPitch + dstPitch) = c;
+			*(p + dstPitch + dstPitch + 1) = c;
+			*(p + dstPitch + dstPitch + 2) = c;
+			*(p + dstPitch + dstPitch + 3) = c;
+			*(p + dstPitch + dstPitch + dstPitch) = c + 16;
+			*(p + dstPitch + dstPitch + dstPitch + 1) = c + 16;
+			*(p + dstPitch + dstPitch + dstPitch + 2) = c + 16;
+			*(p + dstPitch + dstPitch + dstPitch + 3) = c + 16;
+		}
+		dst += dstPitch * 4;
+		src += srcPitch;
+	}
+}
+//-----------------------------------------------------------------------------
+scalerMethodPrototype(point4xHP2)
+{
+	static int i;
+	static BYTE c;
+
+	while (h--) {
+		BYTE *p = dst;
+		for (i = 0; i < w; ++i, p += 4) {
+			c = *(src + i);
+			*(p) = c;
+			*(p + 1) = c;
+			*(p + 2) = c;
+			*(p + 3) = c;
+			*(p + dstPitch) = c;
+			*(p + dstPitch + 1) = c;
+			*(p + dstPitch + 2) = c;
+			*(p + dstPitch + 3) = c;
+			*(p + dstPitch + dstPitch) = c + 16;
+			*(p + dstPitch + dstPitch + 1) = c + 16;
+			*(p + dstPitch + dstPitch + 2) = c + 16;
+			*(p + dstPitch + dstPitch + 3) = c + 16;
+			*(p + dstPitch + dstPitch + dstPitch) = c + 32;
+			*(p + dstPitch + dstPitch + dstPitch + 1) = c + 32;
+			*(p + dstPitch + dstPitch + dstPitch + 2) = c + 32;
+			*(p + dstPitch + dstPitch + dstPitch + 3) = c + 32;
+		}
+		dst += dstPitch * 4;
+		src += srcPitch;
+	}
+}
+//-----------------------------------------------------------------------------
+scalerMethodPrototype(point4xHP3)
+{
+	static int i;
+	static BYTE c;
+
+	while (h--) {
+		BYTE *p = dst;
+		for (i = 0; i < w; ++i, p += 4) {
+			c = *(src + i);
+			*(p) = c;
+			*(p + 1) = c;
+			*(p + 2) = c;
+			*(p + 3) = c;
+			*(p + dstPitch) = c + 16;
+			*(p + dstPitch + 1) = c + 16;
+			*(p + dstPitch + 2) = c + 16;
+			*(p + dstPitch + 3) = c + 16;
+			*(p + dstPitch + dstPitch) = c + 32;
+			*(p + dstPitch + dstPitch + 1) = c + 32;
+			*(p + dstPitch + dstPitch + 2) = c + 32;
+			*(p + dstPitch + dstPitch + 3) = c + 32;
+			*(p + dstPitch + dstPitch + dstPitch) = c + 48;
+			*(p + dstPitch + dstPitch + dstPitch + 1) = c + 48;
+			*(p + dstPitch + dstPitch + dstPitch + 2) = c + 48;
+			*(p + dstPitch + dstPitch + dstPitch + 3) = c + 48;
+		}
+		dst += dstPitch * 4;
+		src += srcPitch;
+	}
+}
+//-----------------------------------------------------------------------------
+scalerMethodPrototype(point4xHP4)
+{
+	static int i;
+	static BYTE c;
+
+	while (h--) {
+		BYTE *p = dst;
+		for (i = 0; i < w; ++i, p += 4) {
+			c = *(src + i);
+			*(p) = c;
+			*(p + 1) = c;
+			*(p + 2) = c;
+			*(p + 3) = c;
+			*(p + dstPitch) = c + 32;
+			*(p + dstPitch + 1) = c + 32;
+			*(p + dstPitch + 2) = c + 32;
+			*(p + dstPitch + 3) = c + 32;
+			*(p + dstPitch + dstPitch) = c + 48;
+			*(p + dstPitch + dstPitch + 1) = c + 48;
+			*(p + dstPitch + dstPitch + 2) = c + 48;
+			*(p + dstPitch + dstPitch + 3) = c + 48;
+			*(p + dstPitch + dstPitch + dstPitch) = c + 64;
+			*(p + dstPitch + dstPitch + dstPitch + 1) = c + 64;
+			*(p + dstPitch + dstPitch + dstPitch + 2) = c + 64;
+			*(p + dstPitch + dstPitch + dstPitch + 3) = c + 64;
+		}
+		dst += dstPitch * 4;
+		src += srcPitch;
+	}
+}
+//-----------------------------------------------------------------------------
+scalerMethodPrototype(point4xLCD)
+{
+	static int i;
+	static BYTE c;
+
+	while (h--) {
+		BYTE *p = dst;
+		for (i = 0; i < w; ++i, p += 4) {
+			c = *(src + i);
+			*(p) = c;
+			*(p + 1) = c;
+			*(p + 2) = c;
+			*(p + 3) = c + 16;
+			*(p + dstPitch) = c;
+			*(p + dstPitch + 1) = c + 16;
+			*(p + dstPitch + 2) = c + 16;
+			*(p + dstPitch + 3) = c;
+			*(p + dstPitch + dstPitch) = c;
+			*(p + dstPitch + dstPitch + 1) = c + 16;
+			*(p + dstPitch + dstPitch + 2) = c + 16;
+			*(p + dstPitch + dstPitch + 3) = c;
+			*(p + dstPitch + dstPitch + dstPitch) = c + 64;
+			*(p + dstPitch + dstPitch + dstPitch + 1) = c + 48;
+			*(p + dstPitch + dstPitch + dstPitch + 2) = c + 48;
+			*(p + dstPitch + dstPitch + dstPitch + 3) = c + 64;
+		}
+		dst += dstPitch * 4;
 		src += srcPitch;
 	}
 }

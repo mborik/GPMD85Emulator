@@ -1,2 +1,3 @@
+2011-12-18 [ub880d] 4x4 screen size and scalers
+2011-12-18 [mborik] Tracing statements in video/sound initialization and can be enabled with configure (--enable-trace)
 2011-12-17 [mborik] First public alpha version
-

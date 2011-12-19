@@ -1,7 +1,7 @@
 # GPMD85emu autoconf
 # mborik, 10/2011
 
-AC_PREREQ([2.61])
+AC_PREREQ([2.59])
 AC_INIT([GPMD85emulator], [0.9.1112], [mborik@users.sourceforge.net], [gpmd85emu], [http://gpmd85emulator.sourceforge.net/])
 AM_INIT_AUTOMAKE([GPMD85emulator], [0.9.1112])
 AC_CONFIG_SRCDIR([GPMD85emu.cpp])
@@ -12,7 +12,7 @@ AC_PROG_RANLIB
 AC_PROG_CXX
 AC_PROG_CC
 
-# Check if we have enable debug support:
+# Check if we have enable debugging:
 AC_MSG_CHECKING([debugging enabled])
 AC_ARG_ENABLE([debug],
 	AS_HELP_STRING([--enable-debug], [enable debugging, default: no]),
@@ -35,6 +35,23 @@ else
 	DEBUG=;
 fi
 AC_MSG_RESULT([${debug}])
+
+# Check if we have enable only tracing statements (not full debug mode):
+AC_MSG_CHECKING([tracing statements enabled])
+AC_ARG_ENABLE([trace],
+	AS_HELP_STRING([--enable-trace], [enable tracing statements, default: no]),
+	[case "${enableval}" in
+		yes) trace=yes ;;
+		no)  trace=no  ;;
+		*)   AC_MSG_ERROR([bad value ${enableval} for --enable-trace]) ;;
+	esac],
+	[trace=no]
+)
+if test "x$trace" = "xyes"; then
+	CXXFLAGS="-DDEBUG"
+	CFLAGS="-DDEBUG"
+fi
+AC_MSG_RESULT([${trace}])
 
 AC_SUBST(CXXFLAGS)
 AC_SUBST(CFLAGS)
