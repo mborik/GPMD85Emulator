@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- GNU/GPL PMD 85 Emulator Configuration File -->
 <!DOCTYPE GPMD85Emulator SYSTEM "GPMD85Emu.dtd">
-<GPMD85Emulator version="1.0">
+<GPMD85Emulator version="1.1">
 
-  <General pause-on-focus-lost="false" />
+  <General pause-on-focus-lost="false" show-hidden-files="false" auto-save-settings="false" />
 
   <Model current="Model-3">
     <Model-1>

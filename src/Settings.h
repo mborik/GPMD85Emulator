@@ -22,7 +22,7 @@
 #include <libxml/tree.h>
 #include <libxml/parser.h>
 //-----------------------------------------------------------------------------
-#define CONFIGURATION_VERSION "1.0"
+#define CONFIGURATION_VERSION "1.1"
 //-----------------------------------------------------------------------------
 class TSettings
 {
@@ -139,6 +139,8 @@ class TSettings
 	public:
 		bool isPaused;
 		bool pauseOnFocusLost;
+		bool showHiddenFiles;
+		bool autosaveSettings;
 
 		BYTE modelsCount;
 		BYTE romPackagesCount;

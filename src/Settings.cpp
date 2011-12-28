@@ -49,6 +49,9 @@ TSettings::TSettings()
 	xmlChar *s;
 	xmlNodePtr m, n = cfgGetChildNode(xmlRoot, "General");
 	pauseOnFocusLost = cfgGetAttributeBoolValue(n, "pause-on-focus-lost", false);
+	showHiddenFiles = cfgGetAttributeBoolValue(n, "show-hidden-files", false);
+	autosaveSettings = cfgGetAttributeBoolValue(n, "autosave-setting", false);
+	
 	isPaused = false;
 
 	n = cfgGetChildNode(xmlRoot, "RomPackages");

@@ -127,7 +127,7 @@ UserInterface::~UserInterface()
 
 	if (fileSelector) {
 		if (menuStack[menuStackLevel].type == GUI_TYPE_FILESELECTOR)
-			ScanDir(NULL, &fileSelector->dirEntries, &cMenu_count);
+			ScanDir(NULL, &fileSelector->dirEntries, &cMenu_count, uiSet->showHiddenFiles);
 
 		delete fileSelector;
 	}
@@ -593,7 +593,7 @@ void UserInterface::drawFileSelector()
 	cMenu_leftMargin = 0;
 	cMenu_data = NULL;
 
-	ScanDir(fileSelector->path, &fileSelector->dirEntries, &cMenu_count);
+	ScanDir(fileSelector->path, &fileSelector->dirEntries, &cMenu_count, uiSet->showHiddenFiles);
 	if (cMenu_count <= 0) {
 		menuClose();
 		return;
@@ -853,6 +853,13 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 				needRelease = true;
 				change = true;
 			}
+			break;
+
+		case SDLK_PERIOD | KM_ALT:
+			uiSet->showHiddenFiles = !uiSet->showHiddenFiles;
+			cMenu_hilite = 0;
+			drawFileSelector();
+			needRelease = true;
 			break;
 
 		case SDLK_TAB:
@@ -1467,7 +1474,7 @@ void UserInterface::menuOpen(GUI_MENU_TYPE type, void *data)
 void UserInterface::menuClose()
 {
 	if (menuStack[menuStackLevel].type == GUI_TYPE_FILESELECTOR)
-		ScanDir(NULL, &fileSelector->dirEntries, &cMenu_count);
+		ScanDir(NULL, &fileSelector->dirEntries, &cMenu_count, uiSet->showHiddenFiles);
 
 	menuStack[menuStackLevel].data = NULL;
 
@@ -1490,7 +1497,7 @@ void UserInterface::menuClose()
 void UserInterface::menuCloseAll()
 {
 	if (menuStack[menuStackLevel].type == GUI_TYPE_FILESELECTOR)
-		ScanDir(NULL, &fileSelector->dirEntries, &cMenu_count);
+		ScanDir(NULL, &fileSelector->dirEntries, &cMenu_count, uiSet->showHiddenFiles);
 
 	for (int i = menuStackLevel; i >= 0; i--)
 		menuStack[i].data = NULL;

@@ -21,7 +21,9 @@
 <!ATTLIST GPMD85Emulator version CDATA #REQUIRED>
 
 <!ELEMENT General EMPTY>
-<!ATTLIST General pause-on-focus-lost %Boolean; #IMPLIED>
+<!ATTLIST General pause-on-focus-lost %Boolean; #IMPLIED
+                  auto-save-settings %Boolean; #IMPLIED
+                  show-hidden-files %Boolean; #IMPLIED>
 
 <!ELEMENT Model (Model-1, Model-2, Model-2A, Model-3, Model-Mato, Model-Alfa, Model-Alfa2, Model-C2717)>
 <!ATTLIST Model current (Model-1 | Model-2 | Model-2A | Model-3 | Model-Mato | Model-Alfa | Model-Alfa2 | Model-C2717) #REQUIRED>

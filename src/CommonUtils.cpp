@@ -383,7 +383,7 @@ bool CommonUtils::commonTestDir(const char *directory, char *add, char **tail)
 	return false;
 }
 //-----------------------------------------------------------------------------
-void CommonUtils::commonScanDir(const char *dir, char ***filenames, int *numfiles)
+void CommonUtils::commonScanDir(const char *dir, char ***filenames, int *numfiles, bool showHiddenFiles)
 {
 	struct dirent *dirent;
 	DIR *directory = NULL;
@@ -422,7 +422,7 @@ void CommonUtils::commonScanDir(const char *dir, char ***filenames, int *numfile
 			if (dirent->d_name[0] == '.') {
 				if (dirent->d_name[1] == '.')
 					filemode = ' ';
-				else
+				else if ((dirent->d_name[1] == '\0') || (showHiddenFiles == false))
 					continue;
 			}
 
