@@ -570,7 +570,7 @@ void ScreenPMD85::RedrawStatusBar()
 	}
 
 //	tape progress bar...
-	r->x = (r->x + (strlen(status) * 6) + STATUSBAR_SPACING);
+	r->x = (r->x + (20 * 6) + STATUSBAR_SPACING);
 	r->y += 3;
 	r->w = tapProgressWidth - r->x;
 	r->h = 2;

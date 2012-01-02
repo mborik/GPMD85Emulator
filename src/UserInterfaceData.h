@@ -71,6 +71,7 @@ bool ccb_rom_pckg(GUI_MENU_ENTRY *ptr);
 bool ccb_p32_imgd(GUI_MENU_ENTRY *ptr);
 bool ccb_p32_conn(GUI_MENU_ENTRY *ptr);
 bool ccb_p32_extc(GUI_MENU_ENTRY *ptr);
+bool ccb_tapebrowser(GUI_MENU_ENTRY *ptr);
 bool ccb_exit(GUI_MENU_ENTRY *ptr);
 //-----------------------------------------------------------------------------
 static GUI_MENU_ENTRY UNUSED_VARIABLE *gui_rom_packages = NULL;
@@ -244,7 +245,7 @@ static GUI_MENU_ENTRY UNUSED_VARIABLE gui_main_menu[] = {
 	{ MI_SUBMENU, "\aMEMORY", "^F9", SDLK_m, gui_mem_menu, NULL, NULL, true },
 	{ MI_SUBMENU, "\aPERIPHERALS", "F10", SDLK_p, gui_pers_menu, NULL, NULL, true },
 	{ MI_SEPARATOR },
-	{ MI_DIALOG, "\aTAPE BROWSER", "T", SDLK_t, NULL, NULL, NULL, false },
+	{ MI_DIALOG, "\aTAPE BROWSER", "T", SDLK_t, NULL, ccb_tapebrowser, NULL, true },
 	{ MI_DIALOG, "DEBU\aGGER", "F12", SDLK_g, NULL, NULL, NULL, false },
 	{ MI_DIALOG, "P\aOKE", NULL, SDLK_o, NULL, NULL, NULL, false },
 	{ MI_SEPARATOR },

@@ -504,15 +504,11 @@ bool TEmulator::TestHotkeys()
 				break;
 
 			case SDLK_p:	// PLAY/STOP TAPE
-				if (TapeBrowser->playing)
-					TapeBrowser->ActionStop();
-				else
-					TapeBrowser->ActionPlay();
+				ActionTapePlayStop();
 				break;
 
 			case SDLK_t:	// TAPE BROWSER
-				ActionPlayPause(false, false);
-				video->GUI->menuOpen(UserInterface::GUI_TYPE_TAPEBROWSER);
+				ActionTapeBrowser();
 				break;
 
 			case SDLK_F1:	// MAIN MENU
@@ -591,6 +587,22 @@ void TEmulator::ActionExit()
 
 	if (video->GUI->queryDialog("REALLY EXIT?", false) == GUI_QUERY_YES)
 		isActive = false;
+
+	ActionPlayPause(!Settings->isPaused, false);
+}
+//---------------------------------------------------------------------------
+void TEmulator::ActionTapeBrowser()
+{
+	ActionPlayPause(false, false);
+	video->GUI->menuOpen(UserInterface::GUI_TYPE_TAPEBROWSER);
+}
+//---------------------------------------------------------------------------
+void TEmulator::ActionTapePlayStop()
+{
+	if (TapeBrowser->playing)
+		TapeBrowser->ActionStop();
+	else
+		TapeBrowser->ActionPlay();
 
 	ActionPlayPause(!Settings->isPaused, false);
 }
@@ -1534,6 +1546,8 @@ void TEmulator::InsertTape(char *fileName, BYTE *flag)
 	delete [] Settings->TapeBrowser->fileName;
 	Settings->TapeBrowser->fileName = new char[(strlen(fileName) + 1)];
 	strcpy(Settings->TapeBrowser->fileName, fileName);
+
+	video->GUI->uiCallback.connect(this, &TEmulator::ActionTapeBrowser);
 }
 //---------------------------------------------------------------------------
 void TEmulator::InsertPMD32Disk(char *fileName, BYTE *flag)

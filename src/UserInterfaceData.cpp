@@ -502,6 +502,13 @@ bool ccb_p32_extc(GUI_MENU_ENTRY *ptr)
 	return false;
 }
 //-----------------------------------------------------------------------------
+bool ccb_tapebrowser(GUI_MENU_ENTRY *ptr)
+{
+	UserInterface::uiCallback.connect(Emulator, &TEmulator::ActionTapeBrowser);
+	UserInterface::uiSetChanges |= PS_CLOSEALL;
+	return true;
+}
+//-----------------------------------------------------------------------------
 bool ccb_exit(GUI_MENU_ENTRY *ptr)
 {
 	Emulator->ActionExit();

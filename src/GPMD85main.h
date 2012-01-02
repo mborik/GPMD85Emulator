@@ -55,6 +55,8 @@ class TEmulator : public sigslot::has_slots<>
 		bool TestHotkeys();
 
 		void ActionExit();
+		void ActionTapeBrowser();
+		void ActionTapePlayStop();
 		void ActionLoadTape();
 		void ActionLoadPMD32Disk(int drive);
 		void ActionLoadSnap();
