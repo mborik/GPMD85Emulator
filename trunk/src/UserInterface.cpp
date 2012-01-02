@@ -18,7 +18,7 @@
 #include "CommonUtils.h"
 #include "UserInterface.h"
 #include "UserInterfaceData.h"
-#include "Settings.h"
+#include "GPMD85main.h"
 //-----------------------------------------------------------------------------
 UserInterface::UserInterface()
 {
@@ -106,6 +106,11 @@ UserInterface::UserInterface()
 	fileSelector->tag = 0;
 	fileSelector->callback.disconnect_all();
 
+	tapeBrowser = new GUI_TAPEBROWSER_DATA;
+	tapeBrowser->entries = NULL;
+	tapeBrowser->count = 0;
+	tapeBrowser->hex = false;
+
 	menuStackLevel = -1;
 	needRelease = false;
 	needRedraw = false;
@@ -126,9 +131,13 @@ UserInterface::~UserInterface()
 	cMenu_rect = NULL;
 
 	if (fileSelector) {
-		if (menuStack[menuStackLevel].type == GUI_TYPE_FILESELECTOR)
-			ScanDir(NULL, &fileSelector->dirEntries, &cMenu_count, uiSet->showHiddenFiles);
+		ScanDir(NULL, &fileSelector->dirEntries, &cMenu_count);
+		delete fileSelector;
+	}
+	fileSelector = NULL;
 
+	if (tapeBrowser) {
+		Emulator->TapeBrowser->FreeFileList(&tapeBrowser->entries, &tapeBrowser->count);
 		delete fileSelector;
 	}
 	fileSelector = NULL;
@@ -150,7 +159,6 @@ void UserInterface::prepareDefaultSurface(int width, int height)
 }
 //-----------------------------------------------------------------------------
 TSettings *UserInterface::uiSet = NULL;
-void *UserInterface::uiFrm = NULL;
 sigslot::signal0<> UserInterface::uiCallback;
 BYTE UserInterface::uiSetChanges = 0;
 BYTE UserInterface::uiQueryState = GUI_QUERY_CANCEL;
@@ -278,7 +286,7 @@ void UserInterface::printTitle(SDL_Surface *s, int x, int y, int w, DWORD col, c
 		mx = x + ((w - (len * fontWidth)) / 2);
 
 	for (i = 0; i < len; i++, mx += fontWidth)
-		if (msg[i] > 0x20 && msg[i] < 0x80)
+		if ((BYTE) msg[i] > 0x20 && (BYTE) msg[i] < 0x80)
 			printChar(s, mx, y, col, msg[i]);
 }
 //-----------------------------------------------------------------------------
@@ -504,7 +512,7 @@ void UserInterface::drawMenu(void *data)
 	cMenu_count = (ptr - &cMenu_data[1]);
 
 	k = cMenu_leftMargin + widthLeft + fontWidth + widthRight;
-	if ((strlen(cMenu_data->text) * fontWidth) > k)
+	if ((int) (strlen(cMenu_data->text) * fontWidth) > k)
 		k = strlen(cMenu_data->text) * fontWidth;
 
 	cMenu_rect->w = GUI_CONST_BORDER + k + GUI_CONST_BORDER;
@@ -572,7 +580,7 @@ void UserInterface::drawFileSelectorItems()
 		}
 
 		if (strlen(ptr) > (DWORD) itemCharWidth) {
-			while (strlen(ptr) > (itemCharWidth - 1))
+			while (strlen(ptr) > (DWORD) (itemCharWidth - 1))
 				ptr[strlen(ptr) - 1] = '\0';
 			ptr[strlen(ptr)] = SCHR_BROWSE;
 		}
@@ -653,7 +661,7 @@ void UserInterface::drawFileSelector()
 	strcpy(path, fileSelector->path);
 	ptr = path;
 	if (strlen(ptr) > maxCharsOnScreen) {
-		while (strlen(ptr) > (maxCharsOnScreen - 1))
+		while (strlen(ptr) > (DWORD) (maxCharsOnScreen - 1))
 			ptr++;
 		*(--ptr) = SCHR_BROWSE;
 	}
@@ -664,6 +672,148 @@ void UserInterface::drawFileSelector()
 	delete [] path;
 
 	drawFileSelectorItems();
+}
+//-----------------------------------------------------------------------------
+void UserInterface::drawTapeBrowserItems()
+{
+	SDL_Rect *r = new SDL_Rect(*cMenu_rect);
+
+	r->x += GUI_CONST_BORDER;
+	r->y += (3 * GUI_CONST_BORDER) + 4;
+	r->w -= (2 * GUI_CONST_BORDER);
+
+	printChar(defaultSurface, r->x + r->w, r->y - 1, (cMenu_leftMargin > 0)
+			? GUI_COLOR_BORDER : GUI_COLOR_BACKGROUND, SCHR_SCROLL_UP);
+
+	int i = cMenu_leftMargin, j = (cMenu_count) ? cMenu_hilite : -1;
+	for (; i < (cMenu_leftMargin + GUI_CONST_TAPE_ITEMS); i++) {
+		drawRectangle(defaultSurface, r->x - (GUI_CONST_BORDER / 2),
+			r->y - 2, r->w, GUI_CONST_ITEM_SIZE,
+			(i == j) ? GUI_COLOR_HIGHLIGHT : GUI_COLOR_BACKGROUND);
+
+		if (i < cMenu_count) {
+			printChar(defaultSurface, r->x, r->y, GUI_COLOR_FOREGROUND,
+				(i == Emulator->TapeBrowser->stopBlockIdx) ? SCHR_STOP :
+				(i == Emulator->TapeBrowser->currBlockIdx) ? SCHR_NAVIGATOR : ' ');
+
+			printText(defaultSurface, r->x + GUI_CONST_HOTKEYCHAR, r->y,
+				GUI_COLOR_FOREGROUND, tapeBrowser->entries[i]);
+
+			if (tapeBrowser->entries[i][29])
+				printChar(defaultSurface, r->x + r->w - GUI_CONST_HOTKEYCHAR - 2,
+					r->y, GUI_COLOR_BORDER, '!');
+		}
+
+		r->y += GUI_CONST_ITEM_SIZE;
+	}
+
+	printChar(defaultSurface, r->x + r->w,
+		r->y - GUI_CONST_ITEM_SIZE + 2, (i < cMenu_count)
+			? GUI_COLOR_BORDER : GUI_COLOR_BACKGROUND, SCHR_SCROLL_DW);
+
+	r->h = (GUI_CONST_TAPE_ITEMS * GUI_CONST_ITEM_SIZE) + (GUI_CONST_BORDER / 2);
+	r->y -= r->h;
+
+	drawLineV(defaultSurface, r->x + GUI_CONST_HOTKEYCHAR + (14 * fontWidth),
+		r->y, r->h, GUI_COLOR_SEPARATOR);
+	drawLineV(defaultSurface, r->x + GUI_CONST_HOTKEYCHAR + (21 * fontWidth),
+		r->y, r->h, GUI_COLOR_SEPARATOR);
+
+	delete r;
+	needRedraw = true;
+}
+//-----------------------------------------------------------------------------
+void UserInterface::drawTapeBrowser()
+{
+	cMenu_data = NULL;
+	Emulator->TapeBrowser->FillFileList(&tapeBrowser->entries, &tapeBrowser->count, tapeBrowser->hex);
+
+	cMenu_leftMargin = cMenu_count = tapeBrowser->count;
+	cMenu_hilite = Emulator->TapeBrowser->currBlockIdx;
+	if (cMenu_hilite < 0)
+		cMenu_hilite = 0;
+
+	while (cMenu_hilite < cMenu_leftMargin) {
+		cMenu_leftMargin -= GUI_CONST_TAPE_ITEMS;
+		if (cMenu_leftMargin < 0)
+			cMenu_leftMargin = 0;
+	}
+
+	if (cMenu_hilite >= (cMenu_leftMargin + GUI_CONST_TAPE_ITEMS))
+		cMenu_leftMargin = cMenu_hilite - GUI_CONST_TAPE_ITEMS + 1;
+
+	cMenu_rect->w = GUI_CONST_BORDER + (31 * fontWidth) + GUI_CONST_BORDER;
+	cMenu_rect->h = (3 * GUI_CONST_BORDER) + (19 * GUI_CONST_ITEM_SIZE) + GUI_CONST_BORDER + GUI_CONST_SEPARATOR;
+	cMenu_rect->x = (defaultSurface->w - cMenu_rect->w) / 2;
+	cMenu_rect->y = (defaultSurface->h - cMenu_rect->h) / 2;
+
+	drawDialogWithBorder(defaultSurface, cMenu_rect->x, cMenu_rect->y,
+		cMenu_rect->w, cMenu_rect->h);
+	printTitle(defaultSurface, cMenu_rect->x, cMenu_rect->y + 1,
+		cMenu_rect->w, GUI_COLOR_BACKGROUND, "TAPE BROWSER");
+	drawLineH(defaultSurface, cMenu_rect->x + (GUI_CONST_BORDER / 2),
+		cMenu_rect->y + (3 * GUI_CONST_BORDER) +
+		(GUI_CONST_TAPE_ITEMS * GUI_CONST_ITEM_SIZE) + 6,
+		cMenu_rect->w - GUI_CONST_BORDER, GUI_COLOR_SEPARATOR);
+
+	int mx = cMenu_rect->x + cMenu_rect->w - GUI_CONST_BORDER - 1,
+		my = cMenu_rect->y + cMenu_rect->h - 5 - (3 * fontLineHeight);
+
+	printText(defaultSurface, mx - (12 * fontWidth), my,
+		GUI_COLOR_FOREGROUND, "SELECT \aS\aP\aA\aC\aE");
+
+	printText(defaultSurface, mx - (5 * fontWidth) - GUI_CONST_HOTKEYCHAR,
+		my + fontLineHeight, GUI_COLOR_FOREGROUND,
+		tapeBrowser->hex ? "HEX \a\203\aH" : "DEC \a\203\aH");
+
+	mx = cMenu_rect->x + GUI_CONST_BORDER;
+	printCheck(defaultSurface, mx, my + 1, GUI_COLOR_CHECKED,
+		SCHR_CHECK, uiSet->TapeBrowser->flash);
+	printText(defaultSurface, mx + GUI_CONST_CHK_MARGIN, my,
+		GUI_COLOR_FOREGROUND, "\a\203\aF FLASH");
+
+	printCheck(defaultSurface, mx, my + fontLineHeight + 1,
+		GUI_COLOR_CHECKED, SCHR_CHECK, uiSet->TapeBrowser->monitoring);
+	printText(defaultSurface, mx + GUI_CONST_CHK_MARGIN, my + fontLineHeight,
+		GUI_COLOR_FOREGROUND, "\a\203\aS SOUND");
+
+	printText(defaultSurface, mx + GUI_CONST_CHK_MARGIN,
+		my + (2 * fontLineHeight), GUI_COLOR_FOREGROUND,
+		"\a\203\aA AUTOSTOP:");
+
+	char autostop[24];
+	switch (uiSet->TapeBrowser->autoStop) {
+		default:
+		case AS_OFF:
+			strcpy(autostop, "END OF TAPE");
+			break;
+		case AS_NEXTHEAD:
+			strcpy(autostop, "NEXT HEADER");
+			break;
+		case AS_CURSOR:
+			strcpy(autostop, "STOP-CURSOR");
+			break;
+	}
+
+	printText(defaultSurface, mx + GUI_CONST_CHK_MARGIN + (12 * fontWidth) +
+		GUI_CONST_HOTKEYCHAR, my + (2 * fontLineHeight), GUI_COLOR_HOTKEY, autostop);
+
+	char *ptr = NULL;
+
+	if (uiSet->TapeBrowser->fileName) {
+		ptr = strrchr(uiSet->TapeBrowser->fileName, '/');
+		if (ptr)
+			ptr++;
+		else
+			ptr = uiSet->TapeBrowser->fileName;
+	}
+	else
+		ptr = (char *) "[NEW TAPE]";
+
+	printText(defaultSurface, cMenu_rect->x + GUI_CONST_BORDER,
+		cMenu_rect->y + GUI_CONST_ITEM_SIZE + 1, GUI_COLOR_BORDER, ptr);
+
+	drawTapeBrowserItems();
 }
 //-----------------------------------------------------------------------------
 void UserInterface::keyhandlerMenu(WORD key)
@@ -1042,6 +1192,137 @@ void UserInterface::keyhandlerFileSelectorCallback(char *fileName)
 		*ptr = '\0';
 }
 //-----------------------------------------------------------------------------
+void UserInterface::keyhandlerTapeBrowser(WORD key)
+{
+	int i = cMenu_hilite, prevLeftMargin = 0;
+	bool change = false;
+
+	switch (key) {
+		case SDLK_F4 | KM_ALT:
+			ccb_exit(NULL);
+			menuCloseAll();
+			needRelease = true;
+			return;
+
+		case SDLK_ESCAPE:
+			menuClose();
+			needRelease = true;
+			return;
+
+		case SDLK_f | KM_ALT:
+			prevLeftMargin = cMenu_leftMargin;
+			uiSet->TapeBrowser->flash = !uiSet->TapeBrowser->flash;
+			drawTapeBrowser();
+			change = true;
+			break;
+
+		case SDLK_s | KM_ALT:
+			prevLeftMargin = cMenu_leftMargin;
+			uiSet->TapeBrowser->monitoring = !uiSet->TapeBrowser->monitoring;
+			drawTapeBrowser();
+			change = true;
+			break;
+
+		case SDLK_a | KM_ALT:
+			prevLeftMargin = cMenu_leftMargin;
+			if (uiSet->TapeBrowser->autoStop == AS_OFF)
+				uiSet->TapeBrowser->autoStop = AS_NEXTHEAD;
+			else if (uiSet->TapeBrowser->autoStop == AS_NEXTHEAD)
+				uiSet->TapeBrowser->autoStop = AS_CURSOR;
+			else if (uiSet->TapeBrowser->autoStop == AS_CURSOR)
+				uiSet->TapeBrowser->autoStop = AS_OFF;
+			drawTapeBrowser();
+			change = true;
+			break;
+
+		case SDLK_h | KM_ALT:
+			prevLeftMargin = cMenu_leftMargin;
+			tapeBrowser->hex = !tapeBrowser->hex;
+			drawTapeBrowser();
+			change = true;
+			break;
+
+		case SDLK_SPACE:
+			Emulator->TapeBrowser->SelectBlock(i);
+			needRelease = true;
+			change = true;
+			break;
+
+		case SDLK_RETURN:
+		case SDLK_KP_ENTER:
+			break;
+
+		case SDLK_LEFT:
+		case SDLK_PAGEUP:
+			if (i > 0) {
+				i -= GUI_CONST_TAPE_ITEMS;
+				if (i < 0)
+					i = 0;
+				change = true;
+			}
+			break;
+
+		case SDLK_RIGHT:
+		case SDLK_PAGEDOWN:
+			if (i < (cMenu_count - 1)) {
+				i += GUI_CONST_TAPE_ITEMS;
+				if (i >= cMenu_count)
+					i = (cMenu_count - 1);
+				change = true;
+			}
+			break;
+
+		case SDLK_UP:
+			if (i > 0) {
+				i--;
+				change = true;
+			}
+			break;
+
+		case SDLK_DOWN:
+			if (i < (cMenu_count - 1)) {
+				i++;
+				change = true;
+			}
+			break;
+
+		case SDLK_HOME:
+			i = 0;
+			needRelease = true;
+			change = true;
+			break;
+
+		case SDLK_END:
+			i = (cMenu_count - 1);
+			needRelease = true;
+			change = true;
+			break;
+
+		default:
+			break;
+	}
+
+	if (change) {
+		if (prevLeftMargin)
+			cMenu_leftMargin = prevLeftMargin;
+
+		if (i == cMenu_leftMargin - 1)
+			cMenu_leftMargin = i;
+
+		while (i < cMenu_leftMargin) {
+			cMenu_leftMargin -= GUI_CONST_TAPE_ITEMS;
+			if (cMenu_leftMargin < 0)
+				cMenu_leftMargin = 0;
+		}
+
+		if (i >= (cMenu_leftMargin + GUI_CONST_TAPE_ITEMS))
+			cMenu_leftMargin = i - GUI_CONST_TAPE_ITEMS + 1;
+
+		cMenu_hilite = i;
+		drawTapeBrowserItems();
+	}
+}
+//-----------------------------------------------------------------------------
 BYTE UserInterface::queryDialog(const char *title, bool save)
 {
 	void *data = (save) ? gui_query_save : gui_query_confirm;
@@ -1160,7 +1441,7 @@ void UserInterface::messageBox(const char *text, ...)
 
 	unsigned i, w = 0, h = fontLineHeight, x, y;
 	for (i = 0, x = 0; i < strlen(msgbuffer); i++) {
-		if (x > (maxCharsOnScreen - 5)) {
+		if (x > (unsigned) (maxCharsOnScreen - 5)) {
 			for (y = i; y <= strlen(msgbuffer); y++)
 				msgbuffer[y + 1] = msgbuffer[y];
 
@@ -1432,6 +1713,7 @@ void UserInterface::menuOpen(GUI_MENU_TYPE type, void *data)
 				break;
 
 			case GUI_TYPE_FILESELECTOR:
+			case GUI_TYPE_TAPEBROWSER:
 				break;
 
 			default:
@@ -1464,6 +1746,10 @@ void UserInterface::menuOpen(GUI_MENU_TYPE type, void *data)
 			drawFileSelector();
 			break;
 
+		case GUI_TYPE_TAPEBROWSER:
+			drawTapeBrowser();
+			break;
+
 		default:
 			menuStack[menuStackLevel].data = NULL;
 			menuStackLevel--;
@@ -1473,9 +1759,6 @@ void UserInterface::menuOpen(GUI_MENU_TYPE type, void *data)
 //-----------------------------------------------------------------------------
 void UserInterface::menuClose()
 {
-	if (menuStack[menuStackLevel].type == GUI_TYPE_FILESELECTOR)
-		ScanDir(NULL, &fileSelector->dirEntries, &cMenu_count, uiSet->showHiddenFiles);
-
 	menuStack[menuStackLevel].data = NULL;
 
 	menuStackLevel--;
@@ -1496,9 +1779,6 @@ void UserInterface::menuClose()
 //-----------------------------------------------------------------------------
 void UserInterface::menuCloseAll()
 {
-	if (menuStack[menuStackLevel].type == GUI_TYPE_FILESELECTOR)
-		ScanDir(NULL, &fileSelector->dirEntries, &cMenu_count, uiSet->showHiddenFiles);
-
 	for (int i = menuStackLevel; i >= 0; i--)
 		menuStack[i].data = NULL;
 
@@ -1518,7 +1798,11 @@ void UserInterface::menuHandleKey(WORD key)
 				keyhandlerFileSelector(key);
 				break;
 
-			default :
+			case GUI_TYPE_TAPEBROWSER:
+				keyhandlerTapeBrowser(key);
+				break;
+
+			default:
 				break;
 		}
 	}

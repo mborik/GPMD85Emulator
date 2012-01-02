@@ -27,6 +27,7 @@ libGPMD85emu_a_SOURCES = \
 	ScreenPMD85.cpp \
 	SoundDriver.cpp \
 	SystemPIO.cpp \
+	TapeBrowser.cpp \
 	UserInterface.cpp \
 	UserInterfaceData.cpp
 
@@ -51,5 +52,6 @@ noinst_HEADERS = \
 	ScreenPMD85.h \
 	SoundDriver.h \
 	SystemPIO.h \
+	TapeBrowser.h \
 	UserInterface.h \
 	UserInterfaceData.h

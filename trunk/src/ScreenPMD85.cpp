@@ -40,8 +40,9 @@ ScreenPMD85::ScreenPMD85(TDisplayMode dispMode, int border)
 	BlinkState = false;
 	BlinkingEnabled = false;
 	LCDmode = false;
+	computerModel[0] = '\0';
 	ledState = 0;
-	diskState = 0;
+	iconState = 0;
 	statusFPS = 0;
 	statusPercentage = 0;
 	borderSize = (dispMode == DM_FULLSCREEN || !gvi.wm) ? 0 : (border * BORDER_MULTIPLIER);
@@ -188,7 +189,7 @@ TColor ScreenPMD85::GetColorAttr(int Index)
 //---------------------------------------------------------------------------
 void ScreenPMD85::SetLedState(int led)
 {
-	static int pullUpConstant = (TCYCLES_PER_FRAME / 13);
+	static int pullUpConstant = (TCYCLES_PER_FRAME / 16);
 	static int pullUpYellow = 0;
 	static int pullUpRed = 0;
 
@@ -209,21 +210,52 @@ void ScreenPMD85::SetLedState(int led)
 	ledState = led;
 }
 //---------------------------------------------------------------------------
-void ScreenPMD85::SetDiskState(int disk)
+void ScreenPMD85::SetIconState(int icon)
 {
-	static int pullUpDisk = 0;
+	static int pullUpIcon = 0;
 
-	if (diskState != disk) {
-		if (diskState > 0 && disk == 0) {
-			if (pullUpDisk == 0)
-				pullUpDisk = 50;
+	if (iconState != icon) {
+		if (iconState > 0 && iconState < 9 && icon == 0) {
+			if (pullUpIcon == 0)
+				pullUpIcon = 50;
 			else
-				pullUpDisk--;
+				pullUpIcon--;
 		}
 
-		if (pullUpDisk == 0 || disk > 0)
-			diskState = disk;
+		if (pullUpIcon == 0 || icon > 0)
+			iconState = icon;
 	}
+}
+//---------------------------------------------------------------------------
+void ScreenPMD85::SetComputerModel(TComputerModel model)
+{
+	const char *modelName = NULL;
+
+	switch (model) {
+		case CM_V1:
+			modelName = "M1"; break;
+		case CM_V2:
+			modelName = "M2"; break;
+		case CM_V2A:
+			modelName = "M2A"; break;
+		case CM_V3:
+			modelName = "M3"; break;
+		case CM_ALFA:
+			modelName = "\2141"; break;
+		case CM_ALFA2:
+			modelName = "\2142"; break;
+		case CM_C2717:
+			modelName = "C\215\216\217"; break;
+		case CM_MATO:
+			modelName = "Ma\213o"; break;
+		default:
+			break;
+	}
+
+	if (modelName)
+		sprintf(computerModel, "%s: ", modelName);
+	else
+		computerModel[0] = '\0';
 }
 //---------------------------------------------------------------------------
 void ScreenPMD85::RefreshDisplay()
@@ -446,8 +478,9 @@ void ScreenPMD85::PrepareStatusBar()
 	SDL_Rect *r = new SDL_Rect(*BlitRectDest);
 	DWORD borderColor = SDL_MapRGB(Screen->format, 12, 12, 12);
 
+	int i = 0;
 	if (borderSize > 0) {
-		int i = (BlitRectSrc->h / 256) * 2;
+		i = (BlitRectSrc->h / 256) * 2;
 		r->x -= i;
 		r->y -= i;
 		r->w += i * 2;
@@ -468,6 +501,10 @@ void ScreenPMD85::PrepareStatusBar()
 		r->h = 1;
 		SDL_FillRect(Screen, r, borderColor);
 	}
+
+	r->y += r->h + i;
+	r->h = STATUSBAR_HEIGHT;
+	SDL_FillRect(Screen, r, 0);
 
 	delete r;
 }
@@ -496,10 +533,10 @@ void ScreenPMD85::RedrawStatusBar()
 	s->x = (ledState & 4) ? (3 * STATUSBAR_ICON) : 0;
 	SDL_BlitSurface(StatusBarIcons, s, Screen, r);
 
-//	disk icon...
+//	tape/disk icon...
 	r->x -= (4 * STATUSBAR_SPACING);
-	if (diskState) {
-		s->x = (diskState * STATUSBAR_ICON) + (3 * STATUSBAR_ICON);
+	if (iconState) {
+		s->x = (iconState * STATUSBAR_ICON) + (3 * STATUSBAR_ICON);
 		SDL_BlitSurface(StatusBarIcons, s, Screen, r);
 	}
 	else
@@ -512,12 +549,13 @@ void ScreenPMD85::RedrawStatusBar()
 		return;
 	}
 
+	int tapProgressWidth = r->x - STATUSBAR_SPACING;
+	static char status[24] = "";
+	static BYTE pauseBlinker = 0;
+
 //	status text, cpu meter and blinking pause...
 	r->x = BlitRectDest->x + STATUSBAR_SPACING;
 	r->y += 2;
-
-	static char status[20] = "";
-	static BYTE pauseBlinker = 0;
 
 	GUI->printText(Screen, r->x, r->y, 0, status);
 	if (statusPercentage < 0) {
@@ -527,8 +565,20 @@ void ScreenPMD85::RedrawStatusBar()
 			pauseBlinker = 0;
 	}
 	else if (statusPercentage > 0) {
-		sprintf(status, "FPS:%d CPU:%d%%", statusFPS, statusPercentage);
+		sprintf(status, "%sFPS:%d CPU:%d%%", computerModel, statusFPS, statusPercentage);
 		GUI->printText(Screen, r->x, r->y, SDL_MapRGB(Screen->format, 64, 64, 64), status);
+	}
+
+//	tape progress bar...
+	r->x = (r->x + (strlen(status) * 6) + STATUSBAR_SPACING);
+	r->y += 3;
+	r->w = tapProgressWidth - r->x;
+	r->h = 2;
+
+	SDL_FillRect(Screen, r, *(TapeBrowserProgress->Active) ? SDL_MapRGB(Screen->format, 16, 24, 16) : 0);
+	if (*(TapeBrowserProgress->Active)) {
+		r->w = ((double) r->w / TapeBrowserProgress->Max) * TapeBrowserProgress->Position;
+		SDL_FillRect(Screen, r, SDL_MapRGB(Screen->format, 40, 100, 50));
 	}
 
 	SDL_UnlockSurface(Screen);
@@ -1168,10 +1218,10 @@ void ScreenPMD85::RGBpalete(SDL_Color *pal)
 	// UserInterface colors:
 	static SDL_Color guipal[16] = {
 		{   0,   0,   0, 0 },  // window shadow
-		{ 160,   0,   0, 0 },  // window border a title background
-		{ 255, 255, 255, 0 },  // window background
+		{ 160,  24,  12, 0 },  // window border a title background
+		{ 242, 238, 233, 0 },  // window background
 		{   0,   0,   0, 0 },  // foreground, text
-		{  80, 255, 255, 0 },  // highlight background
+		{ 196, 215, 245, 0 },  // highlight background
 		{ 160, 160, 160, 0 },  // disabled item, inactive text
 		{ 200, 200, 200, 0 },  // checkbox/radio border, separator
 		{   0, 160,   0, 0 },  // checkbox/radio active symbol

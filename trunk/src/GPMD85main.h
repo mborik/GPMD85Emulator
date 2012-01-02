@@ -29,10 +29,11 @@
 #include "RomModule.h"
 #include "RaomModule.h"
 #include "Settings.h"
+#include "TapeBrowser.h"
 #include "ScreenPMD85.h"
 #include "SoundDriver.h"
 //-----------------------------------------------------------------------------
-class TFormMain : public sigslot::has_slots<>
+class TEmulator : public sigslot::has_slots<>
 {
 	public:
 		bool isActive;
@@ -40,11 +41,12 @@ class TFormMain : public sigslot::has_slots<>
 
 		SDL_TimerID BaseTimer;
 		TSettings *Settings;
+		TTapeBrowser *TapeBrowser;
 
 		BYTE *keyBuffer;
 
-		TFormMain();
-		virtual ~TFormMain();
+		TEmulator();
+		virtual ~TEmulator();
 
 		void ProcessSettings(BYTE filter);
 
@@ -108,13 +110,16 @@ class TFormMain : public sigslot::has_slots<>
 		void ConnectPMD32(bool init);
 		void ProcessSnapshot(char *fileName, BYTE *flag);
 		void PrepareSnapshot(char *fileName, BYTE *flag);
+		void InsertTape(char *fileName, BYTE *flag);
 		void InsertPMD32Disk(char *fileName, BYTE *flag);
 		void ChangeROMFile(char *fileName, BYTE *flag);
 };
+//---------------------------------------------------------------------------
+extern TEmulator *Emulator;
 //-----------------------------------------------------------------------------
 inline DWORD FormMain_BaseTimerCallback(DWORD interval, void *param)
 {
-	((TFormMain *) param)->BaseTimerCallback();
+	((TEmulator *) param)->BaseTimerCallback();
 	return interval;
 }
 //-----------------------------------------------------------------------------

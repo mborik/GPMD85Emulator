@@ -32,7 +32,8 @@
 #define SCHR_CHECK     135
 #define SCHR_RADIO     136
 #define SCHR_LOCKER    137
-#define SCHR_LAST      140
+#define SCHR_STOP      138
+#define SCHR_LAST      144
 //-----------------------------------------------------------------------------
 #define GUI_CONST_BORDER     8
 #define GUI_CONST_ITEM_SIZE  11
@@ -40,6 +41,7 @@
 #define GUI_CONST_CHK_MARGIN 14
 #define GUI_CONST_HOTKEYCHAR 10
 #define GUI_CONST_KEY_REPEAT 50
+#define GUI_CONST_TAPE_ITEMS 16
 //-----------------------------------------------------------------------------
 #define GUI_COLOR_SHADOW     80
 #define GUI_COLOR_BORDER     81
@@ -94,14 +96,20 @@ class UserInterface : public sigslot::has_slots<>
 			sigslot::signal2<char *, BYTE *> callback;
 		} GUI_FILESELECTOR_DATA;
 
+		typedef struct GUI_TAPEBROWSER_DATA {
+			char **entries;
+			int count;
+			bool hex;
+		} GUI_TAPEBROWSER_DATA;
+
 		static TSettings *uiSet;
-		static void *uiFrm;
 		static BYTE uiSetChanges;
 		static BYTE uiQueryState;
 		static sigslot::signal0<> uiCallback;
 
 		SDL_Surface *defaultSurface;
 		GUI_FILESELECTOR_DATA *fileSelector;
+		GUI_TAPEBROWSER_DATA *tapeBrowser;
 		sigslot::signal2<char *, BYTE *> editBoxValidator;
 
 		bool needRedraw;
@@ -119,7 +127,7 @@ class UserInterface : public sigslot::has_slots<>
 		void messageBox(const char *text, ...);
 		BYTE editBox(const char *title, char *buffer, BYTE maxLength, bool decimal);
 
-		void menuOpen(GUI_MENU_TYPE type, void *data);
+		void menuOpen(GUI_MENU_TYPE type, void *data = NULL);
 		void menuClose();
 		void menuCloseAll();
 		void menuHandleKey(WORD key);
@@ -161,9 +169,12 @@ class UserInterface : public sigslot::has_slots<>
 		void drawMenu(void *data);
 		void drawFileSelectorItems();
 		void drawFileSelector();
+		void drawTapeBrowserItems();
+		void drawTapeBrowser();
 		void keyhandlerMenu(WORD key);
 		void keyhandlerFileSelector(WORD key);
 		void keyhandlerFileSelectorCallback(char *fileName);
+		void keyhandlerTapeBrowser(WORD key);
 };
 //-----------------------------------------------------------------------------
 #endif

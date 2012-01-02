@@ -27,14 +27,11 @@
 class TSettings
 {
 	public:
-		enum SetAutoStopType { AS_OFF = 0, AS_NEXTHEAD, AS_CURSOR };
 		struct SetRomModuleFile {
 			char *rmmFile;
 			DWORD size;
 			BYTE err;
 		};
-
-	private:
 		struct SetRomPackage {
 			char *name;
 			BYTE count;
@@ -56,7 +53,7 @@ class TSettings
 		struct SetTapeBrowser {
 			bool monitoring;
 			bool flash;
-			SetAutoStopType autoStop;
+			TAutoStopType autoStop;
 			char *fileName;
 		};
 		struct SetScreen {
@@ -124,6 +121,7 @@ class TSettings
 			char *file;
 		};
 
+	private:
 		xmlDocPtr  xmlDoc;
 		xmlNodePtr xmlRoot;
 

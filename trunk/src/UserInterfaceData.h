@@ -97,7 +97,7 @@ static GUI_MENU_ENTRY gui_p32_images_menu[] = {
 };
 static GUI_MENU_ENTRY gui_file_menu[] = {
 	{ MI_TITLE, "FILE" },
-	{ MI_DIALOG, "OPEN \aTAPE", "F2", SDLK_t, NULL, ccb_fileselector, NULL, false, false, 1 },
+	{ MI_DIALOG, "OPEN \aTAPE", "F2", SDLK_t, NULL, ccb_fileselector, NULL, true, false, 1 },
 	{ MI_DIALOG, "SAVE \aTAPE AS", "^F2", SDLK_t, NULL, ccb_fileselector, NULL, false, false, 2 },
 	{ MI_SEPARATOR },
 	{ MI_DIALOG, "OPEN \aSNAPSHOT", "F7", SDLK_s, NULL, ccb_fileselector, NULL, true, false, 3 },
@@ -124,7 +124,7 @@ static GUI_MENU_ENTRY gui_view_cmode_menu[] = {
 	{ MI_RADIO, "\aMONOCHROMATIC", "M", SDLK_m, NULL, ccb_view_cmod, dcb_view_cmod_state, true, false, CP_MONO },
 	{ MI_RADIO, "\aSTANDARD", "M", SDLK_s, NULL, ccb_view_cmod, dcb_view_cmod_state, true, false, CP_STANDARD },
 	{ MI_RADIO, "\aCOLOR", "C", SDLK_c, NULL, ccb_view_cmod, dcb_view_cmod_state, true, false, CP_COLOR },
-	{ MI_RADIO, "COLOR\aACE\213", "C", SDLK_a, NULL, ccb_view_cmod, dcb_view_cmod_state, true, false, CP_MULTICOLOR },
+	{ MI_RADIO, "COLOR\aACE\220", "C", SDLK_a, NULL, ccb_view_cmod, dcb_view_cmod_state, true, false, CP_MULTICOLOR },
 	{ MENU_END }
 };
 static GUI_MENU_ENTRY gui_view_cpal_menu[] = {
@@ -144,7 +144,7 @@ static GUI_MENU_ENTRY gui_view_colors_menu[] = {
 };
 static GUI_MENU_ENTRY gui_view_scaler_menu[] = {
 	{ MI_TITLE, "SCALER" },
-	{ MI_RADIO, "\aLCD EMULATION\213", "5", SDLK_l, NULL, ccb_view_sclr, dcb_view_sclr_state, true, false, -1 },
+	{ MI_RADIO, "\aLCD EMULATION\220", "5", SDLK_l, NULL, ccb_view_sclr, dcb_view_sclr_state, true, false, -1 },
 	{ MI_RADIO, "HALFPASS \a0%", "6", SDLK_0, NULL, ccb_view_sclr, dcb_view_sclr_state, true, false, HP_0 },
 	{ MI_RADIO, "HALFPASS \a25%", "7", SDLK_2, NULL, ccb_view_sclr, dcb_view_sclr_state, true, false, HP_25 },
 	{ MI_RADIO, "HALFPASS \a50%", "8", SDLK_5, NULL, ccb_view_sclr, dcb_view_sclr_state, true, false, HP_50 },
@@ -203,7 +203,7 @@ static GUI_MENU_ENTRY gui_machine_menu[] = {
 	{ MI_SEPARATOR },
 	{ MI_RADIO, "\aConsul 2717", NULL, SDLK_c, NULL, ccb_machine, dcb_machine_state, true, false, CM_C2717 },
 	{ MI_SEPARATOR },
-	{ MI_RADIO, "\aMa\212o", NULL, SDLK_m, NULL, ccb_machine, dcb_machine_state, true, false, CM_MATO },
+	{ MI_RADIO, "\aMa\213o", NULL, SDLK_m, NULL, ccb_machine, dcb_machine_state, true, false, CM_MATO },
 	{ MENU_END }
 };
 static GUI_MENU_ENTRY gui_mem_menu[] = {
@@ -232,7 +232,7 @@ static GUI_MENU_ENTRY gui_pers_menu[] = {
 	{ MI_SEPARATOR },
 	{ MI_SUBMENU, "PMD \a32", NULL, SDLK_3, gui_p32_menu, NULL, NULL, true },
 	{ MI_SEPARATOR },
-	{ MI_CHECKBOX, "MU\aSICA\213 INTERFACE", NULL, SDLK_s, NULL, NULL, NULL, false },
+	{ MI_CHECKBOX, "MU\aSICA\220 INTERFACE", NULL, SDLK_s, NULL, NULL, NULL, false },
 	{ MENU_END }
 };
 static GUI_MENU_ENTRY UNUSED_VARIABLE gui_main_menu[] = {

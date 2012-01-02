@@ -20,11 +20,8 @@
 //-----------------------------------------------------------------------------
 const char *dcb_view_size_state(GUI_MENU_ENTRY *ptr)
 {
-	if (gvi.wm)
-		ptr->state = (UserInterface::uiSet->Screen->size == (TDisplayMode) ptr->action);
-	else
-		ptr->enabled = false;
-
+	ptr->enabled = (gvi.wm) ? true : false;
+	ptr->state = (UserInterface::uiSet->Screen->size == (TDisplayMode) ptr->action);
 	return NULL;
 }
 //-----------------------------------------------------------------------------
@@ -101,7 +98,7 @@ const char *dcb_kbd_mato_state(GUI_MENU_ENTRY *ptr)
 {
 	ptr->state = UserInterface::uiSet->Keyboard->useMatoCtrl;
 	ptr->enabled = (UserInterface::uiSet->CurrentModel->type == CM_MATO);
-	return "for Ma\212o";
+	return "for Ma\213o";
 }
 //-----------------------------------------------------------------------------
 const char *dcb_emu_m3cmp_state(GUI_MENU_ENTRY *ptr)
@@ -264,26 +261,25 @@ const char *dcb_p32_imgd_state(GUI_MENU_ENTRY *ptr)
 //-----------------------------------------------------------------------------
 bool ccb_fileselector(GUI_MENU_ENTRY *ptr)
 {
-	TFormMain *f = (TFormMain *) UserInterface::uiFrm;
 	switch (ptr->action) {
 		case 1:
-			f->ActionLoadTape();
+			Emulator->ActionLoadTape();
 			break;
 
 		case 3:
-			f->ActionLoadSnap();
+			Emulator->ActionLoadSnap();
 			break;
 
 		case 4:
-			f->ActionSaveSnap();
+			Emulator->ActionSaveSnap();
 			break;
 
 		case 5:
-			f->ActionLoadRom(0);
+			Emulator->ActionLoadRom(0);
 			break;
 
 		case 6:
-			f->ActionLoadRom(32);
+			Emulator->ActionLoadRom(32);
 			break;
 
 		default:
@@ -302,9 +298,8 @@ bool ccb_view_size(GUI_MENU_ENTRY *ptr)
 //-----------------------------------------------------------------------------
 bool ccb_view_brdr(GUI_MENU_ENTRY *ptr)
 {
-	TFormMain *f = (TFormMain *) UserInterface::uiFrm;
 	sprintf(msgbuffer, "%d", ptr->action);
-	if (f->ActionEditBox("CHANGE BORDER SIZE:", msgbuffer, 1, true) == 1) {
+	if (Emulator->ActionEditBox("CHANGE BORDER SIZE:", msgbuffer, 1, true) == 1) {
 		long int value = strtol(msgbuffer, NULL, 10);
 		if (value == 0 && msgbuffer[0] != '0')
 			value = -1;
@@ -360,9 +355,8 @@ bool ccb_snd_mute(GUI_MENU_ENTRY *ptr)
 //-----------------------------------------------------------------------------
 bool ccb_snd_volume(GUI_MENU_ENTRY *ptr)
 {
-	TFormMain *f = (TFormMain *) UserInterface::uiFrm;
 	sprintf(msgbuffer, "%d", ptr->action);
-	f->ActionEditBox("CHANGE VOLUME:", msgbuffer, 3, true);
+	Emulator->ActionEditBox("CHANGE VOLUME:", msgbuffer, 3, true);
 
 	long int value = strtol(msgbuffer, NULL, 10);
 	if (value > 0 && value < 128) {
@@ -402,16 +396,14 @@ bool ccb_emu_pause(GUI_MENU_ENTRY *ptr)
 //-----------------------------------------------------------------------------
 bool ccb_emu_reset(GUI_MENU_ENTRY *ptr)
 {
-	TFormMain *f = (TFormMain *) UserInterface::uiFrm;
-	UserInterface::uiCallback.connect(f, &TFormMain::ActionReset);
+	UserInterface::uiCallback.connect(Emulator, &TEmulator::ActionReset);
 	UserInterface::uiSetChanges |= PS_CLOSEALL;
 	return true;
 }
 //-----------------------------------------------------------------------------
 bool ccb_emu_hardreset(GUI_MENU_ENTRY *ptr)
 {
-	TFormMain *f = (TFormMain *) UserInterface::uiFrm;
-	UserInterface::uiCallback.connect(f, &TFormMain::ActionHardReset);
+	UserInterface::uiCallback.connect(Emulator, &TEmulator::ActionHardReset);
 	UserInterface::uiSetChanges |= PS_CLOSEALL;
 	return true;
 }
@@ -451,9 +443,7 @@ bool ccb_mem_rmod(GUI_MENU_ENTRY *ptr)
 //-----------------------------------------------------------------------------
 bool ccb_rom_pckg(GUI_MENU_ENTRY *ptr)
 {
-	UserInterface::uiSet->CurrentModel->romModule =
-		UserInterface::uiSet->RomPackages[ptr->action];
-
+	UserInterface::uiSet->CurrentModel->romModule = UserInterface::uiSet->RomPackages[ptr->action];
 	UserInterface::uiSetChanges |= PS_MACHINE | PS_PERIPHERALS;
 	return true;
 }
@@ -484,10 +474,8 @@ bool ccb_p32_imgd(GUI_MENU_ENTRY *ptr)
 		UserInterface::uiSetChanges |= PS_PERIPHERALS;
 		return false;
 	}
-	else {
-		TFormMain *f = (TFormMain *) UserInterface::uiFrm;
-		f->ActionLoadPMD32Disk(ptr->action & 0xF);
-	}
+	else
+		Emulator->ActionLoadPMD32Disk(ptr->action & 0xF);
 
 	return false;
 }
@@ -516,8 +504,7 @@ bool ccb_p32_extc(GUI_MENU_ENTRY *ptr)
 //-----------------------------------------------------------------------------
 bool ccb_exit(GUI_MENU_ENTRY *ptr)
 {
-	TFormMain *f = (TFormMain *) UserInterface::uiFrm;
-	f->ActionExit();
+	Emulator->ActionExit();
 	return true;
 }
 //-----------------------------------------------------------------------------

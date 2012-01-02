@@ -1,3 +1,6 @@
+2012-01-02 [mborik] finished prenatal version of tape browser, added tape activity progress to statusbar
+2012-01-01 [mborik] fully functional tape emulation, added current model acronym and tape activity icon to status bar
+2011-12-30 [mborik] fixed extended 384px width screen mode for Consul 2717 (and clean-up of trivial inline functions in SystemPIO)
 2011-12-28 [ub880d] show-hidden-files in filebrowser (hotkey switch META-PERIOD), prepared configuration file for auto-save-config, configuration file version changed to 1.1
 2011-12-18 [ub880d] 4x4 screen size and scalers
 2011-12-18 [mborik] Tracing statements in video/sound initialization and can be enabled with configure (--enable-trace)
