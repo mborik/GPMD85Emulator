@@ -49,7 +49,7 @@ public:
 	static int commonPackBlock(BYTE *dest, BYTE *src, int len);
 	static int commonUnpackBlock(BYTE *dest, int destlen, BYTE *src, int srclen);
 	static bool commonTestDir(const char *directory, char *add, char **tail);
-	static void commonScanDir(const char *directory, char ***filenames, int *numfiles, bool showHiddenFiles);
+	static void commonScanDir(const char *directory, char ***filenames, int *numfiles, bool showHiddenFiles = false);
 
 	static inline bool commonFileExists(const char *path)
 		{ return (stat(path, &filestat) == 0 && S_ISREG(filestat.st_mode)); }

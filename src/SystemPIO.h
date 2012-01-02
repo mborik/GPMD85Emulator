@@ -64,10 +64,11 @@ public:
 
 	sigslot::signal3<int, bool, int> PrepareSample;
 
-	int inline GetLedState() { return ledState; }
-	void inline SetExchZY(bool exchZY) { this->exchZY = exchZY; }
-	void inline SetNumpad(bool numpad) { this->numpad = numpad; }
-	void inline SetExtMato(bool extMato) { this->extMato = extMato; }
+	BYTE ledState;
+	BYTE width384;
+	bool exchZY;
+	bool numpad;
+	bool extMato;
 
 private:
 	void ReadKeyboardB();
@@ -89,17 +90,12 @@ private:
 	int videoCounter;
 #endif
 
-	int ledState;
-
 	static KEYMAP KeyMap[];
 	static KEYMAP KeyMapNumpad[];
 	static KEYMAP KeyMapMato[];
 	static KEYMAP KeyMapMatoExt[];
 	BYTE ShiftStopCtrl;
 	BYTE KeyColumns[16];
-	bool exchZY;
-	bool numpad;
-	bool extMato;
 };
 //---------------------------------------------------------------------------
 #endif

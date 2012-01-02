@@ -59,7 +59,8 @@ am_libGPMD85emu_a_OBJECTS = CommonUtils.$(OBJEXT) GPMD85main.$(OBJEXT) \
 	IifTimer.$(OBJEXT) Pmd32.$(OBJEXT) RaomModule.$(OBJEXT) \
 	RomModule.$(OBJEXT) Settings.$(OBJEXT) ScreenPMD85.$(OBJEXT) \
 	SoundDriver.$(OBJEXT) SystemPIO.$(OBJEXT) \
-	UserInterface.$(OBJEXT) UserInterfaceData.$(OBJEXT)
+	TapeBrowser.$(OBJEXT) UserInterface.$(OBJEXT) \
+	UserInterfaceData.$(OBJEXT)
 libGPMD85emu_a_OBJECTS = $(am_libGPMD85emu_a_OBJECTS)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
@@ -200,6 +201,7 @@ libGPMD85emu_a_SOURCES = \
 	ScreenPMD85.cpp \
 	SoundDriver.cpp \
 	SystemPIO.cpp \
+	TapeBrowser.cpp \
 	UserInterface.cpp \
 	UserInterfaceData.cpp
 
@@ -224,6 +226,7 @@ noinst_HEADERS = \
 	ScreenPMD85.h \
 	SoundDriver.h \
 	SystemPIO.h \
+	TapeBrowser.h \
 	UserInterface.h \
 	UserInterfaceData.h
 
@@ -292,6 +295,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Settings.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/SoundDriver.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/SystemPIO.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/TapeBrowser.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/UserInterface.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/UserInterfaceData.Po@am__quote@
 

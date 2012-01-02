@@ -31,9 +31,9 @@ IifTape::IifTape(TComputerModel model) : ChipUSART8251()
 int IifTape::GetTapeIcon()
 {
 	if (tapeRxState != TP_RX_IDLE)
-		return 10;
+		return 9;
 	if (tapeTxState != TP_TX_FF)
-		return 11;
+		return 10;
 
 	return 0;
 }
@@ -44,7 +44,7 @@ int IifTape::GetTapeIcon()
 void IifTape::resetDevice(int ticks)
 {
 	ChipReset(false);
-	TapeCommand(CMD_STOP);
+	TapeCommand(CMD_STOP, NULL);
 }
 //---------------------------------------------------------------------------
 void IifTape::writeToDevice(BYTE port, BYTE value, int ticks)
@@ -166,7 +166,7 @@ void IifTape::FnOnTxRChange()
 //						ok = false;
 //					else
 //					{
-						TapeCommand(CMD_PRE_SAVE);
+						TapeCommand(CMD_PRE_SAVE, NULL);
 						*((WORD *)buff) = 63;
 						WORD len = (WORD)(*((WORD *)(buff + 54)) + 2);
 						*((WORD *)(buff + txByteCounter)) = len;
@@ -186,7 +186,7 @@ void IifTape::FnOnTxRChange()
 //					debug("<- CRC BODY -> %02X", crc);
 //					if (crc == val)
 //					{
-						TapeCommand(CMD_SAVE);
+						TapeCommand(CMD_SAVE, NULL);
 						tapeTxState = TP_TX_WAIT_EB;
 						txByteCounter = 2;
 						txTickCounter = TC_EB_MAX;
@@ -222,14 +222,15 @@ bool IifTape::GetTapeByte(BYTE *byte)
 {
 	if (data && tapeRxState == TP_RX_DATA) {
 		*byte = *data++;
-		TapeCommand(CMD_PROGRESS);
+		TapeCommand(CMD_PROGRESS, NULL);
 		if (--dataLen == 0) {
 			tapeRxState = TP_RX_IDLE;
 			data = NULL;
-			TapeCommand(CMD_NEXT);
+			TapeCommand(CMD_NEXT, NULL);
 		}
 		else
 			rxTickCounter = TC_NO_BYTE;
+
 		return false;
 	}
 
@@ -260,7 +261,7 @@ void IifTape::AcceptTapeBlock(WORD len)
 		if (dataLen == 0) {
 			tapeRxState = TP_RX_IDLE;
 			data = NULL;
-			TapeCommand(CMD_NEXT);
+			TapeCommand(CMD_NEXT, NULL);
 		}
 		else
 			rxTickCounter = TC_NO_BYTE;
@@ -277,15 +278,15 @@ void IifTape::TapeClockService123(int ticks, int dur)
 
 		if (tapeRxState != TP_RX_IDLE && tapeRxState != TP_RX_GAP) {
 			if (model == CM_V1 || model == CM_ALFA) {
-				if (flashLoad == false)
+				if (!flashLoad)
 					PeripheralSetRxD(bit);
 			}
 			else
 				PeripheralSetDSR(tapeClkState ^ bit);
 
-			int cmd = CMD_MONITORING;
-			TapeCommand(cmd); // TODO: vyriesit preberanie vysledku true/false!!!
-			if (/* cmd < 0 && */ flashLoad == false)
+			bool ret = false;
+			TapeCommand(CMD_MONITORING, &ret);
+			if (ret && !flashLoad)
 				PrepareSample(CHNL_TAPE, tapeClkState ^ bit, ticks - tapeTicks);
 		}
 
@@ -299,7 +300,7 @@ void IifTape::TapeClockService123(int ticks, int dur)
 				if (--txTickCounter == 0) {
 					if (txByteCounter > 2) {
 						*((WORD *)buff) = (WORD)(txByteCounter - 2);
-						TapeCommand(CMD_SAVE);
+						TapeCommand(CMD_SAVE, NULL);
 					}
 					InitTapeTx();
 				}
@@ -308,7 +309,7 @@ void IifTape::TapeClockService123(int ticks, int dur)
 			case TP_TX_EXT_BODY :
 				if (--txTickCounter == 0) {
 					*((WORD *)buff) = (WORD)(txByteCounter - 2);
-					TapeCommand(CMD_SAVE);
+					TapeCommand(CMD_SAVE, NULL);
 
 					tapeTxState = TP_TX_WAIT_EB;
 					txByteCounter = 2;
@@ -333,16 +334,16 @@ void IifTape::TapeClockService123(int ticks, int dur)
 				break;
 
 			case TP_RX_LEADER :
-				if (flashLoad == true && (model == CM_V1 || model == CM_ALFA)) {
+				if (flashLoad && (model == CM_V1 || model == CM_ALFA)) {
 					rxTickCounter--;
 					if (data != NULL && (PeripheralReadRxR() == false || rxTickCounter == 0)) {
 						rxTickCounter = TC_BYTE_CLOCK;
 						PeripheralWriteByte(*data++);
-						TapeCommand(CMD_PROGRESS);
+						TapeCommand(CMD_PROGRESS, NULL);
 						if (--dataLen == 0) {
 							tapeRxState = TP_RX_IDLE;
 							data = NULL;
-							TapeCommand(CMD_NEXT);
+							TapeCommand(CMD_NEXT, NULL);
 						}
 					}
 					return;
@@ -351,7 +352,7 @@ void IifTape::TapeClockService123(int ticks, int dur)
 				if (--rxTickCounter == 0) {
 					tapeRxState = TP_RX_START;
 					rxTickCounter = TC_START;
-					if (tapeClkState == false && (model == CM_V1 || model == CM_ALFA))
+					if (!tapeClkState && (model == CM_V1 || model == CM_ALFA))
 						rxTickCounter++;
 					bit = false;
 				}
@@ -361,7 +362,7 @@ void IifTape::TapeClockService123(int ticks, int dur)
 				if (--rxTickCounter == 0) {
 					tapeRxState = TP_RX_DATA;
 					rxTickCounter = TC_DATA;
-					if (flashLoad == false) {
+					if (!flashLoad) {
 						byte = *data++;
 						bit = (byte & 1);
 					}
@@ -369,7 +370,7 @@ void IifTape::TapeClockService123(int ticks, int dur)
 				break;
 
 			case TP_RX_DATA :
-				if (flashLoad == true && model != CM_V1 && model != CM_ALFA) {
+				if (flashLoad && model != CM_V1 && model != CM_ALFA) {
 					if (--rxTickCounter == 0) {
 						tapeRxState = TP_RX_START;
 						rxTickCounter = TC_START;
@@ -392,12 +393,12 @@ void IifTape::TapeClockService123(int ticks, int dur)
 
 			case TP_RX_STOP :
 				if (--rxTickCounter == 0) {
-					TapeCommand(CMD_PROGRESS);
+					TapeCommand(CMD_PROGRESS, NULL);
 					if (--dataLen == 0) {
-						if (head == true) {
+						if (head) {
 							tapeRxState = TP_RX_IDLE;
 							data = NULL;
-							TapeCommand(CMD_NEXT);
+							TapeCommand(CMD_NEXT, NULL);
 						}
 						else {
 							tapeRxState = TP_RX_TAIL;
@@ -417,7 +418,7 @@ void IifTape::TapeClockService123(int ticks, int dur)
 				if (--rxTickCounter == 0) {
 					tapeRxState = TP_RX_IDLE;
 					data = NULL;
-					TapeCommand(CMD_NEXT);
+					TapeCommand(CMD_NEXT, NULL);
 				}
 				break;
 		}
@@ -442,8 +443,8 @@ void IifTape::PrepareBlock(BYTE *data, WORD dataLen, bool head, bool flash, bool
 	if (data == NULL || dataLen == 0)
 		tapeRxState = TP_RX_IDLE;
 	else {
-		if (head == true) {
-			if (onPlay == true) {
+		if (head) {
+			if (onPlay) {
 				tapeRxState = TP_RX_LEADER;
 				rxTickCounter = TC_HEAD_LEADER;
 			}
@@ -456,7 +457,7 @@ void IifTape::PrepareBlock(BYTE *data, WORD dataLen, bool head, bool flash, bool
 			tapeRxState = TP_RX_LEADER;
 			rxTickCounter = TC_BODY_LEADER;
 			flashLoad = flash;
-			if (flashLoad == true && model != CM_V1 && model != CM_ALFA) {
+			if (flashLoad && model != CM_V1 && model != CM_ALFA) {
 				tapeRxState = TP_RX_DATA;
 				rxTickCounter = TC_NO_BYTE;
 			}

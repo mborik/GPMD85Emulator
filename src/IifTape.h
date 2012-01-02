@@ -68,57 +68,57 @@
 #define CMD_SAVE          6
 //---------------------------------------------------------------------------
 class IifTape : public PeripheralDevice, public ChipUSART8251 {
-public:
-	IifTape(TComputerModel model);
+	public:
+		IifTape(TComputerModel model);
 
-	virtual void resetDevice(int ticks);
-	virtual void writeToDevice(BYTE port, BYTE value, int ticks);
-	virtual BYTE readFromDevice(BYTE port, int ticks);
+		virtual void resetDevice(int ticks);
+		virtual void writeToDevice(BYTE port, BYTE value, int ticks);
+		virtual BYTE readFromDevice(BYTE port, int ticks);
 
-	sigslot::signal1<int> TapeCommand;
-	sigslot::signal3<int, bool, int> PrepareSample;
+		sigslot::signal2<int, bool *> TapeCommand;
+		sigslot::signal3<int, bool, int> PrepareSample;
 
-	int GetTapeIcon();
+		int GetTapeIcon();
 
-	void TapeClockService123(int ticks, int dur);
-	void TapeClockService23(TPITCounter counter, bool outState);
+		void TapeClockService123(int ticks, int dur);
+		void TapeClockService23(TPITCounter counter, bool outState);
 
-	TComputerModel inline GetModel() { return model; }
+		TComputerModel inline GetModel() { return model; }
 
-	inline bool IsFlashLoadOn() { return flashLoad; }
-	bool GetTapeByte(BYTE *byte);
-	bool GetTapeBlock(BYTE **point, WORD *len);
-	void AcceptTapeBlock(WORD len);
+		inline bool IsFlashLoadOn() { return flashLoad; }
+		bool GetTapeByte(BYTE *byte);
+		bool GetTapeBlock(BYTE **point, WORD *len);
+		void AcceptTapeBlock(WORD len);
 
-	void PrepareBlock(BYTE *data, WORD length, bool head, bool flash, bool onPlay);
-	int GetSavedBlock(BYTE **pbuf);
+		void PrepareBlock(BYTE *data, WORD length, bool head, bool flash, bool onPlay);
+		int GetSavedBlock(BYTE **pbuf);
 
-private:
-	TComputerModel model;
+	private:
+		TComputerModel model;
 
-	int tapeTicks;
-	bool tapeClkState;
+		int tapeTicks;
+		bool tapeClkState;
 
-	BYTE *data;
-	WORD dataLen;
-	bool head;
-	bool flashLoad;
+		BYTE *data;
+		WORD dataLen;
+		bool head;
+		bool flashLoad;
 
-	int tapeRxState;
-	int rxTickCounter;
-	BYTE byte;
-	bool bit;
+		int tapeRxState;
+		int rxTickCounter;
+		BYTE byte;
+		bool bit;
 
-	int tapeTxState;
-	int txByteCounter;
-	int txBodyEnd;
-	int txTickCounter;
-	BYTE buff[TAPE_BLOCK_SIZE + 2];
-	BYTE crc;
+		int tapeTxState;
+		int txByteCounter;
+		int txBodyEnd;
+		int txTickCounter;
+		BYTE buff[TAPE_BLOCK_SIZE + 2];
+		BYTE crc;
 
-	void FnOnRtsSet();
-	void FnOnTxRChange();
-	void InitTapeTx();
+		void FnOnRtsSet();
+		void FnOnTxRChange();
+		void InitTapeTx();
 };
 //---------------------------------------------------------------------------
 #endif

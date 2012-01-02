@@ -19,7 +19,9 @@
 #include "CommonUtils.h"
 #include "GPMD85main.h"
 //-----------------------------------------------------------------------------
-TFormMain::TFormMain()
+TEmulator *Emulator;
+//-----------------------------------------------------------------------------
+TEmulator::TEmulator()
 {
 	cpu = NULL;
 	memory = NULL;
@@ -44,13 +46,14 @@ TFormMain::TFormMain()
 	raomModuleConnected = false;
 
 	Settings = new TSettings();
+	TapeBrowser = new TTapeBrowser(Settings->TapeBrowser);
 
 	isRunning = false;
 	isActive = false;
 	inmenu = false;
 }
 //-----------------------------------------------------------------------------
-TFormMain::~TFormMain()
+TEmulator::~TEmulator()
 {
 	isRunning = false;
 
@@ -105,7 +108,7 @@ TFormMain::~TFormMain()
 	Settings = NULL;
 }
 //-----------------------------------------------------------------------------
-void TFormMain::ProcessSettings(BYTE filter)
+void TEmulator::ProcessSettings(BYTE filter)
 {
 	filter &= (0xFF ^ PS_CLOSEALL);
 	if (filter == 0)
@@ -114,7 +117,7 @@ void TFormMain::ProcessSettings(BYTE filter)
 	if (!isActive) {
 		video = new ScreenPMD85(Settings->Screen->size, Settings->Screen->border);
 		video->GUI->uiSet = Settings;
-		video->GUI->uiFrm = this;
+		video->TapeBrowserProgress = TapeBrowser->ProgressBar;
 	}
 	else if (filter & PS_SCREEN_SIZE)
 		video->SetDisplayMode(Settings->Screen->size, Settings->Screen->border);
@@ -193,9 +196,9 @@ void TFormMain::ProcessSettings(BYTE filter)
 		ActionReset();
 
 	if (systemPIO && (filter & PS_CONTROLS)) {
-		systemPIO->SetExchZY(Settings->Keyboard->changeZY);
-		systemPIO->SetNumpad(Settings->Keyboard->useNumpad);
-		systemPIO->SetExtMato(Settings->Keyboard->useMatoCtrl);
+		systemPIO->exchZY  = Settings->Keyboard->changeZY;
+		systemPIO->numpad  = Settings->Keyboard->useNumpad;
+		systemPIO->extMato = Settings->Keyboard->useMatoCtrl;
 	}
 
 	romChanged = false;
@@ -204,13 +207,14 @@ void TFormMain::ProcessSettings(BYTE filter)
 		isActive = true;
 }
 //-----------------------------------------------------------------------------
-void TFormMain::BaseTimerCallback()
+void TEmulator::BaseTimerCallback()
 {
 	static DWORD blinkCounter = 0;
 	static DWORD lastTick = 0;
 	static DWORD nextTick = SDL_GetTicks() + MEASURE_PERIOD;
 	static DWORD thisTime = 0;
 	static BYTE  frames = 0;
+	static BYTE  i = 0;
 	static float perc;
 
 	thisTime = SDL_GetTicks();
@@ -226,11 +230,19 @@ void TFormMain::BaseTimerCallback()
 		blinkCounter += (thisTime - lastTick);
 
 	if (isRunning) {
-		if (systemPIO)
+		if (systemPIO) {
 			systemPIO->ScanKeyboard(keyBuffer);
+			i = systemPIO->width384;
+			if ((i & 1) && (bool)(i & 0xFE) != video->IsWidth384()) {
+				video->SetWidth384(i & 0xFE);
+				systemPIO->width384 = (i & 0xFE);
+			}
+		}
 
-		if (pmd32)
-			video->SetDiskState(pmd32->diskIcon);
+		i = (ifTape) ? ifTape->GetTapeIcon() : 0;
+		i = (pmd32) ? pmd32->diskIcon : i;
+
+		video->SetIconState(i);
 
 		if (videoRam)
 			video->FillBuffer(videoRam);
@@ -254,7 +266,7 @@ void TFormMain::BaseTimerCallback()
 	frames++;
 }
 //-----------------------------------------------------------------------------
-void TFormMain::CpuTimerCallback()
+void TEmulator::CpuTimerCallback()
 {
 	DWORD beg = SDL_GetTicks();
 	static int tc, tci;
@@ -275,18 +287,19 @@ void TFormMain::CpuTimerCallback()
 		if (pc == 0xE04C && model == CM_V3 && compatible32)
 			cpu->SetPC(0xFFF0);
 
-		if (fl == true) {
+		if (fl) {
 			if (model != CM_V1) {
 				if ((pc == 0xEB6C && model == CM_V3) || (pc == 0x8B6C && model != CM_V3)) {
 					BYTE byte = 0;
 					cy = ifTape->GetTapeByte(&byte);
 
 					wrd = (byte << 8);
-					cpu->SetAF(wrd | ((cy == true) ? FLAG_CY : 0));
+					cpu->SetAF(wrd | (cy ? FLAG_CY : 0));
 					if (model == CM_V3)
 						cpu->SetPC(0xEB9B);
 					else
 						cpu->SetPC(0x8B9B);
+
 					cpu->SetTCycles(cpu->GetTCycles() + 200);
 				}
 			}
@@ -300,7 +313,7 @@ void TFormMain::CpuTimerCallback()
 			cpu->IncTCycles();
 
 			if (systemPIO)
-				video->SetLedState(systemPIO->GetLedState());
+				video->SetLedState(systemPIO->ledState);
 		}
 	} while (cpu->GetTCycles() < TCYCLES_PER_FRAME);
 
@@ -308,7 +321,7 @@ void TFormMain::CpuTimerCallback()
 	cpuUsage += (SDL_GetTicks() - beg);
 }
 //-----------------------------------------------------------------------------
-bool TFormMain::TestHotkeys()
+bool TEmulator::TestHotkeys()
 {
 	WORD i, key = 0;
 
@@ -490,9 +503,21 @@ bool TFormMain::TestHotkeys()
 				}
 				break;
 
+			case SDLK_p:	// PLAY/STOP TAPE
+				if (TapeBrowser->playing)
+					TapeBrowser->ActionStop();
+				else
+					TapeBrowser->ActionPlay();
+				break;
+
+			case SDLK_t:	// TAPE BROWSER
+				ActionPlayPause(false, false);
+				video->GUI->menuOpen(UserInterface::GUI_TYPE_TAPEBROWSER);
+				break;
+
 			case SDLK_F1:	// MAIN MENU
 				ActionPlayPause(false, false);
-				video->GUI->menuOpen(UserInterface::GUI_TYPE_MENU, NULL);
+				video->GUI->menuOpen(UserInterface::GUI_TYPE_MENU);
 				break;
 
 			case SDLK_F2:	// LOAD/SAVE TAPE
@@ -500,8 +525,8 @@ bool TFormMain::TestHotkeys()
 				if (key & KM_SHIFT)
 					ActionSaveTape();
 				else
-					ActionLoadTape();
 			*/
+					ActionLoadTape();
 				break;
 
 			case SDLK_F3:	// PLAY/PAUSE
@@ -521,7 +546,7 @@ bool TFormMain::TestHotkeys()
 
 			case SDLK_F6:	// DISK IMAGES
 				ActionPlayPause(false, false);
-				video->GUI->menuOpen(UserInterface::GUI_TYPE_DISKIMAGES, NULL);
+				video->GUI->menuOpen(UserInterface::GUI_TYPE_DISKIMAGES);
 				break;
 
 			case SDLK_F7:	// LOAD/SAVE SNAPSHOT
@@ -538,14 +563,14 @@ bool TFormMain::TestHotkeys()
 			case SDLK_F9:	// MODEL SELECT/MEMORY MENU
 				ActionPlayPause(false, false);
 				if (key & KM_SHIFT)
-					video->GUI->menuOpen(UserInterface::GUI_TYPE_MEMORY, NULL);
+					video->GUI->menuOpen(UserInterface::GUI_TYPE_MEMORY);
 				else
-					video->GUI->menuOpen(UserInterface::GUI_TYPE_SELECT, NULL);
+					video->GUI->menuOpen(UserInterface::GUI_TYPE_SELECT);
 				break;
 
 			case SDLK_F10:	// PERIPHERALS
 				ActionPlayPause(false, false);
-				video->GUI->menuOpen(UserInterface::GUI_TYPE_PERIPHERALS, NULL);
+				video->GUI->menuOpen(UserInterface::GUI_TYPE_PERIPHERALS);
 				break;
 
 			case SDLK_F11:
@@ -560,7 +585,7 @@ bool TFormMain::TestHotkeys()
 	return false;
 }
 //---------------------------------------------------------------------------
-void TFormMain::ActionExit()
+void TEmulator::ActionExit()
 {
 	ActionPlayPause(false, false);
 
@@ -570,16 +595,17 @@ void TFormMain::ActionExit()
 	ActionPlayPause(!Settings->isPaused, false);
 }
 //---------------------------------------------------------------------------
-void TFormMain::ActionLoadTape()
+void TEmulator::ActionLoadTape()
 {
 	static const char *tape_filter[] = { "ptp", "pmd", NULL };
 
 	ActionPlayPause(false, false);
 
 	video->GUI->fileSelector->type = GUI_FS_BASELOAD;
-	video->GUI->fileSelector->title = "OPEN TAPE FILE (*.ptp)";
+	video->GUI->fileSelector->title = "OPEN TAPE FILE (*.ptp, *.pmd)";
 	video->GUI->fileSelector->extFilter = (char **) tape_filter;
 	video->GUI->fileSelector->callback.disconnect_all();
+	video->GUI->fileSelector->callback.connect(this, &TEmulator::InsertTape);
 
 	if (Settings->TapeBrowser->fileName) {
 		char *file = ComposeFilePath(Settings->TapeBrowser->fileName);
@@ -591,10 +617,10 @@ void TFormMain::ActionLoadTape()
 	else
 		strcpy(video->GUI->fileSelector->path, PathApplication);
 
-	video->GUI->menuOpen(UserInterface::GUI_TYPE_FILESELECTOR, NULL);
+	video->GUI->menuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
 }
 //---------------------------------------------------------------------------
-void TFormMain::ActionLoadPMD32Disk(int drive)
+void TEmulator::ActionLoadPMD32Disk(int drive)
 {
 	static const char *p32_filter[] = { "p32", NULL };
 
@@ -604,7 +630,7 @@ void TFormMain::ActionLoadPMD32Disk(int drive)
 	video->GUI->fileSelector->title = "OPEN PMD 32 DISK FILE (*.p32)";
 	video->GUI->fileSelector->extFilter = (char **) p32_filter;
 	video->GUI->fileSelector->callback.disconnect_all();
-	video->GUI->fileSelector->callback.connect(this, &TFormMain::InsertPMD32Disk);
+	video->GUI->fileSelector->callback.connect(this, &TEmulator::InsertPMD32Disk);
 	pmd32workdrive = drive;
 
 	char *fileName = NULL;
@@ -635,10 +661,10 @@ void TFormMain::ActionLoadPMD32Disk(int drive)
 	else
 		strcpy(video->GUI->fileSelector->path, PathApplication);
 
-	video->GUI->menuOpen(UserInterface::GUI_TYPE_FILESELECTOR, NULL);
+	video->GUI->menuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
 }
 //---------------------------------------------------------------------------
-void TFormMain::ActionLoadSnap()
+void TEmulator::ActionLoadSnap()
 {
 	static const char *snap_filter[] = { "psn", NULL };
 
@@ -648,7 +674,7 @@ void TFormMain::ActionLoadSnap()
 	video->GUI->fileSelector->title = "OPEN SNAPSHOT FILE (*.psn)";
 	video->GUI->fileSelector->extFilter = (char **) snap_filter;
 	video->GUI->fileSelector->callback.disconnect_all();
-	video->GUI->fileSelector->callback.connect(this, &TFormMain::ProcessSnapshot);
+	video->GUI->fileSelector->callback.connect(this, &TEmulator::ProcessSnapshot);
 
 	if (Settings->Snapshot->fileName) {
 		char *file = ComposeFilePath(Settings->Snapshot->fileName);
@@ -660,10 +686,10 @@ void TFormMain::ActionLoadSnap()
 	else
 		strcpy(video->GUI->fileSelector->path, PathApplication);
 
-	video->GUI->menuOpen(UserInterface::GUI_TYPE_FILESELECTOR, NULL);
+	video->GUI->menuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
 }
 //---------------------------------------------------------------------------
-void TFormMain::ActionSaveSnap()
+void TEmulator::ActionSaveSnap()
 {
 	static const char *snap_filter[] = { "psn", NULL };
 
@@ -673,7 +699,7 @@ void TFormMain::ActionSaveSnap()
 	video->GUI->fileSelector->title = "SAVE SNAPSHOT FILE (*.psn)";
 	video->GUI->fileSelector->extFilter = (char **) snap_filter;
 	video->GUI->fileSelector->callback.disconnect_all();
-	video->GUI->fileSelector->callback.connect(this, &TFormMain::PrepareSnapshot);
+	video->GUI->fileSelector->callback.connect(this, &TEmulator::PrepareSnapshot);
 
 	if (Settings->Snapshot->fileName) {
 		char *file = ComposeFilePath(Settings->Snapshot->fileName);
@@ -685,10 +711,10 @@ void TFormMain::ActionSaveSnap()
 	else
 		strcpy(video->GUI->fileSelector->path, PathApplication);
 
-	video->GUI->menuOpen(UserInterface::GUI_TYPE_FILESELECTOR, NULL);
+	video->GUI->menuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
 }
 //---------------------------------------------------------------------------
-void TFormMain::ActionLoadRom(BYTE type)
+void TEmulator::ActionLoadRom(BYTE type)
 {
 	static const char *rom_filter[] = { "rom", NULL };
 	char *fileName;
@@ -705,7 +731,7 @@ void TFormMain::ActionLoadRom(BYTE type)
 	video->GUI->fileSelector->title = "SELECT ROM FILE (*.rom)";
 	video->GUI->fileSelector->extFilter = (char **) rom_filter;
 	video->GUI->fileSelector->callback.disconnect_all();
-	video->GUI->fileSelector->callback.connect(this, &TFormMain::ChangeROMFile);
+	video->GUI->fileSelector->callback.connect(this, &TEmulator::ChangeROMFile);
 
 	if (fileName) {
 		char *file = LocateROM(fileName);
@@ -724,24 +750,24 @@ void TFormMain::ActionLoadRom(BYTE type)
 			strcpy(video->GUI->fileSelector->path, PathApplication);
 	}
 
-	video->GUI->menuOpen(UserInterface::GUI_TYPE_FILESELECTOR, NULL);
+	video->GUI->menuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
 }
 //---------------------------------------------------------------------------
-void TFormMain::ActionReset()
+void TEmulator::ActionReset()
 {
 	cpu->Reset();
 	if (model != CM_V3)
 		memory->Page = 2;
 }
 //---------------------------------------------------------------------------
-void TFormMain::ActionHardReset()
+void TEmulator::ActionHardReset()
 {
 	ActionPlayPause(false, false);
 	ProcessSettings(PS_MACHINE | PS_PERIPHERALS);
 	ActionPlayPause(!Settings->isPaused, false);
 }
 //---------------------------------------------------------------------------
-void TFormMain::ActionSound(bool mute)
+void TEmulator::ActionSound(bool mute)
 {
 	Settings->Sound->mute = mute;
 
@@ -751,7 +777,7 @@ void TFormMain::ActionSound(bool mute)
 		sound->SoundOn();
 }
 //---------------------------------------------------------------------------
-void TFormMain::ActionPlayPause(bool play, bool globalChange)
+void TEmulator::ActionPlayPause(bool play, bool globalChange)
 {
 	if (isRunning == play)
 		return;
@@ -767,7 +793,7 @@ void TFormMain::ActionPlayPause(bool play, bool globalChange)
 		sound->SoundMute();
 }
 //---------------------------------------------------------------------------
-void TFormMain::ActionSizeChange(int mode)
+void TEmulator::ActionSizeChange(int mode)
 {
 	ActionPlayPause(false, false);
 
@@ -799,7 +825,7 @@ void TFormMain::ActionSizeChange(int mode)
 	ActionPlayPause(!Settings->isPaused, false);
 }
 //---------------------------------------------------------------------------
-void TFormMain::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
+void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 {
 	int romAdrKB, fileSize;
 	BYTE romSize;
@@ -846,6 +872,8 @@ void TFormMain::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 		romSize = 4;
 	monitorLength = romSize * KBYTE;
 	romAdrKB = 32;
+
+	video->SetComputerModel(model);
 
 	switch (model) {
 		case CM_UNKNOWN :
@@ -1025,6 +1053,7 @@ void TFormMain::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 		// Tape
 		ifTape = new IifTape(model);
 		ifTape->PrepareSample.connect(sound, &SoundDriver::PrepareSample);
+		TapeBrowser->SetIfTape(ifTape);
 
 		if (model == CM_ALFA || model == CM_ALFA2)
 			cpu->AddDevice(IIF_TAPE_ADR_A, IIF_TAPE_MASK_A, ifTape, true);
@@ -1040,7 +1069,7 @@ void TFormMain::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 	}
 
 	if (model != CM_C2717)
-		systemPIO->Tag = 1;
+		systemPIO->width384 = 1;
 
 	if (fileSize > 0)
 		memory->PutRom((BYTE) romAdrKB, 2, romBuff, monitorLength);
@@ -1048,7 +1077,7 @@ void TFormMain::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 	delete[] romBuff;
 }
 //---------------------------------------------------------------------------
-void TFormMain::InsertRomModul(bool inserted, bool toRaom)
+void TEmulator::InsertRomModul(bool inserted, bool toRaom)
 {
 	int i, count, sizeKB;
 	DWORD romPackSizeKB, kBadr;
@@ -1117,7 +1146,7 @@ void TFormMain::InsertRomModul(bool inserted, bool toRaom)
 	delete[] buff;
 }
 //---------------------------------------------------------------------------
-void TFormMain::ConnectPMD32(bool init)
+void TEmulator::ConnectPMD32(bool init)
 {
 	if (init || (pmd32connected != Settings->PMD32->connected)) {
 		if (pmd32) {
@@ -1129,7 +1158,7 @@ void TFormMain::ConnectPMD32(bool init)
 				ifGpio->OnCpuWriteCH.disconnect(pmd32);
 			}
 
-			video->SetDiskState(0);
+			video->SetIconState(0);
 
 			delete pmd32;
 			pmd32 = NULL;
@@ -1173,7 +1202,7 @@ void TFormMain::ConnectPMD32(bool init)
 	}
 }
 //---------------------------------------------------------------------------
-void TFormMain::ProcessSnapshot(char *fileName, BYTE *flag)
+void TEmulator::ProcessSnapshot(char *fileName, BYTE *flag)
 {
 	BYTE *buf  = new BYTE[SNAP_HEADER_LEN];
 	BYTE *src  = new BYTE[SNAP_BLOCK_LEN];
@@ -1341,7 +1370,7 @@ void TFormMain::ProcessSnapshot(char *fileName, BYTE *flag)
 	delete buf;
 }
 //---------------------------------------------------------------------------
-void TFormMain::PrepareSnapshot(char *fileName, BYTE *flag)
+void TEmulator::PrepareSnapshot(char *fileName, BYTE *flag)
 {
 	BYTE *buf  = new BYTE[SNAP_HEADER_LEN];
 	BYTE *src  = new BYTE[SNAP_BLOCK_LEN];
@@ -1496,7 +1525,18 @@ void TFormMain::PrepareSnapshot(char *fileName, BYTE *flag)
 	delete buf;
 }
 //---------------------------------------------------------------------------
-void TFormMain::InsertPMD32Disk(char *fileName, BYTE *flag)
+void TEmulator::InsertTape(char *fileName, BYTE *flag)
+{
+	*flag = 0;
+	if (!(TapeBrowser->SetTapeFileName(fileName)))
+		video->GUI->messageBox("CORRUPTED TAPE FORMAT!");
+
+	delete [] Settings->TapeBrowser->fileName;
+	Settings->TapeBrowser->fileName = new char[(strlen(fileName) + 1)];
+	strcpy(Settings->TapeBrowser->fileName, fileName);
+}
+//---------------------------------------------------------------------------
+void TEmulator::InsertPMD32Disk(char *fileName, BYTE *flag)
 {
 	*flag = 1;
 	switch (pmd32workdrive) {
@@ -1529,7 +1569,7 @@ void TFormMain::InsertPMD32Disk(char *fileName, BYTE *flag)
 		ConnectPMD32(false);
 }
 //---------------------------------------------------------------------------
-void TFormMain::ChangeROMFile(char *fileName, BYTE *flag)
+void TEmulator::ChangeROMFile(char *fileName, BYTE *flag)
 {
 	char *ptr = (char *) AdaptFilePath(fileName, PathAppConfig);
 	if (ptr == fileName) {

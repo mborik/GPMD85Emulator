@@ -94,12 +94,12 @@ int main(int argc, char** argv)
 
 	debug("Initialization process started...");
 
-	TFormMain *FormMain = new TFormMain();
-	FormMain->ProcessSettings(-1);
+	Emulator = new TEmulator();
+	Emulator->ProcessSettings(-1);
 
 	debug("Starting %d FPS refresh timer", GPU_FRAMES_PER_SEC);
-	FormMain->BaseTimer = SDL_AddTimer(GPU_TIMER_INTERVAL, FormMain_BaseTimerCallback, FormMain);
-	FormMain->ActionPlayPause(true);
+	Emulator->BaseTimer = SDL_AddTimer(GPU_TIMER_INTERVAL, FormMain_BaseTimerCallback, Emulator);
+	Emulator->ActionPlayPause(true);
 
 	DWORD nextTick;
 	int i = 0, j, k = 0;
@@ -108,7 +108,7 @@ int main(int argc, char** argv)
 	bool waitForRelease = false;
 
 	debug("Starting main CPU %dHz loop", CPU_FRAMES_PER_SEC);
-	while (FormMain->isActive) {
+	while (Emulator->isActive) {
 		nextTick = SDL_GetTicks() + CPU_TIMER_INTERVAL;
 
 		while (SDL_PollEvent(&event)) {
@@ -116,7 +116,7 @@ int main(int argc, char** argv)
 				case SDL_QUIT:
 				case SDL_KEYUP:
 				case SDL_KEYDOWN:
-					FormMain->keyBuffer = kb = SDL_GetKeyState(&i);
+					Emulator->keyBuffer = kb = SDL_GetKeyState(&i);
 					kb[SDLK_NUMLOCK] = kb[SDLK_CAPSLOCK] = kb[SDLK_SCROLLOCK] = 0;
 					if (event.type == SDL_QUIT)
 						kb[SDLK_POWER] = 1;
@@ -129,7 +129,7 @@ int main(int argc, char** argv)
 							}
 						}
 					}
-					else if ((waitForRelease = FormMain->TestHotkeys()) == true)
+					else if ((waitForRelease = Emulator->TestHotkeys()) == true)
 						k = 4;
 
 				default:
@@ -144,17 +144,17 @@ int main(int argc, char** argv)
 		else
 			waitForRelease = false;
 
-		FormMain->CpuTimerCallback();
+		Emulator->CpuTimerCallback();
 
 		// have a break, have a tick-tock...
 		while (SDL_GetTicks() < nextTick)
 			SDL_Delay(1);
 	}
 
-	SDL_RemoveTimer(FormMain->BaseTimer);
+	SDL_RemoveTimer(Emulator->BaseTimer);
 	SDL_Delay(WEAK_REFRESH_TIME);
 
-	delete FormMain;
+	delete Emulator;
 	SDL_Quit();
 
 	delete [] PathResources;

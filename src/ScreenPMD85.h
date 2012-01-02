@@ -20,6 +20,7 @@
 //-----------------------------------------------------------------------------
 #include "globals.h"
 #include "UserInterface.h"
+#include "TapeBrowser.h"
 //-----------------------------------------------------------------------------
 #define BORDER_MULTIPLIER 12
 #define STATUSBAR_ICON    10
@@ -80,7 +81,8 @@ public:
 	TColor GetColorAttr(int Index);
 
 	void SetLedState(int led);
-	void SetDiskState(int disk);
+	void SetIconState(int icon);
+	void SetComputerModel(TComputerModel model);
 
 	inline void SetStatusPercentage(int val) { statusPercentage = val; }
 	inline void SetStatusFPS(int val) { statusFPS = val; }
@@ -92,6 +94,7 @@ public:
 	void FillBuffer(BYTE *videoRam);
 
 	UserInterface *GUI;
+	TTapeBrowser::TProgressBar *TapeBrowserProgress;
 
 private:
 	SDL_Surface *Screen;
@@ -110,9 +113,10 @@ private:
 
 	int borderSize;
 	int ledState;
-	int diskState;
+	int iconState;
 	int statusPercentage;
 	int statusFPS;
+	char computerModel[8];
 
 	TDisplayMode DispMode;
 	TDisplayMode FullScreenScaleMode;

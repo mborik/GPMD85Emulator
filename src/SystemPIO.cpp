@@ -33,6 +33,7 @@ SystemPIO::SystemPIO(TComputerModel model, ChipMemory *memory) : ChipPIO8255(fal
 	OnCpuWriteCH.connect(this, &SystemPIO::WritePaging);
 
 	ledState = 0;
+	width384 = 0;
 	ShiftStopCtrl = 0;
 	for (int ii = 0; ii < (int) sizeof(KeyColumns); ii++)
 		KeyColumns[ii] = 0;
@@ -511,7 +512,7 @@ void SystemPIO::WritePaging()
 	BYTE pg = PeripheralReadByte(PP_PortC);
 
 	if (model == CM_C2717) {
-		Tag = ((pg & 32) + 1);              // rezim 48/64 znakov na riadok
+		width384 = ((pg & 32) + 1);         // 48/64 chars per line mode
 		memory->Page = ((pg & 64) ? 0 : 1); // AllRAM
 		memory->C2717Remapped = (pg & 128); // preadresovanie od 0xC000
 	}

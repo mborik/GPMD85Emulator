@@ -22,8 +22,6 @@
 //---------------------------------------------------------------------------
 class PeripheralDevice {
 public:
-	int Tag;
-
 	// Pure virtual methods:
 	// It was implemented by interupt control class and called by processor.
 	virtual void writeToDevice(BYTE port, BYTE value, int ticks) = 0;
