@@ -109,7 +109,7 @@ UserInterface::UserInterface()
 	tapeBrowser = new GUI_TAPEBROWSER_DATA;
 	tapeBrowser->entries = NULL;
 	tapeBrowser->count = 0;
-	tapeBrowser->hex = false;
+	tapeBrowser->hex = true;
 
 	menuStackLevel = -1;
 	needRelease = false;
@@ -712,7 +712,7 @@ void UserInterface::drawTapeBrowserItems()
 			? GUI_COLOR_BORDER : GUI_COLOR_BACKGROUND, SCHR_SCROLL_DW);
 
 	r->h = (GUI_CONST_TAPE_ITEMS * GUI_CONST_ITEM_SIZE) + (GUI_CONST_BORDER / 2);
-	r->y -= r->h;
+	r->y -= r->h - (GUI_CONST_BORDER / 4);
 
 	drawLineV(defaultSurface, r->x + GUI_CONST_HOTKEYCHAR + (14 * fontWidth),
 		r->y, r->h, GUI_COLOR_SEPARATOR);
@@ -1240,6 +1240,17 @@ void UserInterface::keyhandlerTapeBrowser(WORD key)
 			tapeBrowser->hex = !tapeBrowser->hex;
 			drawTapeBrowser();
 			change = true;
+			break;
+
+		case SDLK_p | KM_ALT:
+			if (Emulator->TapeBrowser->playing && cMenu_count)
+				Emulator->TapeBrowser->ActionStop();
+			else if (!Emulator->TapeBrowser->playing && cMenu_count) {
+				uiCallback.connect(Emulator, &TEmulator::ActionTapePlayStop);
+				uiSetChanges |= PS_CLOSEALL;
+				menuCloseAll();
+			}
+			needRelease = true;
 			break;
 
 		case SDLK_SPACE:
