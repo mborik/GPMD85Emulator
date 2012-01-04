@@ -48,14 +48,13 @@ class TTapeBrowser : public sigslot::has_slots<>
 
 		TAPE_BLOCK *blocks;
 		TAPE_BLOCK *currBlock;
-		TAPE_BLOCK *selBlk;
 
 		BYTE *buffer;
 		BYTE *data;
-		WORD dataLen;
-		bool head;
+		WORD  dataLen;
+		bool  head;
 
-		WORD wTemp;
+		WORD  wTemp;
 		DWORD dwTemp;
 
 		void FreeAllBlocks();
@@ -63,7 +62,6 @@ class TTapeBrowser : public sigslot::has_slots<>
 		bool CheckCrc(BYTE *buff, int length, BYTE *goodCrc);
 		bool CheckHeader(BYTE *buff, TAPE_BLOCK *blk);
 		void PrepareData(bool head);
-		void SaveTape(char *newFileName, TAPE_BLOCK *blks, bool asPTP);
 		void NewTapeFile();
 		void SaveTapeBlock();
 
@@ -71,9 +69,9 @@ class TTapeBrowser : public sigslot::has_slots<>
 		TTapeBrowser(TSettings::SetTapeBrowser *set);
 		virtual ~TTapeBrowser();
 
-		bool tapeChanged;
-		bool editMode;
 		bool playing;
+		bool tapeChanged;
+		bool preparedForSave;
 
 		int currBlockIdx;
 		int stopBlockIdx;
@@ -83,10 +81,12 @@ class TTapeBrowser : public sigslot::has_slots<>
 
 		void SetIfTape(IifTape *ifTape);
 		bool SetTapeFileName(char *fn);
+		void SetNewTape();
 		void ActionPlay();
 		void ActionStop();
 		void SelectBlock(int idx);
 		void TapeCommand(int command, bool *result);
+		BYTE SaveTape(char *newFileName, TAPE_BLOCK *blks, bool asPTP);
 		void FillFileList(char ***data, int *items, bool hex = false);
 		void FreeFileList(char ***data, int *items);
 };

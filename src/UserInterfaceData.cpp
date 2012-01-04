@@ -18,6 +18,12 @@
 #include "UserInterfaceData.h"
 #include "GPMD85main.h"
 //-----------------------------------------------------------------------------
+const char *dcb_tape_save_state(GUI_MENU_ENTRY *ptr)
+{
+	ptr->enabled = Emulator->TapeBrowser->tapeChanged;
+	return NULL;
+}
+//-----------------------------------------------------------------------------
 const char *dcb_view_size_state(GUI_MENU_ENTRY *ptr)
 {
 	ptr->enabled = (gvi.wm) ? true : false;
@@ -259,27 +265,37 @@ const char *dcb_p32_imgd_state(GUI_MENU_ENTRY *ptr)
 //-----------------------------------------------------------------------------
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //-----------------------------------------------------------------------------
+bool ccb_tape_new(GUI_MENU_ENTRY *ptr)
+{
+	Emulator->ActionTapeNew();
+	return false;
+}
+//-----------------------------------------------------------------------------
 bool ccb_fileselector(GUI_MENU_ENTRY *ptr)
 {
 	switch (ptr->action) {
 		case 1:
-			Emulator->ActionLoadTape();
+			Emulator->ActionTapeLoad();
+			break;
+
+		case 2:
+			Emulator->ActionTapeSave();
 			break;
 
 		case 3:
-			Emulator->ActionLoadSnap();
+			Emulator->ActionSnapLoad();
 			break;
 
 		case 4:
-			Emulator->ActionSaveSnap();
+			Emulator->ActionSnapSave();
 			break;
 
 		case 5:
-			Emulator->ActionLoadRom(0);
+			Emulator->ActionROMLoad(0);
 			break;
 
 		case 6:
-			Emulator->ActionLoadRom(32);
+			Emulator->ActionROMLoad(32);
 			break;
 
 		default:
@@ -475,7 +491,7 @@ bool ccb_p32_imgd(GUI_MENU_ENTRY *ptr)
 		return false;
 	}
 	else
-		Emulator->ActionLoadPMD32Disk(ptr->action & 0xF);
+		Emulator->ActionPMD32LoadDisk(ptr->action & 0xF);
 
 	return false;
 }

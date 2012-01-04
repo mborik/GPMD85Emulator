@@ -57,11 +57,13 @@ class TEmulator : public sigslot::has_slots<>
 		void ActionExit();
 		void ActionTapeBrowser();
 		void ActionTapePlayStop();
-		void ActionLoadTape();
-		void ActionLoadPMD32Disk(int drive);
-		void ActionLoadSnap();
-		void ActionSaveSnap();
-		void ActionLoadRom(BYTE type);
+		void ActionTapeNew();
+		void ActionTapeLoad();
+		void ActionTapeSave();
+		void ActionPMD32LoadDisk(int drive);
+		void ActionSnapLoad();
+		void ActionSnapSave();
+		void ActionROMLoad(BYTE type);
 
 		void ActionReset();
 		void ActionHardReset();
@@ -113,6 +115,7 @@ class TEmulator : public sigslot::has_slots<>
 		void ProcessSnapshot(char *fileName, BYTE *flag);
 		void PrepareSnapshot(char *fileName, BYTE *flag);
 		void InsertTape(char *fileName, BYTE *flag);
+		void SaveTape(char *fileName, BYTE *flag);
 		void InsertPMD32Disk(char *fileName, BYTE *flag);
 		void ChangeROMFile(char *fileName, BYTE *flag);
 };

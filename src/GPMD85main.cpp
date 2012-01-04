@@ -517,12 +517,10 @@ bool TEmulator::TestHotkeys()
 				break;
 
 			case SDLK_F2:	// LOAD/SAVE TAPE
-			/*
 				if (key & KM_SHIFT)
-					ActionSaveTape();
+					ActionTapeSave();
 				else
-			*/
-					ActionLoadTape();
+					ActionTapeLoad();
 				break;
 
 			case SDLK_F3:	// PLAY/PAUSE
@@ -547,9 +545,9 @@ bool TEmulator::TestHotkeys()
 
 			case SDLK_F7:	// LOAD/SAVE SNAPSHOT
 				if (key & KM_SHIFT)
-					ActionSaveSnap();
+					ActionSnapSave();
 				else
-					ActionLoadSnap();
+					ActionSnapLoad();
 				break;
 
 			case SDLK_F8:	// SOUND ON/OFF
@@ -607,11 +605,46 @@ void TEmulator::ActionTapePlayStop()
 	ActionPlayPause(!Settings->isPaused, false);
 }
 //---------------------------------------------------------------------------
-void TEmulator::ActionLoadTape()
+void TEmulator::ActionTapeNew()
+{
+	ActionPlayPause(false, false);
+
+	BYTE result = GUI_QUERY_DONTSAVE;
+	if (TapeBrowser->tapeChanged) {
+		result = video->GUI->queryDialog("SAVE CHANGES?", true);
+		if (result == GUI_QUERY_SAVE) {
+			video->GUI->menuCloseAll();
+			ActionTapeSave();
+			return;
+		}
+	}
+
+	if (result == GUI_QUERY_DONTSAVE) {
+		TapeBrowser->SetNewTape();
+		video->GUI->menuCloseAll();
+	}
+
+	ActionPlayPause(!Settings->isPaused, false);
+}
+//---------------------------------------------------------------------------
+void TEmulator::ActionTapeLoad()
 {
 	static const char *tape_filter[] = { "ptp", "pmd", NULL };
 
 	ActionPlayPause(false, false);
+
+	if (TapeBrowser->tapeChanged) {
+		BYTE result = video->GUI->queryDialog("SAVE CHANGES?", true);
+		if (result == GUI_QUERY_SAVE) {
+			ActionTapeSave();
+			return;
+		}
+		else if (result != GUI_QUERY_DONTSAVE) {
+			video->GUI->menuCloseAll();
+			ActionPlayPause(!Settings->isPaused, false);
+			return;
+		}
+	}
 
 	video->GUI->fileSelector->type = GUI_FS_BASELOAD;
 	video->GUI->fileSelector->title = "OPEN TAPE FILE (*.ptp, *.pmd)";
@@ -632,7 +665,32 @@ void TEmulator::ActionLoadTape()
 	video->GUI->menuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
 }
 //---------------------------------------------------------------------------
-void TEmulator::ActionLoadPMD32Disk(int drive)
+void TEmulator::ActionTapeSave()
+{
+	static const char *tape_filter[] = { "ptp", NULL };
+
+	ActionPlayPause(false, false);
+
+	video->GUI->fileSelector->type = GUI_FS_BASESAVE;
+	video->GUI->fileSelector->title = "SAVE TAPE FILE (*.ptp)";
+	video->GUI->fileSelector->extFilter = (char **) tape_filter;
+	video->GUI->fileSelector->callback.disconnect_all();
+	video->GUI->fileSelector->callback.connect(this, &TEmulator::SaveTape);
+
+	if (Settings->TapeBrowser->fileName) {
+		char *file = ComposeFilePath(Settings->TapeBrowser->fileName);
+		strcpy(video->GUI->fileSelector->path, file);
+		delete [] file;
+
+		while (!TestDir(video->GUI->fileSelector->path, (char *) "..", NULL));
+	}
+	else
+		strcpy(video->GUI->fileSelector->path, PathApplication);
+
+	video->GUI->menuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
+}
+//---------------------------------------------------------------------------
+void TEmulator::ActionPMD32LoadDisk(int drive)
 {
 	static const char *p32_filter[] = { "p32", NULL };
 
@@ -676,7 +734,7 @@ void TEmulator::ActionLoadPMD32Disk(int drive)
 	video->GUI->menuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
 }
 //---------------------------------------------------------------------------
-void TEmulator::ActionLoadSnap()
+void TEmulator::ActionSnapLoad()
 {
 	static const char *snap_filter[] = { "psn", NULL };
 
@@ -701,7 +759,7 @@ void TEmulator::ActionLoadSnap()
 	video->GUI->menuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
 }
 //---------------------------------------------------------------------------
-void TEmulator::ActionSaveSnap()
+void TEmulator::ActionSnapSave()
 {
 	static const char *snap_filter[] = { "psn", NULL };
 
@@ -726,7 +784,7 @@ void TEmulator::ActionSaveSnap()
 	video->GUI->menuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
 }
 //---------------------------------------------------------------------------
-void TEmulator::ActionLoadRom(BYTE type)
+void TEmulator::ActionROMLoad(BYTE type)
 {
 	static const char *rom_filter[] = { "rom", NULL };
 	char *fileName;
@@ -1548,6 +1606,27 @@ void TEmulator::InsertTape(char *fileName, BYTE *flag)
 	strcpy(Settings->TapeBrowser->fileName, fileName);
 
 	video->GUI->uiCallback.connect(this, &TEmulator::ActionTapeBrowser);
+}
+//---------------------------------------------------------------------------
+void TEmulator::SaveTape(char *fileName, BYTE *flag)
+{
+	*flag = TapeBrowser->SaveTape(fileName, NULL, true);
+
+	if (*flag == 0xFF)
+		video->GUI->messageBox("FATAL ERROR!\nINVALID NAME OR EXTENSION,\nOR CAN'T OPEN FILE FOR WRITING!");
+	else if (*flag == 1) {
+		video->GUI->messageBox("ERROR WRITING FILE...\nTAPE WILL BE CORRUPTED!");
+		*flag = 0;
+	}
+	else {
+		delete [] Settings->TapeBrowser->fileName;
+		Settings->TapeBrowser->fileName = new char[(strlen(fileName) + 1)];
+		strcpy(Settings->TapeBrowser->fileName, fileName);
+
+		int curr = TapeBrowser->currBlockIdx;
+		if (TapeBrowser->SetTapeFileName(fileName))
+			TapeBrowser->currBlockIdx = curr;
+	}
 }
 //---------------------------------------------------------------------------
 void TEmulator::InsertPMD32Disk(char *fileName, BYTE *flag)

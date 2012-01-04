@@ -118,6 +118,8 @@ UserInterface::UserInterface()
 //-----------------------------------------------------------------------------
 UserInterface::~UserInterface()
 {
+	debug("[GUI] Uninitializing, freeing...");
+
 	if (frameSave)
 		free(frameSave);
 	frameSave = NULL;
@@ -131,7 +133,7 @@ UserInterface::~UserInterface()
 	cMenu_rect = NULL;
 
 	if (fileSelector) {
-		ScanDir(NULL, &fileSelector->dirEntries, &cMenu_count);
+		ScanDir(NULL, &fileSelector->dirEntries, &fileSelector->count);
 		delete fileSelector;
 	}
 	fileSelector = NULL;
@@ -596,16 +598,19 @@ void UserInterface::drawFileSelectorItems()
 	needRedraw = true;
 }
 //-----------------------------------------------------------------------------
-void UserInterface::drawFileSelector()
+void UserInterface::drawFileSelector(bool update)
 {
-	cMenu_leftMargin = 0;
-	cMenu_data = NULL;
+	if (update || fileSelector->dirEntries == NULL)
+		ScanDir(fileSelector->path, &fileSelector->dirEntries, &fileSelector->count, uiSet->showHiddenFiles);
 
-	ScanDir(fileSelector->path, &fileSelector->dirEntries, &cMenu_count, uiSet->showHiddenFiles);
-	if (cMenu_count <= 0) {
+	if (fileSelector->count <= 0) {
 		menuClose();
 		return;
 	}
+
+	cMenu_data = NULL;
+	cMenu_hilite = cMenu_leftMargin = 0;
+	cMenu_count = fileSelector->count;
 
 	cMenu_rect->w = GUI_CONST_BORDER + (maxCharsOnScreen * fontWidth) + GUI_CONST_BORDER;
 	cMenu_rect->h = (3 * GUI_CONST_BORDER) + (17 * GUI_CONST_ITEM_SIZE) + GUI_CONST_BORDER + GUI_CONST_SEPARATOR;
@@ -657,19 +662,18 @@ void UserInterface::drawFileSelector()
 			GUI_COLOR_FOREGROUND, "\a\203\aC SAVE COMPRESSED");
 	}
 
-	char *ptr, *path = new char[strlen(fileSelector->path) + 1];
-	strcpy(path, fileSelector->path);
-	ptr = path;
+	char *ptr = fileSelector->path, c = *ptr;
 	if (strlen(ptr) > maxCharsOnScreen) {
 		while (strlen(ptr) > (DWORD) (maxCharsOnScreen - 1))
 			ptr++;
-		*(--ptr) = SCHR_BROWSE;
+		c = *(--ptr);
+		*ptr = SCHR_BROWSE;
 	}
 
 	printText(defaultSurface, cMenu_rect->x + GUI_CONST_BORDER,
 		cMenu_rect->y + GUI_CONST_ITEM_SIZE + 1, GUI_COLOR_BORDER, ptr);
 
-	delete [] path;
+	*ptr = c;
 
 	drawFileSelectorItems();
 }
@@ -723,11 +727,12 @@ void UserInterface::drawTapeBrowserItems()
 	needRedraw = true;
 }
 //-----------------------------------------------------------------------------
-void UserInterface::drawTapeBrowser()
+void UserInterface::drawTapeBrowser(bool update)
 {
-	cMenu_data = NULL;
-	Emulator->TapeBrowser->FillFileList(&tapeBrowser->entries, &tapeBrowser->count, tapeBrowser->hex);
+	if (update || tapeBrowser->entries == NULL)
+		Emulator->TapeBrowser->FillFileList(&tapeBrowser->entries, &tapeBrowser->count, tapeBrowser->hex);
 
+	cMenu_data = NULL;
 	cMenu_leftMargin = cMenu_count = tapeBrowser->count;
 	cMenu_hilite = Emulator->TapeBrowser->currBlockIdx;
 	if (cMenu_hilite < 0)
@@ -800,7 +805,7 @@ void UserInterface::drawTapeBrowser()
 
 	char *ptr = NULL;
 
-	if (uiSet->TapeBrowser->fileName) {
+	if (uiSet->TapeBrowser->fileName && !Emulator->TapeBrowser->preparedForSave) {
 		ptr = strrchr(uiSet->TapeBrowser->fileName, '/');
 		if (ptr)
 			ptr++;
@@ -951,7 +956,7 @@ void UserInterface::keyhandlerMenu(WORD key)
 //-----------------------------------------------------------------------------
 void UserInterface::keyhandlerFileSelector(WORD key)
 {
-	int i = cMenu_hilite, halfpage = fileSelector->itemsOnPage / 2;
+	int i = cMenu_hilite, halfpage = fileSelector->itemsOnPage / 2, prevLeftMargin = 0;
 	char *ptr = fileSelector->dirEntries[cMenu_hilite], *lastItem;
 	bool change = false;
 	BYTE b = 0;
@@ -970,44 +975,39 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 
 		case SDLK_c | KM_ALT:
 			if (fileSelector->type == GUI_FS_SNAPSAVE) {
-				i = cMenu_hilite;
+				prevLeftMargin = cMenu_leftMargin;
 				uiSet->Snapshot->saveCompressed = !uiSet->Snapshot->saveCompressed;
-				drawFileSelector();
-				needRelease = true;
+				drawFileSelector(false);
 				change = true;
 			}
 			break;
 
 		case SDLK_d | KM_ALT:
 			if (fileSelector->type == GUI_FS_SNAPLOAD) {
-				i = cMenu_hilite;
+				prevLeftMargin = cMenu_leftMargin;
 				uiSet->Snapshot->dontRunOnLoad = !uiSet->Snapshot->dontRunOnLoad;
-				drawFileSelector();
-				needRelease = true;
+				drawFileSelector(false);
+				change = true;
+			}
+			break;
+
+		case SDLK_r | KM_ALT:
+			if (fileSelector->type == GUI_FS_SNAPSAVE) {
+				prevLeftMargin = cMenu_leftMargin;
+				uiSet->Snapshot->saveWithMonitor = !uiSet->Snapshot->saveWithMonitor;
+				drawFileSelector(false);
 				change = true;
 			}
 			break;
 
 		case SDLK_h | KM_ALT:
-			cMenu_hilite = 0;
 			strcpy(fileSelector->path, PathUserHome);
 			drawFileSelector();
 			needRelease = true;
 			break;
 
-		case SDLK_r | KM_ALT:
-			if (fileSelector->type == GUI_FS_SNAPSAVE) {
-				i = cMenu_hilite;
-				uiSet->Snapshot->saveWithMonitor = !uiSet->Snapshot->saveWithMonitor;
-				drawFileSelector();
-				needRelease = true;
-				change = true;
-			}
-			break;
-
 		case SDLK_PERIOD | KM_ALT:
 			uiSet->showHiddenFiles = !uiSet->showHiddenFiles;
-			cMenu_hilite = 0;
 			drawFileSelector();
 			needRelease = true;
 			break;
@@ -1145,6 +1145,9 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 	}
 
 	if (change) {
+		if (prevLeftMargin)
+			cMenu_leftMargin = prevLeftMargin;
+
 		while (i < cMenu_leftMargin) {
 			cMenu_leftMargin -= halfpage;
 			if (cMenu_leftMargin < 0)
@@ -1212,14 +1215,14 @@ void UserInterface::keyhandlerTapeBrowser(WORD key)
 		case SDLK_f | KM_ALT:
 			prevLeftMargin = cMenu_leftMargin;
 			uiSet->TapeBrowser->flash = !uiSet->TapeBrowser->flash;
-			drawTapeBrowser();
+			drawTapeBrowser(false);
 			change = true;
 			break;
 
 		case SDLK_s | KM_ALT:
 			prevLeftMargin = cMenu_leftMargin;
 			uiSet->TapeBrowser->monitoring = !uiSet->TapeBrowser->monitoring;
-			drawTapeBrowser();
+			drawTapeBrowser(false);
 			change = true;
 			break;
 
@@ -1231,7 +1234,7 @@ void UserInterface::keyhandlerTapeBrowser(WORD key)
 				uiSet->TapeBrowser->autoStop = AS_CURSOR;
 			else if (uiSet->TapeBrowser->autoStop == AS_CURSOR)
 				uiSet->TapeBrowser->autoStop = AS_OFF;
-			drawTapeBrowser();
+			drawTapeBrowser(false);
 			change = true;
 			break;
 
@@ -1337,10 +1340,10 @@ void UserInterface::keyhandlerTapeBrowser(WORD key)
 BYTE UserInterface::queryDialog(const char *title, bool save)
 {
 	void *data = (save) ? gui_query_save : gui_query_confirm;
-	const char *dialogTitle = new char[strlen(title) + 5];
+	char *dialogTitle = new char[strlen(title) + 5];
 
-	sprintf((char *) dialogTitle, "  %s  ", title);
-	((GUI_MENU_ENTRY *) data)->text = dialogTitle;
+	sprintf(dialogTitle, "  %s  ", title);
+	((GUI_MENU_ENTRY *) data)->text = (const char *) dialogTitle;
 
 	BYTE *bkm_frameSave = new BYTE[frameLength];
 	memcpy(bkm_frameSave, defaultSurface->pixels, frameLength);
