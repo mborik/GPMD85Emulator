@@ -23,6 +23,7 @@
 //-----------------------------------------------------------------------------
 static const char *uicch = new char[32];
 //-----------------------------------------------------------------------------
+const char *dcb_tape_save_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_view_size_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_view_cmod_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_view_cpal_state(GUI_MENU_ENTRY *ptr);
@@ -49,6 +50,7 @@ const char *dcb_p32_extc_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_p32_sdcd_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_p32_imgd_state(GUI_MENU_ENTRY *ptr);
 //-----------------------------------------------------------------------------
+bool ccb_tape_new(GUI_MENU_ENTRY *ptr);
 bool ccb_fileselector(GUI_MENU_ENTRY *ptr);
 bool ccb_view_size(GUI_MENU_ENTRY *ptr);
 bool ccb_view_brdr(GUI_MENU_ENTRY *ptr);
@@ -98,8 +100,9 @@ static GUI_MENU_ENTRY gui_p32_images_menu[] = {
 };
 static GUI_MENU_ENTRY gui_file_menu[] = {
 	{ MI_TITLE, "FILE" },
+	{ MI_STANDARD, "\aNEW \aTAPE", NULL, SDLK_n, NULL, ccb_tape_new, NULL, true, false, 0 },
 	{ MI_DIALOG, "OPEN \aTAPE", "F2", SDLK_t, NULL, ccb_fileselector, NULL, true, false, 1 },
-	{ MI_DIALOG, "SAVE \aTAPE AS", "^F2", SDLK_t, NULL, ccb_fileselector, NULL, false, false, 2 },
+	{ MI_DIALOG, "SAVE T\aAPE AS", "^F2", SDLK_a, NULL, ccb_fileselector, dcb_tape_save_state, false, false, 2 },
 	{ MI_SEPARATOR },
 	{ MI_DIALOG, "OPEN \aSNAPSHOT", "F7", SDLK_s, NULL, ccb_fileselector, NULL, true, false, 3 },
 	{ MI_DIALOG, "\aCREATE SNAPSHOT", "^F7", SDLK_c, NULL, ccb_fileselector, NULL, true, false, 4 },

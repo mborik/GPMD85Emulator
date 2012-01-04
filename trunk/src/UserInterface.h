@@ -89,6 +89,7 @@ class UserInterface : public sigslot::has_slots<>
 			TFileSelectType type;
 			const char *title;
 			char path[MAX_PATH];
+			int  count;
 			char **dirEntries;
 			char **extFilter;
 			BYTE itemsOnPage;
@@ -97,8 +98,8 @@ class UserInterface : public sigslot::has_slots<>
 		} GUI_FILESELECTOR_DATA;
 
 		typedef struct GUI_TAPEBROWSER_DATA {
+			int  count;
 			char **entries;
-			int count;
 			bool hex;
 		} GUI_TAPEBROWSER_DATA;
 
@@ -168,9 +169,9 @@ class UserInterface : public sigslot::has_slots<>
 		void drawMenuItems();
 		void drawMenu(void *data);
 		void drawFileSelectorItems();
-		void drawFileSelector();
+		void drawFileSelector(bool update = true);
 		void drawTapeBrowserItems();
-		void drawTapeBrowser();
+		void drawTapeBrowser(bool update = true);
 		void keyhandlerMenu(WORD key);
 		void keyhandlerFileSelector(WORD key);
 		void keyhandlerFileSelectorCallback(char *fileName);

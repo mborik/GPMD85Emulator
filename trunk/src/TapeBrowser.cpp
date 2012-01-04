@@ -1,6 +1,7 @@
 //---------------------------------------------------------------------------
 #include "CommonUtils.h"
 #include "TapeBrowser.h"
+#include "GPMD85main.h"
 //---------------------------------------------------------------------------
 TTapeBrowser::TTapeBrowser(TSettings::SetTapeBrowser *set)
 {
@@ -13,7 +14,6 @@ TTapeBrowser::TTapeBrowser(TSettings::SetTapeBrowser *set)
 	ifTape = NULL;
 	tapeFile = NULL;
 	orgTapeFile = NULL;
-	tmpFileName = NULL;
 	settings = set;
 
 	debug("[TapeBrowser] Initializing...");
@@ -25,8 +25,8 @@ TTapeBrowser::TTapeBrowser(TSettings::SetTapeBrowser *set)
 	ProgressBar->Active = &playing;
 
 	playing = false;
-	editMode = false;
 	tapeChanged = false;
+	preparedForSave = false;
 
 	if (set->fileName) {
 		char *file = ComposeFilePath(set->fileName);
@@ -37,6 +37,8 @@ TTapeBrowser::TTapeBrowser(TSettings::SetTapeBrowser *set)
 //---------------------------------------------------------------------------
 TTapeBrowser::~TTapeBrowser()
 {
+	debug("[TapeBrowser] Freeing...");
+
 	if (tapeFile)
 		delete[] tapeFile;
 
@@ -63,18 +65,32 @@ bool TTapeBrowser::SetTapeFileName(char *fn)
 		tapeFile = new char[strlen(fn) + 1];
 		strcpy(tapeFile, fn);
 
+		if (playing)
+			ActionStop();
+
 		FreeAllBlocks();
 		ret = !(PrepareFile(tapeFile, &blocks));
 		SelectBlock(0);
 		tapeChanged = false;
+		preparedForSave = false;
 	}
 
 	return ret;
 }
 //---------------------------------------------------------------------------
+void TTapeBrowser::SetNewTape()
+{
+	if (playing)
+		ActionStop();
+
+	FreeAllBlocks();
+	tapeChanged = false;
+	preparedForSave = false;
+}
+//---------------------------------------------------------------------------
 void TTapeBrowser::FreeAllBlocks()
 {
-	TAPE_BLOCK *blk, *nextb;
+	TAPE_BLOCK *blk = blocks, *nextb;
 
 	blk = blocks;
 	while (blk) {
@@ -82,7 +98,7 @@ void TTapeBrowser::FreeAllBlocks()
 		if (blk->orgFile)
 			len = strlen(blk->orgFile);
 
-		if (len > 7 && strcmp(blk->orgFile + (len - 6), "tmp.tmp") == 0)
+		if (len > 4 && strcmp(blk->orgFile + (len - 4), ".tmp") == 0)
 			unlink(blk->orgFile);
 
 		nextb = blk->next;
@@ -93,6 +109,8 @@ void TTapeBrowser::FreeAllBlocks()
 	blocks = NULL;
 	currBlock = NULL;
 	totalBlocks = 0;
+	currBlockIdx = -1;
+	stopBlockIdx = -1;
 }
 //---------------------------------------------------------------------------
 bool TTapeBrowser::PrepareFile(char *fn, TAPE_BLOCK **blks)
@@ -268,7 +286,7 @@ bool TTapeBrowser::CheckHeader(BYTE *buff, TAPE_BLOCK *blk)
 //---------------------------------------------------------------------------
 void TTapeBrowser::ActionPlay()
 {
-	if (editMode || playing || currBlock == NULL)
+	if (playing || currBlock == NULL)
 		return;
 
 	PrepareData(true);
@@ -281,7 +299,7 @@ void TTapeBrowser::ActionPlay()
 //---------------------------------------------------------------------------
 void TTapeBrowser::ActionStop()
 {
-	if (editMode || !playing)
+	if (!playing)
 		return;
 
 	playing = false;
@@ -312,7 +330,11 @@ void TTapeBrowser::TapeCommand(int command, bool *result)
 					(settings->autoStop == AS_CURSOR && currBlockIdx == stopBlockIdx) ||
 					(settings->autoStop == AS_NEXTHEAD && currBlock->cType != 0)) {
 
+					if (settings->autoStop == AS_CURSOR && currBlockIdx == stopBlockIdx)
+						stopBlockIdx = -1;
+
 					ActionStop();
+
 					if (result)
 						*result = false;
 					return;
@@ -405,70 +427,14 @@ void TTapeBrowser::PrepareData(bool head)
 	fclose(hFile);
 }
 //---------------------------------------------------------------------------
-void TTapeBrowser::SaveTape(char *newFileName, TAPE_BLOCK *blks, bool asPTP)
-{
-	if (newFileName == NULL)
-		return;
-
-	static BYTE bHeadLeader[48];
-	TAPE_BLOCK *blk;
-	WORD wL;
-
-	char *tmpFileName = new char[strlen(newFileName) + 16];
-	sprintf(tmpFileName, "%s.%d.tmp", newFileName, SDL_GetTicks());
-
-	FILE *hDest = fopen(tmpFileName, "wb");
-	if (hDest == NULL) {
-		warning("[TapeBrowser] SaveTape: Can't open temp file '%s'", tmpFileName);
-		return;
-	}
-
-	blk = blks;
-	while (blk) {
-		if (blk->cType != 0) {
-			wL = 63;
-			if (asPTP)
-				fwrite(&wL, sizeof(BYTE), 2, hDest); // length of PTP block
-
-			if (bHeadLeader[0] != 0xFF || bHeadLeader[16] != 0 || bHeadLeader[32] != 0x55) {
-				memset(bHeadLeader, 0xFF, 16);
-				memset(bHeadLeader + 16, 0, 16);
-				memset(bHeadLeader + 32, 0x55, 16);
-			}
-
-			fwrite(bHeadLeader, sizeof(BYTE), 48, hDest); // FF 00 55
-			fwrite(&blk->bNumber, sizeof(BYTE), 15, hDest); // header
-			wL = (WORD) (blk->wLength + 2);
-		}
-		else
-			wL = blk->wLength;
-
-		ReadFromFile(blk->orgFile, blk->dwOffsetBody, wL, buffer);
-
-		if (blk->bodyCrcErrorFix || (blk->rawFile && blk->cType != 0))
-			*(buffer + wL - 1) = blk->bBodyCrc;
-
-		if (asPTP)
-			fwrite(&wL, sizeof(BYTE), 2, hDest); // length of PTP block
-
-		fwrite(buffer, sizeof(BYTE), wL, hDest); // body
-		blk = blk->next;
-	}
-
-	fclose(hDest);
-	unlink(newFileName);
-	rename(tmpFileName, newFileName);
-
-	delete [] tmpFileName;
-}
-//---------------------------------------------------------------------------
 void TTapeBrowser::NewTapeFile()
 {
 	if (tapeFile)
 		delete [] tapeFile;
 
-	tapeFile = new char[32];
-	sprintf(tapeFile, "/tmp/%s.%d.ptp", PACKAGE_TARNAME, SDL_GetTicks());
+	tapeFile = new char[64];
+	sprintf(tapeFile, "%s/%s.%06x%04x.tmp",
+		P_tmpdir, PACKAGE_TARNAME, SDL_GetTicks(), getpid());
 
 	FILE *hDest = fopen(tapeFile, "wb");
 	if (hDest == NULL) {
@@ -480,7 +446,8 @@ void TTapeBrowser::NewTapeFile()
 
 	fclose(hDest);
 	FreeAllBlocks();
-	tapeChanged = true;
+	tapeChanged = false;
+	preparedForSave = true;
 }
 //---------------------------------------------------------------------------
 void TTapeBrowser::SaveTapeBlock()
@@ -498,7 +465,88 @@ void TTapeBrowser::SaveTapeBlock()
 	fwrite(buff, sizeof(BYTE), len, hDest);
 	fclose(hDest);
 
+	FreeAllBlocks();
+	PrepareFile(tapeFile, &blocks);
+
 	tapeChanged = true;
+}
+//---------------------------------------------------------------------------
+BYTE TTapeBrowser::SaveTape(char *newFileName, TAPE_BLOCK *blks, bool asPTP)
+{
+	static BYTE bHeadLeader[48];
+	TAPE_BLOCK *blk = blks;
+	tmpFileName = NULL;
+	BYTE flag = 0xFF;
+	WORD wL;
+
+	if (blk == NULL)
+		blk = blocks;
+
+	do {
+		if (newFileName == NULL)
+			break;
+
+		tmpFileName = new char[strlen(newFileName) + 16];
+		sprintf(tmpFileName, "%s.%06x%04x.tmp",
+			newFileName, SDL_GetTicks(), getpid());
+
+		FILE *hDest = fopen(tmpFileName, "wb");
+		if (hDest == NULL) {
+			warning("[TapeBrowser] SaveTape: Can't open temp file '%s'", tmpFileName);
+			delete [] tmpFileName;
+			break;
+		}
+
+		if (blk == NULL)
+			break;
+
+		flag = 0;
+		while (blk) {
+			if (blk->cType != 0) {
+				wL = 63;
+				if (asPTP)
+					if (fwrite(&wL, sizeof(BYTE), 2, hDest) != 2) // length of PTP block
+						flag = 1;
+
+				if (bHeadLeader[0] != 0xFF || bHeadLeader[16] != 0 || bHeadLeader[32] != 0x55) {
+					memset(bHeadLeader, 0xFF, 16);
+					memset(bHeadLeader + 16, 0, 16);
+					memset(bHeadLeader + 32, 0x55, 16);
+				}
+
+				if (fwrite(bHeadLeader, sizeof(BYTE), 48, hDest) != 48) // FF 00 55
+					flag = 1;
+				if (fwrite(&blk->bNumber, sizeof(BYTE), 15, hDest) != 15) // header
+					flag = 1;
+				wL = (WORD) (blk->wLength + 2);
+			}
+			else
+				wL = blk->wLength;
+
+			if (ReadFromFile(blk->orgFile, blk->dwOffsetBody, wL, buffer) != wL)
+				flag = 1;
+
+			if (blk->bodyCrcErrorFix || (blk->rawFile && blk->cType != 0))
+				*(buffer + wL - 1) = blk->bBodyCrc;
+
+			if (asPTP)
+				if (fwrite(&wL, sizeof(BYTE), 2, hDest) != 2) // length of PTP block
+					flag = 1;
+
+			if (fwrite(buffer, sizeof(BYTE), wL, hDest) != wL) // body
+				flag = 1;
+
+			blk = blk->next;
+		}
+
+		fclose(hDest);
+		unlink(newFileName);
+		rename(tmpFileName, newFileName);
+		delete [] tmpFileName;
+
+	} while (false);
+
+	return flag;
 }
 //---------------------------------------------------------------------------
 void TTapeBrowser::FillFileList(char ***data, int *items, bool hex)
@@ -533,6 +581,7 @@ void TTapeBrowser::FillFileList(char ***data, int *items, bool hex)
 
 		*data = newpt;
 	}
+
 }
 //---------------------------------------------------------------------------
 void TTapeBrowser::FreeFileList(char ***data, int *items)
