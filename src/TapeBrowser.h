@@ -57,7 +57,7 @@ class TTapeBrowser : public sigslot::has_slots<>
 		WORD  wTemp;
 		DWORD dwTemp;
 
-		void FreeAllBlocks();
+		void FreeAllBlocks(bool cleanTmp = true);
 		bool PrepareFile(char *fn, TAPE_BLOCK **blks);
 		bool CheckCrc(BYTE *buff, int length, BYTE *goodCrc);
 		bool CheckHeader(BYTE *buff, TAPE_BLOCK *blk);

@@ -106,6 +106,10 @@ TEmulator::~TEmulator()
 	if (Settings)
 		delete Settings;
 	Settings = NULL;
+
+	if (TapeBrowser)
+		delete TapeBrowser;
+	TapeBrowser = NULL;
 }
 //-----------------------------------------------------------------------------
 void TEmulator::ProcessSettings(BYTE filter)
@@ -621,6 +625,8 @@ void TEmulator::ActionTapeNew()
 
 	if (result == GUI_QUERY_DONTSAVE) {
 		TapeBrowser->SetNewTape();
+		delete [] Settings->TapeBrowser->fileName;
+		Settings->TapeBrowser->fileName = NULL;
 		video->GUI->menuCloseAll();
 	}
 

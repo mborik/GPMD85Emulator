@@ -48,6 +48,42 @@ TTapeBrowser::~TTapeBrowser()
 	FreeAllBlocks();
 }
 //---------------------------------------------------------------------------
+void TTapeBrowser::FreeAllBlocks(bool cleanTmp)
+{
+	TAPE_BLOCK *blk = blocks, *nextb;
+	char *prevFileName = NULL;
+
+	while (blk) {
+		if (blk->orgFile) {
+			if (prevFileName != blk->orgFile) {
+				if (prevFileName != NULL) {
+					if (cleanTmp && strcmp(prevFileName + (strlen(prevFileName) - 4), ".tmp") == 0)
+						unlink(prevFileName);
+					delete [] prevFileName;
+				}
+
+				prevFileName = blk->orgFile;
+			}
+		}
+
+		nextb = blk->next;
+		delete blk;
+		blk = nextb;
+	}
+
+	if (prevFileName != NULL) {
+		if (cleanTmp && strcmp(prevFileName + (strlen(prevFileName) - 4), ".tmp") == 0)
+			unlink(prevFileName);
+		delete [] prevFileName;
+	}
+
+	blocks = NULL;
+	currBlock = NULL;
+	totalBlocks = 0;
+	currBlockIdx = -1;
+	stopBlockIdx = -1;
+}
+//---------------------------------------------------------------------------
 void TTapeBrowser::SetIfTape(IifTape *ifTape)
 {
 	this->ifTape = ifTape;
@@ -88,45 +124,22 @@ void TTapeBrowser::SetNewTape()
 	preparedForSave = false;
 }
 //---------------------------------------------------------------------------
-void TTapeBrowser::FreeAllBlocks()
-{
-	TAPE_BLOCK *blk = blocks, *nextb;
-
-	blk = blocks;
-	while (blk) {
-		int len = 0;
-		if (blk->orgFile)
-			len = strlen(blk->orgFile);
-
-		if (len > 4 && strcmp(blk->orgFile + (len - 4), ".tmp") == 0)
-			unlink(blk->orgFile);
-
-		nextb = blk->next;
-		delete blk;
-		blk = nextb;
-	}
-
-	blocks = NULL;
-	currBlock = NULL;
-	totalBlocks = 0;
-	currBlockIdx = -1;
-	stopBlockIdx = -1;
-}
-//---------------------------------------------------------------------------
 bool TTapeBrowser::PrepareFile(char *fn, TAPE_BLOCK **blks)
 {
+	FILE *hf = fopen(fn, "rb");
+	if (hf == NULL || fn == NULL)
+		return false;
+
+	*blks = NULL;
+
 	TAPE_BLOCK *lBlk, blkTmp;
 	DWORD dwPosH, dwPosB;
 	bool hdr, oldType, err;
-	FILE *hf;
+	char *srcFile = new char[strlen(fn) + 1];
+	strcpy(srcFile, fn);
 
-	*blks = NULL;
 	err = true;
-	hf = fopen(fn, "rb");
 	do {
-		if (hf == NULL)
-			break;
-
 		if (fseek(hf, 0, SEEK_END) != 0)
 			break;
 
@@ -234,7 +247,7 @@ bool TTapeBrowser::PrepareFile(char *fn, TAPE_BLOCK **blks)
 
 			memcpy(lBlk, &blkTmp, sizeof(blkTmp) - 2 * sizeof(TapeBlock *) - sizeof(char *));
 
-			lBlk->orgFile = fn;
+			lBlk->orgFile = srcFile;
 			lBlk->rawFile = false;
 			lBlk->next = NULL;
 
@@ -465,7 +478,7 @@ void TTapeBrowser::SaveTapeBlock()
 	fwrite(buff, sizeof(BYTE), len, hDest);
 	fclose(hDest);
 
-	FreeAllBlocks();
+	FreeAllBlocks(false);
 	PrepareFile(tapeFile, &blocks);
 
 	tapeChanged = true;
@@ -581,7 +594,6 @@ void TTapeBrowser::FillFileList(char ***data, int *items, bool hex)
 
 		*data = newpt;
 	}
-
 }
 //---------------------------------------------------------------------------
 void TTapeBrowser::FreeFileList(char ***data, int *items)
