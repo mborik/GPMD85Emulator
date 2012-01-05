@@ -102,7 +102,7 @@ static GUI_MENU_ENTRY gui_file_menu[] = {
 	{ MI_TITLE, "FILE" },
 	{ MI_STANDARD, "\aNEW \aTAPE", NULL, SDLK_n, NULL, ccb_tape_new, NULL, true, false, 0 },
 	{ MI_DIALOG, "OPEN \aTAPE", "F2", SDLK_t, NULL, ccb_fileselector, NULL, true, false, 1 },
-	{ MI_DIALOG, "SAVE T\aAPE AS", "^F2", SDLK_a, NULL, ccb_fileselector, dcb_tape_save_state, false, false, 2 },
+	{ MI_DIALOG, "SAVE T\aAPE", "^F2", SDLK_a, NULL, ccb_fileselector, dcb_tape_save_state, false, false, 2 },
 	{ MI_SEPARATOR },
 	{ MI_DIALOG, "OPEN \aSNAPSHOT", "F7", SDLK_s, NULL, ccb_fileselector, NULL, true, false, 3 },
 	{ MI_DIALOG, "\aCREATE SNAPSHOT", "^F7", SDLK_c, NULL, ccb_fileselector, NULL, true, false, 4 },
