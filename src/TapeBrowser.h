@@ -44,26 +44,23 @@ class TTapeBrowser : public sigslot::has_slots<>
 		char *tapeFile;
 		char *orgTapeFile;
 		char *tmpFileName;
-		DWORD dwFileSize;
 
 		TAPE_BLOCK *blocks;
 		TAPE_BLOCK *currBlock;
 
+		BYTE  bHeadLeader[48];
 		BYTE *buffer;
 		BYTE *data;
 		WORD  dataLen;
 		bool  head;
 
-		WORD  wTemp;
-		DWORD dwTemp;
-
-		void FreeAllBlocks(bool cleanTmp = true);
-		bool PrepareFile(char *fn, TAPE_BLOCK **blks);
+		void FreeAllBlocks();
+		bool ParseFile(char *fn, TAPE_BLOCK **blks, DWORD seek = 0);
 		bool CheckCrc(BYTE *buff, int length, BYTE *goodCrc);
 		bool CheckHeader(BYTE *buff, TAPE_BLOCK *blk);
 		void PrepareData(bool head);
-		void NewTapeFile();
-		void SaveTapeBlock();
+		void PrepareSaveNewBlocks();
+		void SaveNewBlock();
 
 	public:
 		TTapeBrowser(TSettings::SetTapeBrowser *set);

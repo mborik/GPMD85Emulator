@@ -80,6 +80,7 @@ class UserInterface : public sigslot::has_slots<>
 			GUI_TYPE_FILESELECTOR,      // File selector
 			GUI_TYPE_DISKIMAGES,        // Disk images dialog
 			GUI_TYPE_TAPEBROWSER,       // Tape-browser
+			GUI_TYPE_TAPE_POPUP,        // Tape-browser popup menu
 			GUI_TYPE_DEBUGGER,          // Debugger dialog
 			GUI_TYPE_MEMORYBLOCK,       // Memory block dialog
 			GUI_TYPE_POKE               // Poke dialog
@@ -101,6 +102,11 @@ class UserInterface : public sigslot::has_slots<>
 			int  count;
 			char **entries;
 			bool hex;
+			struct popup {
+				BYTE *frame;
+				SDL_Rect *rect;
+				int leftMargin, count, hilite;
+			} popup;
 		} GUI_TAPEBROWSER_DATA;
 
 		static TSettings *uiSet;
