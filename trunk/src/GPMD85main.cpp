@@ -587,6 +587,19 @@ void TEmulator::ActionExit()
 {
 	ActionPlayPause(false, false);
 
+	if (TapeBrowser->tapeChanged) {
+		BYTE result = video->GUI->queryDialog("SAVE CHANGES?", true);
+		if (result == GUI_QUERY_SAVE) {
+			ActionTapeSave();
+			return;
+		}
+		else if (result != GUI_QUERY_DONTSAVE) {
+			video->GUI->menuCloseAll();
+			ActionPlayPause(!Settings->isPaused, false);
+			return;
+		}
+	}
+
 	if (video->GUI->queryDialog("REALLY EXIT?", false) == GUI_QUERY_YES)
 		isActive = false;
 

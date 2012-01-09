@@ -1,3 +1,5 @@
+2012-01-06 [mborik] early implementation of context popup menu for block operations in TapeBrowser (not functional yet :)
+2012-01-05 [mborik] other fixes and optimalizations in TapeBrowser
 2012-01-04 [mborik] fully functional saving to tape, new menu item "New tape", prepared dialogues "Save changes?" for unsaved changes
 2012-01-03 [mborik] fixed segfaults while freeing fileSelector memcache and disabled recacheing while changing checkboxes in fileSelector and TapeBrowser
 2012-01-02 [mborik] finished prenatal version of TapeBrowser, added tape activity progress to statusbar

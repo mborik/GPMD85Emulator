@@ -110,6 +110,8 @@ UserInterface::UserInterface()
 	tapeBrowser->entries = NULL;
 	tapeBrowser->count = 0;
 	tapeBrowser->hex = true;
+	tapeBrowser->popup.frame = NULL;
+	tapeBrowser->popup.rect = NULL;
 
 	menuStackLevel = -1;
 	needRelease = false;
@@ -432,17 +434,18 @@ void UserInterface::drawMenuItems()
 			mx += r->w - 12;
 			if ((wrk = ptr->hotkey) != NULL) {
 				BYTE c = (ptr->enabled) ? GUI_COLOR_HOTKEY : GUI_COLOR_DISABLED;
+				char hkchr = (menuStack[menuStackLevel].type != GUI_TYPE_TAPE_POPUP) ? SCHR_HOTKEY : ' ';
 
 				mx -= GUI_CONST_HOTKEYCHAR + (strlen(wrk) * 6);
 				if (wrk[0] == '^') {
 					wrk++;
 					mx += GUI_CONST_HOTKEYCHAR - (GUI_CONST_HOTKEYCHAR - 6);
 
-					printChar(defaultSurface, mx - GUI_CONST_HOTKEYCHAR, my, c, SCHR_HOTKEY);
+					printChar(defaultSurface, mx - GUI_CONST_HOTKEYCHAR, my, c, hkchr);
 					printChar(defaultSurface, mx, my, c, SCHR_SHIFT);
 				}
 				else
-					printChar(defaultSurface, mx, my, c, SCHR_HOTKEY);
+					printChar(defaultSurface, mx, my, c, hkchr);
 
 				printText(defaultSurface, mx + GUI_CONST_HOTKEYCHAR, my, c, wrk);
 			}
@@ -498,7 +501,8 @@ void UserInterface::drawMenu(void *data)
 				wrk++;
 			}
 
-			k += (strlen(wrk) * fontWidth) + GUI_CONST_HOTKEYCHAR;
+			k += (strlen(wrk) * fontWidth) +
+				(menuStack[menuStackLevel].type != GUI_TYPE_TAPE_POPUP) ? GUI_CONST_HOTKEYCHAR : 0;
 		}
 
 		if (ptr->detail) {
@@ -521,6 +525,9 @@ void UserInterface::drawMenu(void *data)
 	cMenu_rect->h = (2 * GUI_CONST_BORDER) + height + GUI_CONST_BORDER;
 	cMenu_rect->x = (defaultSurface->w - cMenu_rect->w) / 2;
 	cMenu_rect->y = (defaultSurface->h - cMenu_rect->h) / 2;
+
+	if (menuStack[menuStackLevel].type == GUI_TYPE_TAPE_POPUP)
+		cMenu_rect->x *= 2;
 
 	drawDialogWithBorder(defaultSurface, cMenu_rect->x, cMenu_rect->y, cMenu_rect->w, cMenu_rect->h);
 	printTitle(defaultSurface, cMenu_rect->x, cMenu_rect->y + 1, cMenu_rect->w, GUI_COLOR_BACKGROUND, cMenu_data->text);
@@ -764,29 +771,25 @@ void UserInterface::drawTapeBrowser(bool update)
 	int mx = cMenu_rect->x + cMenu_rect->w - GUI_CONST_BORDER - 1,
 		my = cMenu_rect->y + cMenu_rect->h - 5 - (3 * fontLineHeight);
 
-	printText(defaultSurface, mx - (12 * fontWidth), my,
-		GUI_COLOR_FOREGROUND, "SELECT \aS\aP\aA\aC\aE");
-
-	printText(defaultSurface, mx - (5 * fontWidth) - GUI_CONST_HOTKEYCHAR,
-		my + fontLineHeight, GUI_COLOR_FOREGROUND,
-		tapeBrowser->hex ? "HEX \a\203\aH" : "DEC \a\203\aH");
+	printText(defaultSurface, mx - (10 * fontWidth), my,
+		GUI_COLOR_FOREGROUND, "MENU \aE\aN\aT\aE\aR");
 
 	mx = cMenu_rect->x + GUI_CONST_BORDER;
 	printCheck(defaultSurface, mx, my + 1, GUI_COLOR_CHECKED,
 		SCHR_CHECK, uiSet->TapeBrowser->flash);
 	printText(defaultSurface, mx + GUI_CONST_CHK_MARGIN, my,
-		GUI_COLOR_FOREGROUND, "\a\203\aF FLASH");
+		GUI_COLOR_FOREGROUND, "\aF FLASHLOAD");
 
 	printCheck(defaultSurface, mx, my + fontLineHeight + 1,
 		GUI_COLOR_CHECKED, SCHR_CHECK, uiSet->TapeBrowser->monitoring);
 	printText(defaultSurface, mx + GUI_CONST_CHK_MARGIN, my + fontLineHeight,
-		GUI_COLOR_FOREGROUND, "\a\203\aS SOUND");
+		GUI_COLOR_FOREGROUND, "\aO AUDIO-OUT");
 
 	printText(defaultSurface, mx + GUI_CONST_CHK_MARGIN,
 		my + (2 * fontLineHeight), GUI_COLOR_FOREGROUND,
-		"\a\203\aA AUTOSTOP:");
+		"\aA AUTOSTOP:");
 
-	char autostop[24];
+	static char autostop[12];
 	switch (uiSet->TapeBrowser->autoStop) {
 		default:
 		case AS_OFF:
@@ -800,11 +803,10 @@ void UserInterface::drawTapeBrowser(bool update)
 			break;
 	}
 
-	printText(defaultSurface, mx + GUI_CONST_CHK_MARGIN + (12 * fontWidth) +
-		GUI_CONST_HOTKEYCHAR, my + (2 * fontLineHeight), GUI_COLOR_HOTKEY, autostop);
+	printText(defaultSurface, mx + GUI_CONST_CHK_MARGIN + (12 * fontWidth),
+		my + (2 * fontLineHeight), GUI_COLOR_HOTKEY, autostop);
 
-	char *ptr = NULL;
-
+	static char *ptr = NULL;
 	if (uiSet->TapeBrowser->fileName && !Emulator->TapeBrowser->preparedForSave) {
 		ptr = strrchr(uiSet->TapeBrowser->fileName, '/');
 		if (ptr)
@@ -815,8 +817,12 @@ void UserInterface::drawTapeBrowser(bool update)
 	else
 		ptr = (char *) "[NEW TAPE]";
 
-	printText(defaultSurface, cMenu_rect->x + GUI_CONST_BORDER,
-		cMenu_rect->y + GUI_CONST_ITEM_SIZE + 1, GUI_COLOR_BORDER, ptr);
+	my = cMenu_rect->y + GUI_CONST_ITEM_SIZE + 1;
+	printFormatted(defaultSurface, mx + GUI_CONST_HOTKEYCHAR, my,
+		GUI_COLOR_BORDER, ((strlen(ptr) > 28) ? "%.28s\205" : "%s"), ptr);
+
+	if (Emulator->TapeBrowser->tapeChanged)
+		printChar(defaultSurface, mx, my, GUI_COLOR_CHECKED, '*');
 
 	drawTapeBrowserItems();
 }
@@ -1201,7 +1207,19 @@ void UserInterface::keyhandlerTapeBrowser(WORD key)
 	bool change = false;
 
 	switch (key) {
+		case SDLK_F1 | KM_ALT:
+			key = SDLK_MENU;
+			break;
 		case SDLK_F4 | KM_ALT:
+			key = SDLK_POWER;
+			break;
+		default:
+			key &= (KM_ALT ^ 0xFFFF);
+			break;
+	}
+
+	switch (key) {
+		case SDLK_POWER:
 			ccb_exit(NULL);
 			menuCloseAll();
 			needRelease = true;
@@ -1212,21 +1230,21 @@ void UserInterface::keyhandlerTapeBrowser(WORD key)
 			needRelease = true;
 			return;
 
-		case SDLK_f | KM_ALT:
+		case SDLK_f:
 			prevLeftMargin = cMenu_leftMargin;
 			uiSet->TapeBrowser->flash = !uiSet->TapeBrowser->flash;
 			drawTapeBrowser(false);
 			change = true;
 			break;
 
-		case SDLK_s | KM_ALT:
+		case SDLK_o:
 			prevLeftMargin = cMenu_leftMargin;
 			uiSet->TapeBrowser->monitoring = !uiSet->TapeBrowser->monitoring;
 			drawTapeBrowser(false);
 			change = true;
 			break;
 
-		case SDLK_a | KM_ALT:
+		case SDLK_a:
 			prevLeftMargin = cMenu_leftMargin;
 			if (uiSet->TapeBrowser->autoStop == AS_OFF)
 				uiSet->TapeBrowser->autoStop = AS_NEXTHEAD;
@@ -1238,14 +1256,14 @@ void UserInterface::keyhandlerTapeBrowser(WORD key)
 			change = true;
 			break;
 
-		case SDLK_h | KM_ALT:
+		case SDLK_h:
 			prevLeftMargin = cMenu_leftMargin;
 			tapeBrowser->hex = !tapeBrowser->hex;
 			drawTapeBrowser();
 			change = true;
 			break;
 
-		case SDLK_p | KM_ALT:
+		case SDLK_p:
 			if (Emulator->TapeBrowser->playing && cMenu_count)
 				Emulator->TapeBrowser->ActionStop();
 			else if (!Emulator->TapeBrowser->playing && cMenu_count) {
@@ -1256,14 +1274,25 @@ void UserInterface::keyhandlerTapeBrowser(WORD key)
 			needRelease = true;
 			break;
 
+		case SDLK_END | KM_SHIFT:
+			if (i >= 0 && i != Emulator->TapeBrowser->currBlockIdx) {
+				Emulator->TapeBrowser->stopBlockIdx = i;
+				needRelease = true;
+				change = true;
+			}
+			break;
+
 		case SDLK_SPACE:
 			Emulator->TapeBrowser->SelectBlock(i);
 			needRelease = true;
 			change = true;
 			break;
 
+		case SDLK_MENU:
 		case SDLK_RETURN:
 		case SDLK_KP_ENTER:
+			needRelease = true;
+			menuOpen(GUI_TYPE_TAPE_POPUP);
 			break;
 
 		case SDLK_LEFT:
@@ -1354,7 +1383,10 @@ BYTE UserInterface::queryDialog(const char *title, bool save)
 	    bkm_hilite = cMenu_hilite;
 
 	menuStackLevel++;
-	cMenu_hilite = (save) ? 2 : 1;
+	menuStack[menuStackLevel].type = GUI_TYPE_MENU;
+	menuStack[menuStackLevel].data = data;
+	menuStack[menuStackLevel].hilite = cMenu_hilite = (save) ? 2 : 1;
+
 	drawMenu(data);
 
 	bool change;
@@ -1730,6 +1762,12 @@ void UserInterface::menuOpen(GUI_MENU_TYPE type, void *data)
 			case GUI_TYPE_TAPEBROWSER:
 				break;
 
+			case GUI_TYPE_TAPE_POPUP:
+				if (menuStack[menuStackLevel].type != GUI_TYPE_TAPEBROWSER)
+					return;
+				data = gui_tapebrowser_popup;
+				break;
+
 			default:
 				return;
 		}
@@ -1740,6 +1778,21 @@ void UserInterface::menuOpen(GUI_MENU_TYPE type, void *data)
 	if (menuStackLevel < 0) {
 		uiSetChanges = 0;
 		memcpy(frameSave, defaultSurface->pixels, frameLength);
+	}
+	else if (type == GUI_TYPE_TAPE_POPUP) {
+		if (tapeBrowser->popup.frame)
+			delete [] tapeBrowser->popup.frame;
+
+		tapeBrowser->popup.frame = new BYTE[frameLength];
+		memcpy(tapeBrowser->popup.frame, defaultSurface->pixels, frameLength);
+
+		if (tapeBrowser->popup.rect)
+			delete tapeBrowser->popup.rect;
+
+		tapeBrowser->popup.rect = new SDL_Rect(*cMenu_rect);
+		tapeBrowser->popup.count = cMenu_count;
+		tapeBrowser->popup.hilite = cMenu_hilite;
+		tapeBrowser->popup.leftMargin = cMenu_leftMargin;
 	}
 	else {
 		menuStack[menuStackLevel].hilite = cMenu_hilite;
@@ -1753,6 +1806,7 @@ void UserInterface::menuOpen(GUI_MENU_TYPE type, void *data)
 
 	switch (type) {
 		case GUI_TYPE_MENU:
+		case GUI_TYPE_TAPE_POPUP:
 			drawMenu(data);
 			break;
 
@@ -1777,12 +1831,43 @@ void UserInterface::menuClose()
 
 	menuStackLevel--;
 	if (menuStackLevel >= 0) {
-		cMenu_hilite = menuStack[menuStackLevel].hilite;
-		memcpy(defaultSurface->pixels, frameSave, frameLength);
+		if (menuStack[menuStackLevel + 1].type == GUI_TYPE_TAPE_POPUP) {
+			memcpy(defaultSurface->pixels, tapeBrowser->popup.frame, frameLength);
+
+			cMenu_rect->x = tapeBrowser->popup.rect->x;
+			cMenu_rect->y = tapeBrowser->popup.rect->y;
+			cMenu_rect->w = tapeBrowser->popup.rect->w;
+			cMenu_rect->h = tapeBrowser->popup.rect->h;
+			cMenu_count = tapeBrowser->popup.count;
+			cMenu_hilite = tapeBrowser->popup.hilite;
+			cMenu_leftMargin = tapeBrowser->popup.leftMargin;
+
+			delete tapeBrowser->popup.rect;
+			if (tapeBrowser->popup.frame)
+				delete [] tapeBrowser->popup.frame;
+
+			tapeBrowser->popup.frame = NULL;
+			tapeBrowser->popup.rect = NULL;
+			tapeBrowser->popup.count = -1;
+			tapeBrowser->popup.hilite = -1;
+			tapeBrowser->popup.leftMargin = -1;
+
+			needRelease = true;
+			needRedraw = true;
+			return;
+		}
+		else {
+			cMenu_hilite = menuStack[menuStackLevel].hilite;
+			memcpy(defaultSurface->pixels, frameSave, frameLength);
+		}
 
 		switch (menuStack[menuStackLevel].type) {
 			case GUI_TYPE_MENU:
 				drawMenu(menuStack[menuStackLevel].data);
+				break;
+
+			case GUI_TYPE_TAPEBROWSER:
+				drawTapeBrowser();
 				break;
 
 			default :
@@ -1805,6 +1890,7 @@ void UserInterface::menuHandleKey(WORD key)
 	if (menuStackLevel >= 0) {
 		switch (menuStack[menuStackLevel].type) {
 			case GUI_TYPE_MENU:
+			case GUI_TYPE_TAPE_POPUP:
 				keyhandlerMenu(key);
 				break;
 
