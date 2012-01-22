@@ -14,12 +14,10 @@ DIST_SUBDIRS = $(SUBDIRS)
 AM_CPPFLAGS = \
 	-I$(srcdir)/src \
 	@libSDL_CFLAGS@ \
-	@libXML_CFLAGS@ \
 	-DDIR_RESOURCES="\"${pkgdatadir}\""
 
 GPMD85emu_LDADD = \
 	@libSDL_LIBS@ \
-	@libXML_LIBS@ \
 	src/libGPMD85emu.a
 
 GPMD85emu_DEPENDENCIES = \

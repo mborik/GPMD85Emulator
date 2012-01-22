@@ -4,10 +4,9 @@
 AUTOMAKE_OPTIONS = foreign
 RES = \
 	base.fnt \
+	default.conf \
 	icon.bmp \
-	statusbar.bmp \
-	GPMD85Emu.xml \
-	GPMD85Emu.dtd
+	statusbar.bmp
 
 pkgdata_DATA = $(RES)
 

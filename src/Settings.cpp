@@ -20,154 +20,137 @@
 //-----------------------------------------------------------------------------
 TSettings::TSettings()
 {
-	int i = 0, j, k;
-	char *buf;
+	int i, j, k;
+	char *buf, *s;
 
-	debug("[Settings] libXML2 parser initialization");
+	debug("[Settings] Configuration parser initialization");
 
-	if (LocateResource("GPMD85Emu.dtd", true) == NULL)
-		warning("Configuration scheme not found!");
-	else
-		i = XML_PARSE_DTDVALID;
+	if ((buf = LocateResource("default.conf", true)) == NULL)
+		error("[Settings] Configuration file not found!");
 
-	if ((buf = LocateResource("GPMD85Emu.xml", true)) == NULL)
-		error("Configuration file not found!");
-
-	xmlDoc = xmlReadFile(buf, "UTF-8", i);
-	if (xmlDoc == NULL)
-		error("Couldn't parse configuration file:\n> %s", buf);
+	cfgReadFile(buf);
+	if (cfgRoot == NULL)
+		error("[Settings] Couldn't parse configuration file: %s", buf);
 
 	debug("[Settings] Configuration XML parsed, reading elements");
 
-	xmlRoot = xmlDocGetRootElement(xmlDoc);
-	if (xmlStrcmp(xmlRoot->name, (const xmlChar *) "GPMD85Emulator") != 0)
-		error("Invalid configuration file!");
+	if (strcmp(cfgRoot->value, "GNU/GPL PMD 85 Emulator Configuration File") != 0)
+		warning("[Settings] Invalid header of configuration file!");
 
-	if (!cfgIsAttributeToken(xmlRoot, "version", CONFIGURATION_VERSION))
-		warning("Incompatible configuration file version (required %s)!", CONFIGURATION_VERSION);
+	if (!cfgHasKeyValue(cfgRoot->next, "config-version", CONFIGURATION_VERSION))
+		warning("[Settings] Incompatible configuration file version (required %s)!", CONFIGURATION_VERSION);
 
-	xmlChar *s;
-	xmlNodePtr m, n = cfgGetChildNode(xmlRoot, "General");
-	pauseOnFocusLost = cfgGetAttributeBoolValue(n, "pause-on-focus-lost", false);
-	showHiddenFiles = cfgGetAttributeBoolValue(n, "show-hidden-files", false);
-	autosaveSettings = cfgGetAttributeBoolValue(n, "autosave-setting", false);
-	
+	cfgIniLine *m = NULL, *n = cfgFindSection(cfgRoot, "General");
+
+	pauseOnFocusLost = cfgGetBoolValue(n, "pause-on-focus-lost", false, &pauseOnFocusLost);
+	showHiddenFiles = cfgGetBoolValue(n, "show-hidden-files", false, &showHiddenFiles);
+	autosaveSettings = cfgGetBoolValue(n, "autosave-setting", false, &autosaveSettings);
+	buf = cfgGetStringValue(n, "current-model");
+
 	isPaused = false;
 
-	n = cfgGetChildNode(xmlRoot, "RomPackages");
-	romPackagesCount = cfgCountChildNodes(n);
+	n = cfgFindSection(cfgRoot, "RomModulePackages");
+	romPackagesCount = cfgCountChildAttributes(n);
 	RomPackages = new SetRomPackage *[romPackagesCount];
 
-	n = n->children;
-	SetRomModuleFile *rmf = NULL;
-	for (i = 0; n != NULL || i < romPackagesCount; n = n->next) {
-		if (xmlStrcmp(n->name, (const xmlChar *) "RomPackage") == 0 && n->type == XML_ELEMENT_NODE) {
+	n = n->next;
+	for (i = 0; (n != NULL && n->type != LT_SECTION) || i < romPackagesCount; n = n->next) {
+		if (n->type == LT_LIST) {
+			k = 1;
+			s = n->value;
+			strccnt(s, '|', k);
+
 			RomPackages[i] = new SetRomPackage;
-			RomPackages[i]->name = cfgGetAttributeToken(n, "name");
-			RomPackages[i]->count = cfgCountChildNodes(n);
-			RomPackages[i]->files = new SetRomModuleFile *[RomPackages[i]->count];
+			RomPackages[i]->name = n->key;
+			RomPackages[i]->count = k;
+			RomPackages[i]->files = new SetRomModuleFile *[k];
 
-			k = 0;
-			m = n->children;
-			for (j = 0; m != NULL || j < RomPackages[i]->count; m = m->next) {
-				if (xmlStrcmp(m->name, (const xmlChar *) "RomFile") == 0 && m->type == XML_ELEMENT_NODE) {
-					s = xmlNodeGetContent(m);
-					if (s) {
-						rmf = new SetRomModuleFile;
-						rmf->rmmFile = cfgConvertXmlString(s);
+			j = 0;
+			checkRMMfile(NULL);
+			s = strtok(n->value, "|");
+			while (s != NULL) {
+				while (*s == ' ' || *s == '\t')
+					s++;
+				while (*(s + strlen(s) - 1) == ' ' || *(s + strlen(s) - 1) == '\t')
+					*(s + strlen(s) - 1) = '\0';
 
-						rmf->err = 1;
-						rmf->size = 0;
-						if (strcmp(strrchr(rmf->rmmFile, '.'), ".rmm") == 0) {
-							FILE *f = fopen(LocateROM(rmf->rmmFile), "rb");
-							if (f) {
-								if (fseek(f, 0, SEEK_END) == 0)
-									rmf->size = ftell(f);
-								fclose(f);
-
-								k += (rmf->size + KBYTE - 1) / KBYTE;
-
-								if (rmf->size < KBYTE
-								 || rmf->size > (32 * KBYTE)
-								 || (rmf->size & 0x3FF) > 0)
-									rmf->err = 2;
-								else if (k > 32)
-									rmf->err = 3;
-								else if (k > 64)
-									rmf->err = 4;
-								else if (k > 256)
-									rmf->err = 5;
-								else
-									rmf->err = 0;
-							}
-						}
-
-						RomPackages[i]->files[j] = rmf;
-					}
-
-					j++;
-				}
+				RomPackages[i]->files[j] = checkRMMfile(s);
+				s = strtok(NULL, "|");
+				j++;
 			}
 
 			i++;
 		}
 	}
 
-	n = cfgGetChildNode(xmlRoot, "Model");
-	buf = cfgGetAttributeToken(n, "current");
-
-	modelsCount = cfgCountChildNodes(n);
-	AllModels = new SetComputerModel *[modelsCount];
+	k = 8;
+	n = cfgRoot;
 	CurrentModel = NULL;
+	SetComputerModel *model = NULL;
+	AllModels = new SetComputerModel *[k];
 
-	n = n->children;
-	for (i = 0; n != NULL || i < modelsCount; n = n->next) {
-		if (n->type != XML_ELEMENT_NODE)
+	for (modelsCount = 0; n != NULL; n = n->next) {
+		if (n->type != LT_SECTION)
+			continue;
+		if (strncmp(n->key, "Model-", 6) != 0)
 			continue;
 
-		SetComputerModel *model = new SetComputerModel;
+		model = new SetComputerModel;
 
-		if (xmlStrcmp(n->name, (const xmlChar *) "Model-1") == 0)
+		if (strcmp(n->key, "Model-1") == 0)
 			model->type = CM_V1;
-		else if (xmlStrcmp(n->name, (const xmlChar *) "Model-2") == 0)
+		else if (strcmp(n->key, "Model-2") == 0)
 			model->type = CM_V2;
-		else if (xmlStrcmp(n->name, (const xmlChar *) "Model-2A") == 0)
+		else if (strcmp(n->key, "Model-2A") == 0)
 			model->type = CM_V2A;
-		else if (xmlStrcmp(n->name, (const xmlChar *) "Model-3") == 0)
+		else if (strcmp(n->key, "Model-3") == 0)
 			model->type = CM_V3;
-		else if (xmlStrcmp(n->name, (const xmlChar *) "Model-Mato") == 0)
+		else if (strcmp(n->key, "Model-Mato") == 0)
 			model->type = CM_MATO;
-		else if (xmlStrcmp(n->name, (const xmlChar *) "Model-Alfa") == 0)
+		else if (strcmp(n->key, "Model-Alfa") == 0)
 			model->type = CM_ALFA;
-		else if (xmlStrcmp(n->name, (const xmlChar *) "Model-Alfa2") == 0)
+		else if (strcmp(n->key, "Model-Alfa2") == 0)
 			model->type = CM_ALFA2;
-		else if (xmlStrcmp(n->name, (const xmlChar *) "Model-C2717") == 0)
+		else if (strcmp(n->key, "Model-C2717") == 0)
 			model->type = CM_C2717;
-
-		model->compatibilityMode = cfgGetAttributeBoolValue(n, "compatibility-mode", false);
-		model->romFile = cfgConvertXmlString(xmlNodeGetContent(cfgGetChildNode(n, "RomFile")));
-
-		if (model->romFile == NULL) {
-			warning("[Settings] RomFile not defined for %s, will be ignored...", n->name);
-			modelsCount--;
+		else {
+			warning("[Settings] Unknown model '%s' definition!", n->key);
 			delete model;
 			continue;
 		}
 
-		m = cfgGetChildNode(n, "RomModule");
-		model->romModuleInserted = cfgGetAttributeBoolValue(m, "inserted", false);
-		s = xmlGetProp(m, (const xmlChar *) "name");
-		if ((model->romModule = findROMmodule((char *) s)) == NULL)
+		model->romFile = cfgGetStringValue(n, "rom", &(model->romFile));
+		if (model->romFile == NULL) {
+			warning("[Settings] ROM file not defined for %s!", n->key);
+			delete model;
+			continue;
+		}
+
+		model->compatibilityMode = cfgGetBoolValue(n, "compmode", false, &(model->compatibilityMode));
+		model->romModuleInserted = cfgGetBoolValue(n, "rmm-inserted", false, &(model->romModuleInserted));
+
+		s = cfgGetStringValue(n, "rmm-name");
+		if ((model->romModule = findROMmodule(s)) == NULL)
 			model->romModuleInserted = false;
 
-		xmlFree(s);
+		if (s)
+			delete [] s;
+		s = NULL;
 
-		if (xmlStrcmp(n->name, (const xmlChar *) buf) == 0)
+		if (strcmp(n->key, buf) == 0)
 			CurrentModel = model;
 
-		AllModels[i] = model;
-		i++;
+		AllModels[modelsCount] = model;
+		modelsCount++;
+
+		if (modelsCount > k) {
+			warning("[Settings] Too much computer models defined!");
+			break;
+		}
 	}
+
+	if (!modelsCount)
+		error("[Settings] No computer models defined!");
 
 	if (CurrentModel == NULL) {
 		warning("[Settings] Current model '%s' not found!", buf);
@@ -178,198 +161,246 @@ TSettings::TSettings()
 		delete [] buf;
 	buf = NULL;
 
-	n = cfgGetChildNode(xmlRoot, "Snapshot");
+	n = cfgFindSection(cfgRoot, "Snapshot");
 
 	Snapshot = new SetSnapshot;
-	Snapshot->saveCompressed = cfgGetAttributeBoolValue(n, "save-snapshot-compressed", true);
-	Snapshot->saveWithMonitor = cfgGetAttributeBoolValue(n, "save-snapshot-with-monitor", false);
-	Snapshot->dontRunOnLoad = cfgGetAttributeBoolValue(n, "dont-run-snapshot-on-load", false);
-	Snapshot->fileName = cfgConvertXmlString(xmlNodeGetContent(n));
+	Snapshot->saveWithMonitor = cfgGetBoolValue(n, "save-snapshot-with-monitor", false, &(Snapshot->saveWithMonitor));
+	Snapshot->saveCompressed = cfgGetBoolValue(n, "save-snapshot-compressed", true, &(Snapshot->saveCompressed));
+	Snapshot->dontRunOnLoad = cfgGetBoolValue(n, "dont-run-snapshot-on-load", false, &(Snapshot->dontRunOnLoad));
+	Snapshot->fileName = cfgGetStringValue(n, "recent-file", &(Snapshot->fileName));
 
-	n = cfgGetChildNode(xmlRoot, "TapeBrowser");
+	n = cfgFindSection(cfgRoot, "TapeBrowser");
 
 	TapeBrowser = new SetTapeBrowser;
-	TapeBrowser->monitoring = cfgGetAttributeBoolValue(n, "monitoring", false);
-	TapeBrowser->flash = cfgGetAttributeBoolValue(n, "flash", false);
-	TapeBrowser->fileName = cfgConvertXmlString(xmlNodeGetContent(n));
+	TapeBrowser->monitoring = cfgGetBoolValue(n, "monitoring", false, &(TapeBrowser->monitoring));
+	TapeBrowser->flash = cfgGetBoolValue(n, "flash", false, &(TapeBrowser->flash));
+	TapeBrowser->fileName = cfgGetStringValue(n, "recent-file", &(TapeBrowser->fileName));
 
-	if (cfgIsAttributeToken(n, "auto-stop", "next-head"))
-		TapeBrowser->autoStop = AS_NEXTHEAD;
-	else if (cfgIsAttributeToken(n, "auto-stop", "cursor"))
-		TapeBrowser->autoStop = AS_CURSOR;
+	TapeBrowser->autoStop = AS_NEXTHEAD;
+	if ((m = cfgGetLine(n, "auto-stop")) != NULL) {
+		if (strcmp(m->value, "next-head") == 0)
+			TapeBrowser->autoStop = AS_NEXTHEAD;
+		else if (strcmp(m->value, "cursor") == 0)
+			TapeBrowser->autoStop = AS_CURSOR;
+		else if (strcmp(m->value, "off") == 0)
+			TapeBrowser->autoStop = AS_OFF;
+
+		// TODO: extend line types to handle all enumerators in config!
+		m->type = LT_ENUM;
+		m->ptr = (void *) &(TapeBrowser->autoStop);
+	}
 	else
-		TapeBrowser->autoStop = AS_OFF;
+		cfgInsertNewLine(n->next, "auto-stop", LT_ENUM, (void *) &(TapeBrowser->autoStop));
 
-	n = cfgGetChildNode(xmlRoot, "Screen");
+	n = cfgFindSection(cfgRoot, "Screen");
 
 	Screen = new SetScreen;
-	Screen->border = cfgGetAttributeIntValue(n, "border", 0);
+	cfgGetIntValue(n, "border", 0, &(Screen->border));
 
-	if (cfgIsAttributeToken(n, "size", "double"))
-		Screen->size = DM_DOUBLESIZE;
-	else if (cfgIsAttributeToken(n, "size", "triple"))
-		Screen->size = DM_TRIPLESIZE;
-	else if (cfgIsAttributeToken(n, "size", "quadraple"))
-		Screen->size = DM_QUADRUPLESIZE;
+	Screen->size = DM_NORMAL;
+	if ((m = cfgGetLine(n, "size")) != NULL) {
+		if (strcmp(m->value, "double") == 0)
+			Screen->size = DM_DOUBLESIZE;
+		else if (strcmp(m->value, "triple") == 0)
+			Screen->size = DM_TRIPLESIZE;
+		else if (strcmp(m->value, "quadruple") == 0)
+			Screen->size = DM_QUADRUPLESIZE;
+
+		m->type = LT_ENUM;
+		m->ptr = (void *) &(Screen->size);
+	}
 	else
-		Screen->size = DM_NORMAL;
+		cfgInsertNewLine(n->next, "size", LT_ENUM, (void *) &(Screen->size));
 
 	Screen->lcdMode = false;
 	Screen->halfPass = HP_OFF;
-	if (cfgIsAttributeToken(n, "half-pass", "lcd"))
-		Screen->lcdMode = true;
-	else if (cfgIsAttributeToken(n, "half-pass", "b75"))
-		Screen->halfPass = HP_75;
-	else if (cfgIsAttributeToken(n, "half-pass", "b50"))
-		Screen->halfPass = HP_50;
-	else if (cfgIsAttributeToken(n, "half-pass", "b25"))
-		Screen->halfPass = HP_25;
-	else if (cfgIsAttributeToken(n, "half-pass", "b0"))
-		Screen->halfPass = HP_0;
+	if ((m = cfgGetLine(n, "half-pass")) != NULL) {
+		if (strcmp(m->value, "lcd") == 0)
+			Screen->lcdMode = true;
+		else if (strcmp(m->value, "b75") == 0)
+			Screen->halfPass = HP_75;
+		else if (strcmp(m->value, "b50") == 0)
+			Screen->halfPass = HP_50;
+		else if (strcmp(m->value, "b25") == 0)
+			Screen->halfPass = HP_25;
+		else if (strcmp(m->value, "b0") == 0)
+			Screen->halfPass = HP_0;
 
-	if (cfgIsAttributeToken(n, "color-profile", "mono"))
-		Screen->colorProfile = CP_MONO;
-	else if (cfgIsAttributeToken(n, "color-profile", "color"))
-		Screen->colorProfile = CP_COLOR;
-	else if (cfgIsAttributeToken(n, "color-profile", "multicolor"))
-		Screen->colorProfile = CP_MULTICOLOR;
+		m->type = LT_ENUM;
+		m->ptr = (void *) &(Screen->halfPass);
+	}
 	else
-		Screen->colorProfile = CP_STANDARD;
+		cfgInsertNewLine(n->next, "half-pass", LT_ENUM, (void *) &(Screen->halfPass));
 
-	if (cfgIsAttributeToken(n, "color-pallette", "rgb"))
-		Screen->colorPalette = CL_RGB;
-	else if (cfgIsAttributeToken(n, "color-pallette", "video"))
-		Screen->colorPalette = CL_VIDEO;
+	Screen->colorProfile = CP_STANDARD;
+	if ((m = cfgGetLine(n, "color-profile")) != NULL) {
+		if (strcmp(m->value, "mono") == 0)
+			Screen->colorProfile = CP_MONO;
+		else if (strcmp(m->value, "color") == 0)
+			Screen->colorProfile = CP_COLOR;
+		else if (strcmp(m->value, "multicolor") == 0)
+			Screen->colorProfile = CP_MULTICOLOR;
+
+		m->type = LT_ENUM;
+		m->ptr = (void *) &(Screen->colorProfile);
+	}
 	else
-		Screen->colorPalette = CL_DEFINED;
+		cfgInsertNewLine(n->next, "color-profile", LT_ENUM, (void *) &(Screen->colorProfile));
 
-	Screen->attr00 = cfgGetAttributeColorValue(n, "attr00", WHITE);
-	Screen->attr01 = cfgGetAttributeColorValue(n, "attr01", GREEN);
-	Screen->attr10 = cfgGetAttributeColorValue(n, "attr10", AQUA);
-	Screen->attr11 = cfgGetAttributeColorValue(n, "attr11", YELLOW);
+	Screen->colorPalette = CL_RGB;
+	if ((m = cfgGetLine(n, "color-pallette")) != NULL) {
+		if (strcmp(m->value, "video") == 0)
+			Screen->colorPalette = CL_VIDEO;
+		else if (strcmp(m->value, "defined") == 0)
+			Screen->colorPalette = CL_DEFINED;
 
-	n = cfgGetChildNode(xmlRoot, "Sound");
+		m->type = LT_ENUM;
+		m->ptr = (void *) &(Screen->colorPalette);
+	}
+	else
+		cfgInsertNewLine(n->next, "color-pallette", LT_ENUM, (void *) &(Screen->colorPalette));
+
+	Screen->attr00 = cfgGetColorValue(n, "attr00", WHITE, &(Screen->attr00));
+	Screen->attr01 = cfgGetColorValue(n, "attr01", GREEN, &(Screen->attr01));
+	Screen->attr10 = cfgGetColorValue(n, "attr10", AQUA, &(Screen->attr10));
+	Screen->attr11 = cfgGetColorValue(n, "attr11", YELLOW, &(Screen->attr11));
+
+	n = cfgFindSection(cfgRoot, "Sound");
 
 	Sound = new SetSound;
-	k = cfgGetAttributeIntValue(n, "volume", 64);
-	if (k < 0 || k > 127)
-		k = 64;
+	Sound->mute = cfgGetBoolValue(n, "mute", false, &(Sound->mute));
+	Sound->volume = cfgGetIntValue(n, "volume", 64, &(Sound->volume));
+	Sound->ifMusica = cfgGetBoolValue(n, "if-musica", false, &(Sound->ifMusica));
 
-	Sound->hwBuffer = cfgGetAttributeBoolValue(n, "hw-buff", true);
-	Sound->ifMusica = cfgGetAttributeBoolValue(n, "if-musica", false);
-	Sound->mute = cfgGetAttributeBoolValue(n, "mute", false);
-	Sound->volume = (BYTE) k;
-
-	if ((buf = cfgGetAttributeToken(n, "out-type")) != NULL) {
-		strncpy(Sound->outType, buf, sizeof(char) * 3);
-		delete [] buf;
-		buf = NULL;
-	}
-
-	m = cfgGetChildNode(xmlRoot, "Controls");
-	n = cfgGetChildNode(m, "Keyboard");
+	n = cfgFindSection(cfgRoot, "Keyboard");
 
 	Keyboard = new SetKeyboard;
-	Keyboard->changeZY = cfgGetAttributeBoolValue(n, "change-zy", false);
-	Keyboard->useNumpad = cfgGetAttributeBoolValue(n, "use-numpad", false);
-	Keyboard->useMatoCtrl = cfgGetAttributeBoolValue(n, "mato-ctrl", false);
+	Keyboard->changeZY = cfgGetBoolValue(n, "change-zy", false, &(Keyboard->changeZY));
+	Keyboard->useNumpad = cfgGetBoolValue(n, "use-numpad", false, &(Keyboard->useNumpad));
+	Keyboard->useMatoCtrl = cfgGetBoolValue(n, "mato-ctrl", false, &(Keyboard->useMatoCtrl));
 
-	n = cfgGetChildNode(m, "Mouse");
+	n = cfgFindSection(cfgRoot, "Mouse");
 
 	Mouse = new SetMouse;
-	Mouse->hideCursor = cfgGetAttributeBoolValue(n, "hide-cursor", true);
-	if (cfgIsAttributeToken(n, "type", "m602"))
-		Mouse->type = MT_M602;
-	else if (cfgIsAttributeToken(n, "type", "poly8"))
-		Mouse->type = MT_POLY8;
-	else
-		Mouse->type = MT_NONE;
+	Mouse->hideCursor = cfgGetBoolValue(n, "hide-cursor", true, &(Mouse->hideCursor));
 
-	n = cfgGetChildNode(m, "Joystick");
+	Mouse->type = MT_NONE;
+	if ((m = cfgGetLine(n, "type")) != NULL) {
+		if (strcmp(m->value, "m602") == 0)
+			Mouse->type = MT_M602;
+		else if (strcmp(m->value, "poly8") == 0)
+			Mouse->type = MT_POLY8;
+
+		m->type = LT_ENUM;
+		m->ptr = (void *) &(Mouse->type);
+	}
+	else
+		cfgInsertNewLine(n->next, "type", LT_ENUM, (void *) &(Mouse->type));
+
+	n = cfgFindSection(cfgRoot, "Joystick-GPIO0");
+
 	Joystick = new SetJoystick;
-
-	m = cfgGetChildNode(n, "Gpio0");
 	Joystick->GPIO0 = new SetJoystickGPIO;
-	Joystick->GPIO0->connected = cfgGetAttributeBoolValue(m, "connected", false);
-	Joystick->GPIO0->guid = cfgGetAttributeToken(m, "guid");
-	Joystick->GPIO0->ctrlLeft = cfgGetAttributeIntValue(m, "left", -1);
-	Joystick->GPIO0->ctrlRight = cfgGetAttributeIntValue(m, "right", -1);
-	Joystick->GPIO0->ctrlUp = cfgGetAttributeIntValue(m, "up", -1);
-	Joystick->GPIO0->ctrlDown = cfgGetAttributeIntValue(m, "down", -1);
-	Joystick->GPIO0->ctrlFire = cfgGetAttributeIntValue(m, "fire", -1);
-	Joystick->GPIO0->sensitivity = cfgGetAttributeIntValue(m, "sensitivity", 0);
-	Joystick->GPIO0->pov = cfgGetAttributeIntValue(m, "pov", -1);
-
-	if (cfgIsAttributeToken(m, "type", "keys"))
-		Joystick->GPIO0->type = JT_KEYS;
-	else if (cfgIsAttributeToken(m, "type", "axes"))
-		Joystick->GPIO0->type = JT_AXES;
-	else if (cfgIsAttributeToken(m, "type", "pov"))
-		Joystick->GPIO0->type = JT_POV;
-	else if (cfgIsAttributeToken(m, "type", "buttons"))
-		Joystick->GPIO0->type = JT_BUTTONS;
-	else
-		Joystick->GPIO0->type = JT_NONE;
-
-	m = cfgGetChildNode(n, "Gpio1");
 	Joystick->GPIO1 = new SetJoystickGPIO;
-	Joystick->GPIO1->connected = cfgGetAttributeBoolValue(m, "connected", false);
-	Joystick->GPIO1->guid = cfgGetAttributeToken(m, "guid");
-	Joystick->GPIO1->ctrlLeft = cfgGetAttributeIntValue(m, "left", -1);
-	Joystick->GPIO1->ctrlRight = cfgGetAttributeIntValue(m, "right", -1);
-	Joystick->GPIO1->ctrlUp = cfgGetAttributeIntValue(m, "up", -1);
-	Joystick->GPIO1->ctrlDown = cfgGetAttributeIntValue(m, "down", -1);
-	Joystick->GPIO1->ctrlFire = cfgGetAttributeIntValue(m, "fire", -1);
-	Joystick->GPIO1->sensitivity = cfgGetAttributeIntValue(m, "sensitivity", 0);
-	Joystick->GPIO1->pov = cfgGetAttributeIntValue(m, "pov", -1);
 
-	if (cfgIsAttributeToken(m, "type", "keys"))
-		Joystick->GPIO1->type = JT_KEYS;
-	else if (cfgIsAttributeToken(m, "type", "axes"))
-		Joystick->GPIO1->type = JT_AXES;
-	else if (cfgIsAttributeToken(m, "type", "pov"))
-		Joystick->GPIO1->type = JT_POV;
-	else if (cfgIsAttributeToken(m, "type", "buttons"))
-		Joystick->GPIO1->type = JT_BUTTONS;
+	Joystick->GPIO0->connected = cfgGetBoolValue(n, "connected", false, &(Joystick->GPIO0->connected));
+	Joystick->GPIO0->guid = cfgGetStringValue(n, "guid", &(Joystick->GPIO0->guid));
+	Joystick->GPIO0->ctrlLeft = cfgGetIntValue(n, "left", SDLK_UNKNOWN, &(Joystick->GPIO0->ctrlLeft));
+	Joystick->GPIO0->ctrlRight = cfgGetIntValue(n, "right", SDLK_UNKNOWN, &(Joystick->GPIO0->ctrlRight));
+	Joystick->GPIO0->ctrlUp = cfgGetIntValue(n, "up", SDLK_UNKNOWN, &(Joystick->GPIO0->ctrlUp));
+	Joystick->GPIO0->ctrlDown = cfgGetIntValue(n, "down", SDLK_UNKNOWN, &(Joystick->GPIO0->ctrlDown));
+	Joystick->GPIO0->ctrlFire = cfgGetIntValue(n, "fire", SDLK_UNKNOWN, &(Joystick->GPIO0->ctrlFire));
+	Joystick->GPIO0->sensitivity = cfgGetIntValue(n, "sensitivity", -1, &(Joystick->GPIO0->sensitivity));
+	Joystick->GPIO0->pov = cfgGetIntValue(n, "pov", -1, &(Joystick->GPIO0->pov));
+
+	Joystick->GPIO0->type = JT_NONE;
+	if ((m = cfgGetLine(n, "type")) != NULL) {
+		if (strcmp(m->value, "keys") == 0)
+			Joystick->GPIO0->type = JT_KEYS;
+		else if (strcmp(m->value, "axes") == 0)
+			Joystick->GPIO0->type = JT_AXES;
+		else if (strcmp(m->value, "pov") == 0)
+			Joystick->GPIO0->type = JT_POV;
+		else if (strcmp(m->value, "buttons") == 0)
+			Joystick->GPIO0->type = JT_BUTTONS;
+
+		m->type = LT_ENUM;
+		m->ptr = (void *) &(Joystick->GPIO0->type);
+	}
 	else
-		Joystick->GPIO1->type = JT_NONE;
+		cfgInsertNewLine(n->next, "type", LT_ENUM, (void *) &(Joystick->GPIO0->type));
 
-	n = cfgGetChildNode(cfgGetChildNode(xmlRoot, "Storages"), "PMD-32");
+	n = cfgFindSection(cfgRoot, "Joystick-GPIO1");
+
+	Joystick->GPIO1->connected = cfgGetBoolValue(n, "connected", false, &(Joystick->GPIO1->connected));
+	Joystick->GPIO1->guid = cfgGetStringValue(n, "guid", &(Joystick->GPIO1->guid));
+	Joystick->GPIO1->ctrlLeft = cfgGetIntValue(n, "left", SDLK_UNKNOWN, &(Joystick->GPIO1->ctrlLeft));
+	Joystick->GPIO1->ctrlRight = cfgGetIntValue(n, "right", SDLK_UNKNOWN, &(Joystick->GPIO1->ctrlRight));
+	Joystick->GPIO1->ctrlUp = cfgGetIntValue(n, "up", SDLK_UNKNOWN, &(Joystick->GPIO1->ctrlUp));
+	Joystick->GPIO1->ctrlDown = cfgGetIntValue(n, "down", SDLK_UNKNOWN, &(Joystick->GPIO1->ctrlDown));
+	Joystick->GPIO1->ctrlFire = cfgGetIntValue(n, "fire", SDLK_UNKNOWN, &(Joystick->GPIO1->ctrlFire));
+	Joystick->GPIO1->sensitivity = cfgGetIntValue(n, "sensitivity", -1, &(Joystick->GPIO1->sensitivity));
+	Joystick->GPIO1->pov = cfgGetIntValue(n, "pov", -1, &(Joystick->GPIO1->pov));
+
+	Joystick->GPIO1->type = JT_NONE;
+	if ((m = cfgGetLine(n, "type")) != NULL) {
+		if (strcmp(m->value, "keys") == 0)
+			Joystick->GPIO1->type = JT_KEYS;
+		else if (strcmp(m->value, "axes") == 0)
+			Joystick->GPIO1->type = JT_AXES;
+		else if (strcmp(m->value, "pov") == 0)
+			Joystick->GPIO1->type = JT_POV;
+		else if (strcmp(m->value, "buttons") == 0)
+			Joystick->GPIO1->type = JT_BUTTONS;
+
+		m->type = LT_ENUM;
+		m->ptr = (void *) &(Joystick->GPIO1->type);
+	}
+	else
+		cfgInsertNewLine(n->next, "type", LT_ENUM, (void *) &(Joystick->GPIO1->type));
+
+	n = cfgFindSection(cfgRoot, "PMD-32");
 
 	PMD32 = new SetStoragePMD32;
-	PMD32->connected = cfgGetAttributeBoolValue(n, "connected", false);
-	PMD32->extraCommands = cfgGetAttributeBoolValue(n, "extra-commands", false);
-	PMD32->romFile = cfgConvertXmlString(xmlNodeGetContent(cfgGetChildNode(n, "RomFile")));
-	PMD32->sdRoot = cfgConvertXmlString(xmlNodeGetContent(cfgGetChildNode(n, "SD-Root")));
+	PMD32->connected = cfgGetBoolValue(n, "connected", false, &(PMD32->connected));
+	PMD32->extraCommands = cfgGetBoolValue(n, "extra-commands", false, &(PMD32->extraCommands));
+	PMD32->romFile = cfgGetStringValue(n, "rom", &(PMD32->romFile));
+	PMD32->sdRoot = cfgGetStringValue(n, "sd-root", &(PMD32->sdRoot));
+	PMD32->driveA.image = cfgGetStringValue(n, "drive-a-file", &(PMD32->driveA.image));
+	PMD32->driveA.writeProtect = cfgGetBoolValue(n, "drive-a-wp", false, &(PMD32->driveA.writeProtect));
+	PMD32->driveB.image = cfgGetStringValue(n, "drive-b-file", &(PMD32->driveB.image));
+	PMD32->driveB.writeProtect = cfgGetBoolValue(n, "drive-b-wp", false, &(PMD32->driveB.writeProtect));
+	PMD32->driveC.image = cfgGetStringValue(n, "drive-c-file", &(PMD32->driveC.image));
+	PMD32->driveC.writeProtect = cfgGetBoolValue(n, "drive-c-wp", false, &(PMD32->driveC.writeProtect));
+	PMD32->driveD.image = cfgGetStringValue(n, "drive-d-file", &(PMD32->driveD.image));
+	PMD32->driveD.writeProtect = cfgGetBoolValue(n, "drive-d-wp", false, &(PMD32->driveD.writeProtect));
 
-	m = cfgGetChildNode(n, "DriveA");
-	PMD32->driveA.image = cfgConvertXmlString(xmlNodeGetContent(m));
-	PMD32->driveA.writeProtect = cfgGetAttributeBoolValue(m, "write-protect", false);
-
-	m = cfgGetChildNode(n, "DriveB");
-	PMD32->driveB.image = cfgConvertXmlString(xmlNodeGetContent(m));
-	PMD32->driveB.writeProtect = cfgGetAttributeBoolValue(m, "write-protect", false);
-
-	m = cfgGetChildNode(n, "DriveC");
-	PMD32->driveC.image = cfgConvertXmlString(xmlNodeGetContent(m));
-	PMD32->driveC.writeProtect = cfgGetAttributeBoolValue(m, "write-protect", false);
-
-	m = cfgGetChildNode(n, "DriveD");
-	PMD32->driveD.image = cfgConvertXmlString(xmlNodeGetContent(m));
-	PMD32->driveD.writeProtect = cfgGetAttributeBoolValue(m, "write-protect", false);
-
-	n = cfgGetChildNode(cfgGetChildNode(xmlRoot, "Storages"), "RaomModule");
+	n = cfgFindSection(cfgRoot, "RaomModule");
 
 	RaomModule = new SetStorageRAOM;
-	RaomModule->inserted = cfgGetAttributeBoolValue(n, "inserted", false);
-	RaomModule->type = (cfgIsAttributeToken(n, "hw-version", "chtf")) ? RT_CHTF : RT_KUVI;
-	RaomModule->file = cfgConvertXmlString(xmlNodeGetContent(n));
+	RaomModule->inserted = cfgGetBoolValue(n, "inserted", false, &(RaomModule->inserted));
+	RaomModule->file = cfgGetStringValue(n, "recent-file", &(RaomModule->file));
+	RaomModule->type = RT_CHTF;
+	if ((m = cfgGetLine(n, "hw-version")) != NULL) {
+		if (strcmp(m->value, "chtf") == 0)
+			RaomModule->type = RT_CHTF;
+		else if (strcmp(m->value, "kuvi") == 0)
+			RaomModule->type = RT_KUVI;
 
-	s = xmlGetProp(n, (const xmlChar *) "name");
-	if ((RaomModule->module = findROMmodule((char *) s)) == NULL)
+		m->type = LT_ENUM;
+		m->ptr = (void *) &(RaomModule->type);
+	}
+	else
+		cfgInsertNewLine(n->next, "hw-version", LT_ENUM, (void *) &(RaomModule->type));
+
+	s = cfgGetStringValue(n, "rmm-name");
+	if ((RaomModule->module = findROMmodule(s)) == NULL)
 		RaomModule->inserted = false;
 
-	xmlFree(s);
+	if (s)
+		delete [] s;
+	s = NULL;
+
 	debug("[Settings] Configuration loaded");
 }
 //-----------------------------------------------------------------------------
@@ -377,7 +408,7 @@ TSettings::~TSettings()
 {
 	int i, j;
 
-	xmlFreeDoc(xmlDoc);
+	debug("[Settings] Freeing all structures");
 
 	if (AllModels) {
 		for (i = 0; i < modelsCount; i++) {
@@ -504,6 +535,28 @@ TSettings::~TSettings()
 		delete PMD32;
 	}
 	PMD32 = NULL;
+
+	cfgIniLine *n = cfgRoot;
+	while (n) {
+		if (n->key) {
+			delete [] n->key;
+			n->key = NULL;
+		}
+		if (n->value) {
+			delete [] n->value;
+			n->value = NULL;
+		}
+
+		if (n->next) {
+			n = n->next;
+			delete n->prev;
+			n->prev = NULL;
+		}
+		else {
+			delete n;
+			n = NULL;
+		}
+	}
 }
 //-----------------------------------------------------------------------------
 TSettings::SetRomPackage *TSettings::findROMmodule(char *name)
@@ -516,160 +569,466 @@ TSettings::SetRomPackage *TSettings::findROMmodule(char *name)
 	return NULL;
 }
 //-----------------------------------------------------------------------------
-//-- libxml2 extension methods for GPMD85emu ----------------------------------
-//-----------------------------------------------------------------------------
-xmlNodePtr TSettings::cfgGetChildNode(xmlNodePtr node, const char * name)
+TSettings::SetRomModuleFile *TSettings::checkRMMfile(char *name)
 {
-	xmlNodePtr cur = node->children;
+	static int k = 0;
 
-	while (cur != NULL) {
-		if (xmlStrcmp(cur->name, (const xmlChar *) name) == 0 && cur->type == XML_ELEMENT_NODE)
-			break;
-
-		cur = cur->next;
+	if (name == NULL) {
+		k = 0;
+		return NULL;
 	}
 
-	return cur;
+	SetRomModuleFile *rmf = new SetRomModuleFile;
+	rmf->rmmFile = new char[strlen(name) + 1];
+	strcpy(rmf->rmmFile, name);
+
+	rmf->err = 1;
+	rmf->size = 0;
+	if (strcmp(strrchr(rmf->rmmFile, '.'), ".rmm") == 0) {
+		if (FILE *f = fopen(LocateROM(rmf->rmmFile), "rb")) {
+			if (fseek(f, 0, SEEK_END) == 0)
+				rmf->size = ftell(f);
+			fclose(f);
+
+			k += (rmf->size + KB - 1) / KB;
+
+			if (rmf->size < KB
+			 || rmf->size > (32 * KB)
+			 || (rmf->size & 0x3FF) > 0)
+				rmf->err = 2;
+			else if (k > 32)
+				rmf->err = 3;
+			else if (k > 64)
+				rmf->err = 4;
+			else if (k > 256)
+				rmf->err = 5;
+			else
+				rmf->err = 0;
+		}
+	}
+
+	return rmf;
 }
 //-----------------------------------------------------------------------------
-int TSettings::cfgCountChildNodes(xmlNodePtr node)
+void TSettings::cfgReadFile(char *fileName)
+{
+	int i, fileSize = 0;
+	char lineBuffer[256];
+	char *buffer = NULL, *ptr, *ptr2;
+	cfgRoot = NULL;
+
+	if (FILE *fn = fopen(fileName, "rb")) {
+		fseek(fn, 0, SEEK_END);
+		fileSize = ftell(fn);
+		if (fileSize > 0) {
+			fseek(fn, 0, SEEK_SET);
+			buffer = new char[fileSize];
+			fileSize = fread(buffer, sizeof(char), fileSize, fn);
+		}
+		fclose(fn);
+	}
+
+	if (buffer != NULL && fileSize > 0) {
+		cfgIniLine *entry = (cfgRoot = new cfgIniLine);
+		entry->prev = NULL;
+		ptr = buffer;
+
+		do {
+			i = 0;
+			while (*ptr != '\n' && i < 256)
+				lineBuffer[i++] = *ptr++;
+			lineBuffer[i] = '\0';
+			ptr++;
+
+			ptr2 = lineBuffer + (i - 1);
+			while (*ptr2 == ' ' || *ptr2 == '\t' || *ptr2 == '\r') {
+				*ptr2 = '\0';
+				ptr2--;
+			}
+
+			entry->key = NULL;
+			entry->value = NULL;
+			entry->ptr = NULL;
+
+			// empty line
+			if (i == 0)
+				entry->type = LT_EMPTY;
+
+			// comment
+			else if (lineBuffer[0] == '#') {
+				ptr2 = lineBuffer + 1;
+				if (*ptr2 == ' ' || *ptr2 == '\t')
+					ptr2++;
+
+				unsigned int q = 0;
+				strccnt(ptr2, '-', q);
+				if (q == strlen(ptr2))
+					entry->type = LT_DELIMITER;
+				else {
+					entry->type = LT_COMMENT;
+					entry->value = new char[i];
+					strcpy(entry->value, ptr2);
+				}
+			}
+
+			// section
+			else if (lineBuffer[0] == '[' && *ptr2 == ']') {
+				entry->type = LT_SECTION;
+				entry->key = new char[i];
+
+				*ptr2 = '\0';
+				strcpy(entry->key, lineBuffer + 1);
+			}
+
+			// list
+			else if (lineBuffer[0] == '"') {
+				entry->type = LT_LIST;
+
+				ptr2 = strchr(lineBuffer + 1, '"');
+				*ptr2 = '\0';
+				entry->key = new char[strlen(lineBuffer + 1) + 1];
+				strcpy(entry->key, lineBuffer + 1);
+				*ptr2 = '"';
+
+				ptr2 = strchr(ptr2 + 1, '=');
+				if (ptr2 == NULL) {
+					entry->type = LT_COMMENT;
+					delete [] entry->key;
+					entry->key = NULL;
+					entry->value = new char[strlen(lineBuffer) + 1];
+					strcpy(entry->value, lineBuffer);
+				}
+				else {
+					ptr2++;
+					while (*ptr2 == ' ' || *ptr2 == '\t')
+						ptr2++;
+
+					entry->value = new char[strlen(ptr2) + 1];
+					strcpy(entry->value, ptr2);
+				}
+			}
+
+			// item
+			else if ((ptr2 = strchr(lineBuffer, '=')) != NULL) {
+				*ptr2 = '\0';
+				entry->type = LT_ITEM;
+
+				ptr2++;
+				while (*ptr2 == ' ' || *ptr2 == '\t')
+					ptr2++;
+
+				if (*ptr2 == '"' && *(ptr2 + strlen(ptr2) - 1) == '"') {
+					entry->type = LT_QUOTED;
+					*(ptr2 + strlen(ptr2) - 1) = '\0';
+					entry->value = new char[strlen(++ptr2) + 1];
+					strcpy(entry->value, ptr2);
+				}
+				else {
+					entry->value = new char[strlen(ptr2) + 1];
+					strcpy(entry->value, ptr2);
+				}
+
+				ptr2 = lineBuffer + strlen(lineBuffer) - 1;
+				while (*ptr2 == ' ' || *ptr2 == '\t') {
+					*ptr2 = '\0';
+					ptr2--;
+				}
+
+				ptr2 = lineBuffer;
+				while (*ptr2 == ' ' || *ptr2 == '\t')
+					ptr2++;
+
+				entry->key = new char[strlen(ptr2) + 1];
+				strcpy(entry->key, ptr2);
+			}
+			else {
+				entry->type = LT_COMMENT;
+				entry->value = new char[i];
+				strcpy(entry->value, lineBuffer);
+			}
+
+			entry->next = new cfgIniLine;
+			entry->next->prev = entry;
+			entry = entry->next;
+
+		} while (ptr < (buffer + fileSize - 1));
+
+		entry->type  = LT_EMPTY;
+		entry->key   = NULL;
+		entry->value = NULL;
+		entry->ptr   = NULL;
+		entry->next  = NULL;
+	}
+}
+//-----------------------------------------------------------------------------
+TSettings::cfgIniLine *TSettings::cfgFindSection(cfgIniLine *node, const char * name)
+{
+	debug("[Settings] Parsing %s section...", name);
+
+	while (node != NULL) {
+		if (node->type == LT_SECTION && strcmp(node->key, name) == 0)
+			break;
+
+		node = node->next;
+	}
+
+	if (node == NULL)
+		error("[Settings] %s section missing", name);
+
+	return node;
+}
+//-----------------------------------------------------------------------------
+int TSettings::cfgCountChildAttributes(cfgIniLine *node)
 {
 	int count = 0;
-	xmlNodePtr cur = node->children;
 
-	while (cur != NULL) {
-		if (cur->type == XML_ELEMENT_NODE)
+	if (node != NULL)
+		node = node->next;
+
+	while (node != NULL) {
+		if (node->type == LT_SECTION)
+			break;
+		else if (node->type != LT_EMPTY && node->type != LT_DELIMITER && node->type != LT_COMMENT)
 			count++;
 
-		cur = cur->next;
+		node = node->next;
 	}
 
 	return count;
 }
 //-----------------------------------------------------------------------------
-char * TSettings::cfgGetAttributeToken(xmlNodePtr node, const char *attrName)
+char * TSettings::cfgGetStringValue(cfgIniLine *node, const char *key, char **target)
 {
 	char *val = NULL;
+	cfgIniLine *backup = NULL;
 
-	xmlChar *s = xmlGetProp(node, (const xmlChar *) attrName);
-	if (s) {
-		if (xmlStrlen(s) > 0) {
-			val = new char[(xmlStrlen(s) + 1)];
-			strcpy(val, (const char *) s);
+	if (node != NULL)
+		backup = (node = node->next);
+
+	while (node != NULL) {
+		if (node->type == LT_SECTION)
+			break;
+		else if (node->type != LT_EMPTY && node->type != LT_DELIMITER &&
+				node->type != LT_COMMENT && strcmp(node->key, key) == 0) {
+
+			if (strlen(node->value)) {
+				val = new char[strlen(node->value) + 1];
+				strcpy(val, node->value);
+			}
+
+			if (target)
+				node->ptr = (void *) target;
+
+			if (node->type != LT_QUOTED)
+				node->type = LT_STRING;
+
+			break;
 		}
 
-		xmlFree(s);
+		node = node->next;
 	}
+
+	if (node == NULL && backup)
+		cfgInsertNewLine(backup, node->key, LT_QUOTED, (void *) target);
 
 	return val;
 }
 //-----------------------------------------------------------------------------
-int TSettings::cfgGetAttributeIntValue(xmlNodePtr node, const char *attrName, int dflt)
+int TSettings::cfgGetIntValue(cfgIniLine *node, const char *key, int dflt, int *target)
 {
 	int val = dflt;
+	cfgIniLine *backup = NULL;
 
-	char *t, *s = (char *) xmlGetProp(node, (const xmlChar *) attrName);
-	if (s) {
-		val = strtol(s, &t, 10);
-		if (*t)
-			val = dflt;
+	if (node != NULL)
+		backup = (node = node->next);
 
-		xmlFree(s);
+	while (node != NULL) {
+		if (node->type == LT_SECTION)
+			break;
+		else if (node->type != LT_EMPTY && node->type != LT_DELIMITER &&
+				node->type != LT_COMMENT && strcmp(node->key, key) == 0) {
+
+			char *t;
+			val = strtol(node->value, &t, 10);
+			if (*t)
+				val = dflt;
+
+			if (target) {
+				*target = val;
+				node->ptr = (void *) target;
+				node->type = LT_NUMBER;
+			}
+			break;
+		}
+
+		node = node->next;
 	}
+
+	if (node == NULL && backup && target)
+		cfgInsertNewLine(backup, node->key, LT_NUMBER, (void *) target);
 
 	return val;
 }
 //-----------------------------------------------------------------------------
-bool TSettings::cfgGetAttributeBoolValue(xmlNodePtr node, const char *attrName, bool dflt)
+bool TSettings::cfgGetBoolValue(cfgIniLine *node, const char *key, bool dflt, bool *target)
 {
 	bool val = dflt;
+	cfgIniLine *backup = NULL;
 
-	xmlChar *s = xmlGetProp(node, (const xmlChar *) attrName);
-	if (s) {
-		if (xmlStrcmp(s, (const xmlChar *) "true") == 0)
-			val = true;
-		else if (xmlStrcmp(s, (const xmlChar *) "false") == 0)
-			val = false;
+	if (node != NULL)
+		backup = (node = node->next);
 
-		xmlFree(s);
+	while (node != NULL) {
+		if (node->type == LT_SECTION)
+			break;
+		else if (node->type != LT_EMPTY && node->type != LT_DELIMITER &&
+				node->type != LT_COMMENT && strcmp(node->key, key) == 0) {
+
+			if (strcmp(node->value, "true") == 0 || strcmp(node->value, "1") == 0)
+				val = true;
+			else if (strcmp(node->value, "false") == 0 || strcmp(node->value, "0") == 0)
+				val = false;
+
+			if (target) {
+				*target = val;
+				node->ptr = (void *) target;
+				node->type = LT_BOOL;
+			}
+			break;
+		}
+
+		node = node->next;
 	}
+
+	if (node == NULL && backup && target)
+		cfgInsertNewLine(backup, node->key, LT_BOOL, (void *) target);
 
 	return val;
 }
 //-----------------------------------------------------------------------------
-TColor TSettings::cfgGetAttributeColorValue(xmlNodePtr node, const char *attrName, TColor dflt)
+TColor TSettings::cfgGetColorValue(cfgIniLine *node, const char *key, TColor dflt, TColor *target)
 {
 	TColor val = dflt;
+	cfgIniLine *backup = NULL;
 
-	xmlChar *s = xmlGetProp(node, (const xmlChar *) attrName);
-	if (s) {
-		if (xmlStrcmp(s, (const xmlChar *) "black") == 0)
-			val = BLACK;
-		else if (xmlStrcmp(s, (const xmlChar *) "maroon") == 0)
-			val = MAROON;
-		else if (xmlStrcmp(s, (const xmlChar *) "green") == 0)
-			val = GREEN;
-		else if (xmlStrcmp(s, (const xmlChar *) "olive") == 0)
-			val = OLIVE;
-		else if (xmlStrcmp(s, (const xmlChar *) "navy") == 0)
-			val = NAVY;
-		else if (xmlStrcmp(s, (const xmlChar *) "purple") == 0)
-			val = PURPLE;
-		else if (xmlStrcmp(s, (const xmlChar *) "teal") == 0)
-			val = TEAL;
-		else if (xmlStrcmp(s, (const xmlChar *) "gray") == 0)
-			val = GRAY;
-		else if (xmlStrcmp(s, (const xmlChar *) "silver") == 0)
-			val = SILVER;
-		else if (xmlStrcmp(s, (const xmlChar *) "red") == 0)
-			val = RED;
-		else if (xmlStrcmp(s, (const xmlChar *) "lime") == 0)
-			val = LIME;
-		else if (xmlStrcmp(s, (const xmlChar *) "yellow") == 0)
-			val = YELLOW;
-		else if (xmlStrcmp(s, (const xmlChar *) "blue") == 0)
-			val = BLUE;
-		else if (xmlStrcmp(s, (const xmlChar *) "fuchsia") == 0)
-			val = FUCHSIA;
-		else if (xmlStrcmp(s, (const xmlChar *) "aqua") == 0)
-			val = AQUA;
-		else if (xmlStrcmp(s, (const xmlChar *) "white") == 0)
-			val = WHITE;
+	if (node != NULL)
+		backup = (node = node->next);
 
-		xmlFree(s);
+	while (node != NULL) {
+		if (node->type == LT_SECTION)
+			break;
+		else if (node->type != LT_EMPTY && node->type != LT_DELIMITER &&
+				node->type != LT_COMMENT && strcmp(node->key, key) == 0) {
+
+			if (strcmp(node->value, "black") == 0)
+				val = BLACK;
+			else if (strcmp(node->value, "maroon") == 0)
+				val = MAROON;
+			else if (strcmp(node->value, "green") == 0)
+				val = GREEN;
+			else if (strcmp(node->value, "olive") == 0)
+				val = OLIVE;
+			else if (strcmp(node->value, "navy") == 0)
+				val = NAVY;
+			else if (strcmp(node->value, "purple") == 0)
+				val = PURPLE;
+			else if (strcmp(node->value, "teal") == 0)
+				val = TEAL;
+			else if (strcmp(node->value, "gray") == 0)
+				val = GRAY;
+			else if (strcmp(node->value, "silver") == 0)
+				val = SILVER;
+			else if (strcmp(node->value, "red") == 0)
+				val = RED;
+			else if (strcmp(node->value, "lime") == 0)
+				val = LIME;
+			else if (strcmp(node->value, "yellow") == 0)
+				val = YELLOW;
+			else if (strcmp(node->value, "blue") == 0)
+				val = BLUE;
+			else if (strcmp(node->value, "fuchsia") == 0)
+				val = FUCHSIA;
+			else if (strcmp(node->value, "aqua") == 0)
+				val = AQUA;
+			else if (strcmp(node->value, "white") == 0)
+				val = WHITE;
+
+			if (target) {
+				*target = val;
+				node->ptr = (void *) target;
+				node->type = LT_COLOR;
+			}
+			break;
+		}
+
+		node = node->next;
+	}
+
+	if (node == NULL && backup && target)
+		cfgInsertNewLine(backup, node->key, LT_COLOR, (void *) target);
+
+	return val;
+}
+//-----------------------------------------------------------------------------
+TSettings::cfgIniLine *TSettings::cfgGetLine(cfgIniLine *node, const char *key)
+{
+	cfgIniLine *val = NULL;
+
+	if (node != NULL)
+		node = node->next;
+
+	while (node != NULL) {
+		if (node->type == LT_SECTION)
+			break;
+		else if (node->type != LT_EMPTY && node->type != LT_DELIMITER &&
+				node->type != LT_COMMENT && strcmp(node->key, key) == 0) {
+
+			val = node;
+			break;
+		}
+
+		node = node->next;
 	}
 
 	return val;
 }
 //-----------------------------------------------------------------------------
-bool TSettings::cfgIsAttributeToken(xmlNodePtr node, const char *attrName, const char *token)
+bool TSettings::cfgHasKeyValue(cfgIniLine *node, const char *key, const char *value)
 {
 	bool val = false;
 
-	xmlChar *s = xmlGetProp(node, (const xmlChar *) attrName);
-	if (s) {
-		if (xmlStrcmp(s, (const xmlChar *) token) == 0)
-			val = true;
+	if (node != NULL)
+		node = node->next;
 
-		xmlFree(s);
+	while (node != NULL) {
+		if (node->type == LT_SECTION)
+			break;
+		else if (node->type != LT_EMPTY && node->type != LT_DELIMITER &&
+				node->type != LT_COMMENT && strcmp(node->key, key) == 0 &&
+				strcmp(node->value, value) == 0) {
+
+			val = true;
+			break;
+		}
+
+		node = node->next;
 	}
 
 	return val;
 }
 //-----------------------------------------------------------------------------
-char *TSettings::cfgConvertXmlString(xmlChar *s)
+void TSettings::cfgInsertNewLine(cfgIniLine *node, const char *key, cfgIniLineType type, void *ptr)
 {
-	char *out = NULL;
+	cfgIniLine *next = node->next;
+	node->next = new cfgIniLine;
+	node->next->prev = node->next;
 
-	if (s) {
-		if (xmlStrlen(s) > 0) {
-			out = new char[(xmlStrlen(s) + 1)];
-			strcpy(out, (const char *) s);
-		}
-
-		xmlFree(s);
-	}
-
-	return out;
+	node = node->next;
+	node->type = type;
+	node->key = new char[strlen(key) + 1];
+	strcpy(node->key, key);
+	node->value = NULL;
+	node->ptr = ptr;
+	node->next = next;
 }
 //-----------------------------------------------------------------------------

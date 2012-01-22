@@ -149,8 +149,6 @@ infodir = @infodir@
 install_sh = @install_sh@
 libSDL_CFLAGS = @libSDL_CFLAGS@
 libSDL_LIBS = @libSDL_LIBS@
-libXML_CFLAGS = @libXML_CFLAGS@
-libXML_LIBS = @libXML_LIBS@
 libdir = @libdir@
 libexecdir = @libexecdir@
 localedir = @localedir@
@@ -173,10 +171,9 @@ top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = foreign
 RES = \
 	base.fnt \
+	default.conf \
 	icon.bmp \
-	statusbar.bmp \
-	GPMD85Emu.xml \
-	GPMD85Emu.dtd
+	statusbar.bmp
 
 pkgdata_DATA = $(RES)
 EXTRA_DIST = $(RES)
