@@ -1,3 +1,4 @@
+2012-01-22 [mborik] configuration file changed to plain text .conf file, libXML2 not yet required!
 2012-01-06 [mborik] early implementation of context popup menu for block operations in TapeBrowser (not functional yet :)
 2012-01-05 [mborik] other fixes and optimalizations in TapeBrowser
 2012-01-04 [mborik] fully functional saving to tape, new menu item "New tape", prepared dialogues "Save changes?" for unsaved changes

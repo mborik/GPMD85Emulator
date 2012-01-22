@@ -48,8 +48,8 @@ AC_ARG_ENABLE([trace],
 	[trace=no]
 )
 if test "x$trace" = "xyes"; then
-	CXXFLAGS="-DDEBUG"
-	CFLAGS="-DDEBUG"
+	CXXFLAGS+=" -DDEBUG"
+	CFLAGS+=" -DDEBUG"
 fi
 AC_MSG_RESULT([${trace}])
 
@@ -70,19 +70,6 @@ PKG_CHECK_MODULES([libSDL], [sdl],, [
 			libSDL_CFLAGS="-I${includedir}/SDL -D_GNU_SOURCE=1 -D_REENTRANT"
 		], AC_MSG_ERROR([SDL header not found]))
 	], AC_MSG_ERROR([SDL library not found]))
-])
-PKG_CHECK_MODULES([libXML], [libxml-2.0],, [
-	AC_CHECK_LIB([xml2], [xmlCheckVersion], [
-		CFLAGS="${CFLAGS} -I${includedir}/libxml2 -I${oldincludedir}/libxml2 -I${includedir}/libxml2/libxml -I${oldincludedir}/libxml2/libxml"
-		CPPFLAGS="${CPPFLAGS} -I${includedir}/libxml2 -I${oldincludedir}/libxml2 -I${includedir}/libxml2/libxml -I${oldincludedir}/libxml2/libxml"
-		AC_CHECK_HEADERS([xmlreader.h], [
-			libXML_LIBS="-lxml2"
-			libXML_CFLAGS="-I${includedir}/libxml2"
-		], AC_MSG_ERROR([libXML2 header not found]))
-	], [
-		AC_MSG_NOTICE([libXML2 library not found, checking for older version...])
-		PKG_CHECK_MODULES([libXML], [libxml])
-	])
 ])
 
 CFLAGS="${old_CFLAGS}"
@@ -113,4 +100,3 @@ AC_CONFIG_FILES([\
 	res/Makefile \
 ])
 AC_OUTPUT
-

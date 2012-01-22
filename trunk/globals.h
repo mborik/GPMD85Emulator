@@ -108,13 +108,16 @@ typedef bool _Bool;
 //-----------------------------------------------------------------------------
 #define SIGSLOT_DEFAULT_MT_POLICY single_threaded
 //-----------------------------------------------------------------------------
+#include <SDL.h>
+#include <sigslot.h>
+//-----------------------------------------------------------------------------
 #define BYTE  uint8_t
 #define WORD  uint16_t
 #define DWORD uint32_t
 #define QWORD uint64_t
 //-----------------------------------------------------------------------------
-#include <SDL.h>
-#include <sigslot.h>
+#define strccnt(ptr, c, i) char *_strccnt_ptr = ptr; \
+	while (*_strccnt_ptr != '\0') if (*_strccnt_ptr++ == c) i++;
 //-----------------------------------------------------------------------------
 #define CPU_FREQ            2048000
 #define CPU_FRAMES_PER_SEC  50
@@ -148,7 +151,7 @@ typedef bool _Bool;
 #define KM_CTRL             0x400
 #define KM_ALT              0x800
 
-#define KBYTE               1024
+#define KB                  1024
 #define CHUNK               128
 #define TAPE_BLOCK_SIZE     65535
 #define SNAP_BLOCK_LEN      16384

@@ -4,8 +4,7 @@
 AUTOMAKE_OPTIONS = foreign
 AM_CPPFLAGS = \
 	-I$(srcdir)/.. \
-	@libSDL_CFLAGS@ \
-	@libXML_CFLAGS@
+	@libSDL_CFLAGS@
 
 noinst_LIBRARIES = libGPMD85emu.a
 

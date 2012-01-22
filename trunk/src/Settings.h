@@ -19,10 +19,8 @@
 #define SETTINGS_H_
 //-----------------------------------------------------------------------------
 #include "globals.h"
-#include <libxml/tree.h>
-#include <libxml/parser.h>
 //-----------------------------------------------------------------------------
-#define CONFIGURATION_VERSION "1.1"
+#define CONFIGURATION_VERSION "2"
 //-----------------------------------------------------------------------------
 class TSettings
 {
@@ -57,7 +55,7 @@ class TSettings
 			char *fileName;
 		};
 		struct SetScreen {
-			BYTE border;
+			int border;
 			TDisplayMode size;
 			THalfPassMode halfPass;
 			bool lcdMode;
@@ -69,9 +67,7 @@ class TSettings
 			TColor attr11;
 		};
 		struct SetSound {
-			char outType[4];
-			bool hwBuffer;
-			BYTE volume;
+			int  volume;
 			bool mute;
 			bool ifMusica;
 		};
@@ -84,11 +80,11 @@ class TSettings
 			bool connected;
 			TJoyType type;
 			char *guid;
-			DWORD ctrlLeft;
-			DWORD ctrlRight;
-			DWORD ctrlUp;
-			DWORD ctrlDown;
-			DWORD ctrlFire;
+			int ctrlLeft;
+			int ctrlRight;
+			int ctrlUp;
+			int ctrlDown;
+			int ctrlFire;
 			int sensitivity;
 			int pov;
 		};
@@ -121,18 +117,31 @@ class TSettings
 			char *file;
 		};
 
-	private:
-		xmlDocPtr  xmlDoc;
-		xmlNodePtr xmlRoot;
+		enum cfgIniLineType {
+			LT_EMPTY, LT_COMMENT, LT_DELIMITER, LT_SECTION, LT_ITEM, LT_LIST,
+			LT_STRING, LT_QUOTED, LT_NUMBER, LT_BOOL, LT_ENUM, LT_COLOR
+		};
+		typedef struct cfgIniLine {
+			cfgIniLineType type;
+			char *key;
+			char *value;
+			void *ptr;
+			cfgIniLine *prev;
+			cfgIniLine *next;
+		} cfgIniLine;
+		cfgIniLine *cfgRoot;
 
-		xmlNodePtr cfgGetChildNode(xmlNodePtr node, const char * name);
-		int cfgCountChildNodes(xmlNodePtr node);
-		char *cfgGetAttributeToken(xmlNodePtr node, const char *attrName);
-		int cfgGetAttributeIntValue(xmlNodePtr node, const char *attrName, int dflt);
-		bool cfgGetAttributeBoolValue(xmlNodePtr node, const char *attrName, bool dflt);
-		TColor cfgGetAttributeColorValue(xmlNodePtr node, const char *attrName, TColor dflt);
-		bool cfgIsAttributeToken(xmlNodePtr node, const char *attrName, const char *token);
-		char *cfgConvertXmlString(xmlChar *s);
+	private:
+		void cfgReadFile(char *fileName);
+		cfgIniLine *cfgFindSection(cfgIniLine *node, const char *name);
+		int cfgCountChildAttributes(cfgIniLine *node);
+		char *cfgGetStringValue(cfgIniLine *node, const char *key, char **target = NULL);
+		int cfgGetIntValue(cfgIniLine *node, const char *key, int dflt, int *target = NULL);
+		bool cfgGetBoolValue(cfgIniLine *node, const char *key, bool dflt, bool *target = NULL);
+		TColor cfgGetColorValue(cfgIniLine *node, const char *key, TColor dflt, TColor *target = NULL);
+		cfgIniLine *cfgGetLine(cfgIniLine *node, const char *key);
+		bool cfgHasKeyValue(cfgIniLine *node, const char *key, const char *value);
+		void cfgInsertNewLine(cfgIniLine *node, const char *key, cfgIniLineType type, void *ptr);
 
 	public:
 		bool isPaused;
@@ -160,6 +169,7 @@ class TSettings
 		virtual ~TSettings();
 
 		SetRomPackage *findROMmodule(char *name);
+		SetRomModuleFile *checkRMMfile(char *name);
 };
 //-----------------------------------------------------------------------------
 #endif

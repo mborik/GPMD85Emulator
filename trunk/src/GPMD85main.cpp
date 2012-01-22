@@ -572,8 +572,8 @@ bool TEmulator::TestHotkeys()
 				break;
 
 			case SDLK_F11:
-				BYTE *data = (BYTE *) malloc(sizeof(BYTE) * 32 * KBYTE);
-				int len = ReadFromFile("testcode.bin", 0, 32 * KBYTE, data);
+				BYTE *data = (BYTE *) malloc(sizeof(BYTE) * 32 * KB);
+				int len = ReadFromFile("testcode.bin", 0, 32 * KB, data);
 				memory->PutMem(0, 0, data, len);
 				free(data);
 				break;
@@ -939,8 +939,8 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 		delete systemPIO;
 	systemPIO = NULL;
 
-	BYTE *romBuff = new BYTE[16 * KBYTE];
-	memset(romBuff, 0xFF, 16 * KBYTE);
+	BYTE *romBuff = new BYTE[16 * KB];
+	memset(romBuff, 0xFF, 16 * KB);
 
 	if (fromSnap == true && snapRomLen >= 4096 && snapRom != NULL) {
 		fileSize = snapRomLen;
@@ -950,16 +950,16 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 		char *romFile = LocateROM(Settings->CurrentModel->romFile);
 		if (romFile == NULL)
 			romFile = Settings->CurrentModel->romFile;
-		fileSize = ReadFromFile(romFile, 0, 16 * KBYTE, romBuff);
+		fileSize = ReadFromFile(romFile, 0, 16 * KB, romBuff);
 		if (fileSize < 0)
 			warning("Error reading ROM file!\n%s", romFile);
 	}
 
-	fileSize = (fileSize + KBYTE - 1) & (~(KBYTE - 1));
-	romSize = (BYTE) (fileSize / KBYTE);
+	fileSize = (fileSize + KB - 1) & (~(KB - 1));
+	romSize = (BYTE) (fileSize / KB);
 	if (romSize < 4)
 		romSize = 4;
-	monitorLength = romSize * KBYTE;
+	monitorLength = romSize * KB;
 	romAdrKB = 32;
 
 	video->SetComputerModel(model);
@@ -1027,7 +1027,7 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 				memory->AddBlock(32, romSize, 65536L, 1, MA_RO);  // ROM od 8000h
 				memory->AddBlock(32, romSize, 32768L, 1, MA_WO);  // RAM od 8000h
 				if (romSize < 16) // RAM do 0xBFFF
-					memory->AddBlock((BYTE)(32 + romSize), (BYTE)((WORD)(16 - romSize)), 32768L + romSize * KBYTE, 1, MA_RW);
+					memory->AddBlock((BYTE)(32 + romSize), (BYTE)((WORD)(16 - romSize)), 32768L + romSize * KB, 1, MA_RW);
 			}
 			else
 			{
@@ -1035,12 +1035,12 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 				memory->AddBlock(32, romSize, 65536L, 1, MA_RO);  // ROM od 8000h
 				memory->AddBlock(32, romSize, 32768L, 1, MA_WO);  // RAM od 8000h
 				if (romSize < 8) // RAM do 0x9FFF
-					memory->AddBlock((BYTE)(32 + romSize), (BYTE)((WORD)(8 - romSize)), 32768L + romSize * KBYTE, 1, MA_RW);
+					memory->AddBlock((BYTE)(32 + romSize), (BYTE)((WORD)(8 - romSize)), 32768L + romSize * KB, 1, MA_RW);
 				// zrkadlo ROM od A000h
 				memory->AddBlock(40, romSize, 65536L, 1, MA_RO);  // ROM od A000h
 				memory->AddBlock(40, romSize, 40960L, 1, MA_WO);  // RAM od A000h
 				if (romSize < 8) // RAM do 0xBFFF
-					memory->AddBlock((BYTE)(40 + romSize), (BYTE)((WORD)(8 - romSize)), 40960L + romSize * KBYTE, 1, MA_RW);
+					memory->AddBlock((BYTE)(40 + romSize), (BYTE)((WORD)(8 - romSize)), 40960L + romSize * KB, 1, MA_RW);
 			}
 
 			// stranka 2 - po resete
@@ -1071,7 +1071,7 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 			memory->AddBlock(56,  8, 65536L,  2, MA_RO);  // ROM E000h - FFFFh
 
 			if (romSize > 8)
-				monitorLength = 8 * KBYTE;
+				monitorLength = 8 * KB;
 			romAdrKB = 56;
 			break;
 
@@ -1090,7 +1090,7 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 			memory->AddBlock( 0, 16, 49152L,  2, MA_RO);  // ROM 0000h - 3FFFh
 			memory->AddBlock(32, 16, 49152L,  2, MA_RO);  // ROM 8000h - BFFFh
 
-			monitorLength = 16 * KBYTE;
+			monitorLength = 16 * KB;
 			break;
 
 		case CM_C2717 :  // CONSUL 2717
@@ -1194,7 +1194,7 @@ void TEmulator::InsertRomModul(bool inserted, bool toRaom)
 		raomModule = new RaomModule((TRaomType) Settings->RaomModule->type);
 		cpu->AddDevice(RAOM_MODULE_ADR, RAOM_MODULE_MASK, raomModule, true);
 		raomModule->RemoveRomPack();
-		romPackSizeKB = raomModule->GetRomSize() / KBYTE;
+		romPackSizeKB = raomModule->GetRomSize() / KB;
 
 		if (FileExists(Settings->RaomModule->file) == true)
 			raomModule->InsertDisk(Settings->RaomModule->file);
@@ -1215,14 +1215,14 @@ void TEmulator::InsertRomModul(bool inserted, bool toRaom)
 	}
 
 	kBadr = 0;
-	buff = new BYTE[romPackSizeKB * KBYTE];
+	buff = new BYTE[romPackSizeKB * KB];
 	for (i = 0; i < count && kBadr < romPackSizeKB; i++) {
-		sizeKB = (rl[i]->size + KBYTE - 1) / KBYTE;
+		sizeKB = (rl[i]->size + KB - 1) / KB;
 		if ((kBadr + sizeKB) > romPackSizeKB)
 			sizeKB = romPackSizeKB - kBadr;
 
-		memset(buff, 0xFF, sizeKB * KBYTE);
-		if (ReadFromFile(LocateROM(rl[i]->rmmFile), 0, sizeKB * KBYTE, buff) > 0) {
+		memset(buff, 0xFF, sizeKB * KB);
+		if (ReadFromFile(LocateROM(rl[i]->rmmFile), 0, sizeKB * KB, buff) > 0) {
 			if (toRaom)
 				raomModule->InsertRom((BYTE) kBadr, (BYTE) sizeKB, buff);
 			else

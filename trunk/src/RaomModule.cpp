@@ -203,22 +203,22 @@ void RaomModule::ComposeAdddress()
 //---------------------------------------------------------------------------
 bool RaomModule::InsertRom(BYTE addressKB, BYTE sizeKB, BYTE *src)
 {
-	if (addressKB >= (romSize / KBYTE) || sizeKB == 0 || (addressKB + sizeKB)
-			> (romSize / KBYTE))
+	if (addressKB >= (romSize / KB) || sizeKB == 0 || (addressKB + sizeKB)
+			> (romSize / KB))
 		return false;
 
-	memcpy(RomPack + addressKB * KBYTE, src, sizeKB * KBYTE);
+	memcpy(RomPack + addressKB * KB, src, sizeKB * KB);
 	return true;
 }
 //---------------------------------------------------------------------------
 void RaomModule::RemoveRom(BYTE addressKB, BYTE sizeKB)
 {
-	if (addressKB >= (romSize / KBYTE) || sizeKB == 0)
+	if (addressKB >= (romSize / KB) || sizeKB == 0)
 		return;
 
-	if (addressKB + sizeKB > (romSize / KBYTE))
-		sizeKB = (BYTE) ((romSize / KBYTE) - addressKB);
-	memset(RomPack + (addressKB * KBYTE), 0xFF, (sizeKB * KBYTE));
+	if (addressKB + sizeKB > (romSize / KB))
+		sizeKB = (BYTE) ((romSize / KB) - addressKB);
+	memset(RomPack + (addressKB * KB), 0xFF, (sizeKB * KB));
 }
 //---------------------------------------------------------------------------
 void RaomModule::RemoveRomPack()

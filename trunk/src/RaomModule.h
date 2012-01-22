@@ -41,17 +41,17 @@
 #define RAOM_REG_CWR_KUVI         0xFB
 
 #define CHTF_ROM_SIZE_KB          64
-#define CHTF_ROM_SIZE             (CHTF_ROM_SIZE_KB * KBYTE)
+#define CHTF_ROM_SIZE             (CHTF_ROM_SIZE_KB * KB)
 #define CHTF_RAM_SIZE_KB          192
-#define CHTF_RAM_SIZE             (CHTF_RAM_SIZE_KB * KBYTE)
+#define CHTF_RAM_SIZE             (CHTF_RAM_SIZE_KB * KB)
 
 #define KUVI_ROM_SIZE_KB          256
-#define KUVI_ROM_SIZE             (KUVI_ROM_SIZE_KB * KBYTE)
+#define KUVI_ROM_SIZE             (KUVI_ROM_SIZE_KB * KB)
 #define KUVI_RAM_SIZE_KB          256
-#define KUVI_RAM_SIZE             (KUVI_RAM_SIZE_KB * KBYTE)
+#define KUVI_RAM_SIZE             (KUVI_RAM_SIZE_KB * KB)
 
 #define RAM_BLOCK_SIZE_KB         16
-#define RAM_BLOCK_SIZE            (RAM_BLOCK_SIZE_KB * KBYTE)
+#define RAM_BLOCK_SIZE            (RAM_BLOCK_SIZE_KB * KB)
 //---------------------------------------------------------------------------
 class RaomModule : public PeripheralDevice, public ChipPIO8255 {
 	public:
