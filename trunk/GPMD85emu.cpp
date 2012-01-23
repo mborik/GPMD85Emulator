@@ -31,9 +31,9 @@ int main(int argc, char** argv)
 	strcpy(PathResources, DIR_RESOURCES);
 	sprintf(PathAppConfig, "%s%c.%s", PathUserHome, DIR_DELIMITER, PACKAGE_TARNAME);
 
-	debug("Resource path: %s", PathResources);
-	debug("Application path: %s", PathApplication);
-	debug("Application config path: %s", PathAppConfig);
+	debug("",   "Resource path: %s", PathResources);
+	debug(NULL, "Application path: %s", PathApplication);
+	debug(NULL, "Application config path: %s", PathAppConfig);
 
 	struct stat filestat;
 	if (stat(PathAppConfig, &filestat) != 0)
@@ -41,7 +41,7 @@ int main(int argc, char** argv)
 
 	// initialization of SDL
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_NOPARACHUTE) < 0)
-		error("Couldn't initialize SDL: %s\n", SDL_GetError());
+		error("", "Couldn't initialize SDL: %s\n", SDL_GetError());
 
 	const SDL_VideoInfo *vi = SDL_GetVideoInfo();
 	SDL_Rect** modes = SDL_ListModes(NULL, SDL_FULLSCREEN);
@@ -52,7 +52,7 @@ int main(int argc, char** argv)
 	gvi.depth = vi->vfmt->BitsPerPixel;
 
 	if (modes > (SDL_Rect **) 0) {
-		debug("Actual framebuffer resolution: %d x %d",
+		debug(NULL, "Actual framebuffer resolution: %d x %d",
 			vi->current_w, vi->current_h);
 
 		for (int i = 0; modes[i]; i++) {
@@ -72,11 +72,11 @@ int main(int argc, char** argv)
 	}
 
 	if (SDL_VideoModeOK(gvi.w, gvi.h, gvi.depth, SDL_FULLSCREEN) == 0) {
-		warning("Full-screen disabled, no suitable resolution!");
+		warning("", "Full-screen disabled, no suitable resolution!");
 		gvi.w = gvi.h = 0;
 	}
 	else
-		debug("Full-screen resolution: %d x %d", gvi.w, gvi.h);
+		debug(NULL, "Full-screen resolution: %d x %d", gvi.w, gvi.h);
 
 	SDL_EnableKeyRepeat(0, 0);
 
@@ -89,15 +89,15 @@ int main(int argc, char** argv)
 			SDL_FreeSurface(icon);
 		}
 		else
-			warning("Can't load icon resource file");
+			warning("", "Can't load icon resource file");
 	}
 
-	debug("Initialization process started...");
+	debug(NULL, "Initialization process started...");
 
 	Emulator = new TEmulator();
 	Emulator->ProcessSettings(-1);
 
-	debug("Starting %d FPS refresh timer", GPU_FRAMES_PER_SEC);
+	debug("", "Starting %d FPS refresh timer", GPU_FRAMES_PER_SEC);
 	Emulator->BaseTimer = SDL_AddTimer(GPU_TIMER_INTERVAL, FormMain_BaseTimerCallback, Emulator);
 	Emulator->ActionPlayPause(true);
 
@@ -107,7 +107,7 @@ int main(int argc, char** argv)
 	SDL_Event event;
 	bool waitForRelease = false;
 
-	debug("Starting main CPU %dHz loop", CPU_FRAMES_PER_SEC);
+	debug("", "Starting main CPU %dHz loop", CPU_FRAMES_PER_SEC);
 	while (Emulator->isActive) {
 		nextTick = SDL_GetTicks() + CPU_TIMER_INTERVAL;
 
@@ -151,6 +151,7 @@ int main(int argc, char** argv)
 			SDL_Delay(1);
 	}
 
+	debug("", "Main CPU loop terminated");
 	SDL_RemoveTimer(Emulator->BaseTimer);
 	SDL_Delay(WEAK_REFRESH_TIME);
 

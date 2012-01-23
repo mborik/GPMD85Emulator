@@ -11,20 +11,21 @@ class TTapeBrowser : public sigslot::has_slots<>
 	public:
 #pragma pack(push, 1)
 		typedef struct TapeBlock {
-			BYTE bNumber;
-			char cType;
-			WORD wStart;
-			WORD wLength;
-			char cName[8];
-			BYTE bCrc;
-			BYTE bBodyCrc;
+			BYTE  bNumber;
+			char  cType;
+			WORD  wStart;
+			WORD  wLength;
+			char  cName[8];
+			BYTE  bCrc;
+			BYTE  bBodyCrc;
 			DWORD dwOffsetHeader;
 			DWORD dwOffsetBody;
-			bool headCrcError;
-			bool bodyCrcError;
-			bool bodyCrcErrorFix;
-			bool rawFile;
-			int bodyLengthError;
+			bool  headCrcError;
+			bool  bodyCrcError;
+			bool  bodyCrcErrorFix;
+			bool  rawFile;
+			int   bodyLengthError;
+			bool  selected;
 			char *orgFile;
 			TapeBlock *prev;
 			TapeBlock *next;
@@ -81,7 +82,8 @@ class TTapeBrowser : public sigslot::has_slots<>
 		void SetNewTape();
 		void ActionPlay();
 		void ActionStop();
-		void SelectBlock(int idx);
+		void SetCurrentBlock(int idx);
+		void ToggleSelection(int idx);
 		void TapeCommand(int command, bool *result);
 		BYTE SaveTape(char *newFileName, TAPE_BLOCK *blks, bool asPTP);
 		void FillFileList(char ***data, int *items, bool hex = false);

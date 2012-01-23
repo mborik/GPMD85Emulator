@@ -142,6 +142,7 @@ void ChipCpu8080::PrepareFlagsTables()
 	BYTE s_auxcarryAddTable[8] = { 0, FLAG_AC, FLAG_AC, FLAG_AC, 0, 0, 0, FLAG_AC };
 	BYTE s_auxcarrySubTable[8] = { FLAG_AC, FLAG_AC, 0, FLAG_AC, 0, FLAG_AC, 0, 0 };
 
+/** DEBUGGER NOT IMPLEMENTED --------------------------------------------------
 	// ! - undocumented instructions
 	// % - 8-bit operand
 	// & - 16-bit operand / address
@@ -227,12 +228,14 @@ void ChipCpu8080::PrepareFlagsTables()
 		" ret  m",      " ld   sp,hl",  " jp   m,*",    " ei",           " call m,*",    "!call *",      " cp   %",      " rst  @"
 	};
 
+	memcpy(instr8080, s_instr8080, sizeof(s_instr8080));
+	memcpy(instrZ80, s_instrZ80, sizeof(s_instrZ80));
+-----------------------------------------------------------------------------*/
+
 	memcpy(duration, s_duration, sizeof(s_duration));
 	memcpy(length, s_length, sizeof(s_length));
 	memcpy(auxcarryAddTable, s_auxcarryAddTable, sizeof(s_auxcarryAddTable));
 	memcpy(auxcarrySubTable, s_auxcarrySubTable, sizeof(s_auxcarrySubTable));
-	memcpy(instr8080, s_instr8080, sizeof(s_instr8080));
-	memcpy(instrZ80, s_instrZ80, sizeof(s_instrZ80));
 }
 //-----------------------------------------------------------------------------
 void ChipCpu8080::Reset()

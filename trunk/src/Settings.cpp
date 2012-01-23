@@ -23,22 +23,22 @@ TSettings::TSettings()
 	int i, j, k;
 	char *buf, *s;
 
-	debug("[Settings] Configuration parser initialization");
+	debug("Settings", "Configuration parser initialization");
 
 	if ((buf = LocateResource("default.conf", true)) == NULL)
-		error("[Settings] Configuration file not found!");
+		error("Settings", "Configuration file not found!");
 
 	cfgReadFile(buf);
 	if (cfgRoot == NULL)
-		error("[Settings] Couldn't parse configuration file: %s", buf);
+		error("Settings", "Couldn't parse configuration file: %s", buf);
 
-	debug("[Settings] Configuration XML parsed, reading elements");
+	debug(NULL, "Configuration XML parsed, reading elements");
 
 	if (strcmp(cfgRoot->value, "GNU/GPL PMD 85 Emulator Configuration File") != 0)
-		warning("[Settings] Invalid header of configuration file!");
+		warning("Settings", "Invalid header of configuration file!");
 
 	if (!cfgHasKeyValue(cfgRoot->next, "config-version", CONFIGURATION_VERSION))
-		warning("[Settings] Incompatible configuration file version (required %s)!", CONFIGURATION_VERSION);
+		warning("Settings", "Incompatible configuration file version (required %s)!", CONFIGURATION_VERSION);
 
 	cfgIniLine *m = NULL, *n = cfgFindSection(cfgRoot, "General");
 
@@ -61,9 +61,10 @@ TSettings::TSettings()
 			strccnt(s, '|', k);
 
 			RomPackages[i] = new SetRomPackage;
-			RomPackages[i]->name = n->key;
-			RomPackages[i]->count = k;
+			RomPackages[i]->name = new char[strlen(n->key) + 1];
 			RomPackages[i]->files = new SetRomModuleFile *[k];
+			RomPackages[i]->count = k;
+			strcpy(RomPackages[i]->name, n->key);
 
 			j = 0;
 			checkRMMfile(NULL);
@@ -114,14 +115,14 @@ TSettings::TSettings()
 		else if (strcmp(n->key, "Model-C2717") == 0)
 			model->type = CM_C2717;
 		else {
-			warning("[Settings] Unknown model '%s' definition!", n->key);
+			warning("Settings", "Unknown model '%s' definition!", n->key);
 			delete model;
 			continue;
 		}
 
 		model->romFile = cfgGetStringValue(n, "rom", &(model->romFile));
 		if (model->romFile == NULL) {
-			warning("[Settings] ROM file not defined for %s!", n->key);
+			warning("Settings", "ROM file not defined for %s!", n->key);
 			delete model;
 			continue;
 		}
@@ -144,16 +145,16 @@ TSettings::TSettings()
 		modelsCount++;
 
 		if (modelsCount > k) {
-			warning("[Settings] Too much computer models defined!");
+			warning("Settings", "Too much computer models defined!");
 			break;
 		}
 	}
 
 	if (!modelsCount)
-		error("[Settings] No computer models defined!");
+		error("Settings", "No computer models defined!");
 
 	if (CurrentModel == NULL) {
-		warning("[Settings] Current model '%s' not found!", buf);
+		warning("Settings", "Current model '%s' not found!", buf);
 		CurrentModel = AllModels[0];
 	}
 
@@ -172,9 +173,20 @@ TSettings::TSettings()
 	n = cfgFindSection(cfgRoot, "TapeBrowser");
 
 	TapeBrowser = new SetTapeBrowser;
+	TapeBrowser->flash = cfgGetBoolValue(n, "flash", false, &(TapeBrowser->hex));
 	TapeBrowser->monitoring = cfgGetBoolValue(n, "monitoring", false, &(TapeBrowser->monitoring));
-	TapeBrowser->flash = cfgGetBoolValue(n, "flash", false, &(TapeBrowser->flash));
 	TapeBrowser->fileName = cfgGetStringValue(n, "recent-file", &(TapeBrowser->fileName));
+
+	TapeBrowser->hex = false;
+	if ((m = cfgGetLine(n, "radix")) != NULL) {
+		if (strcmp(m->value, "hex") == 0)
+			TapeBrowser->hex = true;
+
+		m->type = LT_RADIX;
+		m->ptr = (void *) &(TapeBrowser->hex);
+	}
+	else
+		cfgInsertNewLine(n->next, "auto-stop", LT_RADIX, (void *) &(TapeBrowser->hex));
 
 	TapeBrowser->autoStop = AS_NEXTHEAD;
 	if ((m = cfgGetLine(n, "auto-stop")) != NULL) {
@@ -185,12 +197,11 @@ TSettings::TSettings()
 		else if (strcmp(m->value, "off") == 0)
 			TapeBrowser->autoStop = AS_OFF;
 
-		// TODO: extend line types to handle all enumerators in config!
-		m->type = LT_ENUM;
+		m->type = LT_AUTOSTOP;
 		m->ptr = (void *) &(TapeBrowser->autoStop);
 	}
 	else
-		cfgInsertNewLine(n->next, "auto-stop", LT_ENUM, (void *) &(TapeBrowser->autoStop));
+		cfgInsertNewLine(n->next, "auto-stop", LT_AUTOSTOP, (void *) &(TapeBrowser->autoStop));
 
 	n = cfgFindSection(cfgRoot, "Screen");
 
@@ -206,11 +217,11 @@ TSettings::TSettings()
 		else if (strcmp(m->value, "quadruple") == 0)
 			Screen->size = DM_QUADRUPLESIZE;
 
-		m->type = LT_ENUM;
+		m->type = LT_SCR_SIZE;
 		m->ptr = (void *) &(Screen->size);
 	}
 	else
-		cfgInsertNewLine(n->next, "size", LT_ENUM, (void *) &(Screen->size));
+		cfgInsertNewLine(n->next, "size", LT_SCR_SIZE, (void *) &(Screen->size));
 
 	Screen->lcdMode = false;
 	Screen->halfPass = HP_OFF;
@@ -226,11 +237,11 @@ TSettings::TSettings()
 		else if (strcmp(m->value, "b0") == 0)
 			Screen->halfPass = HP_0;
 
-		m->type = LT_ENUM;
+		m->type = LT_SCR_HP;
 		m->ptr = (void *) &(Screen->halfPass);
 	}
 	else
-		cfgInsertNewLine(n->next, "half-pass", LT_ENUM, (void *) &(Screen->halfPass));
+		cfgInsertNewLine(n->next, "half-pass", LT_SCR_HP, (void *) &(Screen->halfPass));
 
 	Screen->colorProfile = CP_STANDARD;
 	if ((m = cfgGetLine(n, "color-profile")) != NULL) {
@@ -241,11 +252,11 @@ TSettings::TSettings()
 		else if (strcmp(m->value, "multicolor") == 0)
 			Screen->colorProfile = CP_MULTICOLOR;
 
-		m->type = LT_ENUM;
+		m->type = LT_SCR_COL;
 		m->ptr = (void *) &(Screen->colorProfile);
 	}
 	else
-		cfgInsertNewLine(n->next, "color-profile", LT_ENUM, (void *) &(Screen->colorProfile));
+		cfgInsertNewLine(n->next, "color-profile", LT_SCR_COL, (void *) &(Screen->colorProfile));
 
 	Screen->colorPalette = CL_RGB;
 	if ((m = cfgGetLine(n, "color-pallette")) != NULL) {
@@ -254,11 +265,11 @@ TSettings::TSettings()
 		else if (strcmp(m->value, "defined") == 0)
 			Screen->colorPalette = CL_DEFINED;
 
-		m->type = LT_ENUM;
+		m->type = LT_SCR_PAL;
 		m->ptr = (void *) &(Screen->colorPalette);
 	}
 	else
-		cfgInsertNewLine(n->next, "color-pallette", LT_ENUM, (void *) &(Screen->colorPalette));
+		cfgInsertNewLine(n->next, "color-pallette", LT_SCR_PAL, (void *) &(Screen->colorPalette));
 
 	Screen->attr00 = cfgGetColorValue(n, "attr00", WHITE, &(Screen->attr00));
 	Screen->attr01 = cfgGetColorValue(n, "attr01", GREEN, &(Screen->attr01));
@@ -291,11 +302,11 @@ TSettings::TSettings()
 		else if (strcmp(m->value, "poly8") == 0)
 			Mouse->type = MT_POLY8;
 
-		m->type = LT_ENUM;
+		m->type = LT_MOUSE;
 		m->ptr = (void *) &(Mouse->type);
 	}
 	else
-		cfgInsertNewLine(n->next, "type", LT_ENUM, (void *) &(Mouse->type));
+		cfgInsertNewLine(n->next, "type", LT_MOUSE, (void *) &(Mouse->type));
 
 	n = cfgFindSection(cfgRoot, "Joystick-GPIO0");
 
@@ -324,11 +335,11 @@ TSettings::TSettings()
 		else if (strcmp(m->value, "buttons") == 0)
 			Joystick->GPIO0->type = JT_BUTTONS;
 
-		m->type = LT_ENUM;
+		m->type = LT_JOY;
 		m->ptr = (void *) &(Joystick->GPIO0->type);
 	}
 	else
-		cfgInsertNewLine(n->next, "type", LT_ENUM, (void *) &(Joystick->GPIO0->type));
+		cfgInsertNewLine(n->next, "type", LT_JOY, (void *) &(Joystick->GPIO0->type));
 
 	n = cfgFindSection(cfgRoot, "Joystick-GPIO1");
 
@@ -353,11 +364,11 @@ TSettings::TSettings()
 		else if (strcmp(m->value, "buttons") == 0)
 			Joystick->GPIO1->type = JT_BUTTONS;
 
-		m->type = LT_ENUM;
+		m->type = LT_JOY;
 		m->ptr = (void *) &(Joystick->GPIO1->type);
 	}
 	else
-		cfgInsertNewLine(n->next, "type", LT_ENUM, (void *) &(Joystick->GPIO1->type));
+		cfgInsertNewLine(n->next, "type", LT_JOY, (void *) &(Joystick->GPIO1->type));
 
 	n = cfgFindSection(cfgRoot, "PMD-32");
 
@@ -387,11 +398,11 @@ TSettings::TSettings()
 		else if (strcmp(m->value, "kuvi") == 0)
 			RaomModule->type = RT_KUVI;
 
-		m->type = LT_ENUM;
+		m->type = LT_RAOM;
 		m->ptr = (void *) &(RaomModule->type);
 	}
 	else
-		cfgInsertNewLine(n->next, "hw-version", LT_ENUM, (void *) &(RaomModule->type));
+		cfgInsertNewLine(n->next, "hw-version", LT_RAOM, (void *) &(RaomModule->type));
 
 	s = cfgGetStringValue(n, "rmm-name");
 	if ((RaomModule->module = findROMmodule(s)) == NULL)
@@ -401,14 +412,14 @@ TSettings::TSettings()
 		delete [] s;
 	s = NULL;
 
-	debug("[Settings] Configuration loaded");
+	debug(NULL, "Configuration loaded");
 }
 //-----------------------------------------------------------------------------
 TSettings::~TSettings()
 {
 	int i, j;
 
-	debug("[Settings] Freeing all structures");
+	debug("Settings", "Freeing all structures");
 
 	if (AllModels) {
 		for (i = 0; i < modelsCount; i++) {
@@ -443,6 +454,7 @@ TSettings::~TSettings()
 				for (j = 0; j < RomPackages[i]->count; j++) {
 					delete [] RomPackages[i]->files[j]->rmmFile;
 					RomPackages[i]->files[j]->rmmFile = NULL;
+					delete RomPackages[i]->files[j];
 				}
 
 				delete [] RomPackages[i]->files;
@@ -464,6 +476,16 @@ TSettings::~TSettings()
 
 		delete Snapshot;
 		Snapshot = NULL;
+	}
+
+	if (TapeBrowser) {
+		if (TapeBrowser->fileName) {
+			delete [] TapeBrowser->fileName;
+			TapeBrowser->fileName = NULL;
+		}
+
+		delete TapeBrowser;
+		TapeBrowser = NULL;
 	}
 
 	if (Joystick) {
@@ -535,6 +557,17 @@ TSettings::~TSettings()
 		delete PMD32;
 	}
 	PMD32 = NULL;
+
+	if (RaomModule) {
+		if (RaomModule->file) {
+			delete [] RaomModule->file;
+			RaomModule->file = NULL;
+		}
+
+		RaomModule->module = NULL;
+		delete RaomModule;
+		RaomModule = NULL;
+	}
 
 	cfgIniLine *n = cfgRoot;
 	while (n) {
@@ -640,7 +673,7 @@ void TSettings::cfgReadFile(char *fileName)
 			lineBuffer[i] = '\0';
 			ptr++;
 
-			ptr2 = lineBuffer + (i - 1);
+			ptr2 = lineBuffer + (i > 0 ? (i - 1) : 0);
 			while (*ptr2 == ' ' || *ptr2 == '\t' || *ptr2 == '\r') {
 				*ptr2 = '\0';
 				ptr2--;
@@ -743,8 +776,9 @@ void TSettings::cfgReadFile(char *fileName)
 			}
 			else {
 				entry->type = LT_COMMENT;
-				entry->value = new char[i];
+				entry->value = new char[i + 12];
 				strcpy(entry->value, lineBuffer);
+				strcat(entry->value, " <<< ERROR!");
 			}
 
 			entry->next = new cfgIniLine;
@@ -758,12 +792,14 @@ void TSettings::cfgReadFile(char *fileName)
 		entry->value = NULL;
 		entry->ptr   = NULL;
 		entry->next  = NULL;
+
+		delete [] buffer;
 	}
 }
 //-----------------------------------------------------------------------------
 TSettings::cfgIniLine *TSettings::cfgFindSection(cfgIniLine *node, const char * name)
 {
-	debug("[Settings] Parsing %s section...", name);
+	debug(NULL, "Parsing %s section...", name);
 
 	while (node != NULL) {
 		if (node->type == LT_SECTION && strcmp(node->key, name) == 0)
@@ -773,7 +809,7 @@ TSettings::cfgIniLine *TSettings::cfgFindSection(cfgIniLine *node, const char * 
 	}
 
 	if (node == NULL)
-		error("[Settings] %s section missing", name);
+		error("Settings", "%s section missing", name);
 
 	return node;
 }

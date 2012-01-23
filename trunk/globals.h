@@ -175,33 +175,54 @@ enum TFileSelectType { GUI_FS_BASELOAD, GUI_FS_BASESAVE, GUI_FS_SNAPLOAD, GUI_FS
 //---------------------------------------------------------------------------
 static char msgbuffer[1024];
 //-----------------------------------------------------------------------------
-inline void error(const char *msg, ...)
+inline void error(const char *ns, const char *msg, ...)
 {
+	if (ns) {
+		if (strlen(ns))
+			sprintf(msgbuffer + 1000, "[%s] ", ns);
+		else
+			msgbuffer[1000] = '\0';
+	}
+
 	va_list va;
 	va_start(va, msg);
 	vsprintf(msgbuffer, msg, va);
 	va_end(va);
-	fprintf(stderr, "ERR: %s!\n", msgbuffer);
+	fprintf(stderr, "ERR: %s%s!\n", msgbuffer + 1000, msgbuffer);
 	exit(EXIT_FAILURE);
 }
 //-----------------------------------------------------------------------------
-inline void warning(const char *msg, ...)
+inline void warning(const char *ns, const char *msg, ...)
 {
+	if (ns) {
+		if (strlen(ns))
+			sprintf(msgbuffer + 1000, "[%s] ", ns);
+		else
+			msgbuffer[1000] = '\0';
+	}
+
 	va_list va;
 	va_start(va, msg);
 	vsprintf(msgbuffer, msg, va);
 	va_end(va);
-	fprintf(stderr, "WRN: %s!\n", msgbuffer);
+	fprintf(stderr, "WRN: %s%s!\n", msgbuffer + 1000, msgbuffer);
 }
 //-----------------------------------------------------------------------------
 #ifdef DEBUG
-inline void _debug(const char *msg, ...)
+inline void _debug(const char *ns, const char *msg, ...)
 {
+	if (ns) {
+		if (strlen(ns))
+			sprintf(msgbuffer + 1000, "[%s] ", ns);
+		else
+			msgbuffer[1000] = '\0';
+	}
+
 	va_list va;
 	va_start(va, msg);
 	vsprintf(msgbuffer, msg, va);
 	va_end(va);
-	fprintf(stdout, "DBG: %s\n", msgbuffer);
+	fprintf(stdout, "DBG: %s%s\n", msgbuffer + 1000, msgbuffer);
 	fflush(stdout);
 }
 #define debug(args...) _debug(args)

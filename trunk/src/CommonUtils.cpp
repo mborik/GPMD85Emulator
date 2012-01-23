@@ -443,7 +443,7 @@ void CommonUtils::commonScanDir(const char *dir, char ***filenames, int *numfile
 			}
 
 			if (newpt == NULL) {
-				warning("ScanDir: memory allocation error");
+				warning(NULL, "ScanDir: memory allocation error");
 
 				newpt = *filenames;
 				for (--*numfiles; *numfiles >= 0; --*numfiles)

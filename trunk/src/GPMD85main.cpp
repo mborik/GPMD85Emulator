@@ -1620,7 +1620,8 @@ void TEmulator::InsertTape(char *fileName, BYTE *flag)
 	if (!(TapeBrowser->SetTapeFileName(fileName)))
 		video->GUI->messageBox("CORRUPTED TAPE FORMAT!");
 
-	delete [] Settings->TapeBrowser->fileName;
+	if (Settings->TapeBrowser->fileName)
+		delete [] Settings->TapeBrowser->fileName;
 	Settings->TapeBrowser->fileName = new char[(strlen(fileName) + 1)];
 	strcpy(Settings->TapeBrowser->fileName, fileName);
 

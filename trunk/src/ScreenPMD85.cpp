@@ -26,10 +26,10 @@ ScreenPMD85::ScreenPMD85(TDisplayMode dispMode, int border)
 	BlitRectDest = NULL;
 	bufferScreen = NULL;
 
-	debug("[Screen] Loading resources");
+	debug("Screen", "Loading resources");
 	StatusBarIcons = SDL_LoadBMP(LocateResource("statusbar.bmp", false));
 	if (!StatusBarIcons)
-		warning("Can't load status bar resource file");
+		warning("Screen", "Can't load status bar resource file");
 
 	SDL_SetColorKey(StatusBarIcons, SDL_SRCCOLORKEY, SDL_MapRGB(StatusBarIcons->format, 255, 0, 255));
 
@@ -64,6 +64,18 @@ ScreenPMD85::~ScreenPMD85()
 	SDL_Flip(Screen);
 
 	ReleaseVideoMode();
+
+	if (StatusBarIcons)
+		SDL_FreeSurface(StatusBarIcons);
+	StatusBarIcons = NULL;
+
+	if (BlitRectDest)
+		delete BlitRectDest;
+	BlitRectDest = NULL;
+
+	if (BlitRectSrc)
+		delete BlitRectSrc;
+	BlitRectSrc = NULL;
 
 	if (bufferScreen)
 		free(bufferScreen);
@@ -384,16 +396,18 @@ void ScreenPMD85::InitScreenSize(TDisplayMode reqDispMode, bool reqWidth384)
 	bufferWidth = (reqWidth384) ? 384 : 288;
 	bufferHeight = 256;
 
-	if (BlitRectSrc == NULL)
-		BlitRectSrc = new SDL_Rect();
+	if (BlitRectSrc)
+		delete BlitRectSrc;
+	BlitRectSrc = new SDL_Rect;
 
 	BlitRectSrc->x = 0;
 	BlitRectSrc->y = 0;
 	BlitRectSrc->w = Width;
 	BlitRectSrc->h = Height;
 
-	if (BlitRectDest == NULL)
-		BlitRectDest = new SDL_Rect();
+	if (BlitRectDest)
+		delete BlitRectDest;
+	BlitRectDest = new SDL_Rect;
 
 	if (DispMode == DM_FULLSCREEN || !gvi.wm) {
 		BlitRectDest->w = Width;
@@ -419,7 +433,7 @@ void ScreenPMD85::InitScreenBuffer()
 	int size = bufferWidth * bufferHeight;
 	bufferScreen = (BYTE *) realloc(bufferScreen, sizeof(BYTE) * size);
 	if (!bufferScreen)
-		error("Unable to allocate memory for screen data buffer");
+		error("Screen", "Unable to allocate memory for screen data buffer");
 
 	memset(bufferScreen, 0, sizeof(BYTE) * size);
 }
@@ -427,26 +441,26 @@ void ScreenPMD85::InitScreenBuffer()
 void ScreenPMD85::PrepareVideoMode()
 {
 	if (DispMode == DM_FULLSCREEN || !gvi.wm) {
-		debug("[Screen] Full-screen mode: %dx%d/%dbit", gvi.w, gvi.h, gvi.depth);
+		debug("Screen", "Full-screen mode: %dx%d/%dbit", gvi.w, gvi.h, gvi.depth);
 		Screen = SDL_SetVideoMode(gvi.w, gvi.h, gvi.depth,
 			SDL_FULLSCREEN | SDL_DOUBLEBUF |
 			(gvi.hw ? SDL_HWSURFACE : SDL_SWSURFACE));
 	}
 	else {
-		debug("[Screen] Windowed mode: %dx%d/%dbit", Width, Height, gvi.depth);
+		debug("Screen", "Windowed mode: %dx%d/%dbit", Width, Height, gvi.depth);
 		Screen = SDL_SetVideoMode(
 			Width, Height, gvi.depth, SDL_DOUBLEBUF |
 			(gvi.hw ? SDL_HWSURFACE | SDL_HWPALETTE : SDL_SWSURFACE));
 	}
 
 	if (!Screen)
-		error("Unable to create screen buffer\n%s", SDL_GetError());
+		error("Screen", "Unable to create screen buffer\n%s", SDL_GetError());
 
 	BlitSurface = SDL_CreateRGBSurface(SDL_SWSURFACE,
 			BlitRectSrc->w, BlitRectSrc->h, 8, 0, 0, 0, 0);
 
 	if (!BlitSurface)
-		error("Unable to create blitting surface\n%s", SDL_GetError());
+		error("Screen", "Unable to create blitting surface\n%s", SDL_GetError());
 
 	SDL_SetPalette(BlitSurface, SDL_LOGPAL | SDL_PHYSPAL, Palette, 0, 256);
 
@@ -511,7 +525,7 @@ void ScreenPMD85::PrepareStatusBar()
 //-----------------------------------------------------------------------------
 void ScreenPMD85::RedrawStatusBar()
 {
-	SDL_Rect *r = new SDL_Rect(*BlitRectDest), *s = new SDL_Rect();
+	SDL_Rect *r = new SDL_Rect(*BlitRectDest), *s = new SDL_Rect;
 
 	r->x += r->w - (4 * STATUSBAR_SPACING);
 	r->y += r->h + ((STATUSBAR_HEIGHT - STATUSBAR_ICON) / 2)

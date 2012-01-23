@@ -101,7 +101,6 @@ class UserInterface : public sigslot::has_slots<>
 		typedef struct GUI_TAPEBROWSER_DATA {
 			int  count;
 			char **entries;
-			bool hex;
 			struct popup {
 				BYTE *frame;
 				SDL_Rect *rect;

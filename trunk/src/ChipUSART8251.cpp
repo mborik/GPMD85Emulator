@@ -30,6 +30,10 @@ ChipUSART8251::ChipUSART8251()
 	SyncChar1 = 0;
 	SyncChar2 = 0;
 	Command = 0;
+	SyncMode = false;
+	RxBreakState = false;
+	RxState = 0;
+	RxD = true;
 }
 //---------------------------------------------------------------------------
 /**
@@ -85,7 +89,7 @@ void ChipUSART8251::ChipReset(bool clearNotifyFunc)
 {
 	InitState = INIT_MODE;
 
-	if (clearNotifyFunc == true)
+	if (clearNotifyFunc)
 		ClearAllNotifyFunctions();
 }
 //---------------------------------------------------------------------------
@@ -181,7 +185,7 @@ void ChipUSART8251::CpuWrite(TUSARTReg dest, BYTE val)
 					_CTS = true;
 //					debug("_CTS=%d", _CTS);
 
-					if (SyncMode == true)
+					if (SyncMode)
 						InitState = INIT_SYNC1;
 					else {
 						InitState = COMMAND_MODE;
@@ -226,7 +230,7 @@ void ChipUSART8251::CpuWrite(TUSARTReg dest, BYTE val)
 						// vysielanie BREAK
 						if ((val & SBC_MASK) == SBC_BREAK) {
 							TxBreakState = true;
-							if (TxD == true) {
+							if (TxD) {
 								TxD = false;
 								OnTxDSet();
 								OnTxDChange();
@@ -234,12 +238,12 @@ void ChipUSART8251::CpuWrite(TUSARTReg dest, BYTE val)
 						}
 						else {
 							// zrusenie vysielania BREAK
-							if (TxBreakState == true) {
+							if (TxBreakState) {
 								TxBreakState = false;
 								TxD = true;
 								OnTxDSet();
 								OnTxDChange();
-								if (SyncMode == true)
+								if (SyncMode)
 									PrepareSyncTx();
 								else
 									PrepareAsyncTx();
@@ -258,7 +262,7 @@ void ChipUSART8251::CpuWrite(TUSARTReg dest, BYTE val)
 							OnRtsChange();
 
 						// spustenie vyhladavania synchronizacie
-						if (SyncMode == true  && (val & EHM_MASK) == EHM_ENABLED) {
+						if (SyncMode  && (val & EHM_MASK) == EHM_ENABLED) {
 							if ((CWR & ESD_MASK) == ESD_INTERNAL)
 								RxState = SYNC_HUNT | SYNC_CHAR1;
 							else
@@ -305,16 +309,16 @@ BYTE ChipUSART8251::CpuRead(TUSARTReg src)
 
 	switch (src) {
 		case UR_STATUS :
-			val = (BYTE)(((StatusTxR == true) ? TXRDY_EMPTY : TXRDY_FULL)
-					| ((StatusRxR == true) ? RXRDY_YES : RXRDY_NO)
-					| ((StatusTxE == true) ? TXE_EMPTY : TXE_FULL)
-					| ((ParityError == true) ? PE_YES : PE_NO)
-					| ((OverrunError == true) ? OE_YES : OE_NO)
-					| ((FrameError == true) ? FE_YES : FE_NO)
-					| ((SynDetState == true) ? SYNDET_YES : SYNDET_NO)
-					| ((_DSR == true) ? DSR_OFF : DSR_ON));
+			val = (BYTE)((StatusTxR ? TXRDY_EMPTY : TXRDY_FULL)
+					| (StatusRxR ? RXRDY_YES : RXRDY_NO)
+					| (StatusTxE ? TXE_EMPTY : TXE_FULL)
+					| (ParityError ? PE_YES : PE_NO)
+					| (OverrunError ? OE_YES : OE_NO)
+					| (FrameError ? FE_YES : FE_NO)
+					| (SynDetState ? SYNDET_YES : SYNDET_NO)
+					| (_DSR ? DSR_OFF : DSR_ON));
 
-			if (SyncMode == true && (CWR & ESD_MASK) == ESD_INTERNAL && SynDetState == true) {
+			if (SyncMode && (CWR & ESD_MASK) == ESD_INTERNAL && SynDetState) {
 				SynDetState = false;
 				OnSynDetSet();
 				OnSynDetChange();
@@ -322,7 +326,7 @@ BYTE ChipUSART8251::CpuRead(TUSARTReg src)
 			break;
 
 		case UR_DATA :
-			if (StatusRxR == true) {
+			if (StatusRxR) {
 				val = RxChar;
 				StatusRxR = false;
 				OnRxRSet();
@@ -342,11 +346,11 @@ BYTE ChipUSART8251::CpuRead(TUSARTReg src)
  */
 void ChipUSART8251::PeripheralSetRxD(bool state)
 {
-	if (SyncMode == false && RxState == WAIT_START && RxD == true && state == false) {
+	if (!SyncMode && RxState == WAIT_START && RxD && !state) {
 		RxState = START_BIT;
 		RxFactorCounter = (Factor > 1) ? Factor / 2 : Factor;
 	}
-	if (SyncMode == false && state == true) {
+	if (!SyncMode && state) {
 		bool oldRxBreakState = RxBreakState;
 		RxBreakState = false;
 		OnBrkDetSet();
@@ -381,14 +385,14 @@ void ChipUSART8251::PeripheralSetTxC(bool state)
 	// zmena bitu je pri zostupnej hrane TxC --__
 	bool oldTxC = TxC;
 	TxC = state;
-	if (InitState != COMMAND_MODE || TxBreakState == true || oldTxC == TxC || TxC == true)
+	if (InitState != COMMAND_MODE || TxBreakState || oldTxC == TxC || TxC)
 		return;
 
 	bool oldTxD = TxD;
-	if (SyncMode == true) { // Synchronny rezim
+	if (SyncMode) { // Synchronny rezim
 		switch (TxState & STATE_MASK) {
 			case DATA_BITS :
-				if ((_CTS == true || (Command & TEN_MASK) == TEN_DISABLED) && TxBitCounter == CharLen)
+				if ((_CTS || (Command & TEN_MASK) == TEN_DISABLED) && TxBitCounter == CharLen)
 					return; // vysielanie nie je povolene
 
 				TxD = (TxShift & 1);
@@ -414,7 +418,7 @@ void ChipUSART8251::PeripheralSetTxC(bool state)
 
 		switch (TxState) {
 			case START_BIT :
-				if (_CTS == true || (Command & TEN_MASK) == TEN_DISABLED)
+				if (_CTS || (Command & TEN_MASK) == TEN_DISABLED)
 					return; // vysielanie nie je povolene
 
 				TxD = false;
@@ -485,10 +489,10 @@ void ChipUSART8251::PeripheralSetRxC(bool state)
 	// zmena bitu je pri nabeznej hrane RxC __--
 	bool oldRxC = RxC;
 	RxC = state;
-	if (InitState != COMMAND_MODE || oldRxC == RxC || RxC == false)
+	if (InitState != COMMAND_MODE || oldRxC == RxC || !RxC)
 		return;
 
-	if (SyncMode == false) { // Asynchronny rezim
+	if (!SyncMode) { // Asynchronny rezim
 		if (--RxFactorCounter > 0)
 		 return;
 		RxFactorCounter = Factor;
@@ -513,14 +517,14 @@ void ChipUSART8251::PeripheralSetRxC(bool state)
 			break;
 
 		case WAIT_START : // Asynchronny rezim
-			if (RxD == false && RxBreakCounter > 0) {
+			if (!RxD && RxBreakCounter > 0) {
 				RxState = START_BIT;
 				RxFactorCounter = (Factor > 1) ? Factor / 2 : Factor;
 			}
 			break;
 
 		case START_BIT :  // Asynchronny rezim
-			if (RxD == true)
+			if (RxD)
 				RxState = WAIT_START; // Nebol to Start bit, ale len falosny zakmit
 			else {
 				RxState = DATA_BITS;  // bol to platny Start bit
@@ -531,7 +535,7 @@ void ChipUSART8251::PeripheralSetRxC(bool state)
 
 		case DATA_BITS :  // Oba rezimy
 			RxShift >>= 1;
-			if (RxD == true)
+			if (RxD)
 				RxShift |= 0x80;
 			if (--RxBitCounter == 0) {
 				if (CharLen < 8)
@@ -541,7 +545,7 @@ void ChipUSART8251::PeripheralSetRxC(bool state)
 					RxParity = CalculateParity(RxShift);
 				}
 				else {
-					if (SyncMode == true) {
+					if (SyncMode) {
 						if (((RxState & SYNC_MASK) == SYNC_CHAR1 && RxShift == SyncChar1)
 						|| ((RxState & SYNC_MASK) == SYNC_CHAR2 && RxShift == SyncChar2))
 							SynchroDetected(false);
@@ -556,7 +560,7 @@ void ChipUSART8251::PeripheralSetRxC(bool state)
 		case PARITY_BIT :
 			if (RxD != RxParity)
 				ParityError = true;
-			if (SyncMode == true) {
+			if (SyncMode) {
 				if (((RxState & SYNC_MASK) == SYNC_CHAR1 && RxShift == SyncChar1)
 				|| ((RxState & SYNC_MASK) == SYNC_CHAR2 && RxShift == SyncChar2))
 					SynchroDetected(false);
@@ -567,7 +571,7 @@ void ChipUSART8251::PeripheralSetRxC(bool state)
 			break;
 
 		case STOP_BIT :
-			if (RxD == false) {   // neplatny Stop bit
+			if (!RxD) {   // neplatny Stop bit
 				FrameError = true;  // chyba ukoncenia ramca
 				RxBreakCounter++;
 				if (RxBreakCounter > 1) { // dve po sebe iduce chybne Stop bity
@@ -593,7 +597,7 @@ void ChipUSART8251::PeripheralSetRxC(bool state)
  */
 bool ChipUSART8251::PeripheralReadTxR()
 {
-	return (StatusTxR == true && (Command & TEN_MASK) == TEN_ENABLED && _CTS == false);
+	return (StatusTxR && (Command & TEN_MASK) == TEN_ENABLED && !_CTS);
 }
 //---------------------------------------------------------------------------
 /**
@@ -672,11 +676,11 @@ bool ChipUSART8251::PeripheralReadRTS()
  */
 void ChipUSART8251::PeripheralSetSynDet(bool state)
 {
-	if (SyncMode == true && (CWR & ESD_MASK) == ESD_EXTERNAL) {
+	if (SyncMode && (CWR & ESD_MASK) == ESD_EXTERNAL) {
 		if (SynDetState == state)
 			return;
 		SynDetState = state;
-		if (state == true)
+		if (state)
 			PrepareSyncRx(false, false);
 	}
 }
@@ -692,9 +696,9 @@ void ChipUSART8251::PeripheralSetSynDet(bool state)
  */
 bool ChipUSART8251::PeripheralReadSynBrk()
 {
-	if (SyncMode == true && (CWR & ESD_MASK) == ESD_INTERNAL)
+	if (SyncMode && (CWR & ESD_MASK) == ESD_INTERNAL)
 		return SynDetState;
-	else if (SyncMode == false)
+	else if (!SyncMode)
 		return RxBreakState;
 
 	return false;
@@ -713,8 +717,8 @@ void ChipUSART8251::PeripheralWriteByte(BYTE value)
 //---------------------------------------------------------------------------
 BYTE ChipUSART8251::PeripheralReadByte()
 {
-	if (StatusTxR == false) {
-		if (ByteTransferMode == true) {
+	if (!StatusTxR) {
+		if (ByteTransferMode) {
 			StatusTxR = true;
 			OnTxRSet();
 			OnTxRChange();
@@ -760,7 +764,7 @@ bool ChipUSART8251::CalculateParity(BYTE value)
  */
 void ChipUSART8251::PrepareAsyncTx()
 {
-	if (StatusTxR == false) {
+	if (!StatusTxR) {
 		TxState = START_BIT;  // je pripravena slabika na vysielanie
 		TxShift = TxChar;
 		TxParity = CalculateParity(TxShift);
@@ -793,7 +797,7 @@ void ChipUSART8251::PrepareSyncTx()
 		TxState = SYNC_CHAR2 | DATA_BITS; // vyslanie 2. synchro slabiky
 		TxShift = SyncChar2;              // presun do posuvneho registra
 	}
-	else if (StatusTxR == false) {
+	else if (!StatusTxR) {
 		TxState = DATA_BITS;  // je pripravena slabika na vysielanie
 		TxShift = TxChar;
 		StatusTxR = true;
@@ -814,9 +818,9 @@ void ChipUSART8251::PrepareSyncTx()
 //---------------------------------------------------------------------------
 void ChipUSART8251::PrepareSyncRx(bool hunt, bool sync2)
 {
-	if (hunt == true) {
+	if (hunt) {
 		if ((CWR & ESD_MASK) == ESD_INTERNAL) {
-			if (sync2 == true) {
+			if (sync2) {
 				RxState = SYNC_HUNT | SYNC_CHAR2;
 				RxShift = SyncChar2;
 			}
@@ -830,14 +834,14 @@ void ChipUSART8251::PrepareSyncRx(bool hunt, bool sync2)
 		else
 			RxState = SYNC_HUNT;
 
-		if (StatusRxR == true) {
+		if (StatusRxR) {
 			StatusRxR = false;
 			OnRxRSet();
 			OnRxRChange();
 		}
 	}
 	else {
-		if (sync2 == true)
+		if (sync2)
 			RxState = DATA_BITS | SYNC_CHAR2;
 		else
 			RxState = DATA_BITS | SYNC_CHAR1;
@@ -855,7 +859,7 @@ void ChipUSART8251::SynchroDetected(bool inHunt)
 		bool oldSynDetState = SynDetState;
 		SynDetState = true;
 		OnSynDetSet();
-		if (oldSynDetState == false)
+		if (!oldSynDetState)
 			OnSynDetChange();
 	}
 }
@@ -864,11 +868,11 @@ void ChipUSART8251::CharReceived()
 {
 	bool oldStatusRxR = StatusRxR;
 	RxChar = RxShift;         // prijata slabika
-	if (StatusRxR == true)
+	if (StatusRxR)
 		OverrunError = true;    // CPU si neprevzalo predoslu slabiku
 	StatusRxR = true;
 	OnRxRSet();
-	if (oldStatusRxR == false)
+	if (!oldStatusRxR)
 		OnRxRChange();
 }
 //---------------------------------------------------------------------------

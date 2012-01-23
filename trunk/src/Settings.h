@@ -49,8 +49,9 @@ class TSettings
 			char *fileName;
 		};
 		struct SetTapeBrowser {
-			bool monitoring;
+			bool hex;
 			bool flash;
+			bool monitoring;
 			TAutoStopType autoStop;
 			char *fileName;
 		};
@@ -119,7 +120,9 @@ class TSettings
 
 		enum cfgIniLineType {
 			LT_EMPTY, LT_COMMENT, LT_DELIMITER, LT_SECTION, LT_ITEM, LT_LIST,
-			LT_STRING, LT_QUOTED, LT_NUMBER, LT_BOOL, LT_ENUM, LT_COLOR
+			LT_STRING, LT_QUOTED, LT_NUMBER, LT_BOOL, LT_RADIX, LT_COLOR,
+			LT_AUTOSTOP, LT_SCR_SIZE, LT_SCR_HP, LT_SCR_COL, LT_SCR_PAL,
+			LT_MOUSE, LT_JOY, LT_RAOM
 		};
 		typedef struct cfgIniLine {
 			cfgIniLineType type;
