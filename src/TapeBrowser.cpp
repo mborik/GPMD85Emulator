@@ -19,7 +19,7 @@ TTapeBrowser::TTapeBrowser(TSettings::SetTapeBrowser *set)
 	orgTapeFile = NULL;
 	settings = set;
 
-	debug("[TapeBrowser] Initializing...");
+	debug("TapeBrowser", "Initializing...");
 
 	buffer = new BYTE[MAX_TAPE_BLOCK_SIZE + 2];
 	memset(bHeadLeader, 0xFF, 16);
@@ -44,13 +44,19 @@ TTapeBrowser::TTapeBrowser(TSettings::SetTapeBrowser *set)
 //---------------------------------------------------------------------------
 TTapeBrowser::~TTapeBrowser()
 {
-	debug("[TapeBrowser] Freeing...");
+	debug("TapeBrowser", "Freeing...");
 
 	if (tapeFile)
-		delete[] tapeFile;
+		delete [] tapeFile;
+	tapeFile = NULL;
+
+	if (ProgressBar)
+		delete ProgressBar;
+	ProgressBar = NULL;
 
 	if (buffer)
-		delete[] buffer;
+		delete [] buffer;
+	buffer = NULL;
 
 	FreeAllBlocks();
 }
@@ -116,7 +122,7 @@ bool TTapeBrowser::SetTapeFileName(char *fn)
 
 		FreeAllBlocks();
 		ret = !(ParseFile(tapeFile, &blocks));
-		SelectBlock(0);
+		SetCurrentBlock(0);
 		tapeChanged = false;
 		preparedForSave = false;
 	}
@@ -345,9 +351,9 @@ void TTapeBrowser::TapeCommand(int command, bool *result)
 				PrepareData(false);
 			else {
 				if (currBlockIdx + 1 == totalBlocks)
-					SelectBlock(0);
+					SetCurrentBlock(0);
 				else
-					SelectBlock(currBlockIdx + 1);
+					SetCurrentBlock(currBlockIdx + 1);
 
 				// autostop or rewind
 				if (currBlockIdx == 0 ||
@@ -394,10 +400,12 @@ void TTapeBrowser::TapeCommand(int command, bool *result)
 		*result = true;
 }
 //---------------------------------------------------------------------------
-void TTapeBrowser::SelectBlock(int idx)
+void TTapeBrowser::SetCurrentBlock(int idx)
 {
 	if (idx >= 0) {
-		if (currBlock && currBlock->next && idx == (currBlockIdx + 1))
+		if (currBlock && currBlock->prev && idx == (currBlockIdx - 1))
+			currBlock = currBlock->prev;
+		else if (currBlock && currBlock->next && idx == (currBlockIdx + 1))
 			currBlock = currBlock->next;
 		else if (blocks) {
 			int i = idx;
@@ -421,13 +429,35 @@ void TTapeBrowser::SelectBlock(int idx)
 	currBlockIdx = idx;
 }
 //---------------------------------------------------------------------------
+void TTapeBrowser::ToggleSelection(int idx)
+{
+	if (idx >= 0) {
+		TAPE_BLOCK *sBlk = NULL;
+
+		if (currBlock && currBlock->prev && idx == (currBlockIdx - 1))
+			sBlk = currBlock->prev;
+		else if (currBlock && currBlock->next && idx == (currBlockIdx + 1))
+			sBlk = currBlock->next;
+		else if (blocks) {
+			sBlk = blocks;
+			while (idx && sBlk->next) {
+				sBlk = sBlk->next;
+				idx--;
+			}
+		}
+
+		if (sBlk)
+			sBlk->selected = !sBlk->selected;
+	}
+}
+//---------------------------------------------------------------------------
 void TTapeBrowser::PrepareData(bool head)
 {
 	FILE *hFile = NULL;
 
 	hFile = fopen(currBlock->orgFile, "rb");
 	if (hFile == NULL) {
-		warning("[TapeBrowser] PrepareData: '%s' not found", currBlock->orgFile);
+		warning("TapeBrowser", "PrepareData: '%s' not found", currBlock->orgFile);
 		ActionStop();
 		return;
 	}
@@ -473,7 +503,7 @@ void TTapeBrowser::PrepareSaveNewBlocks()
 
 	FILE *hDest = fopen(file, "wb");
 	if (hDest == NULL) {
-		warning("[TapeBrowser] PrepareSaveNewBlocks: Can't open temp file '%s'", file);
+		warning("TapeBrowser", "PrepareSaveNewBlocks: Can't open temp file '%s'", file);
 		delete [] file;
 		file = NULL;
 		return;
@@ -498,7 +528,7 @@ void TTapeBrowser::SaveNewBlock()
 
 	FILE *hDest = fopen(file, "rb+");
 	if (hDest == NULL) {
-		warning("[TapeBrowser] SaveNewBlock: Can't open file '%s'", file);
+		warning("TapeBrowser", "SaveNewBlock: Can't open file '%s'", file);
 		return;
 	}
 
@@ -535,7 +565,7 @@ BYTE TTapeBrowser::SaveTape(char *newFileName, TAPE_BLOCK *blks, bool asPTP)
 
 		FILE *hDest = fopen(tmpFile, "wb");
 		if (hDest == NULL) {
-			warning("[TapeBrowser] SaveTape: Can't open temp file '%s'", tmpFile);
+			warning("TapeBrowser", "SaveTape: Can't open temp file '%s'", tmpFile);
 			delete [] tmpFile;
 			break;
 		}
@@ -596,12 +626,15 @@ void TTapeBrowser::FillFileList(char ***data, int *items, bool hex)
 	*items = totalBlocks;
 
 	TAPE_BLOCK *blk = blocks;
-	char **newpt = (char **) malloc(totalBlocks * sizeof(char *)), name[9];
+	char **newpt = (char **) malloc(totalBlocks * sizeof(char *));
 
+	char name[9];
 	name[8] = '\0';
+
 	if (newpt != NULL) {
 		for (int i = 0; blk && i < totalBlocks; i++) {
 			newpt[i] = new char[30];
+			newpt[i][28] = (blk->selected) ? '|' : '\0';
 			newpt[i][29] = (blk->headCrcError || blk->bodyLengthError >= 0 || blk->bodyCrcError) ? '!' : '\0';
 
 			if (blk->cType) {
@@ -625,7 +658,7 @@ void TTapeBrowser::FreeFileList(char ***data, int *items)
 	if (*data) {
 		char **newpt = *data;
 		for (int i = 0; i < *items; i++)
-			free(newpt[i]);
+			delete [] newpt[i];
 
 		free(newpt);
 		*data = newpt = NULL;

@@ -22,7 +22,7 @@
 //-----------------------------------------------------------------------------
 UserInterface::UserInterface()
 {
-	debug("[GUI] Initializing");
+	debug("GUI", "Initializing");
 
 #pragma pack(push, 1)
 	struct FNT_HEADER {
@@ -90,9 +90,9 @@ UserInterface::UserInterface()
 	fclose(f);
 
 	if (fontData == NULL)
-		error("Can't load font resource file");
+		error("GUI", "Can't load font resource file");
 
-	debug("[GUI] Font loaded");
+	debug("GUI", "Font loaded");
 
 	frameSave = NULL;
 	cMenu_data = NULL;
@@ -109,7 +109,6 @@ UserInterface::UserInterface()
 	tapeBrowser = new GUI_TAPEBROWSER_DATA;
 	tapeBrowser->entries = NULL;
 	tapeBrowser->count = 0;
-	tapeBrowser->hex = true;
 	tapeBrowser->popup.frame = NULL;
 	tapeBrowser->popup.rect = NULL;
 
@@ -120,7 +119,7 @@ UserInterface::UserInterface()
 //-----------------------------------------------------------------------------
 UserInterface::~UserInterface()
 {
-	debug("[GUI] Uninitializing, freeing...");
+	debug("GUI", "Uninitializing, freeing...");
 
 	if (frameSave)
 		free(frameSave);
@@ -137,14 +136,14 @@ UserInterface::~UserInterface()
 	if (fileSelector) {
 		ScanDir(NULL, &fileSelector->dirEntries, &fileSelector->count);
 		delete fileSelector;
+		fileSelector = NULL;
 	}
-	fileSelector = NULL;
 
 	if (tapeBrowser) {
 		Emulator->TapeBrowser->FreeFileList(&tapeBrowser->entries, &tapeBrowser->count);
-		delete fileSelector;
+		delete tapeBrowser;
+		tapeBrowser = NULL;
 	}
-	fileSelector = NULL;
 }
 //-----------------------------------------------------------------------------
 void UserInterface::prepareDefaultSurface(int width, int height)
@@ -710,9 +709,12 @@ void UserInterface::drawTapeBrowserItems()
 			printText(defaultSurface, r->x + GUI_CONST_HOTKEYCHAR, r->y,
 				GUI_COLOR_FOREGROUND, tapeBrowser->entries[i]);
 
+			if (tapeBrowser->entries[i][28])
+				drawRectangle(defaultSurface, r->x - (GUI_CONST_BORDER / 2),
+					r->y - 2, 2, GUI_CONST_ITEM_SIZE, GUI_COLOR_SMARTKEY);
 			if (tapeBrowser->entries[i][29])
 				printChar(defaultSurface, r->x + r->w - GUI_CONST_HOTKEYCHAR - 2,
-					r->y, GUI_COLOR_BORDER, '!');
+					r->y, GUI_COLOR_BORDER, tapeBrowser->entries[i][29]);
 		}
 
 		r->y += GUI_CONST_ITEM_SIZE;
@@ -737,7 +739,8 @@ void UserInterface::drawTapeBrowserItems()
 void UserInterface::drawTapeBrowser(bool update)
 {
 	if (update || tapeBrowser->entries == NULL)
-		Emulator->TapeBrowser->FillFileList(&tapeBrowser->entries, &tapeBrowser->count, tapeBrowser->hex);
+		Emulator->TapeBrowser->FillFileList(&tapeBrowser->entries,
+				&tapeBrowser->count, uiSet->TapeBrowser->hex);
 
 	cMenu_data = NULL;
 	cMenu_leftMargin = cMenu_count = tapeBrowser->count;
@@ -787,7 +790,7 @@ void UserInterface::drawTapeBrowser(bool update)
 
 	printText(defaultSurface, mx + GUI_CONST_CHK_MARGIN,
 		my + (2 * fontLineHeight), GUI_COLOR_FOREGROUND,
-		"\aA AUTOSTOP:");
+		"\aA AUTO-STOP:");
 
 	static char autostop[12];
 	switch (uiSet->TapeBrowser->autoStop) {
@@ -803,7 +806,7 @@ void UserInterface::drawTapeBrowser(bool update)
 			break;
 	}
 
-	printText(defaultSurface, mx + GUI_CONST_CHK_MARGIN + (12 * fontWidth),
+	printText(defaultSurface, mx + GUI_CONST_CHK_MARGIN + (13 * fontWidth),
 		my + (2 * fontLineHeight), GUI_COLOR_HOTKEY, autostop);
 
 	static char *ptr = NULL;
@@ -1258,7 +1261,7 @@ void UserInterface::keyhandlerTapeBrowser(WORD key)
 
 		case SDLK_h:
 			prevLeftMargin = cMenu_leftMargin;
-			tapeBrowser->hex = !tapeBrowser->hex;
+			uiSet->TapeBrowser->hex = !uiSet->TapeBrowser->hex;
 			drawTapeBrowser();
 			change = true;
 			break;
@@ -1283,8 +1286,17 @@ void UserInterface::keyhandlerTapeBrowser(WORD key)
 			break;
 
 		case SDLK_SPACE:
-			Emulator->TapeBrowser->SelectBlock(i);
+			Emulator->TapeBrowser->SetCurrentBlock(i);
 			needRelease = true;
+			change = true;
+			break;
+
+		case SDLK_INSERT:
+			prevLeftMargin = cMenu_leftMargin;
+			Emulator->TapeBrowser->ToggleSelection(i);
+			drawTapeBrowser();
+			if (i < (cMenu_count - 1))
+				i++;
 			change = true;
 			break;
 

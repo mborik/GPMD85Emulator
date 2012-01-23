@@ -272,12 +272,12 @@ void ChipPIO8255::CpuWrite(TPIOPort dest, BYTE val)
 				if ((mode == (GA_MODE1 | PORTA_INP) || (CWR & GA_MODE) == GA_MODE2) && (val & 0x0E) == 8) {
 					InteAin = (val & 1);
 					inte = true;
-//					debug("InteAin=%d", InteAin);
+//					debug("ChipPIO8255", "InteAin=%d", InteAin);
 				}
 				else if ((mode == (GA_MODE1 | PORTA_OUT) || (CWR & GA_MODE) == GA_MODE2) && (val & 0x0E) == 12) {
 					InteAout = (val & 1);
 					inte = true;
-//					debug("InteAout=%d", InteAout);
+//					debug("ChipPIO8255", "InteAout=%d", InteAout);
 				}
 
 				if (inte == true) {
@@ -288,7 +288,7 @@ void ChipPIO8255::CpuWrite(TPIOPort dest, BYTE val)
 									&& (OutLatchC & _OBFA_MASK) == _OBFA_MASK)) {
 						OutLatchC |= INTRA_MASK;
 					}
-//					debug("OutLatchC=%u, InBufferC=%u", OutLatchC, InBufferC);
+//					debug("ChipPIO8255", "OutLatchC=%u, InBufferC=%u", OutLatchC, InBufferC);
 				}
 
 				if ((CWR & GB_MODE) == GB_MODE1 && (val & 0x0E) == 4) {
@@ -333,7 +333,7 @@ void ChipPIO8255::CpuWrite(TPIOPort dest, BYTE val)
 			break;
 
 		default :
-			warning("ChipPIO8255::CpuWrite > invalid PIO port: %d", dest);
+			warning("ChipPIO8255", "CpuWrite > invalid PIO port: %d", dest);
 			break;
 	}
 }
@@ -486,7 +486,7 @@ BYTE ChipPIO8255::CpuRead(TPIOPort src)
 			break;
 
 		default :
-			warning("ChipPIO8255::CpuRead > invalid PIO port: %d", src);
+			warning("ChipPIO8255", "CpuRead > invalid PIO port: %d", src);
 			ret_val = 0;
 			break;
 	}
@@ -584,7 +584,7 @@ void ChipPIO8255::PeripheralWriteByte(TPIOPort dest, BYTE val)
 			break;
 
 		default :
-			warning("ChipPIO8255::PeripheralWriteByte > invalid PIO port: %d", dest);
+			warning("ChipPIO8255", "PeripheralWriteByte > invalid PIO port: %d", dest);
 			break;
 	}
 }
@@ -626,7 +626,7 @@ void ChipPIO8255::PeripheralChangeBit(TPIOPort dest, TPIOPortBit bit, bool state
 			break;
 
 		default :
-			warning("ChipPIO8255::PeripheralChangeBit > invalid PIO port: %d", dest);
+			warning("ChipPIO8255", "PeripheralChangeBit > invalid PIO port: %d", dest);
 			break;
 	}
 }
@@ -697,7 +697,7 @@ BYTE ChipPIO8255::PeripheralReadByte(TPIOPort src)
 			break;
 
 		default :
-			warning("ChipPIO8255::PeripheralReadByte > invalid PIO port: %d", src);
+			warning("ChipPIO8255", "PeripheralReadByte > invalid PIO port: %d", src);
 			ret = 0xFF;
 			break;
 	}
@@ -723,7 +723,7 @@ bool ChipPIO8255::PeripheralReadBit(TPIOPort src, TPIOPortBit bit)
 			break;
 
 		default :
-			warning("ChipPIO8255::PeripheralReadBit > invalid PIO port: %d", src);
+			warning("ChipPIO8255", "PeripheralReadBit > invalid PIO port: %d", src);
 			ret = false;
 			break;
 	}

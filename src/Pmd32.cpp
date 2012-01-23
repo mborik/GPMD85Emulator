@@ -270,7 +270,7 @@ void Pmd32::OnHandshake()
 				address |= val;
 				CRC ^= val;
 				if (command == 'J') {
-					debug("%c: %04X", command, address);
+					debug("PMD32", "%c: %04X", command, address);
 					diskState = WAIT_CRC;
 				}
 				else
@@ -287,7 +287,7 @@ void Pmd32::OnHandshake()
 				length |= val;
 				CRC ^= val;
 				if (command == 'C' || command == 'U')
-					debug("%c: %04X,%04X", command, address, length);
+					debug("PMD32", "%c: %04X,%04X", command, address, length);
 
 				if (command == 'C')
 					diskState = WAIT_CRC;
