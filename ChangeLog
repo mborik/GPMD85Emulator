@@ -1,3 +1,6 @@
+2012-02-01 [mborik] implemented "pause on lost focus"; added "autosave settings" to menu; fixed callbacks of TapeBrowser popup items
+2012-01-31 [mborik] externed GUI, Settings and TapeBrowser to make it global accessible
+2012-01-27 [mborik] implemented methods for checking selection continuity and deleting selection to TapeBrowser
 2012-01-23 [mborik] completely Valgrinated project, solved all memleaks and other bugs; implemented tape block selection with insert key
 2012-01-22 [mborik] configuration file changed to plain text .conf file, libXML2 not yet required!
 2012-01-06 [mborik] early implementation of context popup menu for block operations in TapeBrowser (not functional yet :)
@@ -9,5 +12,5 @@
 2011-12-30 [mborik] fixed extended 384px width screen mode for Consul 2717 (and clean-up of trivial inline functions in SystemPIO)
 2011-12-28 [ub880d] show-hidden-files in filebrowser (hotkey switch META-PERIOD), prepared configuration file for auto-save-config, configuration file version changed to 1.1
 2011-12-18 [ub880d] 4x4 screen size and scalers
-2011-12-18 [mborik] Tracing statements in video/sound initialization and can be enabled with configure (--enable-trace)
-2011-12-17 [mborik] First public alpha version
+2011-12-18 [mborik] tracing statements in video/sound initialization and can be enabled with configure (--enable-trace)
+2011-12-17 [mborik] first public alpha version

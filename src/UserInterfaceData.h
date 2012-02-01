@@ -1,5 +1,5 @@
 /*	UserInterfaceData.h
-	Copyright (c) 2011 Martin Borik <mborik@users.sourceforge.net>
+	Copyright (c) 2011-2012 Martin Borik <mborik@users.sourceforge.net>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -24,6 +24,8 @@
 static const char *uicch = new char[32];
 //-----------------------------------------------------------------------------
 const char *dcb_tape_save_state(GUI_MENU_ENTRY *ptr);
+const char *dcb_tape_noempty_state(GUI_MENU_ENTRY *ptr);
+const char *dcb_tape_contblk_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_view_size_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_view_cmod_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_view_cpal_state(GUI_MENU_ENTRY *ptr);
@@ -38,6 +40,7 @@ const char *dcb_kbd_mato_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_emu_m3cmp_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_emu_pause_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_emu_focus_state(GUI_MENU_ENTRY *ptr);
+const char *dcb_emu_asave_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_machine_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_mem_file_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_mem_rmod_state(GUI_MENU_ENTRY *ptr);
@@ -50,6 +53,7 @@ const char *dcb_p32_extc_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_p32_sdcd_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_p32_imgd_state(GUI_MENU_ENTRY *ptr);
 //-----------------------------------------------------------------------------
+bool ccb_tape_command(GUI_MENU_ENTRY *ptr);
 bool ccb_tape_new(GUI_MENU_ENTRY *ptr);
 bool ccb_fileselector(GUI_MENU_ENTRY *ptr);
 bool ccb_view_size(GUI_MENU_ENTRY *ptr);
@@ -67,6 +71,7 @@ bool ccb_emu_reset(GUI_MENU_ENTRY *ptr);
 bool ccb_emu_hardreset(GUI_MENU_ENTRY *ptr);
 bool ccb_emu_m3cmp(GUI_MENU_ENTRY *ptr);
 bool ccb_emu_focus(GUI_MENU_ENTRY *ptr);
+bool ccb_emu_asave(GUI_MENU_ENTRY *ptr);
 bool ccb_machine(GUI_MENU_ENTRY *ptr);
 bool ccb_mem_rmod(GUI_MENU_ENTRY *ptr);
 bool ccb_rom_pckg(GUI_MENU_ENTRY *ptr);
@@ -92,26 +97,26 @@ static GUI_MENU_ENTRY UNUSED_VARIABLE gui_query_save[] = {
 };
 static GUI_MENU_ENTRY UNUSED_VARIABLE gui_tapebrowser_popup[] = {
 	{ MI_TITLE, "TAPE BLOCK OPTIONS" },
-	{ MI_STANDARD, "SET \aCURSOR", "SPACE", SDLK_c, NULL, NULL, NULL, true },
-	{ MI_STANDARD, "SET \aSTOP-CURSOR", "^END", SDLK_s, NULL, NULL, NULL, true },
+	{ MI_STANDARD, "SET \aCURSOR", "SPACE", SDLK_c, NULL, ccb_tape_command, dcb_tape_noempty_state, false, false, SDLK_SPACE },
+	{ MI_STANDARD, "SET \aSTOP-CURSOR", "^END", SDLK_s, NULL, ccb_tape_command, dcb_tape_noempty_state, false, false, SDLK_END | KM_SHIFT },
 	{ MI_SEPARATOR },
-	{ MI_STANDARD, "SELECT \aBLOCK", "INS", SDLK_b, NULL, NULL, NULL, true },
+	{ MI_STANDARD, "TO\aGGLE SELECT", "INS", SDLK_g, NULL, ccb_tape_command, dcb_tape_noempty_state, false, false, SDLK_INSERT },
 	{ MI_SEPARATOR },
-	{ MI_STANDARD, "MOVE BLOCK \aUP", "^\201", SDLK_u, NULL, NULL, NULL, true },
-	{ MI_STANDARD, "MOVE BLOCK \aDOWN", "^\202", SDLK_d, NULL, NULL, NULL, true },
-	{ MI_STANDARD, "D\aELETE BLOCK(S)", "DEL", SDLK_e, NULL, NULL, NULL, true },
+	{ MI_STANDARD, "MOVE BLOCK \aUP", "^\201", SDLK_u, NULL, ccb_tape_command, dcb_tape_contblk_state, false, false, SDLK_UP | KM_SHIFT },
+	{ MI_STANDARD, "MOVE BLOCK DOW\aN", "^\202", SDLK_n, NULL, ccb_tape_command, dcb_tape_contblk_state, false, false, SDLK_DOWN | KM_SHIFT },
+	{ MI_STANDARD, "\aDELETE BLOCK(S)", "^DEL", SDLK_d, NULL, ccb_tape_command, dcb_tape_noempty_state, false, false, SDLK_DELETE | KM_SHIFT },
 	{ MI_SEPARATOR },
-	{ MI_DIALOG, "EDIT \aHEADER", "TAB", SDLK_h, NULL, NULL, NULL, true },
-	{ MI_DIALOG, "CHA\aNGE BLOCK", NULL, SDLK_n, NULL, NULL, NULL, true },
-	{ MI_STANDARD, "\aFIX HEADER CRC", NULL, SDLK_f, NULL, NULL, NULL, true },
+	{ MI_DIALOG, "EDIT \aHEADER", "TAB", SDLK_h, NULL, ccb_tape_command, NULL, false, false, SDLK_TAB },
+	{ MI_STANDARD, "\aFIX HEADER CRC", NULL, SDLK_f, NULL, NULL, NULL, false },
+	{ MI_DIALOG, "MAKE HEAD(\aLESS)", NULL, SDLK_l, NULL, NULL, NULL, false },
 	{ MI_SEPARATOR },
-	{ MI_DIALOG, "IMPORT \aTAPE", NULL, SDLK_t, NULL, NULL, NULL, true },
-	{ MI_DIALOG, "\aIMPORT RAW DATA", NULL, SDLK_i, NULL, NULL, NULL, true },
+	{ MI_DIALOG, "IMPORT \aTAPE", NULL, SDLK_t, NULL, NULL, NULL, true, false, 1 },
+	{ MI_DIALOG, "\aIMPORT RAW DATA", NULL, SDLK_i, NULL, NULL, NULL, true, false, 3 },
 	{ MI_SEPARATOR },
-	{ MI_DIALOG, "E\aXPORT TO TAPE", NULL, SDLK_x, NULL, NULL, NULL, true },
-	{ MI_DIALOG, "EXPORT \aRAW DATA", NULL, SDLK_r, NULL, NULL, NULL, true },
+	{ MI_DIALOG, "E\aXPORT TO TAPE", NULL, SDLK_x, NULL, NULL, dcb_tape_noempty_state, false, false, 2 },
+	{ MI_DIALOG, "EXPORT \aRAW DATA", NULL, SDLK_r, NULL, NULL, dcb_tape_noempty_state, false, false, 4 },
 	{ MI_SEPARATOR },
-	{ MI_STANDARD, "LEGEND", "F1", SDLK_F1, NULL, NULL, NULL, true },
+	{ MI_STANDARD, "LEGEND", "F1", SDLK_F1, NULL, ccb_tape_command, NULL, true, false, SDLK_F1 },
 	{ MENU_END }
 };
 static GUI_MENU_ENTRY gui_p32_images_menu[] = {
@@ -205,7 +210,7 @@ static GUI_MENU_ENTRY gui_emu_kbd_menu[] = {
 	{ MENU_END }
 };
 static GUI_MENU_ENTRY gui_emu_menu[] = {
-	{ MI_TITLE, "EMULATION" },
+	{ MI_TITLE, "EMULATOR" },
 	{ MI_CHECKBOX, "\aPAUSE", "F3", SDLK_p, NULL, ccb_emu_pause, dcb_emu_pause_state, true },
 	{ MI_SEPARATOR },
 	{ MI_STANDARD, "\aRESET", "F5", SDLK_r, NULL, ccb_emu_reset, NULL, true },
@@ -216,7 +221,8 @@ static GUI_MENU_ENTRY gui_emu_menu[] = {
 	{ MI_SUBMENU, "\aSOUND", NULL, SDLK_s, gui_emu_sound_menu, NULL, NULL, true },
 	{ MI_SUBMENU, "\aKEYBOARD", NULL, SDLK_k, gui_emu_kbd_menu, NULL, NULL, true },
 	{ MI_SEPARATOR },
-	{ MI_CHECKBOX, "PAUSE ON LOST \aFOCUS", NULL, SDLK_f, NULL, ccb_emu_focus, dcb_emu_focus_state, false },
+	{ MI_CHECKBOX, "PAUSE ON LOST \aFOCUS", NULL, SDLK_f, NULL, ccb_emu_focus, dcb_emu_focus_state, true },
+	{ MI_CHECKBOX, "\aAUTO-SAVE SETTINGS", NULL, SDLK_a, NULL, ccb_emu_asave, dcb_emu_asave_state, true },
 	{ MENU_END }
 };
 static GUI_MENU_ENTRY gui_machine_menu[] = {
@@ -267,7 +273,7 @@ static GUI_MENU_ENTRY UNUSED_VARIABLE gui_main_menu[] = {
 	{ MI_TITLE, "MAIN MENU" },
 	{ MI_SUBMENU, "\aFILE", NULL, SDLK_f, gui_file_menu, NULL, NULL, true },
 	{ MI_SUBMENU, "\aDISPLAY", NULL, SDLK_d, gui_view_menu, NULL, NULL, true },
-	{ MI_SUBMENU, "\aEMULATION", NULL, SDLK_e, gui_emu_menu, NULL, NULL, true },
+	{ MI_SUBMENU, "\aEMULATOR", NULL, SDLK_e, gui_emu_menu, NULL, NULL, true },
 	{ MI_SUBMENU, "MA\aCHINE", "F9", SDLK_c, gui_machine_menu, NULL, NULL, true },
 	{ MI_SUBMENU, "\aMEMORY", "^F9", SDLK_m, gui_mem_menu, NULL, NULL, true },
 	{ MI_SUBMENU, "\aPERIPHERALS", "F10", SDLK_p, gui_pers_menu, NULL, NULL, true },

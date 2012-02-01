@@ -93,9 +93,6 @@ public:
 	void RefreshDisplay();
 	void FillBuffer(BYTE *videoRam);
 
-	UserInterface *GUI;
-	TTapeBrowser::TProgressBar *TapeBrowserProgress;
-
 private:
 	SDL_Surface *Screen;
 	SDL_Surface *BlitSurface;

@@ -1,5 +1,5 @@
 /*	UserInterface.h: Class for GUI rendering.
-	Copyright (c) 2011 Martin Borik <mborik@users.sourceforge.net>
+	Copyright (c) 2011-2012 Martin Borik <mborik@users.sourceforge.net>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@
 #define USERINTERFACE_H_
 //-----------------------------------------------------------------------------
 #include "globals.h"
-#include "Settings.h"
 //-----------------------------------------------------------------------------
 #define SCHR_ERROR     127
 #define SCHR_NAVIGATOR 128
@@ -108,10 +107,9 @@ class UserInterface : public sigslot::has_slots<>
 			} popup;
 		} GUI_TAPEBROWSER_DATA;
 
-		static TSettings *uiSet;
-		static BYTE uiSetChanges;
-		static BYTE uiQueryState;
-		static sigslot::signal0<> uiCallback;
+		BYTE uiSetChanges;
+		BYTE uiQueryState;
+		sigslot::signal0<> uiCallback;
 
 		SDL_Surface *defaultSurface;
 		GUI_FILESELECTOR_DATA *fileSelector;

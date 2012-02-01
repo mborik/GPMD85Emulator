@@ -40,7 +40,6 @@ class TTapeBrowser : public sigslot::has_slots<>
 
 	private:
 		IifTape *ifTape;
-		TSettings::SetTapeBrowser *settings;
 
 		char *tapeFile;
 		char *orgTapeFile;
@@ -59,12 +58,13 @@ class TTapeBrowser : public sigslot::has_slots<>
 		bool ParseFile(char *fn, TAPE_BLOCK **blks, DWORD seek = 0);
 		bool CheckCrc(BYTE *buff, int length, BYTE *goodCrc);
 		bool CheckHeader(BYTE *buff, TAPE_BLOCK *blk);
+		void DeleteBlock(int idx, TAPE_BLOCK *blk = NULL);
 		void PrepareData(bool head);
 		void PrepareSaveNewBlocks();
 		void SaveNewBlock();
 
 	public:
-		TTapeBrowser(TSettings::SetTapeBrowser *set);
+		TTapeBrowser();
 		virtual ~TTapeBrowser();
 
 		bool playing;
@@ -84,6 +84,8 @@ class TTapeBrowser : public sigslot::has_slots<>
 		void ActionStop();
 		void SetCurrentBlock(int idx);
 		void ToggleSelection(int idx);
+		void DeleteSelected(int idx);
+		bool SelectionContinuity(int *total = NULL, int *first = NULL, int *last = NULL);
 		void TapeCommand(int command, bool *result);
 		BYTE SaveTape(char *newFileName, TAPE_BLOCK *blks, bool asPTP);
 		void FillFileList(char ***data, int *items, bool hex = false);

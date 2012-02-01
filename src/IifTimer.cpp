@@ -24,7 +24,7 @@ IifTimer::IifTimer() : ChipPIT8253()
 	stateRtc = true;
 	ct1On = false;
 	musica = false;
-	mys602 = false;
+	mouse602 = false;
 	cpu = NULL;
 
 	PeripheralSetGate(CT_0, true);
@@ -40,7 +40,7 @@ IifTimer::IifTimer() : ChipPIT8253()
 //---------------------------------------------------------------------------
 void IifTimer::writeToDevice(BYTE port, BYTE value, int ticks)
 {
-//	debug("ticks=%d, port=%u, value=%u", ticks, port, value);
+//	debug("IfTimer", "ticks=%d, port=%u, value=%u", ticks, port, value);
 
 	switch (port & IIF_TIMER_REG_MASK) {
 		case IIF_TIMER_REG_T0 :
@@ -87,14 +87,14 @@ BYTE IifTimer::readFromDevice(BYTE port, int ticks)
 			break;
 	}
 
-//	debug("ticks=%d, port=%u, retval=%u", ticks, port, retval);
+//	debug("IfTimer", "ticks=%d, port=%u, retval=%u", ticks, port, retval);
 
 	return retval;
 }
 	//---------------------------------------------------------------------------
 void IifTimer::ITimerService(int ticks, int dur)
 {
-	// Casovac T2 - RTC
+	// Timer T2 - RTC
 	cntRtc += dur;
 	while (cntRtc >= HALF_SEC_RTC) {
 		cntRtc -= HALF_SEC_RTC;
@@ -102,17 +102,17 @@ void IifTimer::ITimerService(int ticks, int dur)
 		PeripheralSetClock(CT_2, stateRtc);
 	}
 
-	// Casovac T1 - hodiny pre USART
-	if (ct1On == true) {
+	// Timer T1 - clock for USART
+	if (ct1On) {
 		for (int ii = 0; ii < dur; ii++) {
 			PeripheralSetClock(CT_1, true);
 			PeripheralSetClock(CT_1, false);
 		}
 	}
 
-	// Casovac T0 - hodiny pre 1. kanal IF Musica
+	// Timer T0 - clock for 1st channel of IF Musica
 	currentTicks = ticks;
-	if (musica == true) {
+	if (musica) {
 		for (int ii = 0; ii < dur; ii++) {
 			PeripheralSetClock(CT_0, true);
 			PeripheralSetClock(CT_0, false);
@@ -123,21 +123,21 @@ void IifTimer::ITimerService(int ticks, int dur)
 //---------------------------------------------------------------------------
 void IifTimer::Timer0OutChange(TPITCounter cnt, bool out)
 {
-	// 1. kanal IF Musica
-	if (musica == true)
+	// first channel of IF Musica
+	if (musica)
 		PrepareSample(CHNL_MUSICA_1, out, currentTicks);
 
-	// Mys 602
-	else if (mys602 == true && cpu != NULL && out == false)
+	// Mouse 602 (Ing. Vit Libovicky concept)
+	else if (mouse602 && cpu != NULL && !out)
 		cpu->DoInterrupt();
 }
 //---------------------------------------------------------------------------
 void IifTimer::EnableMouse602(bool enable, ChipCpu8080 *_cpu)
 {
-	if (enable == true && cpu != NULL) {
+	if (enable && _cpu) {
 		Counters[1].OnOutChange.connect(this, &IifTimer::Mouse602Clock);
 
-		mys602 = enable;
+		mouse602 = enable;
 		cpu = _cpu;
 		ct1On = true;
 	}

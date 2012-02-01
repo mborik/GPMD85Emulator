@@ -1,5 +1,5 @@
 /*	UserInterface.cpp: Class for GUI rendering.
-	Copyright (c) 2011 Martin Borik <mborik@users.sourceforge.net>
+	Copyright (c) 2011-2012 Martin Borik <mborik@users.sourceforge.net>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -19,6 +19,8 @@
 #include "UserInterface.h"
 #include "UserInterfaceData.h"
 #include "GPMD85main.h"
+//-----------------------------------------------------------------------------
+UserInterface *GUI;
 //-----------------------------------------------------------------------------
 UserInterface::UserInterface()
 {
@@ -112,6 +114,9 @@ UserInterface::UserInterface()
 	tapeBrowser->popup.frame = NULL;
 	tapeBrowser->popup.rect = NULL;
 
+	uiSetChanges = 0;
+	uiQueryState = GUI_QUERY_CANCEL;
+
 	menuStackLevel = -1;
 	needRelease = false;
 	needRedraw = false;
@@ -140,7 +145,7 @@ UserInterface::~UserInterface()
 	}
 
 	if (tapeBrowser) {
-		Emulator->TapeBrowser->FreeFileList(&tapeBrowser->entries, &tapeBrowser->count);
+		TapeBrowser->FreeFileList(&tapeBrowser->entries, &tapeBrowser->count);
 		delete tapeBrowser;
 		tapeBrowser = NULL;
 	}
@@ -160,11 +165,6 @@ void UserInterface::prepareDefaultSurface(int width, int height)
 
 	maxCharsOnScreen = (width - (2 * GUI_CONST_BORDER)) / fontWidth;
 }
-//-----------------------------------------------------------------------------
-TSettings *UserInterface::uiSet = NULL;
-sigslot::signal0<> UserInterface::uiCallback;
-BYTE UserInterface::uiSetChanges = 0;
-BYTE UserInterface::uiQueryState = GUI_QUERY_CANCEL;
 //-----------------------------------------------------------------------------
 void UserInterface::putPixel(SDL_Surface *s, int x, int y, DWORD col)
 {
@@ -607,7 +607,7 @@ void UserInterface::drawFileSelectorItems()
 void UserInterface::drawFileSelector(bool update)
 {
 	if (update || fileSelector->dirEntries == NULL)
-		ScanDir(fileSelector->path, &fileSelector->dirEntries, &fileSelector->count, uiSet->showHiddenFiles);
+		ScanDir(fileSelector->path, &fileSelector->dirEntries, &fileSelector->count, Settings->showHiddenFiles);
 
 	if (fileSelector->count <= 0) {
 		menuClose();
@@ -652,18 +652,18 @@ void UserInterface::drawFileSelector(bool update)
 	}
 	else if (fileSelector->type == GUI_FS_SNAPLOAD) {
 		printCheck(defaultSurface, mx, my + 1, GUI_COLOR_CHECKED,
-			SCHR_CHECK, uiSet->Snapshot->dontRunOnLoad);
+			SCHR_CHECK, Settings->Snapshot->dontRunOnLoad);
 		printText(defaultSurface, mx + GUI_CONST_CHK_MARGIN, my,
 			GUI_COLOR_FOREGROUND, "\a\203\aD DEBUG AFTER LOAD");
 	}
 	else if (fileSelector->type == GUI_FS_SNAPSAVE) {
 		printCheck(defaultSurface, mx, my + 1, GUI_COLOR_CHECKED,
-			SCHR_CHECK, uiSet->Snapshot->saveWithMonitor);
+			SCHR_CHECK, Settings->Snapshot->saveWithMonitor);
 		printText(defaultSurface, mx + GUI_CONST_CHK_MARGIN, my,
 			GUI_COLOR_FOREGROUND, "\a\203\aR SAVE WITH ROM");
 
 		printCheck(defaultSurface, mx, my - fontLineHeight + 1,
-			GUI_COLOR_CHECKED, SCHR_CHECK, uiSet->Snapshot->saveCompressed);
+			GUI_COLOR_CHECKED, SCHR_CHECK, Settings->Snapshot->saveCompressed);
 		printText(defaultSurface, mx + GUI_CONST_CHK_MARGIN, my - fontLineHeight,
 			GUI_COLOR_FOREGROUND, "\a\203\aC SAVE COMPRESSED");
 	}
@@ -703,8 +703,8 @@ void UserInterface::drawTapeBrowserItems()
 
 		if (i < cMenu_count) {
 			printChar(defaultSurface, r->x, r->y, GUI_COLOR_FOREGROUND,
-				(i == Emulator->TapeBrowser->stopBlockIdx) ? SCHR_STOP :
-				(i == Emulator->TapeBrowser->currBlockIdx) ? SCHR_NAVIGATOR : ' ');
+				(i == TapeBrowser->stopBlockIdx) ? SCHR_STOP :
+				(i == TapeBrowser->currBlockIdx) ? SCHR_NAVIGATOR : ' ');
 
 			printText(defaultSurface, r->x + GUI_CONST_HOTKEYCHAR, r->y,
 				GUI_COLOR_FOREGROUND, tapeBrowser->entries[i]);
@@ -739,12 +739,12 @@ void UserInterface::drawTapeBrowserItems()
 void UserInterface::drawTapeBrowser(bool update)
 {
 	if (update || tapeBrowser->entries == NULL)
-		Emulator->TapeBrowser->FillFileList(&tapeBrowser->entries,
-				&tapeBrowser->count, uiSet->TapeBrowser->hex);
+		TapeBrowser->FillFileList(&tapeBrowser->entries,
+				&tapeBrowser->count, Settings->TapeBrowser->hex);
 
 	cMenu_data = NULL;
 	cMenu_leftMargin = cMenu_count = tapeBrowser->count;
-	cMenu_hilite = Emulator->TapeBrowser->currBlockIdx;
+	cMenu_hilite = TapeBrowser->currBlockIdx;
 	if (cMenu_hilite < 0)
 		cMenu_hilite = 0;
 
@@ -779,12 +779,12 @@ void UserInterface::drawTapeBrowser(bool update)
 
 	mx = cMenu_rect->x + GUI_CONST_BORDER;
 	printCheck(defaultSurface, mx, my + 1, GUI_COLOR_CHECKED,
-		SCHR_CHECK, uiSet->TapeBrowser->flash);
+		SCHR_CHECK, Settings->TapeBrowser->flash);
 	printText(defaultSurface, mx + GUI_CONST_CHK_MARGIN, my,
 		GUI_COLOR_FOREGROUND, "\aF FLASHLOAD");
 
 	printCheck(defaultSurface, mx, my + fontLineHeight + 1,
-		GUI_COLOR_CHECKED, SCHR_CHECK, uiSet->TapeBrowser->monitoring);
+		GUI_COLOR_CHECKED, SCHR_CHECK, Settings->TapeBrowser->monitoring);
 	printText(defaultSurface, mx + GUI_CONST_CHK_MARGIN, my + fontLineHeight,
 		GUI_COLOR_FOREGROUND, "\aO AUDIO-OUT");
 
@@ -793,7 +793,7 @@ void UserInterface::drawTapeBrowser(bool update)
 		"\aA AUTO-STOP:");
 
 	static char autostop[12];
-	switch (uiSet->TapeBrowser->autoStop) {
+	switch (Settings->TapeBrowser->autoStop) {
 		default:
 		case AS_OFF:
 			strcpy(autostop, "END OF TAPE");
@@ -810,12 +810,12 @@ void UserInterface::drawTapeBrowser(bool update)
 		my + (2 * fontLineHeight), GUI_COLOR_HOTKEY, autostop);
 
 	static char *ptr = NULL;
-	if (uiSet->TapeBrowser->fileName && !Emulator->TapeBrowser->preparedForSave) {
-		ptr = strrchr(uiSet->TapeBrowser->fileName, '/');
+	if (Settings->TapeBrowser->fileName && !TapeBrowser->preparedForSave) {
+		ptr = strrchr(Settings->TapeBrowser->fileName, '/');
 		if (ptr)
 			ptr++;
 		else
-			ptr = uiSet->TapeBrowser->fileName;
+			ptr = Settings->TapeBrowser->fileName;
 	}
 	else
 		ptr = (char *) "[NEW TAPE]";
@@ -824,7 +824,7 @@ void UserInterface::drawTapeBrowser(bool update)
 	printFormatted(defaultSurface, mx + GUI_CONST_HOTKEYCHAR, my,
 		GUI_COLOR_BORDER, ((strlen(ptr) > 28) ? "%.28s\205" : "%s"), ptr);
 
-	if (Emulator->TapeBrowser->tapeChanged)
+	if (TapeBrowser->tapeChanged)
 		printChar(defaultSurface, mx, my, GUI_COLOR_CHECKED, '*');
 
 	drawTapeBrowserItems();
@@ -867,6 +867,11 @@ void UserInterface::keyhandlerMenu(WORD key)
 							menuCloseAll();
 						else
 							menuClose();
+						return;
+					}
+					else if (menuStack[menuStackLevel].type == GUI_TYPE_TAPE_POPUP) {
+						menuClose();
+						keyhandlerTapeBrowser(ptr->action);
 						return;
 					}
 					else if (cMenu_data)
@@ -985,7 +990,7 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 		case SDLK_c | KM_ALT:
 			if (fileSelector->type == GUI_FS_SNAPSAVE) {
 				prevLeftMargin = cMenu_leftMargin;
-				uiSet->Snapshot->saveCompressed = !uiSet->Snapshot->saveCompressed;
+				Settings->Snapshot->saveCompressed = !Settings->Snapshot->saveCompressed;
 				drawFileSelector(false);
 				change = true;
 			}
@@ -994,7 +999,7 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 		case SDLK_d | KM_ALT:
 			if (fileSelector->type == GUI_FS_SNAPLOAD) {
 				prevLeftMargin = cMenu_leftMargin;
-				uiSet->Snapshot->dontRunOnLoad = !uiSet->Snapshot->dontRunOnLoad;
+				Settings->Snapshot->dontRunOnLoad = !Settings->Snapshot->dontRunOnLoad;
 				drawFileSelector(false);
 				change = true;
 			}
@@ -1003,7 +1008,7 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 		case SDLK_r | KM_ALT:
 			if (fileSelector->type == GUI_FS_SNAPSAVE) {
 				prevLeftMargin = cMenu_leftMargin;
-				uiSet->Snapshot->saveWithMonitor = !uiSet->Snapshot->saveWithMonitor;
+				Settings->Snapshot->saveWithMonitor = !Settings->Snapshot->saveWithMonitor;
 				drawFileSelector(false);
 				change = true;
 			}
@@ -1016,7 +1021,7 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 			break;
 
 		case SDLK_PERIOD | KM_ALT:
-			uiSet->showHiddenFiles = !uiSet->showHiddenFiles;
+			Settings->showHiddenFiles = !Settings->showHiddenFiles;
 			drawFileSelector();
 			needRelease = true;
 			break;
@@ -1235,68 +1240,88 @@ void UserInterface::keyhandlerTapeBrowser(WORD key)
 
 		case SDLK_f:
 			prevLeftMargin = cMenu_leftMargin;
-			uiSet->TapeBrowser->flash = !uiSet->TapeBrowser->flash;
+			Settings->TapeBrowser->flash = !Settings->TapeBrowser->flash;
 			drawTapeBrowser(false);
 			change = true;
 			break;
 
 		case SDLK_o:
 			prevLeftMargin = cMenu_leftMargin;
-			uiSet->TapeBrowser->monitoring = !uiSet->TapeBrowser->monitoring;
+			Settings->TapeBrowser->monitoring = !Settings->TapeBrowser->monitoring;
 			drawTapeBrowser(false);
 			change = true;
 			break;
 
 		case SDLK_a:
 			prevLeftMargin = cMenu_leftMargin;
-			if (uiSet->TapeBrowser->autoStop == AS_OFF)
-				uiSet->TapeBrowser->autoStop = AS_NEXTHEAD;
-			else if (uiSet->TapeBrowser->autoStop == AS_NEXTHEAD)
-				uiSet->TapeBrowser->autoStop = AS_CURSOR;
-			else if (uiSet->TapeBrowser->autoStop == AS_CURSOR)
-				uiSet->TapeBrowser->autoStop = AS_OFF;
+			if (Settings->TapeBrowser->autoStop == AS_OFF)
+				Settings->TapeBrowser->autoStop = AS_NEXTHEAD;
+			else if (Settings->TapeBrowser->autoStop == AS_NEXTHEAD)
+				Settings->TapeBrowser->autoStop = AS_CURSOR;
+			else if (Settings->TapeBrowser->autoStop == AS_CURSOR)
+				Settings->TapeBrowser->autoStop = AS_OFF;
 			drawTapeBrowser(false);
 			change = true;
 			break;
 
 		case SDLK_h:
 			prevLeftMargin = cMenu_leftMargin;
-			uiSet->TapeBrowser->hex = !uiSet->TapeBrowser->hex;
+			Settings->TapeBrowser->hex = !Settings->TapeBrowser->hex;
 			drawTapeBrowser();
 			change = true;
 			break;
 
 		case SDLK_p:
-			if (Emulator->TapeBrowser->playing && cMenu_count)
-				Emulator->TapeBrowser->ActionStop();
-			else if (!Emulator->TapeBrowser->playing && cMenu_count) {
+			needRelease = true;
+			if (!cMenu_count)
+				break;
+			if (TapeBrowser->playing)
+				TapeBrowser->ActionStop();
+			else {
 				uiCallback.connect(Emulator, &TEmulator::ActionTapePlayStop);
 				uiSetChanges |= PS_CLOSEALL;
 				menuCloseAll();
 			}
-			needRelease = true;
 			break;
 
 		case SDLK_END | KM_SHIFT:
-			if (i >= 0 && i != Emulator->TapeBrowser->currBlockIdx) {
-				Emulator->TapeBrowser->stopBlockIdx = i;
-				needRelease = true;
+			needRelease = true;
+			if (!cMenu_count)
+				break;
+			if (i >= 0 && i != TapeBrowser->currBlockIdx) {
+				TapeBrowser->stopBlockIdx = i;
 				change = true;
 			}
 			break;
 
 		case SDLK_SPACE:
-			Emulator->TapeBrowser->SetCurrentBlock(i);
 			needRelease = true;
+			if (!cMenu_count)
+				break;
+			TapeBrowser->SetCurrentBlock(i);
 			change = true;
 			break;
 
 		case SDLK_INSERT:
+			if (!cMenu_count)
+				break;
 			prevLeftMargin = cMenu_leftMargin;
-			Emulator->TapeBrowser->ToggleSelection(i);
+			TapeBrowser->ToggleSelection(i);
 			drawTapeBrowser();
 			if (i < (cMenu_count - 1))
 				i++;
+			change = true;
+			break;
+
+		case SDLK_DELETE | KM_SHIFT:
+			needRelease = true;
+			if (!cMenu_count)
+				break;
+			prevLeftMargin = cMenu_leftMargin;
+			TapeBrowser->DeleteSelected(i);
+			drawTapeBrowser();
+			if (i >= cMenu_count)
+				i = cMenu_count - 1;
 			change = true;
 			break;
 
@@ -1854,7 +1879,8 @@ void UserInterface::menuClose()
 			cMenu_hilite = tapeBrowser->popup.hilite;
 			cMenu_leftMargin = tapeBrowser->popup.leftMargin;
 
-			delete tapeBrowser->popup.rect;
+			if (tapeBrowser->popup.rect)
+				delete tapeBrowser->popup.rect;
 			if (tapeBrowser->popup.frame)
 				delete [] tapeBrowser->popup.frame;
 
@@ -1890,8 +1916,22 @@ void UserInterface::menuClose()
 //-----------------------------------------------------------------------------
 void UserInterface::menuCloseAll()
 {
-	for (int i = menuStackLevel; i >= 0; i--)
+	for (int i = menuStackLevel; i >= 0; i--) {
+		if (menuStack[i].type == GUI_TYPE_TAPE_POPUP) {
+			if (tapeBrowser->popup.rect)
+				delete tapeBrowser->popup.rect;
+			if (tapeBrowser->popup.frame)
+				delete [] tapeBrowser->popup.frame;
+
+			tapeBrowser->popup.frame = NULL;
+			tapeBrowser->popup.rect = NULL;
+			tapeBrowser->popup.count = -1;
+			tapeBrowser->popup.hilite = -1;
+			tapeBrowser->popup.leftMargin = -1;
+		}
+
 		menuStack[i].data = NULL;
+	}
 
 	menuStackLevel = -1;
 	memcpy(defaultSurface->pixels, frameSave, frameLength);

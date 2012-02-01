@@ -1,6 +1,6 @@
 /*	GPMD85main.cpp: Core of emulation and interface.
 	Copyright (c) 2006-2010 Roman Borik <pmd85emu@gmail.com>
-	Copyright (c) 2011 Martin Borik <mborik@users.sourceforge.net>
+	Copyright (c) 2011-2012 Martin Borik <mborik@users.sourceforge.net>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -46,7 +46,8 @@ TEmulator::TEmulator()
 	raomModuleConnected = false;
 
 	Settings = new TSettings();
-	TapeBrowser = new TTapeBrowser(Settings->TapeBrowser);
+	TapeBrowser = new TTapeBrowser();
+	GUI = new UserInterface();
 
 	isRunning = false;
 	isActive = false;
@@ -103,6 +104,10 @@ TEmulator::~TEmulator()
 		delete sound;
 	sound = NULL;
 
+	if (GUI)
+		delete GUI;
+	GUI = NULL;
+
 	if (Settings)
 		delete Settings;
 	Settings = NULL;
@@ -118,11 +123,8 @@ void TEmulator::ProcessSettings(BYTE filter)
 	if (filter == 0)
 		return;
 
-	if (!isActive) {
+	if (!isActive)
 		video = new ScreenPMD85(Settings->Screen->size, Settings->Screen->border);
-		video->GUI->uiSet = Settings;
-		video->TapeBrowserProgress = TapeBrowser->ProgressBar;
-	}
 	else if (filter & PS_SCREEN_SIZE)
 		video->SetDisplayMode(Settings->Screen->size, Settings->Screen->border);
 
@@ -255,7 +257,7 @@ void TEmulator::BaseTimerCallback()
 	if (thisTime >= nextTick) {
 		perc = cpuUsage * 100.0f / (float)(thisTime - (nextTick - MEASURE_PERIOD));
 
-		video->SetStatusPercentage(video->GUI->isInMenu() ? 0 : (Settings->isPaused ? -1 : perc));
+		video->SetStatusPercentage(GUI->isInMenu() ? 0 : (Settings->isPaused ? -1 : perc));
 		video->SetStatusFPS(frames);
 
 		cpuUsage = 0;
@@ -383,16 +385,16 @@ bool TEmulator::TestHotkeys()
 			break;
 	}
 
-	if (video->GUI->isInMenu()) {
-		video->GUI->menuHandleKey(key);
+	if (GUI->isInMenu()) {
+		GUI->menuHandleKey(key);
 
-		if (video->GUI->uiSetChanges & PS_CLOSEALL)
+		if (GUI->uiSetChanges & PS_CLOSEALL)
 			key = SDLK_ESCAPE;
 
-		if (!video->GUI->isInMenu() && key == SDLK_ESCAPE) {
-			if (video->GUI->uiSetChanges) {
-				ProcessSettings(video->GUI->uiSetChanges);
-				video->GUI->uiSetChanges = 0;
+		if (!GUI->isInMenu() && key == SDLK_ESCAPE) {
+			if (GUI->uiSetChanges) {
+				ProcessSettings(GUI->uiSetChanges);
+				GUI->uiSetChanges = 0;
 			}
 
 			if (videoRam)
@@ -400,17 +402,17 @@ bool TEmulator::TestHotkeys()
 
 			SDL_EnableKeyRepeat(0, 0);
 
-			video->GUI->uiCallback();
-			video->GUI->uiCallback.disconnect_all();
+			GUI->uiCallback();
+			GUI->uiCallback.disconnect_all();
 
-			if (!video->GUI->isInMenu()) {
+			if (!GUI->isInMenu()) {
 				ActionPlayPause(!Settings->isPaused, false);
 				return true;
 			}
 		}
 
-		bool ret = video->GUI->needRelease;
-		video->GUI->needRelease = false;
+		bool ret = GUI->needRelease;
+		GUI->needRelease = false;
 		return ret;
 	}
 
@@ -517,7 +519,7 @@ bool TEmulator::TestHotkeys()
 
 			case SDLK_F1:	// MAIN MENU
 				ActionPlayPause(false, false);
-				video->GUI->menuOpen(UserInterface::GUI_TYPE_MENU);
+				GUI->menuOpen(UserInterface::GUI_TYPE_MENU);
 				break;
 
 			case SDLK_F2:	// LOAD/SAVE TAPE
@@ -544,7 +546,7 @@ bool TEmulator::TestHotkeys()
 
 			case SDLK_F6:	// DISK IMAGES
 				ActionPlayPause(false, false);
-				video->GUI->menuOpen(UserInterface::GUI_TYPE_DISKIMAGES);
+				GUI->menuOpen(UserInterface::GUI_TYPE_DISKIMAGES);
 				break;
 
 			case SDLK_F7:	// LOAD/SAVE SNAPSHOT
@@ -561,14 +563,14 @@ bool TEmulator::TestHotkeys()
 			case SDLK_F9:	// MODEL SELECT/MEMORY MENU
 				ActionPlayPause(false, false);
 				if (key & KM_SHIFT)
-					video->GUI->menuOpen(UserInterface::GUI_TYPE_MEMORY);
+					GUI->menuOpen(UserInterface::GUI_TYPE_MEMORY);
 				else
-					video->GUI->menuOpen(UserInterface::GUI_TYPE_SELECT);
+					GUI->menuOpen(UserInterface::GUI_TYPE_SELECT);
 				break;
 
 			case SDLK_F10:	// PERIPHERALS
 				ActionPlayPause(false, false);
-				video->GUI->menuOpen(UserInterface::GUI_TYPE_PERIPHERALS);
+				GUI->menuOpen(UserInterface::GUI_TYPE_PERIPHERALS);
 				break;
 
 			case SDLK_F11:
@@ -588,19 +590,19 @@ void TEmulator::ActionExit()
 	ActionPlayPause(false, false);
 
 	if (TapeBrowser->tapeChanged) {
-		BYTE result = video->GUI->queryDialog("SAVE CHANGES?", true);
+		BYTE result = GUI->queryDialog("SAVE CHANGES?", true);
 		if (result == GUI_QUERY_SAVE) {
 			ActionTapeSave();
 			return;
 		}
 		else if (result != GUI_QUERY_DONTSAVE) {
-			video->GUI->menuCloseAll();
+			GUI->menuCloseAll();
 			ActionPlayPause(!Settings->isPaused, false);
 			return;
 		}
 	}
 
-	if (video->GUI->queryDialog("REALLY EXIT?", false) == GUI_QUERY_YES)
+	if (GUI->queryDialog("REALLY EXIT?", false) == GUI_QUERY_YES)
 		isActive = false;
 
 	ActionPlayPause(!Settings->isPaused, false);
@@ -609,7 +611,7 @@ void TEmulator::ActionExit()
 void TEmulator::ActionTapeBrowser()
 {
 	ActionPlayPause(false, false);
-	video->GUI->menuOpen(UserInterface::GUI_TYPE_TAPEBROWSER);
+	GUI->menuOpen(UserInterface::GUI_TYPE_TAPEBROWSER);
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionTapePlayStop()
@@ -628,9 +630,9 @@ void TEmulator::ActionTapeNew()
 
 	BYTE result = GUI_QUERY_DONTSAVE;
 	if (TapeBrowser->tapeChanged) {
-		result = video->GUI->queryDialog("SAVE CHANGES?", true);
+		result = GUI->queryDialog("SAVE CHANGES?", true);
 		if (result == GUI_QUERY_SAVE) {
-			video->GUI->menuCloseAll();
+			GUI->menuCloseAll();
 			ActionTapeSave();
 			return;
 		}
@@ -640,7 +642,7 @@ void TEmulator::ActionTapeNew()
 		TapeBrowser->SetNewTape();
 		delete [] Settings->TapeBrowser->fileName;
 		Settings->TapeBrowser->fileName = NULL;
-		video->GUI->menuCloseAll();
+		GUI->menuCloseAll();
 	}
 
 	ActionPlayPause(!Settings->isPaused, false);
@@ -653,35 +655,35 @@ void TEmulator::ActionTapeLoad()
 	ActionPlayPause(false, false);
 
 	if (TapeBrowser->tapeChanged) {
-		BYTE result = video->GUI->queryDialog("SAVE CHANGES?", true);
+		BYTE result = GUI->queryDialog("SAVE CHANGES?", true);
 		if (result == GUI_QUERY_SAVE) {
 			ActionTapeSave();
 			return;
 		}
 		else if (result != GUI_QUERY_DONTSAVE) {
-			video->GUI->menuCloseAll();
+			GUI->menuCloseAll();
 			ActionPlayPause(!Settings->isPaused, false);
 			return;
 		}
 	}
 
-	video->GUI->fileSelector->type = GUI_FS_BASELOAD;
-	video->GUI->fileSelector->title = "OPEN TAPE FILE (*.ptp, *.pmd)";
-	video->GUI->fileSelector->extFilter = (char **) tape_filter;
-	video->GUI->fileSelector->callback.disconnect_all();
-	video->GUI->fileSelector->callback.connect(this, &TEmulator::InsertTape);
+	GUI->fileSelector->type = GUI_FS_BASELOAD;
+	GUI->fileSelector->title = "OPEN TAPE FILE (*.ptp, *.pmd)";
+	GUI->fileSelector->extFilter = (char **) tape_filter;
+	GUI->fileSelector->callback.disconnect_all();
+	GUI->fileSelector->callback.connect(this, &TEmulator::InsertTape);
 
 	if (Settings->TapeBrowser->fileName) {
 		char *file = ComposeFilePath(Settings->TapeBrowser->fileName);
-		strcpy(video->GUI->fileSelector->path, file);
+		strcpy(GUI->fileSelector->path, file);
 		delete [] file;
 
-		while (!TestDir(video->GUI->fileSelector->path, (char *) "..", NULL));
+		while (!TestDir(GUI->fileSelector->path, (char *) "..", NULL));
 	}
 	else
-		strcpy(video->GUI->fileSelector->path, PathApplication);
+		strcpy(GUI->fileSelector->path, PathApplication);
 
-	video->GUI->menuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
+	GUI->menuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionTapeSave()
@@ -690,23 +692,23 @@ void TEmulator::ActionTapeSave()
 
 	ActionPlayPause(false, false);
 
-	video->GUI->fileSelector->type = GUI_FS_BASESAVE;
-	video->GUI->fileSelector->title = "SAVE TAPE FILE (*.ptp)";
-	video->GUI->fileSelector->extFilter = (char **) tape_filter;
-	video->GUI->fileSelector->callback.disconnect_all();
-	video->GUI->fileSelector->callback.connect(this, &TEmulator::SaveTape);
+	GUI->fileSelector->type = GUI_FS_BASESAVE;
+	GUI->fileSelector->title = "SAVE TAPE FILE (*.ptp)";
+	GUI->fileSelector->extFilter = (char **) tape_filter;
+	GUI->fileSelector->callback.disconnect_all();
+	GUI->fileSelector->callback.connect(this, &TEmulator::SaveTape);
 
 	if (Settings->TapeBrowser->fileName) {
 		char *file = ComposeFilePath(Settings->TapeBrowser->fileName);
-		strcpy(video->GUI->fileSelector->path, file);
+		strcpy(GUI->fileSelector->path, file);
 		delete [] file;
 
-		while (!TestDir(video->GUI->fileSelector->path, (char *) "..", NULL));
+		while (!TestDir(GUI->fileSelector->path, (char *) "..", NULL));
 	}
 	else
-		strcpy(video->GUI->fileSelector->path, PathApplication);
+		strcpy(GUI->fileSelector->path, PathApplication);
 
-	video->GUI->menuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
+	GUI->menuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionPMD32LoadDisk(int drive)
@@ -715,11 +717,11 @@ void TEmulator::ActionPMD32LoadDisk(int drive)
 
 	ActionPlayPause(false, false);
 
-	video->GUI->fileSelector->type = GUI_FS_BASELOAD;
-	video->GUI->fileSelector->title = "OPEN PMD 32 DISK FILE (*.p32)";
-	video->GUI->fileSelector->extFilter = (char **) p32_filter;
-	video->GUI->fileSelector->callback.disconnect_all();
-	video->GUI->fileSelector->callback.connect(this, &TEmulator::InsertPMD32Disk);
+	GUI->fileSelector->type = GUI_FS_BASELOAD;
+	GUI->fileSelector->title = "OPEN PMD 32 DISK FILE (*.p32)";
+	GUI->fileSelector->extFilter = (char **) p32_filter;
+	GUI->fileSelector->callback.disconnect_all();
+	GUI->fileSelector->callback.connect(this, &TEmulator::InsertPMD32Disk);
 	pmd32workdrive = drive;
 
 	char *fileName = NULL;
@@ -742,15 +744,15 @@ void TEmulator::ActionPMD32LoadDisk(int drive)
 
 	if (fileName) {
 		fileName = ComposeFilePath(fileName);
-		strcpy(video->GUI->fileSelector->path, fileName);
+		strcpy(GUI->fileSelector->path, fileName);
 		delete [] fileName;
 
-		while (!TestDir(video->GUI->fileSelector->path, (char *) "..", NULL));
+		while (!TestDir(GUI->fileSelector->path, (char *) "..", NULL));
 	}
 	else
-		strcpy(video->GUI->fileSelector->path, PathApplication);
+		strcpy(GUI->fileSelector->path, PathApplication);
 
-	video->GUI->menuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
+	GUI->menuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionSnapLoad()
@@ -759,23 +761,23 @@ void TEmulator::ActionSnapLoad()
 
 	ActionPlayPause(false, false);
 
-	video->GUI->fileSelector->type = GUI_FS_SNAPLOAD;
-	video->GUI->fileSelector->title = "OPEN SNAPSHOT FILE (*.psn)";
-	video->GUI->fileSelector->extFilter = (char **) snap_filter;
-	video->GUI->fileSelector->callback.disconnect_all();
-	video->GUI->fileSelector->callback.connect(this, &TEmulator::ProcessSnapshot);
+	GUI->fileSelector->type = GUI_FS_SNAPLOAD;
+	GUI->fileSelector->title = "OPEN SNAPSHOT FILE (*.psn)";
+	GUI->fileSelector->extFilter = (char **) snap_filter;
+	GUI->fileSelector->callback.disconnect_all();
+	GUI->fileSelector->callback.connect(this, &TEmulator::ProcessSnapshot);
 
 	if (Settings->Snapshot->fileName) {
 		char *file = ComposeFilePath(Settings->Snapshot->fileName);
-		strcpy(video->GUI->fileSelector->path, file);
+		strcpy(GUI->fileSelector->path, file);
 		delete [] file;
 
-		while (!TestDir(video->GUI->fileSelector->path, (char *) "..", NULL));
+		while (!TestDir(GUI->fileSelector->path, (char *) "..", NULL));
 	}
 	else
-		strcpy(video->GUI->fileSelector->path, PathApplication);
+		strcpy(GUI->fileSelector->path, PathApplication);
 
-	video->GUI->menuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
+	GUI->menuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionSnapSave()
@@ -784,23 +786,23 @@ void TEmulator::ActionSnapSave()
 
 	ActionPlayPause(false, false);
 
-	video->GUI->fileSelector->type = GUI_FS_SNAPSAVE;
-	video->GUI->fileSelector->title = "SAVE SNAPSHOT FILE (*.psn)";
-	video->GUI->fileSelector->extFilter = (char **) snap_filter;
-	video->GUI->fileSelector->callback.disconnect_all();
-	video->GUI->fileSelector->callback.connect(this, &TEmulator::PrepareSnapshot);
+	GUI->fileSelector->type = GUI_FS_SNAPSAVE;
+	GUI->fileSelector->title = "SAVE SNAPSHOT FILE (*.psn)";
+	GUI->fileSelector->extFilter = (char **) snap_filter;
+	GUI->fileSelector->callback.disconnect_all();
+	GUI->fileSelector->callback.connect(this, &TEmulator::PrepareSnapshot);
 
 	if (Settings->Snapshot->fileName) {
 		char *file = ComposeFilePath(Settings->Snapshot->fileName);
-		strcpy(video->GUI->fileSelector->path, file);
+		strcpy(GUI->fileSelector->path, file);
 		delete [] file;
 
-		while (!TestDir(video->GUI->fileSelector->path, (char *) "..", NULL));
+		while (!TestDir(GUI->fileSelector->path, (char *) "..", NULL));
 	}
 	else
-		strcpy(video->GUI->fileSelector->path, PathApplication);
+		strcpy(GUI->fileSelector->path, PathApplication);
 
-	video->GUI->menuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
+	GUI->menuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionROMLoad(BYTE type)
@@ -815,31 +817,31 @@ void TEmulator::ActionROMLoad(BYTE type)
 	else
 		fileName = Settings->CurrentModel->romFile;
 
-	video->GUI->fileSelector->tag = type;
-	video->GUI->fileSelector->type = GUI_FS_BASELOAD;
-	video->GUI->fileSelector->title = "SELECT ROM FILE (*.rom)";
-	video->GUI->fileSelector->extFilter = (char **) rom_filter;
-	video->GUI->fileSelector->callback.disconnect_all();
-	video->GUI->fileSelector->callback.connect(this, &TEmulator::ChangeROMFile);
+	GUI->fileSelector->tag = type;
+	GUI->fileSelector->type = GUI_FS_BASELOAD;
+	GUI->fileSelector->title = "SELECT ROM FILE (*.rom)";
+	GUI->fileSelector->extFilter = (char **) rom_filter;
+	GUI->fileSelector->callback.disconnect_all();
+	GUI->fileSelector->callback.connect(this, &TEmulator::ChangeROMFile);
 
 	if (fileName) {
 		char *file = LocateROM(fileName);
 		if (file == NULL)
 			file = fileName;
 
-		strcpy(video->GUI->fileSelector->path, file);
-		while (!TestDir(video->GUI->fileSelector->path, (char *) "..", NULL));
+		strcpy(GUI->fileSelector->path, file);
+		while (!TestDir(GUI->fileSelector->path, (char *) "..", NULL));
 	}
 	else {
 		if (stat(PathAppConfig, &CommonUtils::filestat) == 0)
-			strcpy(video->GUI->fileSelector->path, PathAppConfig);
+			strcpy(GUI->fileSelector->path, PathAppConfig);
 		else if (stat(PathResources, &CommonUtils::filestat) == 0)
-			strcpy(video->GUI->fileSelector->path, PathResources);
+			strcpy(GUI->fileSelector->path, PathResources);
 		else
-			strcpy(video->GUI->fileSelector->path, PathApplication);
+			strcpy(GUI->fileSelector->path, PathApplication);
 	}
 
-	video->GUI->menuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
+	GUI->menuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionReset()
@@ -864,6 +866,11 @@ void TEmulator::ActionSound(bool mute)
 		sound->SoundMute();
 	else
 		sound->SoundOn();
+}
+//---------------------------------------------------------------------------
+void TEmulator::ActionPlayPause()
+{
+	ActionPlayPause(Settings->isPaused, true);
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionPlayPause(bool play, bool globalChange)
@@ -1434,9 +1441,9 @@ void TEmulator::ProcessSnapshot(char *fileName, BYTE *flag)
 	} while (false);
 
 	if (*flag == 0xFF)
-		video->GUI->messageBox("INVALID SNAPHOT FORMAT!");
+		GUI->messageBox("INVALID SNAPHOT FORMAT!");
 	else if (*flag == 2) {
-		video->GUI->messageBox("CORRUPTED SNAPSHOT!");
+		GUI->messageBox("CORRUPTED SNAPSHOT!");
 
 		for (int i = 0; i < Settings->modelsCount; i++) {
 			if (Settings->AllModels[i]->type == oldModel) {
@@ -1598,9 +1605,9 @@ void TEmulator::PrepareSnapshot(char *fileName, BYTE *flag)
 	} while (false);
 
 	if (*flag == 0xFF)
-		video->GUI->messageBox("CAN'T OPEN FILE FOR WRITING!");
+		GUI->messageBox("CAN'T OPEN FILE FOR WRITING!");
 	else if (*flag == 1) {
-		video->GUI->messageBox("ERROR WRITING FILE...\nSNAPSHOT WILL BE CORRUPTED!");
+		GUI->messageBox("ERROR WRITING FILE...\nSNAPSHOT WILL BE CORRUPTED!");
 		*flag = 0;
 	}
 	else {
@@ -1618,14 +1625,14 @@ void TEmulator::InsertTape(char *fileName, BYTE *flag)
 {
 	*flag = 0;
 	if (!(TapeBrowser->SetTapeFileName(fileName)))
-		video->GUI->messageBox("CORRUPTED TAPE FORMAT!");
+		GUI->messageBox("CORRUPTED TAPE FORMAT!");
 
 	if (Settings->TapeBrowser->fileName)
 		delete [] Settings->TapeBrowser->fileName;
 	Settings->TapeBrowser->fileName = new char[(strlen(fileName) + 1)];
 	strcpy(Settings->TapeBrowser->fileName, fileName);
 
-	video->GUI->uiCallback.connect(this, &TEmulator::ActionTapeBrowser);
+	GUI->uiCallback.connect(this, &TEmulator::ActionTapeBrowser);
 }
 //---------------------------------------------------------------------------
 void TEmulator::SaveTape(char *fileName, BYTE *flag)
@@ -1633,9 +1640,9 @@ void TEmulator::SaveTape(char *fileName, BYTE *flag)
 	*flag = TapeBrowser->SaveTape(fileName, NULL, true);
 
 	if (*flag == 0xFF)
-		video->GUI->messageBox("FATAL ERROR!\nINVALID NAME OR EXTENSION,\nOR CAN'T OPEN FILE FOR WRITING!");
+		GUI->messageBox("FATAL ERROR!\nINVALID NAME OR EXTENSION,\nOR CAN'T OPEN FILE FOR WRITING!");
 	else if (*flag == 1) {
-		video->GUI->messageBox("ERROR WRITING FILE...\nTAPE WILL BE CORRUPTED!");
+		GUI->messageBox("ERROR WRITING FILE...\nTAPE WILL BE CORRUPTED!");
 		*flag = 0;
 	}
 	else {
@@ -1700,13 +1707,13 @@ void TEmulator::ChangeROMFile(char *fileName, BYTE *flag)
 		delete [] Settings->PMD32->romFile;
 		Settings->PMD32->romFile = new char[strlen(ptr) + 1];
 		strcpy(Settings->PMD32->romFile, ptr);
-		video->GUI->uiSetChanges |= PS_PERIPHERALS;
+		GUI->uiSetChanges |= PS_PERIPHERALS;
 	}
 	else {
 		delete [] Settings->CurrentModel->romFile;
 		Settings->CurrentModel->romFile = new char[strlen(ptr) + 1];
 		strcpy(Settings->CurrentModel->romFile, ptr);
-		video->GUI->uiSetChanges |= PS_MACHINE;
+		GUI->uiSetChanges |= PS_MACHINE;
 	}
 
 	romChanged = true;

@@ -1,9 +1,9 @@
 # GPMD85emu autoconf
-# mborik, 10/2011
+# mborik, 10/2011 - 02/2012
 
 AC_PREREQ([2.59])
-AC_INIT([GPMD85emulator], [0.9.1112], [mborik@users.sourceforge.net], [gpmd85emu], [http://gpmd85emulator.sourceforge.net/])
-AM_INIT_AUTOMAKE([GPMD85emulator], [0.9.1112])
+AC_INIT([GPMD85emulator], [0.9.1202], [mborik@users.sourceforge.net], [gpmd85emu], [http://gpmd85emulator.sourceforge.net/])
+AM_INIT_AUTOMAKE([GPMD85emulator], [0.9.1202])
 AC_CONFIG_SRCDIR([GPMD85emu.cpp])
 AC_CONFIG_HEADERS([config.h])
 
@@ -12,8 +12,8 @@ AC_PROG_RANLIB
 AC_PROG_CXX
 AC_PROG_CC
 
-# Check if we have enable debugging:
-AC_MSG_CHECKING([debugging enabled])
+# Check if we have enabled debug mode:
+AC_MSG_CHECKING([gpmd85emu: Debug mode])
 AC_ARG_ENABLE([debug],
 	AS_HELP_STRING([--enable-debug], [enable debugging, default: no]),
 	[case "${enableval}" in
@@ -27,17 +27,17 @@ if test "x$debug" = "xyes"; then
 	CXXFLAGS="-g3 -O0 -Wall -DDEBUG"
 	CFLAGS="-g3 -O0 -Wall -DDEBUG"
 	LDFLAGS=""
-	DEBUG=1;
+	DEBUG=1
 else
 	CXXFLAGS="-O3 -Wall"
 	CFLAGS="-O3 -Wall"
 	LDFLAGS="-s"
-	DEBUG=;
+	DEBUG=
 fi
 AC_MSG_RESULT([${debug}])
 
-# Check if we have enable only tracing statements (not full debug mode):
-AC_MSG_CHECKING([tracing statements enabled])
+# Check if we have enabled trace statements (but not full debug mode):
+AC_MSG_CHECKING([gpmd85emu: Trace statements enabled])
 AC_ARG_ENABLE([trace],
 	AS_HELP_STRING([--enable-trace], [enable tracing statements, default: no]),
 	[case "${enableval}" in
@@ -53,27 +53,42 @@ if test "x$trace" = "xyes"; then
 fi
 AC_MSG_RESULT([${trace}])
 
+# Check if we have enabled embedded (no-install) mode:
+AC_MSG_CHECKING([gpmd85emu: Embedded mode])
+AC_ARG_ENABLE([embed],
+	AS_HELP_STRING([--enable-embed], [enable embedded (no-install) mode, default: no]),
+	[case "${enableval}" in
+		yes) embed=yes ;;
+		no)  embed=no  ;;
+		*)   AC_MSG_ERROR([bad value ${enableval} for --enable-embed]) ;;
+	esac],
+	[embed=no]
+)
+if test "x$embed" = "xyes"; then
+	resDir_CFLAGS=" -DDIR_RESOURCES=\"\\\".\\\"\""
+	CXXFLAGS+=" -DEMBED"
+	CFLAGS+=" -DEMBED"
+else
+	resDir_CFLAGS=" -DDIR_RESOURCES=\"\\\""$\{pkgdatadir}"\\\"\""
+fi
+AC_MSG_RESULT([${embed}])
+
+AC_SUBST(resDir_CFLAGS)
 AC_SUBST(CXXFLAGS)
 AC_SUBST(CFLAGS)
 AC_SUBST(DEBUG)
 
-old_CFLAGS="${CFLAGS}"
-old_CPPFLAGS="${CPPFLAGS}"
-
 # Checks for libraries (with classic lib/header solution if pkg-config fail):
 PKG_CHECK_MODULES([libSDL], [sdl],, [
 	AC_CHECK_LIB([SDL], [SDL_Quit], [
-		CFLAGS="${CFLAGS} -I${includedir}/SDL -I${oldincludedir}/SDL"
-		CPPFLAGS="${CPPFLAGS} -I${includedir}/SDL -I${oldincludedir}/SDL"
 		AC_CHECK_HEADER([SDL.h], [
 			libSDL_LIBS="-lSDL -lpthread"
 			libSDL_CFLAGS="-I${includedir}/SDL -D_GNU_SOURCE=1 -D_REENTRANT"
+			AC_SUBST(libSDL_LIBS)
+			AC_SUBST(libSDL_CFLAGS)
 		], AC_MSG_ERROR([SDL header not found]))
 	], AC_MSG_ERROR([SDL library not found]))
 ])
-
-CFLAGS="${old_CFLAGS}"
-CPPFLAGS="${old_CPPFLAGS}"
 
 # Checks for header files:
 AC_CHECK_HEADERS([inttypes.h memory.h stddef.h stdint.h stdlib.h string.h strings.h unistd.h])

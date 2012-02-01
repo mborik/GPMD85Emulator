@@ -1,5 +1,5 @@
 /*	GPMD85emu.cpp: Initialization and main program loop.
-	Copyright (c) 2011 Martin Borik <mborik@users.sourceforge.net>
+	Copyright (c) 2011-2012 Martin Borik <mborik@users.sourceforge.net>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
 //-----------------------------------------------------------------------------
 int main(int argc, char** argv)
 {
-	printf("\n= %s v%s ~ Copyright (c) 2011 RM-TEAM =", PACKAGE_NAME, VERSION);
+	printf("\n= %s v%s ~ Copyright (c) 2012 ~ %s =", PACKAGE_NAME, VERSION, PACKAGE_URL);
 	printf("\n- This program comes with ABSOLUTELY NO WARRANTY. This is free software,");
 	printf("\n- and you are welcome to redistribute it under certain conditions.\n\n");
 
@@ -131,6 +131,12 @@ int main(int argc, char** argv)
 					}
 					else if ((waitForRelease = Emulator->TestHotkeys()) == true)
 						k = 4;
+
+				case SDL_ACTIVEEVENT:
+					if (Settings->pauseOnFocusLost &&
+							(event.active.state & (SDL_APPINPUTFOCUS | SDL_APPACTIVE)))
+						Emulator->ActionPlayPause(event.active.gain);
+					break;
 
 				default:
 					break;
