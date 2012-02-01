@@ -5,7 +5,9 @@
 //---------------------------------------------------------------------------
 #define isTemp(x) (strcmp(x + (strlen(x) - 4), ".tmp") == 0)
 //---------------------------------------------------------------------------
-TTapeBrowser::TTapeBrowser(TSettings::SetTapeBrowser *set)
+TTapeBrowser *TapeBrowser;
+//---------------------------------------------------------------------------
+TTapeBrowser::TTapeBrowser()
 {
 	blocks = NULL;
 	currBlock = NULL;
@@ -17,7 +19,6 @@ TTapeBrowser::TTapeBrowser(TSettings::SetTapeBrowser *set)
 	tapeFile = NULL;
 	tmpFileName = NULL;
 	orgTapeFile = NULL;
-	settings = set;
 
 	debug("TapeBrowser", "Initializing...");
 
@@ -35,8 +36,8 @@ TTapeBrowser::TTapeBrowser(TSettings::SetTapeBrowser *set)
 	tapeChanged = false;
 	preparedForSave = false;
 
-	if (set->fileName) {
-		char *file = ComposeFilePath(set->fileName);
+	if (Settings->TapeBrowser->fileName) {
+		char *file = ComposeFilePath(Settings->TapeBrowser->fileName);
 		SetTapeFileName(file);
 		delete [] file;
 	}
@@ -320,7 +321,7 @@ void TTapeBrowser::ActionPlay()
 		return;
 
 	PrepareData(true);
-	ifTape->PrepareBlock(data, dataLen, head, settings->flash, true);
+	ifTape->PrepareBlock(data, dataLen, head, Settings->TapeBrowser->flash, true);
 	ProgressBar->Position = 0;
 	ProgressBar->Max = dataLen;
 
@@ -347,7 +348,7 @@ void TTapeBrowser::TapeCommand(int command, bool *result)
 			break;
 
 		case CMD_NEXT:
-			if (head == true && currBlock->cType != 0)
+			if (head && currBlock->cType != 0)
 				PrepareData(false);
 			else {
 				if (currBlockIdx + 1 == totalBlocks)
@@ -357,10 +358,10 @@ void TTapeBrowser::TapeCommand(int command, bool *result)
 
 				// autostop or rewind
 				if (currBlockIdx == 0 ||
-					(settings->autoStop == AS_CURSOR && currBlockIdx == stopBlockIdx) ||
-					(settings->autoStop == AS_NEXTHEAD && currBlock->cType != 0)) {
+					(Settings->TapeBrowser->autoStop == AS_CURSOR && currBlockIdx == stopBlockIdx) ||
+					(Settings->TapeBrowser->autoStop == AS_NEXTHEAD && currBlock->cType != 0)) {
 
-					if (settings->autoStop == AS_CURSOR && currBlockIdx == stopBlockIdx)
+					if (Settings->TapeBrowser->autoStop == AS_CURSOR && currBlockIdx == stopBlockIdx)
 						stopBlockIdx = -1;
 
 					ActionStop();
@@ -373,7 +374,7 @@ void TTapeBrowser::TapeCommand(int command, bool *result)
 				PrepareData(true);
 			}
 
-			ifTape->PrepareBlock(data, dataLen, head, settings->flash, false);
+			ifTape->PrepareBlock(data, dataLen, head, Settings->TapeBrowser->flash, false);
 			ProgressBar->Position = 0;
 			ProgressBar->Max = dataLen;
 			break;
@@ -384,7 +385,7 @@ void TTapeBrowser::TapeCommand(int command, bool *result)
 
 		case CMD_MONITORING:
 			if (result)
-				*result = settings->monitoring;
+				*result = Settings->TapeBrowser->monitoring;
 			return;
 
 		case CMD_PRE_SAVE:
@@ -449,6 +450,114 @@ void TTapeBrowser::ToggleSelection(int idx)
 		if (sBlk)
 			sBlk->selected = !sBlk->selected;
 	}
+}
+//---------------------------------------------------------------------------
+void TTapeBrowser::DeleteSelected(int idx)
+{
+	TAPE_BLOCK *tb = blocks, *tbs = NULL;
+
+	int i = 0, count = 0;
+	while (tb) {
+		if (tb->selected) {
+			DeleteBlock(i, tb);
+			count++;
+		}
+		else if (i == idx)
+			tbs = tb;
+
+		tb = tb->next;
+		i++;
+	}
+
+	if (count == 0 && tbs) {
+		DeleteBlock(idx, tbs);
+		count++;
+	}
+
+	if (count)
+		tapeChanged = true;
+}
+//---------------------------------------------------------------------------
+void TTapeBrowser::DeleteBlock(int idx, TAPE_BLOCK *tb)
+{
+	if (tb == NULL) {
+		int i = idx;
+		tb = blocks;
+		while (i && tb->next) {
+			tb = tb->next;
+			i--;
+		}
+	}
+
+	if (tb->prev)
+		tb->prev->next = tb->next;
+	else
+		blocks = tb->next;
+
+	if (tb->next)
+		tb->next->prev = tb->prev;
+	else if (tb->prev)
+		tb->prev->next = NULL;
+
+	TAPE_BLOCK *tbx = tb->next;
+	delete tb;
+	tb = tbx;
+
+	totalBlocks--;
+	if (currBlockIdx > idx)
+		currBlockIdx--;
+	if (stopBlockIdx > idx)
+			stopBlockIdx--;
+	if (stopBlockIdx == currBlockIdx)
+		stopBlockIdx = -1;
+}
+//---------------------------------------------------------------------------
+bool TTapeBrowser::SelectionContinuity(int *total, int *first, int *last)
+{
+	int i = 0, c = 0, idx = 0;
+	TAPE_BLOCK *tb = blocks;
+
+	if (!tb) {
+		if (total)
+			*total = 0;
+		if (first)
+			*first = -1;
+		if (last)
+			*last = -1;
+		return false;
+	}
+
+	do {
+		do {
+			i++;
+			if (tb->selected) {
+				if (c == 0) {
+					if (first)
+						*first = (i - 1);
+					idx = i;
+				}
+				c++;
+				break;
+			}
+
+			tb = tb->next;
+		} while (tb);
+
+		if (tb) {
+			if (idx == i)
+				idx++;
+			else
+				idx = -1;
+
+			tb = tb->next;
+		}
+	} while (tb);
+
+	if (total)
+		*total = c;
+	if (last)
+		*last = idx - 2;
+	return (idx > 0);
 }
 //---------------------------------------------------------------------------
 void TTapeBrowser::PrepareData(bool head)

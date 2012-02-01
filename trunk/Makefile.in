@@ -207,6 +207,7 @@ pdfdir = @pdfdir@
 prefix = @prefix@
 program_transform_name = @program_transform_name@
 psdir = @psdir@
+resDir_CFLAGS = @resDir_CFLAGS@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 srcdir = @srcdir@
@@ -225,7 +226,7 @@ DIST_SUBDIRS = $(SUBDIRS)
 AM_CPPFLAGS = \
 	-I$(srcdir)/src \
 	@libSDL_CFLAGS@ \
-	-DDIR_RESOURCES="\"${pkgdatadir}\""
+	@resDir_CFLAGS@
 
 GPMD85emu_LDADD = \
 	@libSDL_LIBS@ \

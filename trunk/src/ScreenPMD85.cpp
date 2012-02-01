@@ -17,6 +17,7 @@
 //---------------------------------------------------------------------------
 #include "CommonUtils.h"
 #include "ScreenPMD85.h"
+#include "GPMD85main.h"
 //-----------------------------------------------------------------------------
 ScreenPMD85::ScreenPMD85(TDisplayMode dispMode, int border)
 {
@@ -32,8 +33,6 @@ ScreenPMD85::ScreenPMD85(TDisplayMode dispMode, int border)
 		warning("Screen", "Can't load status bar resource file");
 
 	SDL_SetColorKey(StatusBarIcons, SDL_SRCCOLORKEY, SDL_MapRGB(StatusBarIcons->format, 255, 0, 255));
-
-	GUI = new UserInterface();
 	RGBpalete(Palette);
 
 	DisplayModeChanging = true;
@@ -80,10 +79,6 @@ ScreenPMD85::~ScreenPMD85()
 	if (bufferScreen)
 		free(bufferScreen);
 	bufferScreen = NULL;
-
-	if (GUI)
-		delete GUI;
-	GUI = NULL;
 }
 //-----------------------------------------------------------------------------
 void ScreenPMD85::SetDisplayMode(TDisplayMode dispMode, int border)
@@ -589,9 +584,9 @@ void ScreenPMD85::RedrawStatusBar()
 	r->w = tapProgressWidth - r->x;
 	r->h = 2;
 
-	SDL_FillRect(Screen, r, *(TapeBrowserProgress->Active) ? SDL_MapRGB(Screen->format, 16, 24, 16) : 0);
-	if (*(TapeBrowserProgress->Active)) {
-		r->w = ((double) r->w / TapeBrowserProgress->Max) * TapeBrowserProgress->Position;
+	SDL_FillRect(Screen, r, *(TapeBrowser->ProgressBar->Active) ? SDL_MapRGB(Screen->format, 16, 24, 16) : 0);
+	if (*(TapeBrowser->ProgressBar->Active)) {
+		r->w = ((double) r->w / TapeBrowser->ProgressBar->Max) * TapeBrowser->ProgressBar->Position;
 		SDL_FillRect(Screen, r, SDL_MapRGB(Screen->format, 40, 100, 50));
 	}
 

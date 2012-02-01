@@ -1,6 +1,6 @@
 /*	GPMD85main.h: Core of emulation and interface.
 	Copyright (c) 2006-2010 Roman Borik <pmd85emu@gmail.com>
-	Copyright (c) 2011 Martin Borik <mborik@users.sourceforge.net>
+	Copyright (c) 2011-2012 Martin Borik <mborik@users.sourceforge.net>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@
 #include "Settings.h"
 #include "TapeBrowser.h"
 #include "ScreenPMD85.h"
+#include "UserInterface.h"
 #include "SoundDriver.h"
 //-----------------------------------------------------------------------------
 class TEmulator : public sigslot::has_slots<>
@@ -40,9 +41,6 @@ class TEmulator : public sigslot::has_slots<>
 		bool isRunning;
 
 		SDL_TimerID BaseTimer;
-		TSettings *Settings;
-		TTapeBrowser *TapeBrowser;
-
 		BYTE *keyBuffer;
 
 		TEmulator();
@@ -68,13 +66,9 @@ class TEmulator : public sigslot::has_slots<>
 		void ActionReset();
 		void ActionHardReset();
 		void ActionSound(bool mute);
-		void ActionPlayPause(bool play, bool globalChange);
-		inline void ActionPlayPause(bool play) { ActionPlayPause(play, true); }
-		inline void ActionPlayPause() { ActionPlayPause(Settings->isPaused, true); }
+		void ActionPlayPause();
+		void ActionPlayPause(bool play, bool globalChange = true);
 		void ActionSizeChange(int mode);
-		inline BYTE ActionEditBox(const char *title, char *buffer, BYTE maxLength, bool decimal) {
-			return video->GUI->editBox(title, buffer, maxLength, decimal);
-		};
 
 	private:
 		bool inmenu;
@@ -121,6 +115,9 @@ class TEmulator : public sigslot::has_slots<>
 };
 //---------------------------------------------------------------------------
 extern TEmulator *Emulator;
+extern TSettings *Settings;
+extern TTapeBrowser *TapeBrowser;
+extern UserInterface *GUI;
 //-----------------------------------------------------------------------------
 inline DWORD FormMain_BaseTimerCallback(DWORD interval, void *param)
 {

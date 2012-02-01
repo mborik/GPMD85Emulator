@@ -23,7 +23,7 @@
 #include "ChipPIT8253.h"
 #include "ChipCpu8080.h"
 //---------------------------------------------------------------------------
-// Interny casovac pouziva tieto adresy portov: 5Ch, 5Dh, 5Eh a 5Fh
+// Internal timer using these port addresses: 5Ch, 5Dh, 5Eh a 5Fh
 #define IIF_TIMER_MASK      0xFC
 #define IIF_TIMER_ADR       0x5C
 
@@ -42,7 +42,7 @@ public:
 	virtual void writeToDevice(BYTE port, BYTE value, int ticks);
 	virtual BYTE readFromDevice(BYTE port, int ticks);
 
-	// pre IF Musica
+	// for IF Musica
 	sigslot::signal3<int, bool, int> PrepareSample;
 
 	void ITimerService(int ticks, int dur);
@@ -54,6 +54,8 @@ public:
 	inline void EnableIfMusica(bool enable) { musica = enable; }
 
 private:
+	ChipCpu8080 *cpu;
+
 	int cntRtc;
 	bool stateRtc;
 	bool ct1On;
@@ -61,9 +63,8 @@ private:
 	bool musica;
 	int currentTicks;
 
-	// pre Mys602
-	bool mys602;
-	ChipCpu8080 *cpu;
+	// Mouse 602 (Ing. Vit Libovicky concept)
+	bool mouse602;
 };
 //---------------------------------------------------------------------------
 #endif

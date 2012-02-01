@@ -1,5 +1,5 @@
 /*	UserInterfaceData.h
-	Copyright (c) 2011 Martin Borik <mborik@users.sourceforge.net>
+	Copyright (c) 2011-2012 Martin Borik <mborik@users.sourceforge.net>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -20,41 +20,66 @@
 //-----------------------------------------------------------------------------
 const char *dcb_tape_save_state(GUI_MENU_ENTRY *ptr)
 {
-	ptr->enabled = Emulator->TapeBrowser->tapeChanged;
+	ptr->enabled = TapeBrowser->tapeChanged;
+	return NULL;
+}
+//-----------------------------------------------------------------------------
+const char *dcb_tape_noempty_state(GUI_MENU_ENTRY *ptr)
+{
+	ptr->enabled = (TapeBrowser->totalBlocks > 0);
+	return NULL;
+}
+//-----------------------------------------------------------------------------
+const char *dcb_tape_contblk_state(GUI_MENU_ENTRY *ptr)
+{
+	if (TapeBrowser->totalBlocks > 0) {
+		int t, f, l, i = (ptr->action & 0x1ff);
+
+		ptr->enabled = TapeBrowser->SelectionContinuity(&t, &f, &l);
+		if (t == 0) {
+			ptr->enabled = true;
+			f = l = GUI->tapeBrowser->popup.hilite;
+		}
+		if (i == SDLK_UP && f == 0)
+			ptr->enabled = false;
+		if (i == SDLK_DOWN && l == (TapeBrowser->totalBlocks - 1))
+			ptr->enabled = false;
+	}
+
 	return NULL;
 }
 //-----------------------------------------------------------------------------
 const char *dcb_view_size_state(GUI_MENU_ENTRY *ptr)
 {
 	ptr->enabled = (gvi.wm) ? true : false;
-	ptr->state = (UserInterface::uiSet->Screen->size == (TDisplayMode) ptr->action);
+	ptr->state = (Settings->Screen->size == (TDisplayMode) ptr->action);
 	return NULL;
 }
 //-----------------------------------------------------------------------------
 const char *dcb_view_cmod_state(GUI_MENU_ENTRY *ptr)
 {
-	ptr->state = (UserInterface::uiSet->Screen->colorProfile == (TColorProfile) ptr->action);
+	ptr->state = (Settings->Screen->colorProfile == (TColorProfile) ptr->action);
 	return NULL;
 }
 //-----------------------------------------------------------------------------
 const char *dcb_view_cpal_state(GUI_MENU_ENTRY *ptr)
 {
-	ptr->state = (UserInterface::uiSet->Screen->colorPalette == (TColorPalette) ptr->action);
+	ptr->state = (Settings->Screen->colorPalette == (TColorPalette) ptr->action);
 	return NULL;
 }
 //-----------------------------------------------------------------------------
 const char *dcb_view_ccol_state(GUI_MENU_ENTRY *ptr)
 {
-	ptr->enabled = (UserInterface::uiSet->Screen->colorPalette == CL_DEFINED);
+	ptr->enabled = (Settings->Screen->colorPalette == CL_DEFINED);
 	return NULL;
 }
 //-----------------------------------------------------------------------------
 const char *dcb_view_sclr_state(GUI_MENU_ENTRY *ptr)
 {
 	if (ptr->action == (WORD) -1)
-		ptr->state = UserInterface::uiSet->Screen->lcdMode;
-	else if (!UserInterface::uiSet->Screen->lcdMode)
-		ptr->state = (UserInterface::uiSet->Screen->halfPass == (THalfPassMode) ptr->action);
+		ptr->state = Settings->Screen->lcdMode;
+	else if (!Settings->Screen->lcdMode)
+		ptr->state = (Settings->Screen->halfPass == (THalfPassMode) ptr->action);
 	else
 		ptr->state = false;
 
@@ -63,12 +88,12 @@ const char *dcb_view_sclr_state(GUI_MENU_ENTRY *ptr)
 //-----------------------------------------------------------------------------
 const char *dcb_view_brdr_state(GUI_MENU_ENTRY *ptr)
 {
-	if (UserInterface::uiSet->Screen->size == DM_FULLSCREEN) {
+	if (Settings->Screen->size == DM_FULLSCREEN) {
 		ptr->enabled = false;
 		return NULL;
 	}
 	else {
-		ptr->action = UserInterface::uiSet->Screen->border;
+		ptr->action = Settings->Screen->border;
 		sprintf((char *) uicch, "%dx", ptr->action);
 		return uicch;
 	}
@@ -76,76 +101,82 @@ const char *dcb_view_brdr_state(GUI_MENU_ENTRY *ptr)
 //-----------------------------------------------------------------------------
 const char *dcb_snd_mute_state(GUI_MENU_ENTRY *ptr)
 {
-	ptr->state = UserInterface::uiSet->Sound->mute;
+	ptr->state = Settings->Sound->mute;
 	return NULL;
 }
 //-----------------------------------------------------------------------------
 const char *dcb_snd_volume_state(GUI_MENU_ENTRY *ptr)
 {
-	ptr->enabled = !UserInterface::uiSet->Sound->mute;
-	ptr->action = UserInterface::uiSet->Sound->volume;
+	ptr->enabled = !Settings->Sound->mute;
+	ptr->action = Settings->Sound->volume;
 	sprintf((char *) uicch, "%d", ptr->action);
 	return uicch;
 }
 //-----------------------------------------------------------------------------
 const char *dcb_kbd_xchg_state(GUI_MENU_ENTRY *ptr)
 {
-	ptr->state = UserInterface::uiSet->Keyboard->changeZY;
+	ptr->state = Settings->Keyboard->changeZY;
 	return NULL;
 }
 //-----------------------------------------------------------------------------
 const char *dcb_kbd_nums_state(GUI_MENU_ENTRY *ptr)
 {
-	ptr->state = UserInterface::uiSet->Keyboard->useNumpad;
+	ptr->state = Settings->Keyboard->useNumpad;
 	return NULL;
 }
 //-----------------------------------------------------------------------------
 const char *dcb_kbd_mato_state(GUI_MENU_ENTRY *ptr)
 {
-	ptr->state = UserInterface::uiSet->Keyboard->useMatoCtrl;
-	ptr->enabled = (UserInterface::uiSet->CurrentModel->type == CM_MATO);
+	ptr->state = Settings->Keyboard->useMatoCtrl;
+	ptr->enabled = (Settings->CurrentModel->type == CM_MATO);
 	return "for Ma\213o";
 }
 //-----------------------------------------------------------------------------
 const char *dcb_emu_m3cmp_state(GUI_MENU_ENTRY *ptr)
 {
-	ptr->enabled = (UserInterface::uiSet->CurrentModel->type == CM_V3);
-	ptr->state = UserInterface::uiSet->CurrentModel->compatibilityMode;
+	ptr->enabled = (Settings->CurrentModel->type == CM_V3);
+	ptr->state = Settings->CurrentModel->compatibilityMode;
 	return NULL;
 }
 //-----------------------------------------------------------------------------
 const char *dcb_emu_pause_state(GUI_MENU_ENTRY *ptr)
 {
-	ptr->state = UserInterface::uiSet->isPaused;
+	ptr->state = Settings->isPaused;
 	return NULL;
 }
 //-----------------------------------------------------------------------------
 const char *dcb_emu_focus_state(GUI_MENU_ENTRY *ptr)
 {
-	ptr->state = UserInterface::uiSet->pauseOnFocusLost;
+	ptr->state = Settings->pauseOnFocusLost;
+	return NULL;
+}
+//-----------------------------------------------------------------------------
+const char *dcb_emu_asave_state(GUI_MENU_ENTRY *ptr)
+{
+	ptr->state = Settings->autosaveSettings;
 	return NULL;
 }
 //-----------------------------------------------------------------------------
 const char *dcb_machine_state(GUI_MENU_ENTRY *ptr)
 {
-	ptr->state = (UserInterface::uiSet->CurrentModel->type == (TComputerModel) ptr->action);
+	ptr->state = (Settings->CurrentModel->type == (TComputerModel) ptr->action);
 	return NULL;
 }
 //-----------------------------------------------------------------------------
 const char *dcb_mem_file_state(GUI_MENU_ENTRY *ptr)
 {
-	return ExtractFileName(UserInterface::uiSet->CurrentModel->romFile);
+	return ExtractFileName(Settings->CurrentModel->romFile);
 }
 //-----------------------------------------------------------------------------
 const char *dcb_mem_rmod_state(GUI_MENU_ENTRY *ptr)
 {
-	switch (UserInterface::uiSet->CurrentModel->type) {
+	switch (Settings->CurrentModel->type) {
 		case CM_V1:
 		case CM_V2:
 		case CM_V2A:
 		case CM_V3:
 			ptr->enabled = true;
-			ptr->state = UserInterface::uiSet->CurrentModel->romModuleInserted;
+			ptr->state = Settings->CurrentModel->romModuleInserted;
 			break;
 
 		default:
@@ -159,7 +190,7 @@ const char *dcb_mem_rmod_state(GUI_MENU_ENTRY *ptr)
 const char *dcb_mem_rpkg_state(GUI_MENU_ENTRY *ptr)
 {
 	if (gui_rom_packages == NULL) {
-		int c = UserInterface::uiSet->romPackagesCount, i;
+		int c = Settings->romPackagesCount, i;
 		if (c > 20)
 			c = 20;
 
@@ -169,7 +200,7 @@ const char *dcb_mem_rpkg_state(GUI_MENU_ENTRY *ptr)
 
 		for (i = 0; i < c; i++) {
 			gui_rom_packages[i + 1].type = MI_RADIO;
-			gui_rom_packages[i + 1].text = UserInterface::uiSet->RomPackages[i]->name;
+			gui_rom_packages[i + 1].text = Settings->RomPackages[i]->name;
 			gui_rom_packages[i + 1].hotkey = NULL;
 			gui_rom_packages[i + 1].submenu = NULL;
 			gui_rom_packages[i + 1].key = SDLK_LAST;
@@ -184,13 +215,13 @@ const char *dcb_mem_rpkg_state(GUI_MENU_ENTRY *ptr)
 		ptr->submenu = gui_rom_packages;
 	}
 
-	switch (UserInterface::uiSet->CurrentModel->type) {
+	switch (Settings->CurrentModel->type) {
 		case CM_V1:
 		case CM_V2:
 		case CM_V2A:
 		case CM_V3:
 			ptr->enabled = true;
-			return ExtractFileName(UserInterface::uiSet->CurrentModel->romModule->name);
+			return ExtractFileName(Settings->CurrentModel->romModule->name);
 
 		default:
 			ptr->enabled = false;
@@ -200,39 +231,39 @@ const char *dcb_mem_rpkg_state(GUI_MENU_ENTRY *ptr)
 //-----------------------------------------------------------------------------
 const char *dcb_rom_pckg_state(GUI_MENU_ENTRY *ptr)
 {
-	ptr->state = (UserInterface::uiSet->CurrentModel->romModule->name == ptr->text);
+	ptr->state = (Settings->CurrentModel->romModule->name == ptr->text);
 	return NULL;
 }
 //-----------------------------------------------------------------------------
 const char *dcb_p32_conn_state(GUI_MENU_ENTRY *ptr)
 {
-	ptr->state = UserInterface::uiSet->PMD32->connected;
+	ptr->state = Settings->PMD32->connected;
 	return NULL;
 }
 //-----------------------------------------------------------------------------
 const char *dcb_p32_file_state(GUI_MENU_ENTRY *ptr)
 {
-	ptr->enabled = UserInterface::uiSet->PMD32->connected;
-	return ExtractFileName(UserInterface::uiSet->PMD32->romFile);
+	ptr->enabled = Settings->PMD32->connected;
+	return ExtractFileName(Settings->PMD32->romFile);
 }
 //-----------------------------------------------------------------------------
 const char *dcb_p32_imgs_state(GUI_MENU_ENTRY *ptr)
 {
-	ptr->enabled = UserInterface::uiSet->PMD32->connected;
+	ptr->enabled = Settings->PMD32->connected;
 	return NULL;
 }
 //-----------------------------------------------------------------------------
 const char *dcb_p32_extc_state(GUI_MENU_ENTRY *ptr)
 {
-	ptr->state = UserInterface::uiSet->PMD32->extraCommands;
-	ptr->enabled = UserInterface::uiSet->PMD32->connected;
+	ptr->state = Settings->PMD32->extraCommands;
+	ptr->enabled = Settings->PMD32->connected;
 	return NULL;
 }
 //-----------------------------------------------------------------------------
 const char *dcb_p32_sdcd_state(GUI_MENU_ENTRY *ptr)
 {
-	ptr->enabled = UserInterface::uiSet->PMD32->connected && UserInterface::uiSet->PMD32->extraCommands;
-	return ExtractFileName(UserInterface::uiSet->PMD32->sdRoot);
+	ptr->enabled = Settings->PMD32->connected && Settings->PMD32->extraCommands;
+	return ExtractFileName(Settings->PMD32->sdRoot);
 }
 //-----------------------------------------------------------------------------
 const char *dcb_p32_imgd_state(GUI_MENU_ENTRY *ptr)
@@ -241,20 +272,20 @@ const char *dcb_p32_imgd_state(GUI_MENU_ENTRY *ptr)
 
 	switch (ptr->action & 0x3FFF) {
 		case 1:
-			ptr->state = UserInterface::uiSet->PMD32->driveA.writeProtect;
-			ret = ExtractFileName(UserInterface::uiSet->PMD32->driveA.image);
+			ptr->state = Settings->PMD32->driveA.writeProtect;
+			ret = ExtractFileName(Settings->PMD32->driveA.image);
 			break;
 		case 2:
-			ptr->state = UserInterface::uiSet->PMD32->driveB.writeProtect;
-			ret = ExtractFileName(UserInterface::uiSet->PMD32->driveB.image);
+			ptr->state = Settings->PMD32->driveB.writeProtect;
+			ret = ExtractFileName(Settings->PMD32->driveB.image);
 			break;
 		case 3:
-			ptr->state = UserInterface::uiSet->PMD32->driveC.writeProtect;
-			ret = ExtractFileName(UserInterface::uiSet->PMD32->driveC.image);
+			ptr->state = Settings->PMD32->driveC.writeProtect;
+			ret = ExtractFileName(Settings->PMD32->driveC.image);
 			break;
 		case 4:
-			ptr->state = UserInterface::uiSet->PMD32->driveD.writeProtect;
-			ret = ExtractFileName(UserInterface::uiSet->PMD32->driveD.image);
+			ptr->state = Settings->PMD32->driveD.writeProtect;
+			ret = ExtractFileName(Settings->PMD32->driveD.image);
 			break;
 		default:
 			break;
@@ -264,6 +295,8 @@ const char *dcb_p32_imgd_state(GUI_MENU_ENTRY *ptr)
 }
 //-----------------------------------------------------------------------------
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//-----------------------------------------------------------------------------
+bool ccb_tape_command(GUI_MENU_ENTRY *ptr) { return false; }
 //-----------------------------------------------------------------------------
 bool ccb_tape_new(GUI_MENU_ENTRY *ptr)
 {
@@ -307,22 +340,22 @@ bool ccb_fileselector(GUI_MENU_ENTRY *ptr)
 //-----------------------------------------------------------------------------
 bool ccb_view_size(GUI_MENU_ENTRY *ptr)
 {
-	UserInterface::uiSet->Screen->size = (TDisplayMode) ptr->action;
-	UserInterface::uiSetChanges |= PS_SCREEN_SIZE;
+	Settings->Screen->size = (TDisplayMode) ptr->action;
+	GUI->uiSetChanges |= PS_SCREEN_SIZE;
 	return true;
 }
 //-----------------------------------------------------------------------------
 bool ccb_view_brdr(GUI_MENU_ENTRY *ptr)
 {
 	sprintf(msgbuffer, "%d", ptr->action);
-	if (Emulator->ActionEditBox("CHANGE BORDER SIZE:", msgbuffer, 1, true) == 1) {
+	if (GUI->editBox("CHANGE BORDER SIZE:", msgbuffer, 1, true) == 1) {
 		long int value = strtol(msgbuffer, NULL, 10);
 		if (value == 0 && msgbuffer[0] != '0')
 			value = -1;
 
 		if (value >= 0 && value <= 9) {
-			UserInterface::uiSet->Screen->border = (BYTE) value;
-			UserInterface::uiSetChanges |= PS_SCREEN_SIZE;
+			Settings->Screen->border = (BYTE) value;
+			GUI->uiSetChanges |= PS_SCREEN_SIZE;
 			ptr->action = value;
 		}
 	}
@@ -332,52 +365,52 @@ bool ccb_view_brdr(GUI_MENU_ENTRY *ptr)
 //-----------------------------------------------------------------------------
 bool ccb_view_cmod(GUI_MENU_ENTRY *ptr)
 {
-	UserInterface::uiSet->Screen->colorProfile = (TColorProfile) ptr->action;
-	UserInterface::uiSetChanges |= PS_SCREEN_MODE;
+	Settings->Screen->colorProfile = (TColorProfile) ptr->action;
+	GUI->uiSetChanges |= PS_SCREEN_MODE;
 	return true;
 }
 //-----------------------------------------------------------------------------
 bool ccb_view_cpal(GUI_MENU_ENTRY *ptr)
 {
-	UserInterface::uiSet->Screen->colorPalette = (TColorPalette) ptr->action;
-	UserInterface::uiSetChanges |= PS_SCREEN_MODE;
+	Settings->Screen->colorPalette = (TColorPalette) ptr->action;
+	GUI->uiSetChanges |= PS_SCREEN_MODE;
 	return true;
 }
 //-----------------------------------------------------------------------------
 bool ccb_view_sclr(GUI_MENU_ENTRY *ptr)
 {
 	if (ptr->action == (WORD) -1) {
-		UserInterface::uiSet->Screen->lcdMode = true;
-		UserInterface::uiSet->Screen->halfPass = HP_OFF;
+		Settings->Screen->lcdMode = true;
+		Settings->Screen->halfPass = HP_OFF;
 	}
 	else {
-		UserInterface::uiSet->Screen->lcdMode = false;
-		UserInterface::uiSet->Screen->halfPass = (THalfPassMode) ptr->action;
+		Settings->Screen->lcdMode = false;
+		Settings->Screen->halfPass = (THalfPassMode) ptr->action;
 	}
 
-	UserInterface::uiSetChanges |= PS_SCREEN_MODE;
+	GUI->uiSetChanges |= PS_SCREEN_MODE;
 	return true;
 }
 //-----------------------------------------------------------------------------
 bool ccb_snd_mute(GUI_MENU_ENTRY *ptr)
 {
-	UserInterface::uiSet->Sound->mute = (ptr->state = !ptr->state);
-	UserInterface::uiSetChanges |= PS_SOUND;
+	Settings->Sound->mute = (ptr->state = !ptr->state);
+	GUI->uiSetChanges |= PS_SOUND;
 
 	ptr++;
-	ptr->enabled = !UserInterface::uiSet->Sound->mute;
+	ptr->enabled = !Settings->Sound->mute;
 	return false;
 }
 //-----------------------------------------------------------------------------
 bool ccb_snd_volume(GUI_MENU_ENTRY *ptr)
 {
 	sprintf(msgbuffer, "%d", ptr->action);
-	Emulator->ActionEditBox("CHANGE VOLUME:", msgbuffer, 3, true);
+	GUI->editBox("CHANGE VOLUME:", msgbuffer, 3, true);
 
 	long int value = strtol(msgbuffer, NULL, 10);
 	if (value > 0 && value < 128) {
-		UserInterface::uiSet->Sound->volume = (BYTE) value;
-		UserInterface::uiSetChanges |= PS_SOUND;
+		Settings->Sound->volume = (BYTE) value;
+		GUI->uiSetChanges |= PS_SOUND;
 	}
 
 	return false;
@@ -385,82 +418,88 @@ bool ccb_snd_volume(GUI_MENU_ENTRY *ptr)
 //-----------------------------------------------------------------------------
 bool ccb_kbd_xchg(GUI_MENU_ENTRY *ptr)
 {
-	UserInterface::uiSet->Keyboard->changeZY = (ptr->state = !ptr->state);
-	UserInterface::uiSetChanges |= PS_CONTROLS;
+	Settings->Keyboard->changeZY = (ptr->state = !ptr->state);
+	GUI->uiSetChanges |= PS_CONTROLS;
 	return false;
 }
 //-----------------------------------------------------------------------------
 bool ccb_kbd_nums(GUI_MENU_ENTRY *ptr)
 {
-	UserInterface::uiSet->Keyboard->useNumpad = (ptr->state = !ptr->state);
-	UserInterface::uiSetChanges |= PS_CONTROLS;
+	Settings->Keyboard->useNumpad = (ptr->state = !ptr->state);
+	GUI->uiSetChanges |= PS_CONTROLS;
 	return false;
 }
 //-----------------------------------------------------------------------------
 bool ccb_kbd_mato(GUI_MENU_ENTRY *ptr)
 {
-	UserInterface::uiSet->Keyboard->useMatoCtrl = (ptr->state = !ptr->state);
-	UserInterface::uiSetChanges |= PS_CONTROLS;
+	Settings->Keyboard->useMatoCtrl = (ptr->state = !ptr->state);
+	GUI->uiSetChanges |= PS_CONTROLS;
 	return false;
 }
 //-----------------------------------------------------------------------------
 bool ccb_emu_pause(GUI_MENU_ENTRY *ptr)
 {
-	UserInterface::uiSet->isPaused = (ptr->state = !ptr->state);
+	Settings->isPaused = (ptr->state = !ptr->state);
 	return false;
 }
 //-----------------------------------------------------------------------------
 bool ccb_emu_reset(GUI_MENU_ENTRY *ptr)
 {
-	UserInterface::uiCallback.connect(Emulator, &TEmulator::ActionReset);
-	UserInterface::uiSetChanges |= PS_CLOSEALL;
+	GUI->uiCallback.connect(Emulator, &TEmulator::ActionReset);
+	GUI->uiSetChanges |= PS_CLOSEALL;
 	return true;
 }
 //-----------------------------------------------------------------------------
 bool ccb_emu_hardreset(GUI_MENU_ENTRY *ptr)
 {
-	UserInterface::uiCallback.connect(Emulator, &TEmulator::ActionHardReset);
-	UserInterface::uiSetChanges |= PS_CLOSEALL;
+	GUI->uiCallback.connect(Emulator, &TEmulator::ActionHardReset);
+	GUI->uiSetChanges |= PS_CLOSEALL;
 	return true;
 }
 //-----------------------------------------------------------------------------
 bool ccb_emu_m3cmp(GUI_MENU_ENTRY *ptr)
 {
-	UserInterface::uiSet->CurrentModel->compatibilityMode = (ptr->state = !ptr->state);
-	UserInterface::uiSetChanges |= PS_MACHINE;
+	Settings->CurrentModel->compatibilityMode = (ptr->state = !ptr->state);
+	GUI->uiSetChanges |= PS_MACHINE;
 	return false;
 }
 //-----------------------------------------------------------------------------
 bool ccb_emu_focus(GUI_MENU_ENTRY *ptr)
 {
-	UserInterface::uiSet->pauseOnFocusLost = (ptr->state = !ptr->state);
+	Settings->pauseOnFocusLost = (ptr->state = !ptr->state);
+	return false;
+}
+//-----------------------------------------------------------------------------
+bool ccb_emu_asave(GUI_MENU_ENTRY *ptr)
+{
+	Settings->autosaveSettings = (ptr->state = !ptr->state);
 	return false;
 }
 //-----------------------------------------------------------------------------
 bool ccb_machine(GUI_MENU_ENTRY *ptr)
 {
-	for (int i = 0; i < UserInterface::uiSet->modelsCount; i++) {
-		if (UserInterface::uiSet->AllModels[i]->type == (TComputerModel) ptr->action) {
-			UserInterface::uiSet->CurrentModel = UserInterface::uiSet->AllModels[i];
+	for (int i = 0; i < Settings->modelsCount; i++) {
+		if (Settings->AllModels[i]->type == (TComputerModel) ptr->action) {
+			Settings->CurrentModel = Settings->AllModels[i];
 			break;
 		}
 	}
 
-	UserInterface::uiSetChanges |= PS_MACHINE | PS_CLOSEALL;
+	GUI->uiSetChanges |= PS_MACHINE | PS_CLOSEALL;
 	return true;
 }
 //-----------------------------------------------------------------------------
 bool ccb_mem_rmod(GUI_MENU_ENTRY *ptr)
 {
-	UserInterface::uiSet->CurrentModel->romModuleInserted = (ptr->state = !ptr->state);
-	UserInterface::uiSetChanges |= PS_MACHINE | PS_PERIPHERALS;
+	Settings->CurrentModel->romModuleInserted = (ptr->state = !ptr->state);
+	GUI->uiSetChanges |= PS_MACHINE | PS_PERIPHERALS;
 	return false;
 }
 //-----------------------------------------------------------------------------
 bool ccb_rom_pckg(GUI_MENU_ENTRY *ptr)
 {
-	UserInterface::uiSet->CurrentModel->romModule = UserInterface::uiSet->RomPackages[ptr->action];
-	UserInterface::uiSetChanges |= PS_MACHINE | PS_PERIPHERALS;
+	Settings->CurrentModel->romModule = Settings->RomPackages[ptr->action];
+	GUI->uiSetChanges |= PS_MACHINE | PS_PERIPHERALS;
 	return true;
 }
 //-----------------------------------------------------------------------------
@@ -472,22 +511,22 @@ bool ccb_p32_imgd(GUI_MENU_ENTRY *ptr)
 
 		switch (ptr->action & 0xF) {
 			case 1:
-				UserInterface::uiSet->PMD32->driveA.writeProtect = ptr->state;
+				Settings->PMD32->driveA.writeProtect = ptr->state;
 				break;
 			case 2:
-				UserInterface::uiSet->PMD32->driveB.writeProtect = ptr->state;
+				Settings->PMD32->driveB.writeProtect = ptr->state;
 				break;
 			case 3:
-				UserInterface::uiSet->PMD32->driveC.writeProtect = ptr->state;
+				Settings->PMD32->driveC.writeProtect = ptr->state;
 				break;
 			case 4:
-				UserInterface::uiSet->PMD32->driveD.writeProtect = ptr->state;
+				Settings->PMD32->driveD.writeProtect = ptr->state;
 				break;
 			default:
 				break;
 		}
 
-		UserInterface::uiSetChanges |= PS_PERIPHERALS;
+		GUI->uiSetChanges |= PS_PERIPHERALS;
 		return false;
 	}
 	else
@@ -498,8 +537,8 @@ bool ccb_p32_imgd(GUI_MENU_ENTRY *ptr)
 //-----------------------------------------------------------------------------
 bool ccb_p32_conn(GUI_MENU_ENTRY *ptr)
 {
-	UserInterface::uiSet->PMD32->connected = (ptr->state = !ptr->state);
-	UserInterface::uiSetChanges |= PS_PERIPHERALS;
+	Settings->PMD32->connected = (ptr->state = !ptr->state);
+	GUI->uiSetChanges |= PS_PERIPHERALS;
 
 	while ((++ptr)->type != MENU_END)
 		if (ptr->detail)
@@ -510,18 +549,18 @@ bool ccb_p32_conn(GUI_MENU_ENTRY *ptr)
 //-----------------------------------------------------------------------------
 bool ccb_p32_extc(GUI_MENU_ENTRY *ptr)
 {
-	UserInterface::uiSet->PMD32->extraCommands = (ptr->state = !ptr->state);
-	UserInterface::uiSetChanges |= PS_PERIPHERALS;
+	Settings->PMD32->extraCommands = (ptr->state = !ptr->state);
+	GUI->uiSetChanges |= PS_PERIPHERALS;
 
 	ptr++;
-	ptr->enabled = UserInterface::uiSet->PMD32->extraCommands;
+	ptr->enabled = Settings->PMD32->extraCommands;
 	return false;
 }
 //-----------------------------------------------------------------------------
 bool ccb_tapebrowser(GUI_MENU_ENTRY *ptr)
 {
-	UserInterface::uiCallback.connect(Emulator, &TEmulator::ActionTapeBrowser);
-	UserInterface::uiSetChanges |= PS_CLOSEALL;
+	GUI->uiCallback.connect(Emulator, &TEmulator::ActionTapeBrowser);
+	GUI->uiSetChanges |= PS_CLOSEALL;
 	return true;
 }
 //-----------------------------------------------------------------------------
