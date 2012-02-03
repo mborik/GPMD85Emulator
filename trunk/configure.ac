@@ -1,5 +1,5 @@
 # GPMD85emu autoconf
-# mborik, 10/2011 - 02/2012
+# mborik, 10/2011, 02/2012
 
 AC_PREREQ([2.59])
 AC_INIT([GPMD85emulator], [0.9.1202], [mborik@users.sourceforge.net], [gpmd85emu], [http://gpmd85emulator.sourceforge.net/])
@@ -111,6 +111,7 @@ AC_CHECK_FUNCS([memset mkdir strstr strtol strcasecmp strrchr])
 AC_CONFIG_FILES([\
 	Makefile \
 	src/Makefile \
+	gui/Makefile \
 	rom/Makefile \
 	res/Makefile \
 ])

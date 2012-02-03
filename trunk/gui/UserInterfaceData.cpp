@@ -33,16 +33,18 @@ const char *dcb_tape_noempty_state(GUI_MENU_ENTRY *ptr)
 const char *dcb_tape_contblk_state(GUI_MENU_ENTRY *ptr)
 {
 	if (TapeBrowser->totalBlocks > 0) {
-		int t, f, l, i = (ptr->action & 0x1ff);
+		int f = TapeBrowser->Selection->first,
+			l = TapeBrowser->Selection->last,
+			i = (ptr->action & 0x1ff);
 
-		ptr->enabled = TapeBrowser->SelectionContinuity(&t, &f, &l);
-		if (t == 0) {
+		ptr->enabled = TapeBrowser->Selection->continuity;
+		if (TapeBrowser->Selection->total == 0) {
 			ptr->enabled = true;
-			f = l = GUI->tapeBrowser->popup.hilite;
+			f = l = GUI->tapeDialog->popup.hilite;
 		}
-		if (i == SDLK_UP && f == 0)
-			ptr->enabled = false;
-		if (i == SDLK_DOWN && l == (TapeBrowser->totalBlocks - 1))
+
+		if ((i == SDLK_UP && f == 0) ||
+			(i == SDLK_DOWN && l == (TapeBrowser->totalBlocks - 1)))
 			ptr->enabled = false;
 	}
 

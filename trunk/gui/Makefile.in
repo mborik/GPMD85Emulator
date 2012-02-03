@@ -16,7 +16,7 @@
 @SET_MAKE@
 
 # GPMD85emu automake
-# mborik, 10/2011, 02/2012
+# mborik, 02/2012
 
 
 VPATH = @srcdir@
@@ -36,7 +36,7 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-subdir = src
+subdir = gui
 DIST_COMMON = $(noinst_HEADERS) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -50,17 +50,13 @@ CONFIG_CLEAN_VPATH_FILES =
 LIBRARIES = $(noinst_LIBRARIES)
 AR = ar
 ARFLAGS = cru
-libGPMD85emu_core_a_AR = $(AR) $(ARFLAGS)
-libGPMD85emu_core_a_LIBADD =
-am_libGPMD85emu_core_a_OBJECTS = CommonUtils.$(OBJEXT) \
-	GPMD85main.$(OBJEXT) ChipCpu8080.$(OBJEXT) \
-	ChipMemory.$(OBJEXT) ChipPIO8255.$(OBJEXT) \
-	ChipPIT8253.$(OBJEXT) ChipUSART8251.$(OBJEXT) \
-	IifGPIO.$(OBJEXT) IifTape.$(OBJEXT) IifTimer.$(OBJEXT) \
-	Pmd32.$(OBJEXT) RaomModule.$(OBJEXT) RomModule.$(OBJEXT) \
-	Settings.$(OBJEXT) ScreenPMD85.$(OBJEXT) SoundDriver.$(OBJEXT) \
-	SystemPIO.$(OBJEXT) TapeBrowser.$(OBJEXT)
-libGPMD85emu_core_a_OBJECTS = $(am_libGPMD85emu_core_a_OBJECTS)
+libGPMD85emu_gui_a_AR = $(AR) $(ARFLAGS)
+libGPMD85emu_gui_a_LIBADD =
+am_libGPMD85emu_gui_a_OBJECTS = CommonDialog.$(OBJEXT) \
+	EditDialog.$(OBJEXT) Menu.$(OBJEXT) FileSelector.$(OBJEXT) \
+	TapeDialog.$(OBJEXT) UserInterface.$(OBJEXT) \
+	UserInterfaceData.$(OBJEXT)
+libGPMD85emu_gui_a_OBJECTS = $(am_libGPMD85emu_gui_a_OBJECTS)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -70,8 +66,8 @@ CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 CXXLD = $(CXX)
 CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
 	-o $@
-SOURCES = $(libGPMD85emu_core_a_SOURCES)
-DIST_SOURCES = $(libGPMD85emu_core_a_SOURCES)
+SOURCES = $(libGPMD85emu_gui_a_SOURCES)
+DIST_SOURCES = $(libGPMD85emu_gui_a_SOURCES)
 HEADERS = $(noinst_HEADERS)
 ETAGS = etags
 CTAGS = ctags
@@ -177,52 +173,22 @@ top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = foreign
 AM_CPPFLAGS = \
 	-I$(srcdir)/.. \
-	-I$(srcdir)/../gui \
+	-I$(srcdir)/../src \
 	@libSDL_CFLAGS@
 
-noinst_LIBRARIES = libGPMD85emu_core.a
-libGPMD85emu_core_a_SOURCES = \
-	CommonUtils.cpp \
-	GPMD85main.cpp \
-	ChipCpu8080.cpp \
-	ChipMemory.cpp \
-	ChipPIO8255.cpp \
-	ChipPIT8253.cpp \
-	ChipUSART8251.cpp \
-	IifGPIO.cpp \
-	IifTape.cpp \
-	IifTimer.cpp \
-	Pmd32.cpp \
-	RaomModule.cpp \
-	RomModule.cpp \
-	Settings.cpp \
-	ScreenPMD85.cpp \
-	SoundDriver.cpp \
-	SystemPIO.cpp \
-	TapeBrowser.cpp
+noinst_LIBRARIES = libGPMD85emu_gui.a
+libGPMD85emu_gui_a_SOURCES = \
+	CommonDialog.cpp \
+	EditDialog.cpp \
+	Menu.cpp \
+	FileSelector.cpp \
+	TapeDialog.cpp \
+	UserInterface.cpp \
+	UserInterfaceData.cpp
 
 noinst_HEADERS = \
-	macros8080.h \
-	CommonUtils.h \
-	GPMD85main.h \
-	ChipCpu8080.h \
-	ChipMemory.h \
-	ChipPIO8255.h \
-	ChipPIT8253.h \
-	ChipUSART8251.h \
-	IifGPIO.h \
-	IifTape.h \
-	IifTimer.h \
-	InterruptController.h \
-	PeripheralDevice.h \
-	Pmd32.h \
-	RaomModule.h \
-	RomModule.h \
-	Settings.h \
-	ScreenPMD85.h \
-	SoundDriver.h \
-	SystemPIO.h \
-	TapeBrowser.h
+	UserInterface.h \
+	UserInterfaceData.h
 
 all: all-am
 
@@ -237,9 +203,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign src/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign gui/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign src/Makefile
+	  $(AUTOMAKE) --foreign gui/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -261,10 +227,10 @@ $(am__aclocal_m4_deps):
 
 clean-noinstLIBRARIES:
 	-test -z "$(noinst_LIBRARIES)" || rm -f $(noinst_LIBRARIES)
-libGPMD85emu_core.a: $(libGPMD85emu_core_a_OBJECTS) $(libGPMD85emu_core_a_DEPENDENCIES) 
-	-rm -f libGPMD85emu_core.a
-	$(libGPMD85emu_core_a_AR) libGPMD85emu_core.a $(libGPMD85emu_core_a_OBJECTS) $(libGPMD85emu_core_a_LIBADD)
-	$(RANLIB) libGPMD85emu_core.a
+libGPMD85emu_gui.a: $(libGPMD85emu_gui_a_OBJECTS) $(libGPMD85emu_gui_a_DEPENDENCIES) 
+	-rm -f libGPMD85emu_gui.a
+	$(libGPMD85emu_gui_a_AR) libGPMD85emu_gui.a $(libGPMD85emu_gui_a_OBJECTS) $(libGPMD85emu_gui_a_LIBADD)
+	$(RANLIB) libGPMD85emu_gui.a
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -272,24 +238,13 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ChipCpu8080.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ChipMemory.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ChipPIO8255.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ChipPIT8253.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ChipUSART8251.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/CommonUtils.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/GPMD85main.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/IifGPIO.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/IifTape.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/IifTimer.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Pmd32.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/RaomModule.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/RomModule.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ScreenPMD85.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Settings.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/SoundDriver.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/SystemPIO.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/TapeBrowser.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/CommonDialog.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/EditDialog.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/FileSelector.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Menu.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/TapeDialog.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/UserInterface.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/UserInterfaceData.Po@am__quote@
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

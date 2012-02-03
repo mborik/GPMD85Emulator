@@ -97,10 +97,10 @@ class UserInterface : public sigslot::has_slots<>
 			sigslot::signal2<char *, BYTE *> callback;
 		} GUI_FILESELECTOR_DATA;
 
-		typedef struct GUI_TAPEBROWSER_DATA {
+		typedef struct GUI_TAPEDIALOG_DATA {
 			int  count;
 			char **entries;
-			struct popup {
+			struct {
 				BYTE *frame;
 				SDL_Rect *rect;
 				int leftMargin, count, hilite;
@@ -113,7 +113,7 @@ class UserInterface : public sigslot::has_slots<>
 
 		SDL_Surface *defaultSurface;
 		GUI_FILESELECTOR_DATA *fileSelector;
-		GUI_TAPEBROWSER_DATA *tapeBrowser;
+		GUI_TAPEDIALOG_DATA *tapeDialog;
 		sigslot::signal2<char *, BYTE *> editBoxValidator;
 
 		bool needRedraw;
@@ -169,16 +169,17 @@ class UserInterface : public sigslot::has_slots<>
 		void drawOutlineRounded(SDL_Surface *s, int x, int y, int w, int h, DWORD col);
 		void drawDialogWithBorder(SDL_Surface *s, int x, int y, int w, int h);
 		void printCheck(SDL_Surface *s, int x, int y, DWORD col, BYTE ch, bool state);
+
 		void drawMenuItems();
 		void drawMenu(void *data);
 		void drawFileSelectorItems();
 		void drawFileSelector(bool update = true);
-		void drawTapeBrowserItems();
-		void drawTapeBrowser(bool update = true);
+		void drawTapeDialogItems();
+		void drawTapeDialog(bool update = true);
 		void keyhandlerMenu(WORD key);
 		void keyhandlerFileSelector(WORD key);
 		void keyhandlerFileSelectorCallback(char *fileName);
-		void keyhandlerTapeBrowser(WORD key);
+		void keyhandlerTapeDialog(WORD key);
 };
 //-----------------------------------------------------------------------------
 #endif

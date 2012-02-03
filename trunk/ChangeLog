@@ -1,3 +1,4 @@
+2012-02-02 [mborik] separation of GUI vs. Core code; GUI code separated to logical sections; implemented move of tape block or selection
 2012-02-01 [mborik] implemented "pause on lost focus"; added "autosave settings" to menu; fixed callbacks of TapeBrowser popup items
 2012-01-31 [mborik] externed GUI, Settings and TapeBrowser to make it global accessible
 2012-01-27 [mborik] implemented methods for checking selection continuity and deleting selection to TapeBrowser
