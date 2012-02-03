@@ -1,14 +1,15 @@
 # GPMD85emu automake
-# mborik, 10/2011
+# mborik, 10/2011, 02/2012
 
 AUTOMAKE_OPTIONS = foreign
 AM_CPPFLAGS = \
 	-I$(srcdir)/.. \
+	-I$(srcdir)/../gui \
 	@libSDL_CFLAGS@
 
-noinst_LIBRARIES = libGPMD85emu.a
+noinst_LIBRARIES = libGPMD85emu_core.a
 
-libGPMD85emu_a_SOURCES = \
+libGPMD85emu_core_a_SOURCES = \
 	CommonUtils.cpp \
 	GPMD85main.cpp \
 	ChipCpu8080.cpp \
@@ -26,9 +27,7 @@ libGPMD85emu_a_SOURCES = \
 	ScreenPMD85.cpp \
 	SoundDriver.cpp \
 	SystemPIO.cpp \
-	TapeBrowser.cpp \
-	UserInterface.cpp \
-	UserInterfaceData.cpp
+	TapeBrowser.cpp
 
 noinst_HEADERS = \
 	macros8080.h \
@@ -51,6 +50,4 @@ noinst_HEADERS = \
 	ScreenPMD85.h \
 	SoundDriver.h \
 	SystemPIO.h \
-	TapeBrowser.h \
-	UserInterface.h \
-	UserInterfaceData.h
+	TapeBrowser.h

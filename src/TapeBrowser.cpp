@@ -32,6 +32,9 @@ TTapeBrowser::TTapeBrowser()
 	ProgressBar->Position = 0;
 	ProgressBar->Active = &playing;
 
+	Selection = new TTapeSelection;
+	CheckSelectionContinuity();
+
 	playing = false;
 	tapeChanged = false;
 	preparedForSave = false;
@@ -47,9 +50,15 @@ TTapeBrowser::~TTapeBrowser()
 {
 	debug("TapeBrowser", "Freeing...");
 
+	FreeAllBlocks();
+
 	if (tapeFile)
 		delete [] tapeFile;
 	tapeFile = NULL;
+
+	if (Selection)
+		delete Selection;
+	Selection = NULL;
 
 	if (ProgressBar)
 		delete ProgressBar;
@@ -58,8 +67,6 @@ TTapeBrowser::~TTapeBrowser()
 	if (buffer)
 		delete [] buffer;
 	buffer = NULL;
-
-	FreeAllBlocks();
 }
 //---------------------------------------------------------------------------
 void TTapeBrowser::FreeAllBlocks()
@@ -96,6 +103,8 @@ void TTapeBrowser::FreeAllBlocks()
 	totalBlocks = 0;
 	currBlockIdx = -1;
 	stopBlockIdx = -1;
+
+	CheckSelectionContinuity();
 }
 //---------------------------------------------------------------------------
 void TTapeBrowser::SetIfTape(IifTape *ifTape)
@@ -447,9 +456,76 @@ void TTapeBrowser::ToggleSelection(int idx)
 			}
 		}
 
-		if (sBlk)
+		if (sBlk) {
 			sBlk->selected = !sBlk->selected;
+			CheckSelectionContinuity();
+		}
 	}
+}
+//---------------------------------------------------------------------------
+void TTapeBrowser::MoveSelected(bool up, int *cursor)
+{
+	int fidx = Selection->first,
+		lidx = Selection->last,
+		idx  = 0;
+
+	if (Selection->total == 0)
+		fidx = lidx = *cursor;
+	else if (!Selection->continuity)
+		return;
+
+	if ((up && fidx == 0) || (!up && lidx == (totalBlocks - 1)))
+		return;
+
+	TAPE_BLOCK *first = blocks, *last = NULL, *tb = NULL;
+
+	first = blocks;
+	while (idx < fidx && first->next) {
+		first = first->next;
+		idx++;
+	}
+
+	last = first;
+	while (idx < lidx && last->next) {
+		last = last->next;
+		idx++;
+	}
+
+	if (up) {
+		tb = first->prev;
+		first->prev = tb->prev;
+		if (first->prev)
+			first->prev->next = first;
+		else
+			blocks = first;
+		if (last->next)
+			last->next->prev = tb;
+		tb->next = last->next;
+		last->next = tb;
+		tb->prev = last;
+
+		if (*cursor >= fidx && *cursor <= lidx)
+			*cursor = *cursor - 1;
+	}
+	else {
+		tb = last->next;
+		last->next = tb->next;
+		if (last->next)
+			last->next->prev = last;
+		tb->prev = first->prev;
+		if (first->prev)
+			first->prev->next = tb;
+		else
+			blocks = tb;
+		first->prev = tb;
+		tb->next = first;
+
+		if (*cursor >= fidx && *cursor <= lidx)
+			*cursor = *cursor + 1;
+	}
+
+	tapeChanged = true;
+	CheckSelectionContinuity();
 }
 //---------------------------------------------------------------------------
 void TTapeBrowser::DeleteSelected(int idx)
@@ -476,6 +552,8 @@ void TTapeBrowser::DeleteSelected(int idx)
 
 	if (count)
 		tapeChanged = true;
+
+	CheckSelectionContinuity();
 }
 //---------------------------------------------------------------------------
 void TTapeBrowser::DeleteBlock(int idx, TAPE_BLOCK *tb)
@@ -500,6 +578,9 @@ void TTapeBrowser::DeleteBlock(int idx, TAPE_BLOCK *tb)
 		tb->prev->next = NULL;
 
 	TAPE_BLOCK *tbx = tb->next;
+	if (currBlock == tb)
+		currBlock = tbx;
+
 	delete tb;
 	tb = tbx;
 
@@ -512,28 +593,25 @@ void TTapeBrowser::DeleteBlock(int idx, TAPE_BLOCK *tb)
 		stopBlockIdx = -1;
 }
 //---------------------------------------------------------------------------
-bool TTapeBrowser::SelectionContinuity(int *total, int *first, int *last)
+void TTapeBrowser::CheckSelectionContinuity()
 {
 	int i = 0, c = 0, idx = 0;
 	TAPE_BLOCK *tb = blocks;
 
-	if (!tb) {
-		if (total)
-			*total = 0;
-		if (first)
-			*first = -1;
-		if (last)
-			*last = -1;
-		return false;
-	}
+	Selection->total = 0;
+	Selection->first = -1;
+	Selection->last = -1;
+	Selection->continuity = false;
+
+	if (!tb)
+		return;
 
 	do {
 		do {
 			i++;
 			if (tb->selected) {
 				if (c == 0) {
-					if (first)
-						*first = (i - 1);
+					Selection->first = (i - 1);
 					idx = i;
 				}
 				c++;
@@ -553,11 +631,9 @@ bool TTapeBrowser::SelectionContinuity(int *total, int *first, int *last)
 		}
 	} while (tb);
 
-	if (total)
-		*total = c;
-	if (last)
-		*last = idx - 2;
-	return (idx > 0);
+	Selection->total = c;
+	Selection->last = (idx - 2);
+	Selection->continuity = (idx > 0);
 }
 //---------------------------------------------------------------------------
 void TTapeBrowser::PrepareData(bool head)

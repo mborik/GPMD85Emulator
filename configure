@@ -5540,7 +5540,7 @@ fi
 done
 
 
-ac_config_files="$ac_config_files Makefile src/Makefile rom/Makefile res/Makefile"
+ac_config_files="$ac_config_files Makefile src/Makefile gui/Makefile rom/Makefile res/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -6262,6 +6262,7 @@ do
     "depfiles") CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "src/Makefile") CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
+    "gui/Makefile") CONFIG_FILES="$CONFIG_FILES gui/Makefile" ;;
     "rom/Makefile") CONFIG_FILES="$CONFIG_FILES rom/Makefile" ;;
     "res/Makefile") CONFIG_FILES="$CONFIG_FILES res/Makefile" ;;
 
