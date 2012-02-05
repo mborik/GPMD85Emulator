@@ -110,13 +110,11 @@ static GUI_MENU_ENTRY UNUSED_VARIABLE gui_tapebrowser_popup[] = {
 	{ MI_STANDARD, "\aFIX HEADER CRC", NULL, SDLK_f, NULL, NULL, NULL, false },
 	{ MI_DIALOG, "MAKE HEAD(\aLESS)", NULL, SDLK_l, NULL, NULL, NULL, false },
 	{ MI_SEPARATOR },
-	{ MI_DIALOG, "IMPORT \aTAPE", NULL, SDLK_t, NULL, NULL, NULL, true, false, 1 },
-	{ MI_DIALOG, "\aIMPORT RAW DATA", NULL, SDLK_i, NULL, NULL, NULL, true, false, 3 },
+	{ MI_DIALOG, "\aIMPORT TAPE", NULL, SDLK_i, NULL, ccb_fileselector, NULL, true, false, 8 },
+	{ MI_DIALOG, "IMPORT \aRAW DATA", NULL, SDLK_r, NULL, NULL, NULL, false },
 	{ MI_SEPARATOR },
-	{ MI_DIALOG, "E\aXPORT TO TAPE", NULL, SDLK_x, NULL, NULL, dcb_tape_noempty_state, false, false, 2 },
-	{ MI_DIALOG, "EXPORT \aRAW DATA", NULL, SDLK_r, NULL, NULL, dcb_tape_noempty_state, false, false, 4 },
-	{ MI_SEPARATOR },
-	{ MI_STANDARD, "LEGEND", "F1", SDLK_F1, NULL, ccb_tape_command, NULL, true, false, SDLK_F1 },
+	{ MI_DIALOG, "E\aXPORT TO TAPE", NULL, SDLK_x, NULL, NULL, NULL, false /* dcb_tape_contblk_state, false, false, 0 */ },
+	{ MI_DIALOG, "EXPORT RA\aW DATA", NULL, SDLK_w, NULL, NULL, NULL, false /* dcb_tape_noempty_state */ },
 	{ MENU_END }
 };
 static GUI_MENU_ENTRY gui_p32_images_menu[] = {

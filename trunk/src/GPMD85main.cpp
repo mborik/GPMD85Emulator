@@ -648,13 +648,14 @@ void TEmulator::ActionTapeNew()
 	ActionPlayPause(!Settings->isPaused, false);
 }
 //---------------------------------------------------------------------------
-void TEmulator::ActionTapeLoad()
+void TEmulator::ActionTapeLoad(bool import)
 {
 	static const char *tape_filter[] = { "ptp", "pmd", NULL };
+	static char tape_title[32] = "";
 
 	ActionPlayPause(false, false);
 
-	if (TapeBrowser->tapeChanged) {
+	if (!import && TapeBrowser->tapeChanged) {
 		BYTE result = GUI->queryDialog("SAVE CHANGES?", true);
 		if (result == GUI_QUERY_SAVE) {
 			ActionTapeSave();
@@ -667,14 +668,18 @@ void TEmulator::ActionTapeLoad()
 		}
 	}
 
+	sprintf(tape_title, "%s TAPE FILE (*.ptp, *.pmd)", (import ? "IMPORT" : "OPEN"));
+
+	GUI->fileSelector->tag = (BYTE) import;
 	GUI->fileSelector->type = GUI_FS_BASELOAD;
-	GUI->fileSelector->title = "OPEN TAPE FILE (*.ptp, *.pmd)";
+	GUI->fileSelector->title = tape_title;
 	GUI->fileSelector->extFilter = (char **) tape_filter;
 	GUI->fileSelector->callback.disconnect_all();
 	GUI->fileSelector->callback.connect(this, &TEmulator::InsertTape);
 
-	if (Settings->TapeBrowser->fileName) {
-		char *file = ComposeFilePath(Settings->TapeBrowser->fileName);
+	char *recentFile = import ? TapeBrowser->orgTapeFile : Settings->TapeBrowser->fileName;
+	if (recentFile) {
+		char *file = ComposeFilePath(recentFile);
 		strcpy(GUI->fileSelector->path, file);
 		delete [] file;
 
@@ -1623,14 +1628,29 @@ void TEmulator::PrepareSnapshot(char *fileName, BYTE *flag)
 //---------------------------------------------------------------------------
 void TEmulator::InsertTape(char *fileName, BYTE *flag)
 {
+	bool result, import = (bool) *flag;
+
+	if (import)
+		result = TapeBrowser->ImportFileName(fileName);
+	else
+		result = TapeBrowser->SetTapeFileName(fileName);
+
 	*flag = 0;
-	if (!(TapeBrowser->SetTapeFileName(fileName)))
+	if (!result)
 		GUI->messageBox("CORRUPTED TAPE FORMAT!");
 
-	if (Settings->TapeBrowser->fileName)
-		delete [] Settings->TapeBrowser->fileName;
-	Settings->TapeBrowser->fileName = new char[(strlen(fileName) + 1)];
-	strcpy(Settings->TapeBrowser->fileName, fileName);
+	if (import) {
+		if (TapeBrowser->orgTapeFile)
+			delete [] TapeBrowser->orgTapeFile;
+		TapeBrowser->orgTapeFile = new char[(strlen(fileName) + 1)];
+		strcpy(TapeBrowser->orgTapeFile, fileName);
+	}
+	else {
+		if (Settings->TapeBrowser->fileName)
+			delete [] Settings->TapeBrowser->fileName;
+		Settings->TapeBrowser->fileName = new char[(strlen(fileName) + 1)];
+		strcpy(Settings->TapeBrowser->fileName, fileName);
+	}
 
 	GUI->uiCallback.connect(this, &TEmulator::ActionTapeBrowser);
 }

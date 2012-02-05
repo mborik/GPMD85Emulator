@@ -40,7 +40,7 @@ void UserInterface::drawTapeDialog(bool update)
 		cMenu_leftMargin = cMenu_hilite - GUI_CONST_TAPE_ITEMS + 1;
 
 	cMenu_rect->w = GUI_CONST_BORDER + (31 * fontWidth) + GUI_CONST_BORDER;
-	cMenu_rect->h = (3 * GUI_CONST_BORDER) + (19 * GUI_CONST_ITEM_SIZE) + GUI_CONST_BORDER + GUI_CONST_SEPARATOR;
+	cMenu_rect->h = (5 * GUI_CONST_BORDER) + (19 * GUI_CONST_ITEM_SIZE) + GUI_CONST_SEPARATOR;
 	cMenu_rect->x = (defaultSurface->w - cMenu_rect->w) / 2;
 	cMenu_rect->y = (defaultSurface->h - cMenu_rect->h) / 2;
 
@@ -54,24 +54,31 @@ void UserInterface::drawTapeDialog(bool update)
 		cMenu_rect->w - GUI_CONST_BORDER, GUI_COLOR_SEPARATOR);
 
 	int mx = cMenu_rect->x + cMenu_rect->w - GUI_CONST_BORDER - 1,
-		my = cMenu_rect->y + cMenu_rect->h - 5 - (3 * fontLineHeight);
+		my = cMenu_rect->y + cMenu_rect->h - 5 - (4 * fontLineHeight);
 
 	printText(defaultSurface, mx - (10 * fontWidth), my,
 		GUI_COLOR_FOREGROUND, "MENU \aE\aN\aT\aE\aR");
 
+	printText(defaultSurface, mx - (6 * fontWidth) - GUI_CONST_HOTKEYCHAR,
+		my + fontLineHeight, GUI_COLOR_FOREGROUND,
+		(TapeBrowser->playing ? "STOP \a\203\aP" : "PLAY \a\203\aP"));
+
 	mx = cMenu_rect->x + GUI_CONST_BORDER;
-	printCheck(defaultSurface, mx, my + 1, GUI_COLOR_CHECKED,
-		SCHR_CHECK, Settings->TapeBrowser->flash);
 	printText(defaultSurface, mx + GUI_CONST_CHK_MARGIN, my,
+		GUI_COLOR_FOREGROUND, "\aH HEX/DEC");
+
+	printCheck(defaultSurface, mx, my + fontLineHeight + 1, GUI_COLOR_CHECKED,
+		SCHR_CHECK, Settings->TapeBrowser->flash);
+	printText(defaultSurface, mx + GUI_CONST_CHK_MARGIN, my + fontLineHeight,
 		GUI_COLOR_FOREGROUND, "\aF FLASHLOAD");
 
-	printCheck(defaultSurface, mx, my + fontLineHeight + 1,
+	printCheck(defaultSurface, mx, my + (2 * fontLineHeight) + 1,
 		GUI_COLOR_CHECKED, SCHR_CHECK, Settings->TapeBrowser->monitoring);
-	printText(defaultSurface, mx + GUI_CONST_CHK_MARGIN, my + fontLineHeight,
+	printText(defaultSurface, mx + GUI_CONST_CHK_MARGIN, my + (2 * fontLineHeight),
 		GUI_COLOR_FOREGROUND, "\aO AUDIO-OUT");
 
 	printText(defaultSurface, mx + GUI_CONST_CHK_MARGIN,
-		my + (2 * fontLineHeight), GUI_COLOR_FOREGROUND,
+		my + (3 * fontLineHeight), GUI_COLOR_FOREGROUND,
 		"\aA AUTO-STOP:");
 
 	static char autostop[12];
@@ -89,7 +96,7 @@ void UserInterface::drawTapeDialog(bool update)
 	}
 
 	printText(defaultSurface, mx + GUI_CONST_CHK_MARGIN + (13 * fontWidth),
-		my + (2 * fontLineHeight), GUI_COLOR_HOTKEY, autostop);
+		my + (3 * fontLineHeight), GUI_COLOR_HOTKEY, autostop);
 
 	static char *ptr = NULL;
 	if (Settings->TapeBrowser->fileName && !TapeBrowser->preparedForSave) {
@@ -230,8 +237,12 @@ void UserInterface::keyhandlerTapeDialog(WORD key)
 			needRelease = true;
 			if (!cMenu_count)
 				break;
-			if (TapeBrowser->playing)
+			if (TapeBrowser->playing) {
 				TapeBrowser->ActionStop();
+				prevLeftMargin = cMenu_leftMargin;
+				drawTapeDialog();
+				change = true;
+			}
 			else {
 				uiCallback.connect(Emulator, &TEmulator::ActionTapePlayStop);
 				uiSetChanges |= PS_CLOSEALL;

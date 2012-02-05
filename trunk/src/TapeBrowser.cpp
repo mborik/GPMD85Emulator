@@ -56,6 +56,14 @@ TTapeBrowser::~TTapeBrowser()
 		delete [] tapeFile;
 	tapeFile = NULL;
 
+	if (orgTapeFile)
+		delete [] orgTapeFile;
+	orgTapeFile = NULL;
+
+	if (tmpFileName)
+		delete [] tmpFileName;
+	tmpFileName = NULL;
+
 	if (Selection)
 		delete Selection;
 	Selection = NULL;
@@ -135,6 +143,21 @@ bool TTapeBrowser::SetTapeFileName(char *fn)
 		SetCurrentBlock(0);
 		tapeChanged = false;
 		preparedForSave = false;
+	}
+
+	return ret;
+}
+//---------------------------------------------------------------------------
+bool TTapeBrowser::ImportFileName(char *fn)
+{
+	bool ret = false;
+
+	if (FileExists(fn)) {
+		if (playing)
+			ActionStop();
+
+		ret = !(ParseFile(fn, &blocks));
+		tapeChanged = true;
 	}
 
 	return ret;
