@@ -439,7 +439,7 @@ void ScreenPMD85::PrepareVideoMode()
 		debug("Screen", "Full-screen mode: %dx%d/%dbit", gvi.w, gvi.h, gvi.depth);
 		Screen = SDL_SetVideoMode(gvi.w, gvi.h, gvi.depth,
 			SDL_FULLSCREEN | SDL_DOUBLEBUF |
-			(gvi.hw ? SDL_HWSURFACE : SDL_SWSURFACE));
+			(gvi.hw ? SDL_HWSURFACE | SDL_HWPALETTE : SDL_SWSURFACE));
 	}
 	else {
 		debug("Screen", "Windowed mode: %dx%d/%dbit", Width, Height, gvi.depth);
@@ -451,8 +451,15 @@ void ScreenPMD85::PrepareVideoMode()
 	if (!Screen)
 		error("Screen", "Unable to create screen buffer\n%s", SDL_GetError());
 
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
 	BlitSurface = SDL_CreateRGBSurface(SDL_SWSURFACE,
-			BlitRectSrc->w, BlitRectSrc->h, 8, 0, 0, 0, 0);
+		BlitRectSrc->w, BlitRectSrc->h, 8,
+		0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff);
+#else
+	BlitSurface = SDL_CreateRGBSurface(SDL_SWSURFACE,
+		BlitRectSrc->w, BlitRectSrc->h, 8,
+		0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+#endif
 
 	if (!BlitSurface)
 		error("Screen", "Unable to create blitting surface\n%s", SDL_GetError());

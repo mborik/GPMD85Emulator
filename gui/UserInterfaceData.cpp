@@ -333,6 +333,10 @@ bool ccb_fileselector(GUI_MENU_ENTRY *ptr)
 			Emulator->ActionROMLoad(32);
 			break;
 
+		case 8:
+			Emulator->ActionTapeLoad(true);
+			break;
+
 		default:
 			break;
 	}

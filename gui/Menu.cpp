@@ -299,7 +299,7 @@ void UserInterface::keyhandlerMenu(WORD key)
 					keyhandlerTapeDialog(ptr->action);
 					return;
 				}
-				else
+				else if (cMenu_data)
 					drawMenuItems();
 			}
 

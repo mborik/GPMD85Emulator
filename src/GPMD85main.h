@@ -56,7 +56,7 @@ class TEmulator : public sigslot::has_slots<>
 		void ActionTapeBrowser();
 		void ActionTapePlayStop();
 		void ActionTapeNew();
-		void ActionTapeLoad();
+		void ActionTapeLoad(bool import = false);
 		void ActionTapeSave();
 		void ActionPMD32LoadDisk(int drive);
 		void ActionSnapLoad();

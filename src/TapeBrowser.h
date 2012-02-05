@@ -49,7 +49,6 @@ class TTapeBrowser : public sigslot::has_slots<>
 		IifTape *ifTape;
 
 		char *tapeFile;
-		char *orgTapeFile;
 		char *tmpFileName;
 
 		TAPE_BLOCK *blocks;
@@ -79,6 +78,8 @@ class TTapeBrowser : public sigslot::has_slots<>
 		bool tapeChanged;
 		bool preparedForSave;
 
+		char *orgTapeFile;
+
 		int currBlockIdx;
 		int stopBlockIdx;
 		int totalBlocks;
@@ -88,6 +89,7 @@ class TTapeBrowser : public sigslot::has_slots<>
 
 		void SetIfTape(IifTape *ifTape);
 		bool SetTapeFileName(char *fn);
+		bool ImportFileName(char *fn);
 		void SetNewTape();
 		void ActionPlay();
 		void ActionStop();
