@@ -30,6 +30,7 @@ class TTapeBrowser : public sigslot::has_slots<>
 			TapeBlock *prev;
 			TapeBlock *next;
 		} TAPE_BLOCK;
+#pragma pack(pop)
 
 		typedef struct TProgressBar {
 			bool *Active;
@@ -43,7 +44,6 @@ class TTapeBrowser : public sigslot::has_slots<>
 			int  last;
 			int  total;
 		} TTapeSelection;
-#pragma pack(pop)
 
 	private:
 		IifTape *ifTape;
@@ -61,7 +61,7 @@ class TTapeBrowser : public sigslot::has_slots<>
 		bool  head;
 
 		void FreeAllBlocks();
-		bool ParseFile(char *fn, TAPE_BLOCK **blks, DWORD seek = 0);
+		BYTE ParseFile(char *fn, TAPE_BLOCK **blks, DWORD seek = 0);
 		bool CheckCrc(BYTE *buff, int length, BYTE *goodCrc);
 		bool CheckHeader(BYTE *buff, TAPE_BLOCK *blk);
 		void DeleteBlock(int idx, TAPE_BLOCK *blk = NULL);
@@ -88,8 +88,8 @@ class TTapeBrowser : public sigslot::has_slots<>
 		TTapeSelection *Selection;
 
 		void SetIfTape(IifTape *ifTape);
-		bool SetTapeFileName(char *fn);
-		bool ImportFileName(char *fn);
+		BYTE SetTapeFileName(char *fn);
+		BYTE ImportFileName(char *fn);
 		void SetNewTape();
 		void ActionPlay();
 		void ActionStop();

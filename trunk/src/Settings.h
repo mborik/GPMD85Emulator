@@ -58,6 +58,7 @@ class TSettings
 		struct SetScreen {
 			int border;
 			TDisplayMode size;
+			TDisplayMode realsize;
 			THalfPassMode halfPass;
 			bool lcdMode;
 			TColorProfile colorProfile;
@@ -170,6 +171,7 @@ class TSettings
 
 		TSettings();
 		virtual ~TSettings();
+		void storeSettings();
 
 		SetRomPackage *findROMmodule(char *name);
 		SetRomModuleFile *checkRMMfile(char *name);

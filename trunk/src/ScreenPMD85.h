@@ -74,6 +74,8 @@ public:
 	inline void ToggleBlinkStatus() { BlinkState = !BlinkState;}
 	inline bool GetBlinkStatus() { return BlinkState; }
 
+	inline int GetMultiplier() { return BlitRectSrc->w / bufferWidth; }
+
 	void SetColorProfile(TColorProfile ColProf);
 	inline TColorProfile GetColorProfile() { return ColorProfile; }
 
@@ -86,9 +88,6 @@ public:
 
 	inline void SetStatusPercentage(int val) { statusPercentage = val; }
 	inline void SetStatusFPS(int val) { statusFPS = val; }
-
-	inline int GetWidth() { return BlitRectDest->w; }
-	inline int GetHeight() { return BlitRectDest->h; }
 
 	void RefreshDisplay();
 	void FillBuffer(BYTE *videoRam);

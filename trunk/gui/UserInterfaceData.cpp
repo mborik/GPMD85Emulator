@@ -482,6 +482,12 @@ bool ccb_emu_asave(GUI_MENU_ENTRY *ptr)
 	return false;
 }
 //-----------------------------------------------------------------------------
+bool ccb_emu_saves(GUI_MENU_ENTRY *ptr)
+{
+	Settings->storeSettings();
+	return true;
+}
+//-----------------------------------------------------------------------------
 bool ccb_machine(GUI_MENU_ENTRY *ptr)
 {
 	for (int i = 0; i < Settings->modelsCount; i++) {
