@@ -247,8 +247,8 @@ void TEmulator::BaseTimerCallback()
 			}
 		}
 
-		i = (ifTape) ? ifTape->GetTapeIcon() : 0;
-		i = (pmd32) ? pmd32->diskIcon : i;
+		i = (ifTape) ? ifTape->GetTapeIcon() :
+			(pmd32) ? pmd32->diskIcon : 0;
 
 		video->SetIconState(i);
 
