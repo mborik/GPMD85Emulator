@@ -41,7 +41,12 @@ TTapeBrowser::TTapeBrowser()
 
 	if (Settings->TapeBrowser->fileName) {
 		char *file = ComposeFilePath(Settings->TapeBrowser->fileName);
-		SetTapeFileName(file);
+
+		if (SetTapeFileName(file) == 0xFF) {
+			delete [] Settings->TapeBrowser->fileName;
+			Settings->TapeBrowser->fileName = NULL;
+		}
+
 		delete [] file;
 	}
 }
@@ -121,9 +126,9 @@ void TTapeBrowser::SetIfTape(IifTape *ifTape)
 	ifTape->TapeCommand.connect(this, &TTapeBrowser::TapeCommand);
 }
 //---------------------------------------------------------------------------
-bool TTapeBrowser::SetTapeFileName(char *fn)
+BYTE TTapeBrowser::SetTapeFileName(char *fn)
 {
-	bool ret = false;
+	BYTE ret = 0xFF;
 
 	if (FileExists(fn)) {
 		if (playing)
@@ -139,7 +144,7 @@ bool TTapeBrowser::SetTapeFileName(char *fn)
 		tmpFileName = NULL;
 
 		FreeAllBlocks();
-		ret = !(ParseFile(tapeFile, &blocks));
+		ret = ParseFile(tapeFile, &blocks);
 		SetCurrentBlock(0);
 		tapeChanged = false;
 		preparedForSave = false;
@@ -148,15 +153,15 @@ bool TTapeBrowser::SetTapeFileName(char *fn)
 	return ret;
 }
 //---------------------------------------------------------------------------
-bool TTapeBrowser::ImportFileName(char *fn)
+BYTE TTapeBrowser::ImportFileName(char *fn)
 {
-	bool ret = false;
+	BYTE ret = 0xFF;
 
 	if (FileExists(fn)) {
 		if (playing)
 			ActionStop();
 
-		ret = !(ParseFile(fn, &blocks));
+		ret = ParseFile(fn, &blocks);
 		tapeChanged = true;
 	}
 
@@ -182,21 +187,20 @@ void TTapeBrowser::SetNewTape()
 	preparedForSave = false;
 }
 //---------------------------------------------------------------------------
-bool TTapeBrowser::ParseFile(char *fn, TAPE_BLOCK **blks, DWORD seek)
+BYTE TTapeBrowser::ParseFile(char *fn, TAPE_BLOCK **blks, DWORD seek)
 {
 	FILE *hf = fopen(fn, "rb");
 	if (hf == NULL || fn == NULL)
-		return false;
+		return 0xFF;
 
 	TAPE_BLOCK *lBlk = *blks, blkTmp;
 	DWORD dwFileSize, dwPosH, dwPosB, dwTemp;
 	WORD  wTemp;
-
-	bool hdr, oldType, err;
+	BYTE  err = 0xFF;
+	bool  hdr, oldType;
 	char *srcFile = new char[strlen(fn) + 1];
 	strcpy(srcFile, fn);
 
-	err = true;
 	do {
 		if (fseek(hf, 0, SEEK_END) != 0)
 			break;
@@ -290,7 +294,7 @@ bool TTapeBrowser::ParseFile(char *fn, TAPE_BLOCK **blks, DWORD seek)
 				blkTmp.bodyLengthError = -1;
 			}
 
-			err = false;
+			err = 0;
 			totalBlocks++;
 
 			if (lBlk == NULL) {
@@ -315,7 +319,7 @@ bool TTapeBrowser::ParseFile(char *fn, TAPE_BLOCK **blks, DWORD seek)
 		} while (dwTemp < dwFileSize - 2);
 
 		if (dwTemp != dwFileSize)
-			err = true;
+			err = 1;
 
 	} while (false);
 

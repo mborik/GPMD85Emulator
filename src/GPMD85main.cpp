@@ -125,8 +125,10 @@ void TEmulator::ProcessSettings(BYTE filter)
 
 	if (!isActive)
 		video = new ScreenPMD85(Settings->Screen->size, Settings->Screen->border);
-	else if (filter & PS_SCREEN_SIZE)
+	else if (filter & PS_SCREEN_SIZE) {
 		video->SetDisplayMode(Settings->Screen->size, Settings->Screen->border);
+		Settings->Screen->realsize = (TDisplayMode) video->GetMultiplier();
+	}
 
 	if (filter & PS_SCREEN_MODE) {
 		video->SetHalfPassMode(Settings->Screen->halfPass);
@@ -898,29 +900,14 @@ void TEmulator::ActionSizeChange(int mode)
 {
 	ActionPlayPause(false, false);
 
-	TDisplayMode newMode;
-	switch (mode) {
-		default:
-		case 1:
-			newMode = DM_NORMAL;
-			break;
-		case 2:
-			newMode = DM_DOUBLESIZE;
-			break;
-		case 3:
-			newMode = DM_TRIPLESIZE;
-			break;
-		case 4:
-			newMode = DM_QUADRUPLESIZE;
-			break;
-		case 0:
-			newMode = DM_FULLSCREEN;
-			break;
-	}
+	TDisplayMode newMode = (TDisplayMode) mode;
+	if (mode < 0 || mode > 4)
+		newMode = DM_NORMAL;
 
 	if (video->GetDisplayMode() != newMode) {
 		video->SetDisplayMode(newMode);
 		Settings->Screen->size = newMode;
+		Settings->Screen->realsize = (TDisplayMode) video->GetMultiplier();
 	}
 
 	ActionPlayPause(!Settings->isPaused, false);
@@ -1628,16 +1615,19 @@ void TEmulator::PrepareSnapshot(char *fileName, BYTE *flag)
 //---------------------------------------------------------------------------
 void TEmulator::InsertTape(char *fileName, BYTE *flag)
 {
-	bool result, import = (bool) *flag;
+	bool import = (bool) *flag;
 
 	if (import)
-		result = TapeBrowser->ImportFileName(fileName);
+		*flag = TapeBrowser->ImportFileName(fileName);
 	else
-		result = TapeBrowser->SetTapeFileName(fileName);
+		*flag = TapeBrowser->SetTapeFileName(fileName);
 
-	*flag = 0;
-	if (!result)
+	if (*flag == 0xFF)
+		GUI->messageBox("FATAL ERROR!\nOR CAN'T OPEN FILE!");
+	else if (*flag == 1) {
 		GUI->messageBox("CORRUPTED TAPE FORMAT!");
+		*flag = 0;
+	}
 
 	if (import) {
 		if (TapeBrowser->orgTapeFile)

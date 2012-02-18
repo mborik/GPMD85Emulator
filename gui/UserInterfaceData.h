@@ -72,6 +72,7 @@ bool ccb_emu_hardreset(GUI_MENU_ENTRY *ptr);
 bool ccb_emu_m3cmp(GUI_MENU_ENTRY *ptr);
 bool ccb_emu_focus(GUI_MENU_ENTRY *ptr);
 bool ccb_emu_asave(GUI_MENU_ENTRY *ptr);
+bool ccb_emu_saves(GUI_MENU_ENTRY *ptr);
 bool ccb_machine(GUI_MENU_ENTRY *ptr);
 bool ccb_mem_rmod(GUI_MENU_ENTRY *ptr);
 bool ccb_rom_pckg(GUI_MENU_ENTRY *ptr);
@@ -138,7 +139,7 @@ static GUI_MENU_ENTRY gui_file_menu[] = {
 	{ MI_SEPARATOR },
 	{ MI_DIALOG, "\aMEMORY BLOCK", "F11", SDLK_m, NULL, NULL, NULL, false },
 	{ MI_SEPARATOR },
-	{ MI_DIALOG, "SAVE SCREENS\aHOT", NULL, SDLK_h, NULL, NULL, NULL, false },
+	{ MI_STANDARD, "SAVE SCREENS\aHOT", NULL, SDLK_h, NULL, NULL, NULL, false },
 	{ MENU_END }
 };
 static GUI_MENU_ENTRY gui_view_size_menu[] = {
@@ -221,6 +222,8 @@ static GUI_MENU_ENTRY gui_emu_menu[] = {
 	{ MI_SEPARATOR },
 	{ MI_CHECKBOX, "PAUSE ON LOST \aFOCUS", NULL, SDLK_f, NULL, ccb_emu_focus, dcb_emu_focus_state, true },
 	{ MI_CHECKBOX, "\aAUTO-SAVE SETTINGS", NULL, SDLK_a, NULL, ccb_emu_asave, dcb_emu_asave_state, true },
+	{ MI_SEPARATOR },
+	{ MI_STANDARD, "SA\aVE SETTINGS", NULL, SDLK_v, NULL, ccb_emu_saves, NULL, true },
 	{ MENU_END }
 };
 static GUI_MENU_ENTRY gui_machine_menu[] = {

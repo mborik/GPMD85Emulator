@@ -23,7 +23,7 @@ TSettings *Settings;
 TSettings::TSettings()
 {
 	int i, j, k;
-	char *buf, *s;
+	char *cmodel, *buf, *s;
 
 	debug("Settings", "Configuration parser initialization");
 
@@ -46,8 +46,8 @@ TSettings::TSettings()
 
 	pauseOnFocusLost = cfgGetBoolValue(n, "pause-on-focus-lost", false, &pauseOnFocusLost);
 	showHiddenFiles = cfgGetBoolValue(n, "show-hidden-files", false, &showHiddenFiles);
-	autosaveSettings = cfgGetBoolValue(n, "autosave-setting", false, &autosaveSettings);
-	buf = cfgGetStringValue(n, "current-model");
+	autosaveSettings = cfgGetBoolValue(n, "auto-save-settings", false, &autosaveSettings);
+	cmodel = cfgGetStringValue(n, "current-model");
 
 	isPaused = false;
 
@@ -70,7 +70,7 @@ TSettings::TSettings()
 
 			j = 0;
 			checkRMMfile(NULL);
-			s = strtok(n->value, "|");
+			s = strtok_r(n->value, "|", &buf);
 			while (s != NULL) {
 				while (*s == ' ' || *s == '\t')
 					s++;
@@ -78,7 +78,7 @@ TSettings::TSettings()
 					*(s + strlen(s) - 1) = '\0';
 
 				RomPackages[i]->files[j] = checkRMMfile(s);
-				s = strtok(NULL, "|");
+				s = strtok_r(NULL, "|", &buf);
 				j++;
 			}
 
@@ -133,14 +133,16 @@ TSettings::TSettings()
 		model->romModuleInserted = cfgGetBoolValue(n, "rmm-inserted", false, &(model->romModuleInserted));
 
 		s = cfgGetStringValue(n, "rmm-name");
-		if ((model->romModule = findROMmodule(s)) == NULL)
+		if ((model->romModule = findROMmodule(s)))
+			cfgGetStringValue(n, "rmm-name", (char **) &(model->romModule));
+		else
 			model->romModuleInserted = false;
 
 		if (s)
 			delete [] s;
 		s = NULL;
 
-		if (strcmp(n->key, buf) == 0)
+		if (strcmp(n->key, cmodel) == 0)
 			CurrentModel = model;
 
 		AllModels[modelsCount] = model;
@@ -156,13 +158,13 @@ TSettings::TSettings()
 		error("Settings", "No computer models defined!");
 
 	if (CurrentModel == NULL) {
-		warning("Settings", "Current model '%s' not found!", buf);
+		warning("Settings", "Current model '%s' not found!", cmodel);
 		CurrentModel = AllModels[0];
 	}
 
-	if (buf)
-		delete [] buf;
-	buf = NULL;
+	if (cmodel)
+		delete [] cmodel;
+	cmodel = NULL;
 
 	n = cfgFindSection(cfgRoot, "Snapshot");
 
@@ -175,7 +177,7 @@ TSettings::TSettings()
 	n = cfgFindSection(cfgRoot, "TapeBrowser");
 
 	TapeBrowser = new SetTapeBrowser;
-	TapeBrowser->flash = cfgGetBoolValue(n, "flash", false, &(TapeBrowser->hex));
+	TapeBrowser->flash = cfgGetBoolValue(n, "flash", false, &(TapeBrowser->flash));
 	TapeBrowser->monitoring = cfgGetBoolValue(n, "monitoring", false, &(TapeBrowser->monitoring));
 	TapeBrowser->fileName = cfgGetStringValue(n, "recent-file", &(TapeBrowser->fileName));
 
@@ -188,7 +190,7 @@ TSettings::TSettings()
 		m->ptr = (void *) &(TapeBrowser->hex);
 	}
 	else
-		cfgInsertNewLine(n->next, "auto-stop", LT_RADIX, (void *) &(TapeBrowser->hex));
+		cfgInsertNewLine(n->next, "radix", LT_RADIX, (void *) &(TapeBrowser->hex));
 
 	TapeBrowser->autoStop = AS_NEXTHEAD;
 	if ((m = cfgGetLine(n, "auto-stop")) != NULL) {
@@ -219,8 +221,10 @@ TSettings::TSettings()
 		else if (strcmp(m->value, "quadruple") == 0)
 			Screen->size = DM_QUADRUPLESIZE;
 
+		Screen->realsize = Screen->size;
+
 		m->type = LT_SCR_SIZE;
-		m->ptr = (void *) &(Screen->size);
+		m->ptr = (void *) &(Screen->realsize);
 	}
 	else
 		cfgInsertNewLine(n->next, "size", LT_SCR_SIZE, (void *) &(Screen->size));
@@ -407,7 +411,9 @@ TSettings::TSettings()
 		cfgInsertNewLine(n->next, "hw-version", LT_RAOM, (void *) &(RaomModule->type));
 
 	s = cfgGetStringValue(n, "rmm-name");
-	if ((RaomModule->module = findROMmodule(s)) == NULL)
+	if ((RaomModule->module = findROMmodule(s)))
+		cfgGetStringValue(n, "rmm-name", (char **) &(RaomModule->module));
+	else
 		RaomModule->inserted = false;
 
 	if (s)
@@ -420,6 +426,9 @@ TSettings::TSettings()
 TSettings::~TSettings()
 {
 	int i, j;
+
+	if (autosaveSettings)
+		storeSettings();
 
 	debug("Settings", "Freeing all structures");
 
@@ -591,6 +600,340 @@ TSettings::~TSettings()
 			delete n;
 			n = NULL;
 		}
+	}
+}
+//-----------------------------------------------------------------------------
+void TSettings::storeSettings()
+{
+	debug("Settings", "Saving configuration file...");
+
+	char *buf;
+	if ((buf = LocateResource("default.conf", true)) == NULL) {
+		warning("Settings", "Configuration file not found!");
+		return;
+	}
+
+	strcat(buf, ".bak"); //TEMPORARY!!!
+	if (FILE *fn = fopen(buf, "wb")) {
+		int i;
+		bool b;
+		SetRomPackage *rpkg = NULL;
+		char lineBuffer[256];
+		cfgIniLine *entry = cfgRoot;
+
+		while (entry) {
+			b = true;
+
+			switch (entry->type) {
+				case LT_EMPTY:
+					lineBuffer[0] = '\n';
+					lineBuffer[1] = '\0';
+					break;
+
+				case LT_COMMENT:
+					sprintf(lineBuffer, "# %s\n", entry->value);
+					break;
+
+				case LT_DELIMITER:
+					lineBuffer[0] = '#';
+					lineBuffer[1] = ' ';
+					memset(lineBuffer + 2, '-', 77);
+					lineBuffer[79] = '\n';
+					lineBuffer[80] = '\0';
+					break;
+
+				case LT_SECTION:
+					sprintf(lineBuffer, "[%s]\n", entry->key);
+					break;
+
+				case LT_LIST:
+					if ((rpkg = findROMmodule(entry->key))) {
+						sprintf(lineBuffer, "\"%s\" = ", entry->key);
+						for (i = 0; i < rpkg->count; i++) {
+							if (i > 0)
+								strcat(lineBuffer, " | ");
+							strcat(lineBuffer, (const char *) rpkg->files[i]->rmmFile);
+						}
+						strcat(lineBuffer, "\n");
+					}
+					break;
+
+				case LT_ITEM:
+				case LT_STRING:
+				case LT_QUOTED:
+					buf = entry->value;
+
+					if (strcmp(entry->key, "current-model") == 0) {
+						switch (CurrentModel->type) {
+							case CM_V1:
+								buf = (char *) "Model-1";
+								break;
+							case CM_V2:
+								buf = (char *) "Model-2";
+								break;
+							case CM_V2A:
+								buf = (char *) "Model-2A";
+								break;
+							case CM_V3:
+								buf = (char *) "Model-3";
+								break;
+							case CM_MATO:
+								buf = (char *) "Model-Mato";
+								break;
+							case CM_ALFA:
+								buf = (char *) "Model-Alfa";
+								break;
+							case CM_ALFA2:
+								buf = (char *) "Model-Alfa2";
+								break;
+							case CM_C2717:
+								buf = (char *) "Model-C2717";
+								break;
+							default:
+								break;
+						}
+					}
+					else if (strcmp(entry->key, "rmm-name") == 0) {
+						rpkg = (SetRomPackage *) *((uintptr_t *) entry->ptr);
+						buf = rpkg->name;
+					}
+					else if (entry->ptr)
+						buf = (char *) *((uintptr_t *) entry->ptr);
+
+					sprintf(lineBuffer,
+						((entry->type == LT_QUOTED) ? "%s = \"%s\"\n" : "%s = %s\n"),
+							entry->key, buf ? buf : "");
+					break;
+
+				case LT_NUMBER:
+					i = *((int *) entry->ptr);
+					sprintf(lineBuffer, "%s = %d\n", entry->key, i);
+					break;
+
+				case LT_BOOL:
+					b = *((bool *) entry->ptr);
+					sprintf(lineBuffer, "%s = %s\n", entry->key, b ? "true" : "false");
+					b = true;
+					break;
+
+				case LT_RADIX:
+					b = *((bool *) entry->ptr);
+					sprintf(lineBuffer, "%s = %s\n", entry->key, b ? "hex" : "dec");
+					b = true;
+					break;
+
+				case LT_AUTOSTOP:
+					i = *((uintptr_t *) entry->ptr);
+					switch ((TAutoStopType) i) {
+						case AS_CURSOR:
+							buf = (char *) "cursor";
+							break;
+						case AS_NEXTHEAD:
+							buf = (char *) "next-head";
+							break;
+						default:
+							buf = (char *) "off";
+							break;
+					}
+					sprintf(lineBuffer, "%s = %s\n", entry->key, buf);
+					break;
+
+				case LT_SCR_SIZE:
+					i = *((uintptr_t *) entry->ptr);
+					switch ((TDisplayMode) i) {
+						case DM_DOUBLESIZE:
+							buf = (char *) "double";
+							break;
+						case DM_TRIPLESIZE:
+							buf = (char *) "triple";
+							break;
+						case DM_QUADRUPLESIZE:
+							buf = (char *) "quad";
+							break;
+						default:
+							buf = (char *) "normal";
+							break;
+					}
+					sprintf(lineBuffer, "%s = %s\n", entry->key, buf);
+					break;
+
+				case LT_SCR_HP:
+					i = *((uintptr_t *) entry->ptr);
+					if (Screen->lcdMode)
+						buf = (char *) "lcd";
+					else switch ((THalfPassMode) i) {
+						case HP_0:
+							buf = (char *) "b0";
+							break;
+						case HP_25:
+							buf = (char *) "b25";
+							break;
+						case HP_50:
+							buf = (char *) "b50";
+							break;
+						case HP_75:
+							buf = (char *) "b75";
+							break;
+						default:
+							buf = (char *) "off";
+							break;
+					}
+					sprintf(lineBuffer, "%s = %s\n", entry->key, buf);
+					break;
+
+				case LT_SCR_COL:
+					i = *((uintptr_t *) entry->ptr);
+					switch ((TColorProfile) i) {
+						case CP_MONO:
+							buf = (char *) "mono";
+							break;
+						case CP_COLOR:
+							buf = (char *) "color";
+							break;
+						case CP_MULTICOLOR:
+							buf = (char *) "multicolor";
+							break;
+						default:
+							buf = (char *) "standard";
+							break;
+					}
+					sprintf(lineBuffer, "%s = %s\n", entry->key, buf);
+					break;
+
+				case LT_SCR_PAL:
+					i = *((uintptr_t *) entry->ptr);
+					switch ((TColorPalette) i) {
+						case CL_VIDEO:
+							buf = (char *) "video";
+							break;
+						case CL_DEFINED:
+							buf = (char *) "defined";
+							break;
+						default:
+							buf = (char *) "rgb";
+							break;
+					}
+					sprintf(lineBuffer, "%s = %s\n", entry->key, buf);
+					break;
+
+				case LT_COLOR:
+					i = *((uintptr_t *) entry->ptr);
+					switch ((TColor) i) {
+						case BLACK:
+							buf = (char *) "black";
+							break;
+						case MAROON:
+							buf = (char *) "maroon";
+							break;
+						case GREEN:
+							buf = (char *) "green";
+							break;
+						case OLIVE:
+							buf = (char *) "olive";
+							break;
+						case NAVY:
+							buf = (char *) "navy";
+							break;
+						case PURPLE:
+							buf = (char *) "purple";
+							break;
+						case TEAL:
+							buf = (char *) "teal";
+							break;
+						case GRAY:
+							buf = (char *) "gray";
+							break;
+						case SILVER:
+							buf = (char *) "silver";
+							break;
+						case RED:
+							buf = (char *) "red";
+							break;
+						case LIME:
+							buf = (char *) "lime";
+							break;
+						case YELLOW:
+							buf = (char *) "yellow";
+							break;
+						case BLUE:
+							buf = (char *) "blue";
+							break;
+						case FUCHSIA:
+							buf = (char *) "fuchsia";
+							break;
+						case AQUA:
+							buf = (char *) "aqua";
+							break;
+						default:
+							buf = (char *) "white";
+							break;
+					}
+					sprintf(lineBuffer, "%s = %s\n", entry->key, buf);
+					break;
+
+				case LT_MOUSE:
+					i = *((uintptr_t *) entry->ptr);
+					switch ((TMouseType) i) {
+						case MT_M602:
+							buf = (char *) "m602";
+							break;
+						case MT_POLY8:
+							buf = (char *) "poly8";
+							break;
+						default:
+							buf = (char *) "none";
+							break;
+					}
+					sprintf(lineBuffer, "%s = %s\n", entry->key, buf);
+					break;
+
+				case LT_JOY:
+					i = *((uintptr_t *) entry->ptr);
+					switch ((TJoyType) i) {
+						case JT_KEYS:
+							buf = (char *) "keys";
+							break;
+						case JT_AXES:
+							buf = (char *) "axes";
+							break;
+						case JT_POV:
+							buf = (char *) "pov";
+							break;
+						case JT_BUTTONS:
+							buf = (char *) "buttons";
+							break;
+						default:
+							buf = (char *) "none";
+							break;
+					}
+					sprintf(lineBuffer, "%s = %s\n", entry->key, buf);
+					break;
+
+				case LT_RAOM:
+					i = *((uintptr_t *) entry->ptr);
+					switch ((TRaomType) i) {
+						case RT_CHTF:
+							buf = (char *) "chtf";
+							break;
+						default:
+							buf = (char *) "kuvi";
+							break;
+					}
+					sprintf(lineBuffer, "%s = %s\n", entry->key, buf);
+					break;
+
+				default:
+					b = false;
+					break;
+			}
+
+			if (b)
+				fwrite(lineBuffer, sizeof(char), strlen(lineBuffer), fn);
+
+			entry = entry->next;
+		}
+
+		fclose(fn);
 	}
 }
 //-----------------------------------------------------------------------------
@@ -789,12 +1132,8 @@ void TSettings::cfgReadFile(char *fileName)
 
 		} while (ptr < (buffer + fileSize - 1));
 
-		entry->type  = LT_EMPTY;
-		entry->key   = NULL;
-		entry->value = NULL;
-		entry->ptr   = NULL;
-		entry->next  = NULL;
-
+		entry->prev->next = NULL;
+		delete entry;
 		delete [] buffer;
 	}
 }
