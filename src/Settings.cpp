@@ -613,7 +613,6 @@ void TSettings::storeSettings()
 		return;
 	}
 
-	strcat(buf, ".bak"); //TEMPORARY!!!
 	if (FILE *fn = fopen(buf, "wb")) {
 		int i;
 		bool b;
