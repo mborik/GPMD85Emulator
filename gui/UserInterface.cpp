@@ -467,6 +467,7 @@ void UserInterface::menuOpen(GUI_MENU_TYPE type, void *data)
 			break;
 
 		case GUI_TYPE_FILESELECTOR:
+			fileSelector->search[0] = '\0';
 			drawFileSelector();
 			break;
 
