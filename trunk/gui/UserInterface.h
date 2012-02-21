@@ -89,6 +89,7 @@ class UserInterface : public sigslot::has_slots<>
 			TFileSelectType type;
 			const char *title;
 			char path[MAX_PATH];
+			char search[13];
 			int  count;
 			char **dirEntries;
 			char **extFilter;
@@ -179,6 +180,8 @@ class UserInterface : public sigslot::has_slots<>
 		void keyhandlerMenu(WORD key);
 		void keyhandlerFileSelector(WORD key);
 		void keyhandlerFileSelectorCallback(char *fileName);
+		int  keyhandlerFileSelectorSearchFile(int from = 0);
+		void keyhandlerFileSelectorSearchClean();
 		void keyhandlerTapeDialog(WORD key);
 };
 //-----------------------------------------------------------------------------

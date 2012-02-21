@@ -59,6 +59,14 @@ void UserInterface::drawFileSelector(bool update)
 			GUI_COLOR_FOREGROUND, "ENTER NAME \aT\aA\aB");
 	}
 
+	// quick-search mini window
+	if (strlen(fileSelector->search)) {
+		int hx = (12 * fontWidth), hy = 6 + ((fileSelector->type == GUI_FS_SNAPSAVE) ? fontLineHeight + 2 : 0);
+		drawRectangle(defaultSurface, mx - hx - 2, my - hy, hx + 8, fontHeight + 6, GUI_COLOR_BACKGROUND);
+		drawOutlineRounded(defaultSurface, mx - hx - 2, my - hy, hx + 8, fontHeight + 6, GUI_COLOR_DISABLED);
+		printText(defaultSurface, mx - hx + 2, my - hy + 3, GUI_COLOR_SMARTKEY, fileSelector->search);
+	}
+
 	mx = cMenu_rect->x + GUI_CONST_BORDER;
 	if (fileSelector->type == GUI_FS_BASESAVE) {
 		printText(defaultSurface, mx, my,
@@ -125,6 +133,8 @@ void UserInterface::drawFileSelectorItems()
 			continue;
 
 		strncpy(ptr, fileSelector->dirEntries[i], 31);
+		ptr[31] = '\0';
+
 		if (ptr[0] == DIR_DELIMITER) {
 			c = GUI_COLOR_HOTKEY;
 			printChar(defaultSurface, x, y + 2, c, SCHR_DIRECTORY);
@@ -132,7 +142,7 @@ void UserInterface::drawFileSelectorItems()
 		else if (ptr[0] == '\xA0') {
 			if (fileSelector->extFilter) {
 				c = GUI_COLOR_DISABLED;
-				wrk = strrchr(ptr, '.');
+				wrk = strrchr(fileSelector->dirEntries[i], '.');
 				if (wrk) {
 					wrk++;
 					for (int j = 0; fileSelector->extFilter[j] != NULL; j++) {
@@ -171,7 +181,8 @@ void UserInterface::drawFileSelectorItems()
 //-----------------------------------------------------------------------------
 void UserInterface::keyhandlerFileSelector(WORD key)
 {
-	int i = cMenu_hilite, halfpage = fileSelector->itemsOnPage / 2, prevLeftMargin = 0;
+	int i = cMenu_hilite, halfpage = fileSelector->itemsOnPage / 2,
+			prevLeftMargin = 0, searchlen = strlen(fileSelector->search);
 	char *ptr = fileSelector->dirEntries[cMenu_hilite], *lastItem;
 	bool change = false;
 	BYTE b = 0;
@@ -184,6 +195,12 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 			return;
 
 		case SDLK_ESCAPE:
+			if (searchlen > 0) {
+				keyhandlerFileSelectorSearchClean();
+				needRelease = true;
+				change = true;
+				break;
+			}
 			menuClose();
 			needRelease = true;
 			return;
@@ -216,12 +233,14 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 			break;
 
 		case SDLK_h | KM_ALT:
+			keyhandlerFileSelectorSearchClean();
 			strcpy(fileSelector->path, PathUserHome);
 			drawFileSelector();
 			needRelease = true;
 			break;
 
 		case SDLK_PERIOD | KM_ALT:
+			keyhandlerFileSelectorSearchClean();
 			Settings->showHiddenFiles = !Settings->showHiddenFiles;
 			drawFileSelector();
 			needRelease = true;
@@ -273,12 +292,43 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 			}
 			break;
 
+		case SDLK_SPACE:
+			if (searchlen > 0) {
+				searchlen = keyhandlerFileSelectorSearchFile(i);
+				if (searchlen == -1)
+					searchlen = keyhandlerFileSelectorSearchFile();
+				if (searchlen != -1) {
+					i = searchlen;
+					change = true;
+				}
+				drawFileSelector();
+			}
+			break;
+
 		case SDLK_BACKSPACE:
-			ptr = fileSelector->dirEntries[0];
-		//	select ".." and continue in next case...
+			if (searchlen > 1) {
+				fileSelector->search[searchlen - 1] = '\0';
+				searchlen = keyhandlerFileSelectorSearchFile();
+				if (searchlen != -1) {
+					i = searchlen;
+					change = true;
+				}
+				drawFileSelector();
+				break;
+			}
+			else if (searchlen == 1) {
+				keyhandlerFileSelectorSearchClean();
+				needRelease = true;
+				change = true;
+				break;
+			}
+			else
+				// select ".." and continue in next case...
+				ptr = fileSelector->dirEntries[0];
 
 		case SDLK_RETURN:
 		case SDLK_KP_ENTER:
+			keyhandlerFileSelectorSearchClean();
 			if (*ptr == '\xA0') {
 				lastItem = ptr + 1;
 				if ((ptr = strrchr(lastItem, '.'))) {
@@ -311,6 +361,7 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 
 		case SDLK_LEFT:
 		case SDLK_PAGEUP:
+			keyhandlerFileSelectorSearchClean();
 			if (i > 0) {
 				i -= (key == SDLK_LEFT) ? halfpage : fileSelector->itemsOnPage;
 				if (i < 0)
@@ -321,6 +372,7 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 
 		case SDLK_RIGHT:
 		case SDLK_PAGEDOWN:
+			keyhandlerFileSelectorSearchClean();
 			if (i < (cMenu_count - 1)) {
 				i += (key == SDLK_RIGHT) ? halfpage : fileSelector->itemsOnPage;
 				if (i >= cMenu_count)
@@ -330,6 +382,7 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 			break;
 
 		case SDLK_UP:
+			keyhandlerFileSelectorSearchClean();
 			if (i > 0) {
 				i--;
 				change = true;
@@ -337,6 +390,7 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 			break;
 
 		case SDLK_DOWN:
+			keyhandlerFileSelectorSearchClean();
 			if (i < (cMenu_count - 1)) {
 				i++;
 				change = true;
@@ -344,18 +398,35 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 			break;
 
 		case SDLK_HOME:
+			keyhandlerFileSelectorSearchClean();
 			i = 0;
 			needRelease = true;
 			change = true;
 			break;
 
 		case SDLK_END:
+			keyhandlerFileSelectorSearchClean();
 			i = (cMenu_count - 1);
 			needRelease = true;
 			change = true;
 			break;
 
 		default:
+			if ((((key & ~KM_SHIFT) >= SDLK_a && (key & ~KM_SHIFT) <= SDLK_z) ||
+					(key >= SDLK_0 && key <= SDLK_9)) && searchlen < 12) {
+
+				fileSelector->search[searchlen] = (key & (KM_SHIFT - 1));
+				if ((key & KM_SHIFT) && !(key >= SDLK_0 && key <= SDLK_9))
+					fileSelector->search[searchlen] ^= 32;
+
+				fileSelector->search[++searchlen] = '\0';
+				searchlen = keyhandlerFileSelectorSearchFile();
+				if (searchlen != -1) {
+					i = searchlen;
+					change = true;
+				}
+				drawFileSelector();
+			}
 			break;
 	}
 
@@ -408,5 +479,28 @@ void UserInterface::keyhandlerFileSelectorCallback(char *fileName)
 	}
 	else
 		*ptr = '\0';
+}
+//-----------------------------------------------------------------------------
+int UserInterface::keyhandlerFileSelectorSearchFile(int from)
+{
+	char *ptr;
+
+	for (unsigned l = strlen(fileSelector->search); l > 0; l--) {
+		for (int i = from + 1; i < fileSelector->count; i++) {
+			ptr = fileSelector->dirEntries[i];
+			if (strncmp(ptr + 1, fileSelector->search, l) == 0)
+				return i;
+		}
+	}
+
+	return -1;
+}
+//-----------------------------------------------------------------------------
+void UserInterface::keyhandlerFileSelectorSearchClean()
+{
+	if (fileSelector->search[0] != '\0') {
+		fileSelector->search[0] = '\0';
+		drawFileSelector();
+	}
 }
 //-----------------------------------------------------------------------------
