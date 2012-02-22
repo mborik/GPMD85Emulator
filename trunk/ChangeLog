@@ -1,4 +1,5 @@
-2012-02-21 [mikezt] implemented quick-searching in fileSelector (with some ideas by mborik :)
+2012-02-22 [mborik] improvements and some mods on quick-searching in fileSelector (with some ideas by ub880d :)
+2012-02-21 [mikezt] implemented quick-searching in fileSelector
 2012-02-18 [mborik] major bugfixes in Settings class and finalized saving of settings (autosave too :)
 2012-02-11 [mborik] fixed TapeBrowser bug if tape file from configuration not exists
 2012-02-05 [mborik] implemented file import to TapeBrowser and extended dialog with hex/dec shortcut
