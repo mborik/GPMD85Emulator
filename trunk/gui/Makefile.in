@@ -53,9 +53,9 @@ ARFLAGS = cru
 libGPMD85emu_gui_a_AR = $(AR) $(ARFLAGS)
 libGPMD85emu_gui_a_LIBADD =
 am_libGPMD85emu_gui_a_OBJECTS = CommonDialog.$(OBJEXT) \
-	EditDialog.$(OBJEXT) Menu.$(OBJEXT) FileSelector.$(OBJEXT) \
-	TapeDialog.$(OBJEXT) UserInterface.$(OBJEXT) \
-	UserInterfaceData.$(OBJEXT)
+	DebugWindow.$(OBJEXT) EditDialog.$(OBJEXT) Menu.$(OBJEXT) \
+	FileSelector.$(OBJEXT) TapeDialog.$(OBJEXT) \
+	UserInterface.$(OBJEXT) UserInterfaceData.$(OBJEXT)
 libGPMD85emu_gui_a_OBJECTS = $(am_libGPMD85emu_gui_a_OBJECTS)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
@@ -179,6 +179,7 @@ AM_CPPFLAGS = \
 noinst_LIBRARIES = libGPMD85emu_gui.a
 libGPMD85emu_gui_a_SOURCES = \
 	CommonDialog.cpp \
+	DebugWindow.cpp \
 	EditDialog.cpp \
 	Menu.cpp \
 	FileSelector.cpp \
@@ -239,6 +240,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/CommonDialog.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/DebugWindow.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/EditDialog.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/FileSelector.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Menu.Po@am__quote@

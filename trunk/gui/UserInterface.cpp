@@ -375,12 +375,21 @@ void UserInterface::drawDialogWithBorder(SDL_Surface *s, int x, int y, int w, in
 	drawOutlineRounded(s, x, y, w, h, GUI_COLOR_BORDER);
 }
 //-----------------------------------------------------------------------------
+void UserInterface::drawDebugFrame(SDL_Surface *s, int x, int y, int w, int h)
+{
+	drawRectangle(s, x, y, w - 1, h - 1, GUI_COLOR_DBG_BACK);
+	drawOutlineRounded(s, x - 1, y - 1, w + 1, h + 1, GUI_COLOR_DBG_BORDER);
+}
+//-----------------------------------------------------------------------------
 void UserInterface::printCheck(SDL_Surface *s, int x, int y, DWORD col, BYTE ch, bool state)
 {
+	DWORD col2 = (menuStack[menuStackLevel].type != GUI_TYPE_DEBUGGER) ?
+			GUI_COLOR_SEPARATOR : GUI_COLOR_DBG_BORDER;
+
 	if (ch == SCHR_RADIO)
-		drawOutlineRounded(s, x - 1, y - 1, 8, 8, GUI_COLOR_SEPARATOR);
+		drawOutlineRounded(s, x - 1, y - 1, 8, 8, col2);
 	else
-		drawOutline(s, x - 1, y - 1, 8, 8, GUI_COLOR_SEPARATOR);
+		drawOutline(s, x - 1, y - 1, 8, 8, col2);
 
 	if (state)
 		printChar(s, x, y - 1, col, ch);
@@ -416,6 +425,7 @@ void UserInterface::menuOpen(GUI_MENU_TYPE type, void *data)
 
 			case GUI_TYPE_FILESELECTOR:
 			case GUI_TYPE_TAPEBROWSER:
+			case GUI_TYPE_DEBUGGER:
 				break;
 
 			case GUI_TYPE_TAPE_POPUP:
@@ -473,6 +483,10 @@ void UserInterface::menuOpen(GUI_MENU_TYPE type, void *data)
 
 		case GUI_TYPE_TAPEBROWSER:
 			drawTapeDialog();
+			break;
+
+		case GUI_TYPE_DEBUGGER:
+			drawDebugWindow();
 			break;
 
 		default:
@@ -572,6 +586,10 @@ void UserInterface::menuHandleKey(WORD key)
 
 			case GUI_TYPE_TAPEBROWSER:
 				keyhandlerTapeDialog(key);
+				break;
+
+			case GUI_TYPE_DEBUGGER:
+				keyhandlerDebugWindow(key);
 				break;
 
 			default:

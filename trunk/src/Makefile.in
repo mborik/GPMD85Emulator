@@ -59,7 +59,7 @@ am_libGPMD85emu_core_a_OBJECTS = CommonUtils.$(OBJEXT) \
 	IifGPIO.$(OBJEXT) IifTape.$(OBJEXT) IifTimer.$(OBJEXT) \
 	Pmd32.$(OBJEXT) RaomModule.$(OBJEXT) RomModule.$(OBJEXT) \
 	Settings.$(OBJEXT) ScreenPMD85.$(OBJEXT) SoundDriver.$(OBJEXT) \
-	SystemPIO.$(OBJEXT) TapeBrowser.$(OBJEXT)
+	SystemPIO.$(OBJEXT) TapeBrowser.$(OBJEXT) Debugger.$(OBJEXT)
 libGPMD85emu_core_a_OBJECTS = $(am_libGPMD85emu_core_a_OBJECTS)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
@@ -199,7 +199,8 @@ libGPMD85emu_core_a_SOURCES = \
 	ScreenPMD85.cpp \
 	SoundDriver.cpp \
 	SystemPIO.cpp \
-	TapeBrowser.cpp
+	TapeBrowser.cpp \
+	Debugger.cpp
 
 noinst_HEADERS = \
 	macros8080.h \
@@ -222,7 +223,8 @@ noinst_HEADERS = \
 	ScreenPMD85.h \
 	SoundDriver.h \
 	SystemPIO.h \
-	TapeBrowser.h
+	TapeBrowser.h \
+	Debugger.h
 
 all: all-am
 
@@ -278,6 +280,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ChipPIT8253.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ChipUSART8251.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/CommonUtils.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Debugger.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/GPMD85main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/IifGPIO.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/IifTape.Po@am__quote@

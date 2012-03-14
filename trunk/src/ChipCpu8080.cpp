@@ -17,14 +17,70 @@
 //-----------------------------------------------------------------------------
 #include "ChipCpu8080.h"
 //-----------------------------------------------------------------------------
+// instructions T-cycles:
+// conditional Cc functions calls and Rc returns is solved separately,
+//   this tick values are only if condition isn't met,
+//   if some condition is met, we add 6 ticks
+int ChipCpu8080::duration[256] = {
+	//       x0  x1  x2  x3  x4  x5  x6  x7  x8  x9  xA  xB  xC  xD  xE  xF
+	/* 0x */  4, 10,  7,  5,  5,  5,  7,  4,  4, 10,  7,  5,  5,  5,  7,  4,
+	/* 1x */  4, 10,  7,  5,  5,  5,  7,  4,  4, 10,  7,  5,  5,  5,  7,  4,
+	/* 2x */  4, 10, 16,  5,  5,  5,  7,  4,  4, 10, 16,  5,  5,  5,  7,  4,
+	/* 3x */  4, 10, 13,  5, 10, 10, 10,  4,  4, 10, 13,  5,  5,  5,  7,  4,
+	/* 4x */  5,  5,  5,  5,  5,  5,  7,  5,  5,  5,  5,  5,  5,  5,  7,  5,
+	/* 5x */  5,  5,  5,  5,  5,  5,  7,  5,  5,  5,  5,  5,  5,  5,  7,  5,
+	/* 6x */  5,  5,  5,  5,  5,  5,  7,  5,  5,  5,  5,  5,  5,  5,  7,  5,
+	/* 7x */  7,  7,  7,  7,  7,  7,  7,  7,  5,  5,  5,  5,  5,  5,  7,  5,
+	/* 8x */  4,  4,  4,  4,  4,  4,  7,  4,  4,  4,  4,  4,  4,  4,  7,  4,
+	/* 9x */  4,  4,  4,  4,  4,  4,  7,  4,  4,  4,  4,  4,  4,  4,  7,  4,
+	/* Ax */  4,  4,  4,  4,  4,  4,  7,  4,  4,  4,  4,  4,  4,  4,  7,  4,
+	/* Bx */  4,  4,  4,  4,  4,  4,  7,  4,  4,  4,  4,  4,  4,  4,  7,  4,
+	/* Cx */  5, 10, 10, 10, 11, 11,  7, 11,  5, 10, 10, 10, 11, 17,  7, 11,
+	/* Dx */  5, 10, 10, 10, 11, 11,  7, 11,  5, 10, 10, 10, 11, 17,  7, 11,
+	/* Ex */  5, 10, 10, 18, 11, 11,  7, 11,  5,  5, 10,  4, 11, 17,  7, 11,
+	/* Fx */  5, 10, 10,  4, 11, 11,  7, 11,  5,  5, 10,  4, 11, 17,  7, 11
+};
+//-----------------------------------------------------------------------------
+// length of instructions in bytes
+int ChipCpu8080::length[256] = {
+	//       x0  x1  x2  x3  x4  x5  x6  x7  x8  x9  xA  xB  xC  xD  xE  xF
+	/* 0x */  1,  3,  1,  1,  1,  1,  2,  1,  1,  1,  1,  1,  1,  1,  2,  1,
+	/* 1x */  1,  3,  1,  1,  1,  1,  2,  1,  1,  1,  1,  1,  1,  1,  2,  1,
+	/* 2x */  1,  3,  3,  1,  1,  1,  2,  1,  1,  1,  3,  1,  1,  1,  2,  1,
+	/* 3x */  1,  3,  3,  1,  1,  1,  2,  1,  1,  1,  3,  1,  1,  1,  2,  1,
+	/* 4x */  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
+	/* 5x */  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
+	/* 6x */  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
+	/* 7x */  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
+	/* 8x */  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
+	/* 9x */  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
+	/* Ax */  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
+	/* Bx */  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
+	/* Cx */  1,  1,  3,  3,  3,  1,  2,  1,  1,  1,  3,  3,  3,  3,  2,  1,
+	/* Dx */  1,  1,  3,  2,  3,  1,  2,  1,  1,  1,  3,  2,  3,  3,  2,  1,
+	/* Ex */  1,  1,  3,  1,  3,  1,  2,  1,  1,  1,  3,  1,  3,  3,  2,  1,
+	/* Fx */  1,  1,  3,  1,  3,  1,  2,  1,  1,  1,  3,  1,  3,  3,  2,  1
+};
+//-----------------------------------------------------------------------------
+// Table of AC (Auxiliary Carry) results after ADD and SUB instructions.
+// AC flag can be detected from bit3 of both arguments and result.
+// This table is in r21 form, where 'r' is bit3 of result, '2' is bit3
+// of second argument and '1' is bit3 of first argument (A register).
+// Table is different for ADD and SUB operations.
+//
+BYTE ChipCpu8080::auxcarryAddTable[8] = { 0, FLAG_AC, FLAG_AC, FLAG_AC, 0, 0, 0, FLAG_AC };
+BYTE ChipCpu8080::auxcarrySubTable[8] = { FLAG_AC, FLAG_AC, 0, FLAG_AC, 0, FLAG_AC, 0, 0 };
+BYTE ChipCpu8080::sz53p1Table[0x100] = { -1 };
+WORD ChipCpu8080::daaTable[0x400] = { -1 };
+//-----------------------------------------------------------------------------
 ChipCpu8080::ChipCpu8080(ChipMemory *mem)
 {
 	memory = mem;
-
-	intContr = NULL;
+	af.w = bc.w = de.w = hl.w = sp.w = pc.w = 0;
 
 	Ports = NULL;
 	LastPort = NULL;
+	intContr = NULL;
 
 	TCycles = 0;
 	TCyclesTotal = 0;
@@ -51,6 +107,9 @@ ChipCpu8080::~ChipCpu8080()
 //-----------------------------------------------------------------------------
 void ChipCpu8080::PrepareFlagsTables()
 {
+	if (sz53p1Table[0] != (BYTE) -1 && daaTable[0] != (WORD) -1)
+		return;
+
 	int i, j, k;
 	WORD a;
 	BYTE f;
@@ -87,155 +146,6 @@ void ChipCpu8080::PrepareFlagsTables()
 
 		daaTable[i] = (WORD) ((((BYTE) a) << 8) | f);
 	}
-
-	// instructions T-cycles:
-	// conditional Cc functions calls and Rc returns is solved separately,
-	//   this tick values are only if condition isn't met,
-	//   if some condition is met, we add 6 ticks
-	int s_duration[256] = {
-		//       x0  x1  x2  x3  x4  x5  x6  x7  x8  x9  xA  xB  xC  xD  xE  xF
-		/* 0x */  4, 10,  7,  5,  5,  5,  7,  4,  4, 10,  7,  5,  5,  5,  7,  4,
-		/* 1x */  4, 10,  7,  5,  5,  5,  7,  4,  4, 10,  7,  5,  5,  5,  7,  4,
-		/* 2x */  4, 10, 16,  5,  5,  5,  7,  4,  4, 10, 16,  5,  5,  5,  7,  4,
-		/* 3x */  4, 10, 13,  5, 10, 10, 10,  4,  4, 10, 13,  5,  5,  5,  7,  4,
-		/* 4x */  5,  5,  5,  5,  5,  5,  7,  5,  5,  5,  5,  5,  5,  5,  7,  5,
-		/* 5x */  5,  5,  5,  5,  5,  5,  7,  5,  5,  5,  5,  5,  5,  5,  7,  5,
-		/* 6x */  5,  5,  5,  5,  5,  5,  7,  5,  5,  5,  5,  5,  5,  5,  7,  5,
-		/* 7x */  7,  7,  7,  7,  7,  7,  7,  7,  5,  5,  5,  5,  5,  5,  7,  5,
-		/* 8x */  4,  4,  4,  4,  4,  4,  7,  4,  4,  4,  4,  4,  4,  4,  7,  4,
-		/* 9x */  4,  4,  4,  4,  4,  4,  7,  4,  4,  4,  4,  4,  4,  4,  7,  4,
-		/* Ax */  4,  4,  4,  4,  4,  4,  7,  4,  4,  4,  4,  4,  4,  4,  7,  4,
-		/* Bx */  4,  4,  4,  4,  4,  4,  7,  4,  4,  4,  4,  4,  4,  4,  7,  4,
-		/* Cx */  5, 10, 10, 10, 11, 11,  7, 11,  5, 10, 10, 10, 11, 17,  7, 11,
-		/* Dx */  5, 10, 10, 10, 11, 11,  7, 11,  5, 10, 10, 10, 11, 17,  7, 11,
-		/* Ex */  5, 10, 10, 18, 11, 11,  7, 11,  5,  5, 10,  4, 11, 17,  7, 11,
-		/* Fx */  5, 10, 10,  4, 11, 11,  7, 11,  5,  5, 10,  4, 11, 17,  7, 11
-	};
-
-	// length of instructions in bytes
-	int s_length[256] = {
-		//       x0  x1  x2  x3  x4  x5  x6  x7  x8  x9  xA  xB  xC  xD  xE  xF
-		/* 0x */  1,  3,  1,  1,  1,  1,  2,  1,  1,  1,  1,  1,  1,  1,  2,  1,
-		/* 1x */  1,  3,  1,  1,  1,  1,  2,  1,  1,  1,  1,  1,  1,  1,  2,  1,
-		/* 2x */  1,  3,  3,  1,  1,  1,  2,  1,  1,  1,  3,  1,  1,  1,  2,  1,
-		/* 3x */  1,  3,  3,  1,  1,  1,  2,  1,  1,  1,  3,  1,  1,  1,  2,  1,
-		/* 4x */  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
-		/* 5x */  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
-		/* 6x */  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
-		/* 7x */  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
-		/* 8x */  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
-		/* 9x */  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
-		/* Ax */  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
-		/* Bx */  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
-		/* Cx */  1,  1,  3,  3,  3,  1,  2,  1,  1,  1,  3,  3,  3,  3,  2,  1,
-		/* Dx */  1,  1,  3,  2,  3,  1,  2,  1,  1,  1,  3,  2,  3,  3,  2,  1,
-		/* Ex */  1,  1,  3,  1,  3,  1,  2,  1,  1,  1,  3,  1,  3,  3,  2,  1,
-		/* Fx */  1,  1,  3,  1,  3,  1,  2,  1,  1,  1,  3,  1,  3,  3,  2,  1
-	};
-
-	// Table of AC (Auxiliary Carry) results after ADD and SUB instructions.
-	// AC flag can be detected from bit3 of both arguments and result.
-	// This table is in r21 form, where 'r' is bit3 of result, '2' is bit3
-	// of second argument and '1' is bit3 of first argument (A register).
-	// Table is different for ADD and SUB operations.
-	//
-	BYTE s_auxcarryAddTable[8] = { 0, FLAG_AC, FLAG_AC, FLAG_AC, 0, 0, 0, FLAG_AC };
-	BYTE s_auxcarrySubTable[8] = { FLAG_AC, FLAG_AC, 0, FLAG_AC, 0, FLAG_AC, 0, 0 };
-
-/** DEBUGGER NOT IMPLEMENTED --------------------------------------------------
-	// ! - undocumented instructions
-	// % - 8-bit operand
-	// & - 16-bit operand / address
-	// * - 16-bit jump address
-	char s_instr8080[256][16] = {
-		" NOP",      " LXI  B,&",  " STAX B",   " INX  B",   " INR  B",   " DCR  B",   " MVI  B,%", " RLC",
-		"!NOP",      " DAD  B",    " LDAX B",   " DCX  B",   " INR  C",   " DCR  C",   " MVI  C,%", " RRC",
-		"!NOP",      " LXI  D,&",  " STAX D",   " INX  D",   " INR  D",   " DCR  D",   " MVI  D,%", " RAL",
-		"!NOP",      " DAD  D",    " LDAX D",   " DCX  D",   " INR  E",   " DCR  E",   " MVI  E,%", " RAR",
-		"!NOP",      " LXI  H,&",  " SHLD &",   " INX  H",   " INR  H",   " DCR  H",   " MVI  H,%", " DAA",
-		"!NOP",      " DAD  H",    " LHLD &",   " DCX  H",   " INR  L",   " DCR  L",   " MVI  L,%", " CMA",
-		"!NOP",      " LXI  SP,&", " STA  &",   " INX  SP",  " INR  M",   " DCR  M",   " MVI  M,%", " STC",
-		"!NOP",      " DAD  SP",   " LDA  &",   " DCX  SP",  " INR  A",   " DCR  A",   " MVI  A,%", " CMC",
-
-		" MOV  B,B", " MOV  B,C",  " MOV  B,D", " MOV  B,E", " MOV  B,H", " MOV  B,L", " MOV  B,M", " MOV  B,A",
-		" MOV  C,B", " MOV  C,C",  " MOV  C,D", " MOV  C,E", " MOV  C,H", " MOV  C,L", " MOV  C,M", " MOV  C,A",
-		" MOV  D,B", " MOV  D,C",  " MOV  D,D", " MOV  D,E", " MOV  D,H", " MOV  D,L", " MOV  D,M", " MOV  D,A",
-		" MOV  E,B", " MOV  E,C",  " MOV  E,D", " MOV  E,E", " MOV  E,H", " MOV  E,L", " MOV  E,M", " MOV  E,A",
-		" MOV  H,B", " MOV  H,C",  " MOV  H,D", " MOV  H,E", " MOV  H,H", " MOV  H,L", " MOV  H,M", " MOV  H,A",
-		" MOV  L,B", " MOV  L,C",  " MOV  L,D", " MOV  L,E", " MOV  L,H", " MOV  L,L", " MOV  L,M", " MOV  L,A",
-		" MOV  M,B", " MOV  M,C",  " MOV  M,D", " MOV  M,E", " MOV  M,H", " MOV  M,L", " HLT",      " MOV  M,A",
-		" MOV  A,B", " MOV  A,C",  " MOV  A,D", " MOV  A,E", " MOV  A,H", " MOV  A,L", " MOV  A,M", " MOV  A,A",
-
-		" ADD  B",   " ADD  C",    " ADD  D",   " ADD  E",   " ADD  H",   " ADD  L",   " ADD  M",   " ADD  A",
-		" ADC  B",   " ADC  C",    " ADC  D",   " ADC  E",   " ADC  H",   " ADC  L",   " ADC  M",   " ADC  A",
-		" SUB  B",   " SUB  C",    " SUB  D",   " SUB  E",   " SUB  H",   " SUB  L",   " SUB  M",   " SUB  A",
-		" SBB  B",   " SBB  C",    " SBB  D",   " SBB  E",   " SBB  H",   " SBB  L",   " SBB  M",   " SBB  A",
-		" ANA  B",   " ANA  C",    " ANA  D",   " ANA  E",   " ANA  H",   " ANA  L",   " ANA  M",   " ANA  A",
-		" XRA  B",   " XRA  C",    " XRA  D",   " XRA  E",   " XRA  H",   " XRA  L",   " XRA  M",   " XRA  A",
-		" ORA  B",   " ORA  C",    " ORA  D",   " ORA  E",   " ORA  H",   " ORA  L",   " ORA  M",   " ORA  A",
-		" CMP  B",   " CMP  C",    " CMP  D",   " CMP  E",   " CMP  H",   " CMP  L",   " CMP  M",   " CMP  A",
-
-		" RNZ",      " POP  B",    " JNZ  *",   " JMP  *",   " CNZ  *",   " PUSH B",   " ADI  %",   " RST  0",
-		" RZ",       " RET",       " JZ   *",   "!JMP  *",   " CZ   *",   " CALL *",   " ACI  %",   " RST  1",
-		" RNC",      " POP  D",    " JNC  *",   " OUT  %",   " CNC  *",   " PUSH D",   " SUI  %",   " RST  2",
-		" RC",       "!RET",       " JC   *",   " IN   %",   " CC   *",   "!CALL *",   " SBI  %",   " RST  3",
-		" RPO",      " POP  H",    " JPO  *",   " XTHL",     " CPO  *",   " PUSH H",   " ANI  %",   " RST  4",
-		" RPE",      " PCHL",      " JPE  *",   " XCHG",     " CPE  *",   "!CALL *",   " XRI  %",   " RST  5",
-		" RP",       " POP  PSW",  " JP   *",   " DI",       " CP   *",   " PUSH PSW", " ORI  %",   " RST  6",
-		" RM",       " SPHL",      " JM   *",   " EI",       " CM   *",   "!CALL *",   " CPI  %",   " RST  7"
-	};
-	//---------------------------------------------------------------------------
-	// ! - undocumented instructions
-	// % - 8-bit operand
-	// & - 16-bit operand / address
-	// * - 16-bit jump address
-	// @ - address in RET instruction
-	char s_instrZ80[256][16] = {
-		" nop",         " ld   bc,&",   " ld   (bc),a", " inc  bc",      " inc  b",      " dec  b",      " ld   b,%",    " rlca",
-		"!nop",         " add  hl,bc",  " ld   a,(bc)", " dec  bc",      " inc  c",      " dec  c",      " ld   c,%",    " rrca",
-		"!nop",         " ld   de,&",   " ld   (de),a", " inc  de",      " inc  d",      " dec  d",      " ld   d,%",    " rla",
-		"!nop",         " add  hl,de",  " ld   a,(de)", " dec  de",      " inc  e",      " dec  e",      " ld   e,%",    " rra",
-		"!nop",         " ld   hl,&",   " ld   (&),hl", " inc  hl",      " inc  h",      " dec  h",      " ld   h,%",    " daa",
-		"!nop",         " add  hl,hl",  " ld   hl,(&)", " dec  hl",      " inc  l",      " dec  l",      " ld   l,%",    " cpl",
-		"!nop",         " ld   sp,&",   " ld   (&),a",  " inc  sp",      " inc  (hl)",   " dec  (hl)",   " ld   (hl),%", " scf",
-		"!nop",         " add  hl,sp",  " ld   a,(&)",  " dec  sp",      " inc  a",      " dec  a",      " ld   a,%",    " ccf",
-
-		" ld   b,b",    " ld   b,c",    " ld   b,d",    " ld   b,e",     " ld   b,h",    " ld   b,l",    " ld   b,(hl)", " ld   b,a",
-		" ld   c,b",    " ld   c,c",    " ld   c,d",    " ld   c,e",     " ld   c,h",    " ld   c,l",    " ld   c,(hl)", " ld   c,a",
-		" ld   d,b",    " ld   d,c",    " ld   d,d",    " ld   d,e",     " ld   d,h",    " ld   d,l",    " ld   d,(hl)", " ld   d,a",
-		" ld   e,b",    " ld   e,c",    " ld   e,d",    " ld   e,e",     " ld   e,h",    " ld   e,l",    " ld   e,(hl)", " ld   e,a",
-		" ld   h,b",    " ld   h,c",    " ld   h,d",    " ld   h,e",     " ld   h,h",    " ld   h,l",    " ld   h,(hl)", " ld   h,a",
-		" ld   l,b",    " ld   l,c",    " ld   l,d",    " ld   l,e",     " ld   l,h",    " ld   l,l",    " ld   l,(hl)", " ld   l,a",
-		" ld   (hl),b", " ld   (hl),c", " ld   (hl),d", " ld   (hl),e",  " ld   (hl),h", " ld   (hl),l", " halt",        " ld   (hl),a",
-		" ld   a,b",    " ld   a,c",    " ld   a,d",    " ld   a,e",     " ld   a,h",    " ld   a,l",    " ld   a,(hl)", " ld   a,a",
-
-		" add  a,b",    " add  a,c",    " add  a,d",    " add  a,e",     " add  a,h",    " add  a,l",    " add  a,(hl)", " add  a,a",
-		" adc  a,b",    " adc  a,c",    " adc  a,d",    " adc  a,e",     " adc  a,h",    " adc  a,l",    " adc  a,(hl)", " adc  a,a",
-		" sub  b",      " sub  c",      " sub  d",      " sub  e",       " sub  h",      " sub  l",      " sub  (hl)",   " sub  a",
-		" sbc  a,b",    " sbc  a,c",    " sbc  a,d",    " sbc  a,e",     " sbc  a,h",    " sbc  a,l",    " sbc  a,(hl)", " sbc  a,a",
-		" and  b",      " and  c",      " and  d",      " and  e",       " and  h",      " and  l",      " and  (hl)",   " and  a",
-		" xor  b",      " xor  c",      " xor  d",      " xor  e",       " xor  h",      " xor  l",      " xor  (hl)",   " xor  a",
-		" or   b",      " or   c",      " or   d",      " or   e",       " or   h",      " or   l",      " or   (hl)",   " or   a",
-		" cp   b",      " cp   c",      " cp   d",      " cp   e",       " cp   h",      " cp   l",      " cp   (hl)",   " cp   a",
-
-		" ret  nz",     " pop  bc",     " jp   nz,*",   " jp   *",       " call nz,*",   " push bc",     " add  a,%",    " rst  @",
-		" ret  z",      " ret",         " jp   z,*",    "!jp   *",       " call z,*",    " call *",      " adc  a,%",    " rst  @",
-		" ret  nc",     " pop  de",     " jp   nc,*",   " out  (%),a",   " call nc,*",   " push de",     " sub  %",      " rst  @",
-		" ret  c",      "!ret",         " jp   c,*",    " in   a,(%)",   " call c,*",    "!call *",      " sbc  a,%",    " rst  @",
-		" ret  po",     " pop  hl",     " jp   po,*",   " ex   (sp),hl", " call po,*",   " push hl",     " and  %",      " rst  @",
-		" ret  pe",     " jp   (hl)",   " jp   pe,*",   " ex   de,hl",   " call pe,*",   "!call *",      " xor  %",      " rst  @",
-		" ret  p",      " pop  af",     " jp   p,*",    " di",           " call p,*",    " push af",     " or   %",      " rst  @",
-		" ret  m",      " ld   sp,hl",  " jp   m,*",    " ei",           " call m,*",    "!call *",      " cp   %",      " rst  @"
-	};
-
-	memcpy(instr8080, s_instr8080, sizeof(s_instr8080));
-	memcpy(instrZ80, s_instrZ80, sizeof(s_instrZ80));
------------------------------------------------------------------------------*/
-
-	memcpy(duration, s_duration, sizeof(s_duration));
-	memcpy(length, s_length, sizeof(s_length));
-	memcpy(auxcarryAddTable, s_auxcarryAddTable, sizeof(s_auxcarryAddTable));
-	memcpy(auxcarrySubTable, s_auxcarrySubTable, sizeof(s_auxcarrySubTable));
 }
 //-----------------------------------------------------------------------------
 void ChipCpu8080::Reset()
@@ -256,20 +166,6 @@ void ChipCpu8080::Reset()
 			ph->device->resetDevice(0);
 		ph = ph->next;
 	}
-}
-//-----------------------------------------------------------------------------
-const char* ChipCpu8080::GetMnemonics(BYTE opcode, bool asZ80)
-{
-	if (asZ80)
-		return instrZ80[opcode];
-	return instr8080[opcode];
-}
-//-----------------------------------------------------------------------------
-void ChipCpu8080::SetIff(bool rIff)
-{
-	iff = rIff;
-	ei1 = false;
-	ei2 = false;
 }
 //-----------------------------------------------------------------------------
 /**

@@ -27,7 +27,8 @@ libGPMD85emu_core_a_SOURCES = \
 	ScreenPMD85.cpp \
 	SoundDriver.cpp \
 	SystemPIO.cpp \
-	TapeBrowser.cpp
+	TapeBrowser.cpp \
+	Debugger.cpp
 
 noinst_HEADERS = \
 	macros8080.h \
@@ -50,4 +51,5 @@ noinst_HEADERS = \
 	ScreenPMD85.h \
 	SoundDriver.h \
 	SystemPIO.h \
-	TapeBrowser.h
+	TapeBrowser.h \
+	Debugger.h
