@@ -11,6 +11,7 @@ noinst_LIBRARIES = libGPMD85emu_gui.a
 
 libGPMD85emu_gui_a_SOURCES = \
 	CommonDialog.cpp \
+	DebugWindow.cpp \
 	EditDialog.cpp \
 	Menu.cpp \
 	FileSelector.cpp \

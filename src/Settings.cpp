@@ -207,6 +207,67 @@ TSettings::TSettings()
 	else
 		cfgInsertNewLine(n->next, "auto-stop", LT_AUTOSTOP, (void *) &(TapeBrowser->autoStop));
 
+	n = cfgFindSection(cfgRoot, "Debugger");
+
+	Debugger = new SetDebugger;
+	Debugger->hex = false;
+	if ((m = cfgGetLine(n, "radix")) != NULL) {
+		if (strcmp(m->value, "hex") == 0)
+			Debugger->hex = true;
+
+		m->type = LT_RADIX;
+		m->ptr = (void *) &(Debugger->hex);
+	}
+	else
+		cfgInsertNewLine(n->next, "radix", LT_RADIX, (void *) &(Debugger->hex));
+
+	Debugger->z80 = false;
+	if ((m = cfgGetLine(n, "notation")) != NULL) {
+		if (strcmp(m->value, "z80") == 0)
+			Debugger->z80 = true;
+
+		m->type = LT_NOTATION;
+		m->ptr = (void *) &(Debugger->z80);
+	}
+	else
+		cfgInsertNewLine(n->next, "notation", LT_NOTATION, (void *) &(Debugger->z80));
+
+	Debugger->listType = DL_DUMP;
+	if ((m = cfgGetLine(n, "list-type")) != NULL) {
+		if (strcmp(m->value, "ascii") == 0)
+			Debugger->listType = DL_ASCII;
+		else if (strcmp(m->value, "disassembly") == 0)
+			Debugger->listType = DL_DISASM;
+
+		m->type = LT_DEBUGLIST;
+		m->ptr = (void *) &(Debugger->listType);
+	}
+	else
+		cfgInsertNewLine(n->next, "list-type", LT_DEBUGLIST, (void *) &(Debugger->listType));
+
+	Debugger->listSource = MEM;
+	if ((m = cfgGetLine(n, "list-source")) != NULL) {
+		if (strcmp(m->value, "hl") == 0)
+			Debugger->listSource = HL;
+		else if (strcmp(m->value, "de") == 0)
+			Debugger->listSource = DE;
+		else if (strcmp(m->value, "bc") == 0)
+			Debugger->listSource = BC;
+		else if (strcmp(m->value, "af") == 0)
+			Debugger->listSource = AF;
+		else if (strcmp(m->value, "sp") == 0)
+			Debugger->listSource = SP;
+		else if (strcmp(m->value, "pc") == 0)
+			Debugger->listSource = PC;
+
+		m->type = LT_DEBUGSRC;
+		m->ptr = (void *) &(Debugger->listSource);
+	}
+	else
+		cfgInsertNewLine(n->next, "list-source", LT_DEBUGSRC, (void *) &(Debugger->listSource));
+
+	Debugger->listOffset = cfgGetIntValue(n, "list-offset", 0, &(Debugger->listOffset));
+
 	n = cfgFindSection(cfgRoot, "Screen");
 
 	Screen = new SetScreen;
@@ -524,6 +585,10 @@ TSettings::~TSettings()
 		Joystick = NULL;
 	}
 
+	if (Debugger)
+		delete Debugger;
+	Debugger = NULL;
+
 	if (Screen)
 		delete Screen;
 	Screen = NULL;
@@ -615,13 +680,14 @@ void TSettings::storeSettings()
 
 	if (FILE *fn = fopen(buf, "wb")) {
 		int i;
-		bool b;
+		bool b, std;
 		SetRomPackage *rpkg = NULL;
 		char lineBuffer[256];
 		cfgIniLine *entry = cfgRoot;
 
 		while (entry) {
 			b = true;
+			std = false;
 
 			switch (entry->type) {
 				case LT_EMPTY:
@@ -711,14 +777,14 @@ void TSettings::storeSettings()
 
 				case LT_BOOL:
 					b = *((bool *) entry->ptr);
-					sprintf(lineBuffer, "%s = %s\n", entry->key, b ? "true" : "false");
-					b = true;
+					buf = (char *) (b ? "true" : "false");
+					std = b = true;
 					break;
 
 				case LT_RADIX:
 					b = *((bool *) entry->ptr);
-					sprintf(lineBuffer, "%s = %s\n", entry->key, b ? "hex" : "dec");
-					b = true;
+					buf = (char *) (b ? "hex" : "dec");
+					std = b = true;
 					break;
 
 				case LT_AUTOSTOP:
@@ -734,7 +800,7 @@ void TSettings::storeSettings()
 							buf = (char *) "off";
 							break;
 					}
-					sprintf(lineBuffer, "%s = %s\n", entry->key, buf);
+					std = true;
 					break;
 
 				case LT_SCR_SIZE:
@@ -753,7 +819,7 @@ void TSettings::storeSettings()
 							buf = (char *) "normal";
 							break;
 					}
-					sprintf(lineBuffer, "%s = %s\n", entry->key, buf);
+					std = true;
 					break;
 
 				case LT_SCR_HP:
@@ -777,7 +843,7 @@ void TSettings::storeSettings()
 							buf = (char *) "off";
 							break;
 					}
-					sprintf(lineBuffer, "%s = %s\n", entry->key, buf);
+					std = true;
 					break;
 
 				case LT_SCR_COL:
@@ -796,7 +862,7 @@ void TSettings::storeSettings()
 							buf = (char *) "standard";
 							break;
 					}
-					sprintf(lineBuffer, "%s = %s\n", entry->key, buf);
+					std = true;
 					break;
 
 				case LT_SCR_PAL:
@@ -812,7 +878,7 @@ void TSettings::storeSettings()
 							buf = (char *) "rgb";
 							break;
 					}
-					sprintf(lineBuffer, "%s = %s\n", entry->key, buf);
+					std = true;
 					break;
 
 				case LT_COLOR:
@@ -867,7 +933,57 @@ void TSettings::storeSettings()
 							buf = (char *) "white";
 							break;
 					}
-					sprintf(lineBuffer, "%s = %s\n", entry->key, buf);
+					std = true;
+					break;
+
+				case LT_NOTATION:
+					b = *((bool *) entry->ptr);
+					buf = (char *) (b ? "z80" : "i8080");
+					std = b = true;
+					break;
+
+				case LT_DEBUGLIST:
+					i = *((uintptr_t *) entry->ptr);
+					switch ((TDebugListType) i) {
+						case DL_ASCII:
+							buf = (char *) "ascii";
+							break;
+						case DL_DISASM:
+							buf = (char *) "disassembly";
+							break;
+						default:
+							buf = (char *) "dump";
+							break;
+					}
+					std = true;
+					break;
+
+				case LT_DEBUGSRC:
+					i = *((uintptr_t *) entry->ptr);
+					switch ((TDebugListSource) i) {
+						case HL:
+							buf = (char *) "hl";
+							break;
+						case DE:
+							buf = (char *) "de";
+							break;
+						case BC:
+							buf = (char *) "bc";
+							break;
+						case AF:
+							buf = (char *) "af";
+							break;
+						case SP:
+							buf = (char *) "sp";
+							break;
+						case PC:
+							buf = (char *) "pc";
+							break;
+						default:
+							buf = (char *) "mem";
+							break;
+					}
+					std = true;
 					break;
 
 				case LT_MOUSE:
@@ -883,7 +999,7 @@ void TSettings::storeSettings()
 							buf = (char *) "none";
 							break;
 					}
-					sprintf(lineBuffer, "%s = %s\n", entry->key, buf);
+					std = true;
 					break;
 
 				case LT_JOY:
@@ -905,7 +1021,7 @@ void TSettings::storeSettings()
 							buf = (char *) "none";
 							break;
 					}
-					sprintf(lineBuffer, "%s = %s\n", entry->key, buf);
+					std = true;
 					break;
 
 				case LT_RAOM:
@@ -918,7 +1034,7 @@ void TSettings::storeSettings()
 							buf = (char *) "kuvi";
 							break;
 					}
-					sprintf(lineBuffer, "%s = %s\n", entry->key, buf);
+					std = true;
 					break;
 
 				default:
@@ -926,6 +1042,8 @@ void TSettings::storeSettings()
 					break;
 			}
 
+			if (std)
+				sprintf(lineBuffer, "%s = %s\n", entry->key, buf);
 			if (b)
 				fwrite(lineBuffer, sizeof(char), strlen(lineBuffer), fn);
 

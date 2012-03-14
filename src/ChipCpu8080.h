@@ -54,7 +54,7 @@ public:
 	inline void SetHL(WORD rHL) { HL = rHL; }
 	inline void SetSP(WORD rSP) { SP = rSP; }
 	inline void SetPC(WORD rPC) { PC = rPC; }
-	void SetIff(bool rIff);
+	inline void SetIff(bool rIff) { iff = rIff; ei1 = ei2 = false; }
 
 	inline WORD GetAF() { return AF; }
 	inline WORD GetBC() { return BC; }
@@ -64,17 +64,16 @@ public:
 	inline WORD GetPC() { return PC; }
 
 	void SetChipState(BYTE *buffer);
-	int GetChipState(BYTE *buffer);
+	int  GetChipState(BYTE *buffer);
 
 	// processor T-Cycles
-	inline int GetTCycles() { return TCycles; }
+	inline int  GetTCycles() { return TCycles; }
 	inline void SetTCycles(int TCycles) { this->TCycles = TCycles; }
 	inline void IncTCycles() { TCycles++; lastInstrTCycles++; TCyclesTotal++; }
-	inline int GetTCyclesTotal() { return TCyclesTotal; }
+	inline int  GetTCyclesTotal() { return TCyclesTotal; }
 	inline void ClearTCyclesTotal() { TCyclesTotal = 0; }
 
-	inline int GetLength(BYTE opcode) { return length[opcode]; }
-	const char* GetMnemonics(BYTE opcode, bool asZ80);
+	inline int  GetLength(BYTE opcode) { return length[opcode]; }
 
 private:
 	// I/O devices
@@ -124,17 +123,14 @@ private:
 	int TCyclesTotal;        // T-Cycles counter (total)
 	int lastInstrTCycles;    // T-Cycles from last instruction
 
-	int duration[256];
-	int length[256];
-
-	char instr8080[256][16]; // 8080 mnemonic
-	char instrZ80[256][16];  // Z80 mnemonic
+	static int duration[256];
+	static int length[256];
 
 	// tables for flags examining
-	BYTE auxcarryAddTable[8];
-	BYTE auxcarrySubTable[8];
-	BYTE sz53p1Table[0x100];
-	WORD daaTable[0x400];
+	static BYTE auxcarryAddTable[8];
+	static BYTE auxcarrySubTable[8];
+	static BYTE sz53p1Table[0x100];
+	static WORD daaTable[0x400];
 
 	ChipMemory *memory;             // memory object pointer
 	InterruptController *intContr;  // interupt controller object pointer

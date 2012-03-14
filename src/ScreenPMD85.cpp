@@ -1243,10 +1243,10 @@ void ScreenPMD85::RGBpalete(SDL_Color *pal)
 		{   0, 160,   0, 0 },  // checkbox/radio active symbol
 		{  80,  80, 255, 0 },  // smart-key
 		{   0,   0, 160, 0 },  // hotkey/directory
-		{   0,   0,   0, 0 },  //
-		{   0,   0,   0, 0 },  //
-		{   0,   0,   0, 0 },  //
-		{   0,   0,   0, 0 },  //
+		{   8,  32,  64, 0 },  // debugger background
+		{ 233, 238, 242, 0 },  // debugger foreground
+		{  32,  64, 128, 0 },  // debugger highlight cursor
+		{  96, 112, 128, 0 },  // debugger border
 		{   0,   0,   0, 0 },  //
 		{   0,   0,   0, 0 }   //
 	};

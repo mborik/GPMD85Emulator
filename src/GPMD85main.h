@@ -29,6 +29,7 @@
 #include "RomModule.h"
 #include "RaomModule.h"
 #include "Settings.h"
+#include "Debugger.h"
 #include "TapeBrowser.h"
 #include "ScreenPMD85.h"
 #include "UserInterface.h"
@@ -53,6 +54,7 @@ class TEmulator : public sigslot::has_slots<>
 		bool TestHotkeys();
 
 		void ActionExit();
+		void ActionDebugger();
 		void ActionTapeBrowser();
 		void ActionTapePlayStop();
 		void ActionTapeNew();
@@ -116,6 +118,7 @@ class TEmulator : public sigslot::has_slots<>
 //---------------------------------------------------------------------------
 extern TEmulator *Emulator;
 extern TSettings *Settings;
+extern TDebugger *Debugger;
 extern TTapeBrowser *TapeBrowser;
 extern UserInterface *GUI;
 //-----------------------------------------------------------------------------

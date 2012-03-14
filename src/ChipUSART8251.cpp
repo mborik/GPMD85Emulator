@@ -32,6 +32,7 @@ ChipUSART8251::ChipUSART8251()
 	Command = 0;
 	SyncMode = false;
 	RxBreakState = false;
+	RxFactorCounter = 0;
 	RxState = 0;
 	RxD = true;
 }

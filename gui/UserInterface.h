@@ -52,6 +52,10 @@
 #define GUI_COLOR_CHECKED    87
 #define GUI_COLOR_SMARTKEY   88
 #define GUI_COLOR_HOTKEY     89
+#define GUI_COLOR_DBG_BACK   90
+#define GUI_COLOR_DBG_TEXT   91
+#define GUI_COLOR_DBG_CURSOR 92
+#define GUI_COLOR_DBG_BORDER 93
 //-----------------------------------------------------------------------------
 typedef struct _GUI_MENU_ENTRY {
 	TMenuItemType type;
@@ -169,6 +173,7 @@ class UserInterface : public sigslot::has_slots<>
 		void drawOutline(SDL_Surface *s, int x, int y, int w, int h, DWORD col);
 		void drawOutlineRounded(SDL_Surface *s, int x, int y, int w, int h, DWORD col);
 		void drawDialogWithBorder(SDL_Surface *s, int x, int y, int w, int h);
+		void drawDebugFrame(SDL_Surface *s, int x, int y, int w, int h);
 		void printCheck(SDL_Surface *s, int x, int y, DWORD col, BYTE ch, bool state);
 
 		void drawMenuItems();
@@ -177,12 +182,18 @@ class UserInterface : public sigslot::has_slots<>
 		void drawFileSelector(bool update = true);
 		void drawTapeDialogItems();
 		void drawTapeDialog(bool update = true);
+		void drawDebugWidgetDisass(SDL_Rect *r, bool full);
+		void drawDebugWidgetRegs(SDL_Rect *r);
+		void drawDebugWidgetStack(SDL_Rect *r);
+		void drawDebugWidgetBreaks(SDL_Rect *r);
+		void drawDebugWindow();
 		void keyhandlerMenu(WORD key);
 		void keyhandlerFileSelector(WORD key);
 		void keyhandlerFileSelectorCallback(char *fileName);
 		int  keyhandlerFileSelectorSearch(int from = 0);
 		bool keyhandlerFileSelectorSearchClean();
 		void keyhandlerTapeDialog(WORD key);
+		void keyhandlerDebugWindow(WORD key);
 };
 //-----------------------------------------------------------------------------
 #endif

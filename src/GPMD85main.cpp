@@ -46,6 +46,7 @@ TEmulator::TEmulator()
 	raomModuleConnected = false;
 
 	Settings = new TSettings();
+	Debugger = new TDebugger();
 	TapeBrowser = new TTapeBrowser();
 	GUI = new UserInterface();
 
@@ -108,13 +109,17 @@ TEmulator::~TEmulator()
 		delete GUI;
 	GUI = NULL;
 
-	if (Settings)
-		delete Settings;
-	Settings = NULL;
-
 	if (TapeBrowser)
 		delete TapeBrowser;
 	TapeBrowser = NULL;
+
+	if (Debugger)
+		delete Debugger;
+	Debugger = NULL;
+
+	if (Settings)
+		delete Settings;
+	Settings = NULL;
 }
 //-----------------------------------------------------------------------------
 void TEmulator::ProcessSettings(BYTE filter)
@@ -183,6 +188,7 @@ void TEmulator::ProcessSettings(BYTE filter)
 
 	if (!isActive || (filter & PS_MACHINE)) {
 		SetComputerModel();
+		Debugger->SetParams(cpu, memory, model);
 		filter |= PS_PERIPHERALS | PS_CONTROLS;
 	}
 
@@ -292,6 +298,15 @@ void TEmulator::CpuTimerCallback()
 	tc = 0;
 	do {
 		pc = cpu->GetPC();
+
+		// catch debugger breakpoint
+		if (Debugger->CheckBreakPoint(pc)) {
+			Debugger->Reset();
+			ActionDebugger();
+			return;
+		}
+
+		// switch PMD 85-3 to compatibility mode
 		if (pc == 0xE04C && model == CM_V3 && compatible32)
 			cpu->SetPC(0xFFF0);
 
@@ -313,9 +328,16 @@ void TEmulator::CpuTimerCallback()
 			}
 		}
 
-		tci = cpu->DoInstruction();
-		tc += tci;
+		// back to debugger after RET, Rx instructions
+		if (Debugger->flag == 9 && Debugger->CheckDebugRet(&tci)) {
+			Debugger->Reset();
+			ActionDebugger();
+			return;
+		}
+		else
+			tci = cpu->DoInstruction();
 
+		tc += tci;
 		while (tc > 13) {
 			tc -= 13;
 			cpu->IncTCycles();
@@ -576,10 +598,10 @@ bool TEmulator::TestHotkeys()
 				break;
 
 			case SDLK_F11:
-				BYTE *data = (BYTE *) malloc(sizeof(BYTE) * 32 * KB);
-				int len = ReadFromFile("testcode.bin", 0, 32 * KB, data);
-				memory->PutMem(0, 0, data, len);
-				free(data);
+				break;
+
+			case SDLK_F12:	// DEBUGGER
+				ActionDebugger();
 				break;
 		}
 	}
@@ -608,6 +630,12 @@ void TEmulator::ActionExit()
 		isActive = false;
 
 	ActionPlayPause(!Settings->isPaused, false);
+}
+//---------------------------------------------------------------------------
+void TEmulator::ActionDebugger()
+{
+	ActionPlayPause(false, false);
+	GUI->menuOpen(UserInterface::GUI_TYPE_DEBUGGER);
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionTapeBrowser()
@@ -1355,6 +1383,8 @@ void TEmulator::ProcessSnapshot(char *fileName, BYTE *flag)
 		if (model != CM_V3)
 			memory->Page = 2;
 
+		Debugger->SetParams(cpu, memory, model);
+
 		if (systemPIO) {
 			systemPIO->resetDevice(0);
 			systemPIO->writeToDevice(SYSTEM_REG_CWR, *(buf + 30), 0);
@@ -1446,6 +1476,7 @@ void TEmulator::ProcessSnapshot(char *fileName, BYTE *flag)
 
 		model = oldModel;
 		SetComputerModel();
+		Debugger->SetParams(cpu, memory, model);
 	}
 	else {
 		delete [] Settings->Snapshot->fileName;
@@ -1453,9 +1484,9 @@ void TEmulator::ProcessSnapshot(char *fileName, BYTE *flag)
 		strcpy(Settings->Snapshot->fileName, fileName);
 	}
 
-	delete dest;
-	delete src;
-	delete buf;
+	delete [] dest;
+	delete [] src;
+	delete [] buf;
 }
 //---------------------------------------------------------------------------
 void TEmulator::PrepareSnapshot(char *fileName, BYTE *flag)
@@ -1603,14 +1634,15 @@ void TEmulator::PrepareSnapshot(char *fileName, BYTE *flag)
 		*flag = 0;
 	}
 	else {
-		delete [] Settings->Snapshot->fileName;
+		if (Settings->Snapshot->fileName)
+			delete [] Settings->Snapshot->fileName;
 		Settings->Snapshot->fileName = new char[(strlen(fileName) + 1)];
 		strcpy(Settings->Snapshot->fileName, fileName);
 	}
 
-	delete dest;
-	delete src;
-	delete buf;
+	delete [] dest;
+	delete [] src;
+	delete [] buf;
 }
 //---------------------------------------------------------------------------
 void TEmulator::InsertTape(char *fileName, BYTE *flag)

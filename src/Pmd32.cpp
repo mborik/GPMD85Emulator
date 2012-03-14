@@ -887,7 +887,6 @@ int Pmd32::InsertDisk(int drive, char *file, bool WP)
 
 	if (drives[drive].filePath)
 		delete [] drives[drive].filePath;
-
 	drives[drive].filePath = new char[strlen(file) + 1];
 	strcpy(drives[drive].filePath, file);
 
@@ -904,8 +903,11 @@ void Pmd32::RemoveDisk(int drive)
 {
 	if (drives[drive].handle)
 		fclose(drives[drive].handle);
-
 	drives[drive].handle = NULL;
+
+	if (drives[drive].filePath)
+		delete [] drives[drive].filePath;
+	drives[drive].filePath = NULL;
 }
 //---------------------------------------------------------------------------
 int Pmd32::CheckImageType(char *fn, BYTE *trk, BYTE *sec, BYTE *phys)
