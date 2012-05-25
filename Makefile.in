@@ -194,6 +194,8 @@ htmldir = @htmldir@
 includedir = @includedir@
 infodir = @infodir@
 install_sh = @install_sh@
+libGL_CFLAGS = @libGL_CFLAGS@
+libGL_LIBS = @libGL_LIBS@
 libSDL_CFLAGS = @libSDL_CFLAGS@
 libSDL_LIBS = @libSDL_LIBS@
 libdir = @libdir@
@@ -232,6 +234,7 @@ AM_CPPFLAGS = \
 
 GPMD85emu_LDADD = \
 	@libSDL_LIBS@ \
+	@libGL_LIBS@ \
 	src/libGPMD85emu_core.a \
 	gui/libGPMD85emu_gui.a
 

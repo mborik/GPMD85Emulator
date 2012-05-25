@@ -97,6 +97,8 @@ UserInterface::UserInterface()
 	debug("GUI", "Font loaded");
 
 	frameSave = NULL;
+	globalPalette = NULL;
+
 	cMenu_data = NULL;
 	cMenu_rect = new SDL_Rect;
 
@@ -151,35 +153,45 @@ UserInterface::~UserInterface()
 	}
 }
 //-----------------------------------------------------------------------------
-void UserInterface::prepareDefaultSurface(int width, int height)
+void UserInterface::prepareDefaultSurface(int width, int height, SDL_Color *palette)
 {
-	frameLength = width * height;
+	frameLength = defaultSurface->pitch * defaultSurface->h;
 	frameSave = (BYTE *) realloc(frameSave, sizeof(BYTE) * frameLength);
 
 	defaultSurface->offset = 0;
 	defaultSurface->locked = 1;
 	defaultSurface->clip_rect.x = defaultSurface->clip_rect.y = 0;
-	defaultSurface->clip_rect.w = defaultSurface->w = defaultSurface->pitch = width;
-	defaultSurface->clip_rect.h = defaultSurface->h = height;
+	defaultSurface->clip_rect.w = frameWidth  = width;
+	defaultSurface->clip_rect.h = frameHeight = height;
 	defaultSurface->flags = SDL_SWSURFACE | SDL_PREALLOC;
 
-	maxCharsOnScreen = (width - (2 * GUI_CONST_BORDER)) / fontWidth;
+	globalPalette = (palette) ? palette : defaultSurface->format->palette->colors;
+	maxCharsOnScreen = (frameWidth - (2 * GUI_CONST_BORDER)) / fontWidth;
 }
 //-----------------------------------------------------------------------------
-void UserInterface::putPixel(SDL_Surface *s, int x, int y, DWORD col)
+void UserInterface::putPixel(SDL_Surface *s, int x, int y, BYTE col)
 {
-	BYTE bps = s->format->BytesPerPixel, *d = (BYTE *) s->pixels;
-	if (bps == 4)
-		*((DWORD *) (d + (x * bps) + (y * s->pitch))) = col;
-	else if (bps == 3)
-		*((DWORD *) (d + (x * bps) + (y * s->pitch))) = (*((DWORD *) (d + (x * bps) + (y * s->pitch))) & 0xff000000) | (col & 0xffffff);
-	else if (bps == 2)
-		*((WORD *) (d + (x * bps) + (y * s->pitch))) = col;
+	SDL_Color c = globalPalette[col];
+	BYTE *d = ((BYTE *) s->pixels)
+			+ (x * s->format->BytesPerPixel)
+			+ (y * s->pitch);
+
+	if (s->format->BytesPerPixel >= 3) {
+		*(d++) = c.r;
+		*(d++) = c.g;
+		*(d++) = c.b;
+		// NOTICE: we omits aplha channel, it should be initialized to zero!
+	}
+	else if (s->format->BytesPerPixel == 2) {
+		WORD rgb565 = (c.b + ((c.g % 64) << 6) + ((c.r % 32) << 11));
+		*(d++) = rgb565 / 256;
+		*(d++) = rgb565 % 256;
+	}
 	else
-		*(d + x + (y * s->pitch)) = col;
+		*d = col;
 }
 //-----------------------------------------------------------------------------
-void UserInterface::printChar(SDL_Surface *s, int x, int y, DWORD col, BYTE ch)
+void UserInterface::printChar(SDL_Surface *s, int x, int y, BYTE col, BYTE ch)
 {
 	BYTE *b = fontData + ((ch - 32) * fontHeight);
 
@@ -197,7 +209,7 @@ void UserInterface::printChar(SDL_Surface *s, int x, int y, DWORD col, BYTE ch)
 				putPixel(s, x + mx, y + my, col);
 }
 //-----------------------------------------------------------------------------
-void UserInterface::printText(SDL_Surface *s, int x, int y, DWORD col, const char *msg)
+void UserInterface::printText(SDL_Surface *s, int x, int y, BYTE col, const char *msg)
 {
 	BYTE ch;
 	DWORD c = col;
@@ -257,7 +269,7 @@ void UserInterface::printText(SDL_Surface *s, int x, int y, DWORD col, const cha
 	}
 }
 //-----------------------------------------------------------------------------
-void UserInterface::printFormatted(SDL_Surface *s, int x, int y, DWORD col, const char *msg, ...)
+void UserInterface::printFormatted(SDL_Surface *s, int x, int y, BYTE col, const char *msg, ...)
 {
 	va_list va;
 	va_start(va, msg);
@@ -267,7 +279,7 @@ void UserInterface::printFormatted(SDL_Surface *s, int x, int y, DWORD col, cons
 	printText(s, x, y, col, msgbuffer);
 }
 //-----------------------------------------------------------------------------
-void UserInterface::printRightAlign(SDL_Surface *s, int x, int y, DWORD col, const char *msg, ...)
+void UserInterface::printRightAlign(SDL_Surface *s, int x, int y, BYTE col, const char *msg, ...)
 {
 	va_list va;
 	va_start(va, msg);
@@ -283,7 +295,7 @@ void UserInterface::printRightAlign(SDL_Surface *s, int x, int y, DWORD col, con
 	}
 }
 //-----------------------------------------------------------------------------
-void UserInterface::printTitle(SDL_Surface *s, int x, int y, int w, DWORD col, const char *msg)
+void UserInterface::printTitle(SDL_Surface *s, int x, int y, int w, BYTE col, const char *msg)
 {
 	int i, len = (signed) strlen(msg),
 		mx = x + ((w - (len * fontWidth)) / 2);
@@ -293,7 +305,7 @@ void UserInterface::printTitle(SDL_Surface *s, int x, int y, int w, DWORD col, c
 			printChar(s, mx, y, col, msg[i]);
 }
 //-----------------------------------------------------------------------------
-void UserInterface::drawRectangle(SDL_Surface *s, int x, int y, int w, int h, DWORD col)
+void UserInterface::drawRectangle(SDL_Surface *s, int x, int y, int w, int h, BYTE col)
 {
 	if (s == NULL)
 		s = defaultSurface;
@@ -308,7 +320,7 @@ void UserInterface::drawRectangle(SDL_Surface *s, int x, int y, int w, int h, DW
 			putPixel(s, x + mx, y + my, col);
 }
 //-----------------------------------------------------------------------------
-void UserInterface::drawLineH(SDL_Surface *s, int x, int y, int len, DWORD col)
+void UserInterface::drawLineH(SDL_Surface *s, int x, int y, int len, BYTE col)
 {
 	if (s == NULL)
 		s = defaultSurface;
@@ -322,7 +334,7 @@ void UserInterface::drawLineH(SDL_Surface *s, int x, int y, int len, DWORD col)
 		putPixel(s, x + i, y, col);
 }
 //-----------------------------------------------------------------------------
-void UserInterface::drawLineV(SDL_Surface *s, int x, int y, int len, DWORD col)
+void UserInterface::drawLineV(SDL_Surface *s, int x, int y, int len, BYTE col)
 {
 	if (s == NULL)
 		s = defaultSurface;
@@ -336,7 +348,7 @@ void UserInterface::drawLineV(SDL_Surface *s, int x, int y, int len, DWORD col)
 		putPixel(s, x, y + i, col);
 }
 //-----------------------------------------------------------------------------
-void UserInterface::drawOutline(SDL_Surface *s, int x, int y, int w, int h, DWORD col)
+void UserInterface::drawOutline(SDL_Surface *s, int x, int y, int w, int h, BYTE col)
 {
 	drawLineH(s, x, y, w, col);
 	drawLineH(s, x, y + h - 1, w, col);
@@ -344,7 +356,7 @@ void UserInterface::drawOutline(SDL_Surface *s, int x, int y, int w, int h, DWOR
 	drawLineV(s, x + w - 1, y, h, col);
 }
 //-----------------------------------------------------------------------------
-void UserInterface::drawOutlineRounded(SDL_Surface *s, int x, int y, int w, int h, DWORD col)
+void UserInterface::drawOutlineRounded(SDL_Surface *s, int x, int y, int w, int h, BYTE col)
 {
 	if (s == NULL)
 		s = defaultSurface;
@@ -381,9 +393,9 @@ void UserInterface::drawDebugFrame(SDL_Surface *s, int x, int y, int w, int h)
 	drawOutlineRounded(s, x - 1, y - 1, w + 1, h + 1, GUI_COLOR_DBG_BORDER);
 }
 //-----------------------------------------------------------------------------
-void UserInterface::printCheck(SDL_Surface *s, int x, int y, DWORD col, BYTE ch, bool state)
+void UserInterface::printCheck(SDL_Surface *s, int x, int y, BYTE col, BYTE ch, bool state)
 {
-	DWORD col2 = (menuStack[menuStackLevel].type != GUI_TYPE_DEBUGGER) ?
+	BYTE col2 = (menuStack[menuStackLevel].type != GUI_TYPE_DEBUGGER) ?
 			GUI_COLOR_SEPARATOR : GUI_COLOR_DBG_BORDER;
 
 	if (ch == SCHR_RADIO)

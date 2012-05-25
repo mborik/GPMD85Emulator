@@ -76,8 +76,8 @@ void UserInterface::drawMenu(void *data)
 
 	cMenu_rect->w = GUI_CONST_BORDER + k + GUI_CONST_BORDER;
 	cMenu_rect->h = (2 * GUI_CONST_BORDER) + height + GUI_CONST_BORDER;
-	cMenu_rect->x = (defaultSurface->w - cMenu_rect->w) / 2;
-	cMenu_rect->y = (defaultSurface->h - cMenu_rect->h) / 2;
+	cMenu_rect->x = (frameWidth  - cMenu_rect->w) / 2;
+	cMenu_rect->y = (frameHeight - cMenu_rect->h) / 2;
 
 	if (menuStack[menuStackLevel].type == GUI_TYPE_TAPE_POPUP)
 		cMenu_rect->x *= 2;

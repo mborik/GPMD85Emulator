@@ -166,8 +166,8 @@ void UserInterface::messageBox(const char *text, ...)
 
 	w = (4 * GUI_CONST_BORDER) + w;
 	h = (2 * GUI_CONST_BORDER) + h;
-	x = (defaultSurface->w - w) / 2;
-	y = (defaultSurface->h - h) / 2;
+	x = (frameWidth  - w) / 2;
+	y = (frameHeight - h) / 2;
 
 	drawOutlineRounded(defaultSurface, x - 1, y - 1, w + 2, h + 2, GUI_COLOR_SHADOW);
 	drawRectangle(defaultSurface, x + 1, y + 1, w - 2, h - 2, GUI_COLOR_BACKGROUND);

@@ -28,6 +28,10 @@
 #define STATUSBAR_HEIGHT  20
 #define WEAK_REFRESH_TIME 200
 //-----------------------------------------------------------------------------
+#ifdef OPENGL
+#include "SDL_opengl.h"
+#else
+//-----------------------------------------------------------------------------
 #define scalerMethodPrototype(function) void function(BYTE *dst, WORD dstPitch, const BYTE *src, WORD srcPitch, WORD w, WORD h)
 typedef void (*scalerMethod)(BYTE *dst, WORD dstPitch, const BYTE *src, WORD srcPitch, WORD w, WORD h);
 //-----------------------------------------------------------------------------
@@ -50,6 +54,7 @@ scalerMethodPrototype(point4xHP2);
 scalerMethodPrototype(point4xHP3);
 scalerMethodPrototype(point4xHP4);
 scalerMethodPrototype(point4xLCD);
+#endif
 //-----------------------------------------------------------------------------
 class ScreenPMD85
 {
@@ -99,11 +104,17 @@ private:
 	SDL_Rect *BlitRectSrc;
 	SDL_Rect *BlitRectDest;
 
+#ifdef OPENGL
+	GLuint TextureMain, TextureStatus;
+	GLsizei TextureMainWidth, TextureStatusWidth;
+	GLsizei TextureMainHeight, TextureStatusHeight;
+#else
+	scalerMethod Scaler;
+#endif
+
 	BYTE *bufferScreen;
 	int bufferWidth;
 	int bufferHeight;
-
-	scalerMethod Scaler;
 	int Width;
 	int Height;
 

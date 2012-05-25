@@ -598,6 +598,9 @@ ac_subst_vars='am__EXEEXT_FALSE
 am__EXEEXT_TRUE
 LTLIBOBJS
 LIBOBJS
+DEBUG
+libGL_LIBS
+libGL_CFLAGS
 EGREP
 GREP
 CPP
@@ -606,7 +609,6 @@ libSDL_CFLAGS
 PKG_CONFIG_LIBDIR
 PKG_CONFIG_PATH
 PKG_CONFIG
-DEBUG
 resDir_CFLAGS
 am__fastdepCC_FALSE
 am__fastdepCC_TRUE
@@ -698,7 +700,7 @@ enable_option_checking
 enable_dependency_tracking
 enable_debug
 enable_trace
-enable_embed
+with_opengl
 '
       ac_precious_vars='build_alias
 host_alias
@@ -716,7 +718,9 @@ PKG_CONFIG_PATH
 PKG_CONFIG_LIBDIR
 libSDL_CFLAGS
 libSDL_LIBS
-CPP'
+CPP
+libGL_CFLAGS
+libGL_LIBS'
 
 
 # Initialize some variables set by options.
@@ -1336,7 +1340,11 @@ Optional Features:
   --enable-dependency-tracking   do not reject slow dependency extractors
   --enable-debug          enable debugging, default: no
   --enable-trace          enable tracing statements, default: no
-  --enable-embed          enable embedded (no-install) mode, default: no
+
+Optional Packages:
+  --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
+  --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
+  --with-opengl           OpenGL support, default: no
 
 Some influential environment variables:
   CXX         C++ compiler command
@@ -1357,6 +1365,9 @@ Some influential environment variables:
               C compiler flags for libSDL, overriding pkg-config
   libSDL_LIBS linker flags for libSDL, overriding pkg-config
   CPP         C preprocessor
+  libGL_CFLAGS
+              C compiler flags for libGL, overriding pkg-config
+  libGL_LIBS  linker flags for libGL, overriding pkg-config
 
 Use these variables to override the choices made by `configure' or to help
 it to find libraries and programs with nonstandard names/locations.
@@ -4223,8 +4234,8 @@ if test "x$debug" = "xyes"; then
 	LDFLAGS=""
 	DEBUG=1
 else
-	CXXFLAGS="-O3 -Wall"
-	CFLAGS="-O3 -Wall"
+	CXXFLAGS="-Os -Wall"
+	CFLAGS="-Os -Wall"
 	LDFLAGS="-s"
 	DEBUG=
 fi
@@ -4253,34 +4264,26 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${trace}" >&5
 $as_echo "${trace}" >&6; }
 
-# Check if we have enabled embedded (no-install) mode:
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking gpmd85emu: Embedded mode" >&5
-$as_echo_n "checking gpmd85emu: Embedded mode... " >&6; }
-# Check whether --enable-embed was given.
-if test "${enable_embed+set}" = set; then :
-  enableval=$enable_embed; case "${enableval}" in
-		yes) embed=yes ;;
-		no)  embed=no  ;;
-		*)   as_fn_error $? "bad value ${enableval} for --enable-embed" "$LINENO" 5 ;;
+# Check if we have to display screen with OpenGL:
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking gpmd85emu: OpenGL" >&5
+$as_echo_n "checking gpmd85emu: OpenGL... " >&6; }
+
+# Check whether --with-opengl was given.
+if test "${with_opengl+set}" = set; then :
+  withval=$with_opengl; case "${withval}" in
+		yes) opengl=yes ;;
+		no)  opengl=no  ;;
+		*)   as_fn_error $? "bad value ${withval} for --with-opengl" "$LINENO" 5 ;;
 	esac
 else
-  embed=no
+  opengl=no
 
 fi
 
-if test "x$embed" = "xyes"; then
-	resDir_CFLAGS=" -DDIR_RESOURCES=\"\\\".\\\"\""
-	CXXFLAGS+=" -DEMBED"
-	CFLAGS+=" -DEMBED"
-else
-	resDir_CFLAGS=" -DDIR_RESOURCES=\"\\\""$\{pkgdatadir}"\\\"\""
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${embed}" >&5
-$as_echo "${embed}" >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${opengl}" >&5
+$as_echo "${opengl}" >&6; }
 
-
-
-
+resDir_CFLAGS=" -DDIR_RESOURCES=\"\\\""$\{pkgdatadir}"\\\"\""
 
 
 # Checks for libraries (with classic lib/header solution if pkg-config fail):
@@ -4984,6 +4987,255 @@ else
 $as_echo "yes" >&6; }
 
 fi
+if test "x$opengl" = "xyes"; then
+	CXXFLAGS+=" -DOPENGL"
+	CFLAGS+=" -DOPENGL"
+
+pkg_failed=no
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for libGL" >&5
+$as_echo_n "checking for libGL... " >&6; }
+
+if test -n "$libGL_CFLAGS"; then
+    pkg_cv_libGL_CFLAGS="$libGL_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"gl\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "gl") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_libGL_CFLAGS=`$PKG_CONFIG --cflags "gl" 2>/dev/null`
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+if test -n "$libGL_LIBS"; then
+    pkg_cv_libGL_LIBS="$libGL_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"gl\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "gl") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_libGL_LIBS=`$PKG_CONFIG --libs "gl" 2>/dev/null`
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+
+
+
+if test $pkg_failed = yes; then
+   	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+	        libGL_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors "gl" 2>&1`
+        else
+	        libGL_PKG_ERRORS=`$PKG_CONFIG --print-errors "gl" 2>&1`
+        fi
+	# Put the nasty error message in config.log where it belongs
+	echo "$libGL_PKG_ERRORS" >&5
+
+
+		ac_fn_c_check_header_mongrel "$LINENO" "SDL/SDL_opengl.h" "ac_cv_header_SDL_SDL_opengl_h" "$ac_includes_default"
+if test "x$ac_cv_header_SDL_SDL_opengl_h" = x""yes; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lGL" >&5
+$as_echo_n "checking for main in -lGL... " >&6; }
+if test "${ac_cv_lib_GL_main+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lGL  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_GL_main=yes
+else
+  ac_cv_lib_GL_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_GL_main" >&5
+$as_echo "$ac_cv_lib_GL_main" >&6; }
+if test "x$ac_cv_lib_GL_main" = x""yes; then :
+
+				libGL_LIBS="-lGL"
+
+
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lopengl32" >&5
+$as_echo_n "checking for main in -lopengl32... " >&6; }
+if test "${ac_cv_lib_opengl32_main+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lopengl32  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_opengl32_main=yes
+else
+  ac_cv_lib_opengl32_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_opengl32_main" >&5
+$as_echo "$ac_cv_lib_opengl32_main" >&6; }
+if test "x$ac_cv_lib_opengl32_main" = x""yes; then :
+
+				libGL_LIBS="-lopengl32"
+
+
+else
+  as_fn_error $? "SDL library not found" "$LINENO" 5
+fi
+
+
+fi
+
+else
+  as_fn_error $? "SDL header not found" "$LINENO" 5
+fi
+
+
+
+elif test $pkg_failed = untried; then
+     	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+		ac_fn_c_check_header_mongrel "$LINENO" "SDL/SDL_opengl.h" "ac_cv_header_SDL_SDL_opengl_h" "$ac_includes_default"
+if test "x$ac_cv_header_SDL_SDL_opengl_h" = x""yes; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lGL" >&5
+$as_echo_n "checking for main in -lGL... " >&6; }
+if test "${ac_cv_lib_GL_main+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lGL  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_GL_main=yes
+else
+  ac_cv_lib_GL_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_GL_main" >&5
+$as_echo "$ac_cv_lib_GL_main" >&6; }
+if test "x$ac_cv_lib_GL_main" = x""yes; then :
+
+				libGL_LIBS="-lGL"
+
+
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lopengl32" >&5
+$as_echo_n "checking for main in -lopengl32... " >&6; }
+if test "${ac_cv_lib_opengl32_main+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lopengl32  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_opengl32_main=yes
+else
+  ac_cv_lib_opengl32_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_opengl32_main" >&5
+$as_echo "$ac_cv_lib_opengl32_main" >&6; }
+if test "x$ac_cv_lib_opengl32_main" = x""yes; then :
+
+				libGL_LIBS="-lopengl32"
+
+
+else
+  as_fn_error $? "SDL library not found" "$LINENO" 5
+fi
+
+
+fi
+
+else
+  as_fn_error $? "SDL header not found" "$LINENO" 5
+fi
+
+
+
+else
+	libGL_CFLAGS=$pkg_cv_libGL_CFLAGS
+	libGL_LIBS=$pkg_cv_libGL_LIBS
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+fi
+fi
+
+
+
+
 
 # Checks for header files:
 for ac_header in inttypes.h memory.h stddef.h stdint.h stdlib.h string.h strings.h unistd.h

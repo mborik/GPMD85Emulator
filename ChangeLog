@@ -1,3 +1,4 @@
+2012-05-24 [mborik] OpenGL screen rendering implementation
 2012-03-15 [mborik] instruction tracing in debugger (too buggy yet)
 2012-03-04 [mborik] first implementation of debugger (drawings only)
 2012-02-22 [mborik] improvements and some mods on quick-searching in fileSelector (with some ideas by ub880d :)
