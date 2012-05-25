@@ -105,7 +105,8 @@ private:
 	SDL_Rect *BlitRectDest;
 
 #ifdef OPENGL
-	GLuint TextureMain, TextureStatus;
+	SDL_Surface *StatusBar;
+	GLuint  Texture[2];
 	GLsizei TextureMainWidth, TextureStatusWidth;
 	GLsizei TextureMainHeight, TextureStatusHeight;
 #else
