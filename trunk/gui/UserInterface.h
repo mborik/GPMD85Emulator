@@ -126,12 +126,12 @@ class UserInterface : public sigslot::has_slots<>
 
 		UserInterface();
 		virtual ~UserInterface();
-		void prepareDefaultSurface(int width, int height);
+		void prepareDefaultSurface(int width, int height, SDL_Color *palette);
 
 		inline void setLineHeight(BYTE l) { fontLineHeight = (l > 0) ? l : (fontHeight + 1); }
 		inline bool isInMenu() { return (menuStackLevel >= 0); }
 
-		void printText(SDL_Surface *s, int x, int y, DWORD col, const char *msg);
+		void printText(SDL_Surface *s, int x, int y, BYTE col, const char *msg);
 		BYTE queryDialog(const char *title, bool save);
 		void messageBox(const char *text, ...);
 		BYTE editBox(const char *title, char *buffer, BYTE maxLength, bool decimal);
@@ -150,6 +150,9 @@ class UserInterface : public sigslot::has_slots<>
 
 		BYTE *frameSave;
 		DWORD frameLength;
+		WORD  frameWidth;
+		WORD  frameHeight;
+		SDL_Color *globalPalette;
 
 		short menuStackLevel;
 		struct GUI_MENU_STACK {
@@ -162,19 +165,19 @@ class UserInterface : public sigslot::has_slots<>
 		SDL_Rect *cMenu_rect;
 		int cMenu_leftMargin, cMenu_count, cMenu_hilite;
 
-		void putPixel(SDL_Surface *s, int x, int y, DWORD col);
-		void printChar(SDL_Surface *s, int x, int y, DWORD col, BYTE ch);
-		void printTitle(SDL_Surface *s, int x, int y, int w, DWORD col, const char *msg);
-		void printFormatted(SDL_Surface *s, int x, int y, DWORD col, const char *msg, ...);
-		void printRightAlign(SDL_Surface *s, int x, int y, DWORD col, const char *msg, ...);
-		void drawRectangle(SDL_Surface *s, int x, int y, int w, int h, DWORD col);
-		void drawLineH(SDL_Surface *s, int x, int y, int len, DWORD col);
-		void drawLineV(SDL_Surface *s, int x, int y, int len, DWORD col);
-		void drawOutline(SDL_Surface *s, int x, int y, int w, int h, DWORD col);
-		void drawOutlineRounded(SDL_Surface *s, int x, int y, int w, int h, DWORD col);
+		void putPixel(SDL_Surface *s, int x, int y, BYTE col);
+		void printChar(SDL_Surface *s, int x, int y, BYTE col, BYTE ch);
+		void printTitle(SDL_Surface *s, int x, int y, int w, BYTE col, const char *msg);
+		void printFormatted(SDL_Surface *s, int x, int y, BYTE col, const char *msg, ...);
+		void printRightAlign(SDL_Surface *s, int x, int y, BYTE col, const char *msg, ...);
+		void drawRectangle(SDL_Surface *s, int x, int y, int w, int h, BYTE col);
+		void drawLineH(SDL_Surface *s, int x, int y, int len, BYTE col);
+		void drawLineV(SDL_Surface *s, int x, int y, int len, BYTE col);
+		void drawOutline(SDL_Surface *s, int x, int y, int w, int h, BYTE col);
+		void drawOutlineRounded(SDL_Surface *s, int x, int y, int w, int h, BYTE col);
 		void drawDialogWithBorder(SDL_Surface *s, int x, int y, int w, int h);
 		void drawDebugFrame(SDL_Surface *s, int x, int y, int w, int h);
-		void printCheck(SDL_Surface *s, int x, int y, DWORD col, BYTE ch, bool state);
+		void printCheck(SDL_Surface *s, int x, int y, BYTE col, BYTE ch, bool state);
 
 		void drawMenuItems();
 		void drawMenu(void *data);

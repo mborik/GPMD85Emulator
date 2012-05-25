@@ -20,6 +20,7 @@ AM_CPPFLAGS = \
 
 GPMD85emu_LDADD = \
 	@libSDL_LIBS@ \
+	@libGL_LIBS@ \
 	src/libGPMD85emu_core.a \
 	gui/libGPMD85emu_gui.a
 

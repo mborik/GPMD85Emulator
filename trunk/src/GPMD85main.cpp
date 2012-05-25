@@ -464,6 +464,7 @@ bool TEmulator::TestHotkeys()
 					ActionSizeChange(4);
 				break;
 
+#ifndef OPENGL
 			case SDLK_5:	// SCALER: LCD EMULATION
 				video->SetLcdMode(true);
 				video->SetHalfPassMode(HP_OFF);
@@ -505,6 +506,7 @@ bool TEmulator::TestHotkeys()
 				Settings->Screen->lcdMode = false;
 				Settings->Screen->halfPass = HP_OFF;
 				break;
+#endif
 
 			case SDLK_f:	// FULL-SCREEN
 				if (gvi.wm && (gvi.w + gvi.h))

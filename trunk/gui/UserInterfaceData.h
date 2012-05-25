@@ -174,6 +174,7 @@ static GUI_MENU_ENTRY gui_view_colors_menu[] = {
 	{ MI_DIALOG, "ATTRIBUTE 10", NULL, SDLK_4, NULL, NULL, NULL, true },
 	{ MENU_END }
 };
+#ifndef OPENGL
 static GUI_MENU_ENTRY gui_view_scaler_menu[] = {
 	{ MI_TITLE, "SCALER" },
 	{ MI_RADIO, "\aLCD EMULATION\220", "5", SDLK_l, NULL, ccb_view_sclr, dcb_view_sclr_state, true, false, -1 },
@@ -184,6 +185,7 @@ static GUI_MENU_ENTRY gui_view_scaler_menu[] = {
 	{ MI_RADIO, "\aPIXEL PRECISE", "0", SDLK_p, NULL, ccb_view_sclr, dcb_view_sclr_state, true, false, HP_OFF },
 	{ MENU_END }
 };
+#endif
 static GUI_MENU_ENTRY gui_view_menu[] = {
 	{ MI_TITLE, "DISPLAY" },
 	{ MI_SUBMENU, "\aSCREEN SIZE", NULL, SDLK_s, gui_view_size_menu, NULL, NULL, true },
@@ -192,7 +194,9 @@ static GUI_MENU_ENTRY gui_view_menu[] = {
 	{ MI_SUBMENU, "COLOR \aMODE", NULL, SDLK_m, gui_view_cmode_menu, NULL, NULL, true },
 	{ MI_SUBMENU, "COLOR \aPALETTE", NULL, SDLK_p, gui_view_cpal_menu, NULL, NULL, true },
 	{ MI_SUBMENU, "\aCUSTOM COLORS", NULL, SDLK_c, gui_view_colors_menu, NULL, dcb_view_ccol_state },
+#ifndef OPENGL
 	{ MI_SUBMENU, "SC\aALER", NULL, SDLK_a, gui_view_scaler_menu, NULL, NULL, true },
+#endif
 	{ MENU_END }
 };
 static GUI_MENU_ENTRY gui_emu_sound_menu[] = {

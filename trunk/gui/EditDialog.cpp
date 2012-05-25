@@ -36,8 +36,8 @@ BYTE UserInterface::editBox(const char *title, char *buffer, BYTE maxLength, boo
 
 	w = (2 * GUI_CONST_BORDER) + w;
 	h = (4 * GUI_CONST_BORDER);
-	x = (defaultSurface->w - w) / 2;
-	y = (defaultSurface->h - h) / 2;
+	x = (frameWidth  - w) / 2;
+	y = (frameHeight - h) / 2;
 
 	drawDialogWithBorder(defaultSurface, x, y, w, h);
 	printTitle(defaultSurface, x, y + 1, w, GUI_COLOR_BACKGROUND, title);

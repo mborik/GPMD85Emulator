@@ -41,8 +41,8 @@ void UserInterface::drawTapeDialog(bool update)
 
 	cMenu_rect->w = GUI_CONST_BORDER + (31 * fontWidth) + GUI_CONST_BORDER;
 	cMenu_rect->h = (5 * GUI_CONST_BORDER) + (19 * GUI_CONST_ITEM_SIZE) + GUI_CONST_SEPARATOR;
-	cMenu_rect->x = (defaultSurface->w - cMenu_rect->w) / 2;
-	cMenu_rect->y = (defaultSurface->h - cMenu_rect->h) / 2;
+	cMenu_rect->x = (frameWidth  - cMenu_rect->w) / 2;
+	cMenu_rect->y = (frameHeight - cMenu_rect->h) / 2;
 
 	drawDialogWithBorder(defaultSurface, cMenu_rect->x, cMenu_rect->y,
 		cMenu_rect->w, cMenu_rect->h);

@@ -46,6 +46,12 @@ ScreenPMD85::ScreenPMD85(TDisplayMode dispMode, int border)
 	statusPercentage = 0;
 	borderSize = (dispMode == DM_FULLSCREEN || !gvi.wm) ? 0 : (border * BORDER_MULTIPLIER);
 
+#ifdef OPENGL
+	TextureMain = 0;
+	TextureMainWidth = 0;
+	TextureMainHeight = 0;
+#endif
+
 	InitScreenSize(dispMode, false);
 	InitScreenBuffer();
 
@@ -107,9 +113,10 @@ void ScreenPMD85::SetDisplayMode(TDisplayMode dispMode, int border)
 //---------------------------------------------------------------------------
 void ScreenPMD85::SetWidth384(bool mode384)
 {
-	DisplayModeChanging = true;
 	if (Width384mode == mode384)
 		return;
+
+	DisplayModeChanging = true;
 
 	SDL_Delay(WEAK_REFRESH_TIME);
 	InitScreenSize(DispMode, mode384);
@@ -271,6 +278,23 @@ void ScreenPMD85::RefreshDisplay()
 		return;
 
 	if ((GUI->isInMenu() && GUI->needRedraw) || !GUI->isInMenu()) {
+#ifdef OPENGL
+		GUI->needRedraw = false;
+
+		glBindTexture(GL_TEXTURE_2D, TextureMain);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, TextureMainWidth, TextureMainHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, BlitSurface->pixels);
+
+		glBegin(GL_QUADS);
+			glTexCoord2f(0, 0);
+			glVertex2f(BlitRectDest->x, BlitRectDest->y);
+			glTexCoord2f(1, 0);
+			glVertex2f(BlitRectDest->x + BlitRectDest->w, BlitRectDest->y);
+			glTexCoord2f(1, 1);
+			glVertex2f(BlitRectDest->x + BlitRectDest->w, BlitRectDest->y + BlitRectDest->h);
+			glTexCoord2f(0, 1);
+			glVertex2f(BlitRectDest->x, BlitRectDest->y + BlitRectDest->h);
+		glEnd();
+#else
 		if (SDL_LockSurface(BlitSurface) != 0)
 			return;
 
@@ -281,10 +305,15 @@ void ScreenPMD85::RefreshDisplay()
 
 		SDL_UnlockSurface(BlitSurface);
 		SDL_BlitSurface(BlitSurface, BlitRectSrc, Screen, BlitRectDest);
+#endif
 	}
 
+#ifdef OPENGL
+	SDL_GL_SwapBuffers();
+#else
 	RedrawStatusBar();
 	SDL_Flip(Screen);
+#endif
 }
 //---------------------------------------------------------------------------
 void ScreenPMD85::FillBuffer(BYTE *videoRam)
@@ -292,43 +321,45 @@ void ScreenPMD85::FillBuffer(BYTE *videoRam)
 	if (DisplayModeChanging || videoRam == NULL)
 		return;
 
-	int i, h = bufferHeight;
 	bool multicol = (ColorProfile == CP_MULTICOLOR);
+	WORD h = bufferHeight, w = bufferWidth;
 	BYTE *dst = bufferScreen, *p;
-	BYTE b, c, d, attrs[4];
+	BYTE a[4], b, c, d, i;
 
-	attrs[0] = PAttr[0];
-	attrs[1] = PAttr[1];
-	attrs[2] = BlinkingEnabled ? ((BlinkState) ? PAttr[2] : 0) : PAttr[2];
-	attrs[3] = BlinkingEnabled ? ((BlinkState) ? PAttr[3] : 0) : PAttr[3];
+#ifdef OPENGL
+	dst = (BYTE *) BlitSurface->pixels;
+	w   = BlitSurface->pitch;
+#endif
+
+	a[0] = PAttr[0];
+	a[1] = PAttr[1];
+	a[2] = BlinkingEnabled ? ((BlinkState) ? PAttr[2] : 0) : PAttr[2];
+	a[3] = BlinkingEnabled ? ((BlinkState) ? PAttr[3] : 0) : PAttr[3];
 
 	while (h--) {
 		p = dst;
-		for (i = 0; i < 48; ++i, p += 6) {
+		for (i = 0; i < 48; ++i) {
 			d = ((b = *(videoRam + i)) & 0xC0) >> 6;
 			if (multicol) {
 				c = (*(videoRam + i + ((((h % 2) << 1) - 1) * 64)) & 0xC0) >> 6;
 				c = PAttr[(d | c | ((d * c) ? 0 : 4))];
 			}
 			else if (Width384mode)
-				c = attrs[0];
+				c = a[0];
 			else
-				c = attrs[d];
+				c = a[d];
 
-			*(p + 0) = (b & 0x01) ? c : 0;
-			*(p + 1) = (b & 0x02) ? c : 0;
-			*(p + 2) = (b & 0x04) ? c : 0;
-			*(p + 3) = (b & 0x08) ? c : 0;
-			*(p + 4) = (b & 0x10) ? c : 0;
-			*(p + 5) = (b & 0x20) ? c : 0;
-			if (Width384mode) {
-				*(p + 6) = (b & 0x40) ? c : 0;
-				*(p + 7) = (b & 0x80) ? c : 0;
-				p += 2;
+			for (d = 0x01; d != (Width384mode ? 0 : 0x40); d <<= 1) {
+#ifdef OPENGL
+				*((SDL_Color *) p) = Palette[((b & d) ? c : 0)];
+				p += BlitSurface->format->BytesPerPixel;
+#else
+				*(p++) = (b & d) ? c : 0;
+#endif
 			}
 		}
 
-		dst += bufferWidth;
+		dst += w;
 		videoRam += 64;
 	}
 }
@@ -421,45 +452,91 @@ void ScreenPMD85::InitScreenSize(TDisplayMode reqDispMode, bool reqWidth384)
 		Width  += (borderSize * 2);
 		Height += (borderSize * 2) + STATUSBAR_HEIGHT;
 	}
+
+#ifdef OPENGL
+	TextureMainWidth = TextureMainHeight = 1;
+	while (TextureMainWidth < (unsigned) bufferWidth)
+		TextureMainWidth <<= 1;
+	while (TextureMainHeight < (unsigned) bufferHeight)
+		TextureMainHeight <<= 1;
+
+	BlitRectDest->w = (WORD) ((float) BlitRectDest->w * (((float) TextureMainWidth) / bufferWidth));
+	BlitRectDest->h = (WORD) ((float) BlitRectDest->h * (((float) TextureMainHeight) / bufferHeight));
+#endif
 }
 //-----------------------------------------------------------------------------
 void ScreenPMD85::InitScreenBuffer()
 {
+#ifndef OPENGL
 	int size = bufferWidth * bufferHeight;
 	bufferScreen = (BYTE *) realloc(bufferScreen, sizeof(BYTE) * size);
 	if (!bufferScreen)
 		error("Screen", "Unable to allocate memory for screen data buffer");
 
 	memset(bufferScreen, 0, sizeof(BYTE) * size);
+#endif
 }
 //-----------------------------------------------------------------------------
 void ScreenPMD85::PrepareVideoMode()
 {
+	DWORD iniflags = SDL_DOUBLEBUF |
+	       (gvi.hw ? SDL_HWSURFACE | SDL_HWPALETTE : SDL_SWSURFACE);
+
+#ifdef OPENGL
+	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+	iniflags = SDL_OPENGL;
+#endif
+
 	if (DispMode == DM_FULLSCREEN || !gvi.wm) {
 		debug("Screen", "Full-screen mode: %dx%d/%dbit", gvi.w, gvi.h, gvi.depth);
-		Screen = SDL_SetVideoMode(gvi.w, gvi.h, gvi.depth,
-			SDL_FULLSCREEN | SDL_DOUBLEBUF |
-			(gvi.hw ? SDL_HWSURFACE | SDL_HWPALETTE : SDL_SWSURFACE));
+		Screen = SDL_SetVideoMode(gvi.w, gvi.h, gvi.depth, SDL_FULLSCREEN | iniflags);
 	}
 	else {
 		debug("Screen", "Windowed mode: %dx%d/%dbit", Width, Height, gvi.depth);
-		Screen = SDL_SetVideoMode(
-			Width, Height, gvi.depth, SDL_DOUBLEBUF |
-			(gvi.hw ? SDL_HWSURFACE | SDL_HWPALETTE : SDL_SWSURFACE));
+		Screen = SDL_SetVideoMode(Width, Height, gvi.depth, iniflags);
 	}
 
 	if (!Screen)
 		error("Screen", "Unable to create screen buffer\n%s", SDL_GetError());
 
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+#ifdef OPENGL
 	BlitSurface = SDL_CreateRGBSurface(SDL_SWSURFACE,
-		BlitRectSrc->w, BlitRectSrc->h, 8,
-		0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff);
+		TextureMainWidth, TextureMainHeight, 24,
+		Screen->format->Rmask, Screen->format->Gmask,
+		Screen->format->Bmask, Screen->format->Amask);
+
+	if (!BlitSurface)
+		error("Screen", "Unable to create blitting surface\n%s", SDL_GetError());
+
+	GUI->defaultSurface = new SDL_Surface(*BlitSurface);
+	GUI->prepareDefaultSurface(bufferWidth, bufferHeight, Palette);
+
+	glEnable(GL_TEXTURE_2D);
+	glGenTextures(1, &TextureMain);
+	glBindTexture(GL_TEXTURE_2D, TextureMain);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+	SDL_FillRect(BlitSurface, NULL, 0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, TextureMainWidth, TextureMainHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, BlitSurface->pixels);
+
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glClearDepth(1.0f);
+	glViewport(0, 0, Screen->w, Screen->h);
+
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glOrtho(0, Screen->w, Screen->h, 0, -1, 1);
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glLoadIdentity();
+
 #else
 	BlitSurface = SDL_CreateRGBSurface(SDL_SWSURFACE,
-		BlitRectSrc->w, BlitRectSrc->h, 8,
-		0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
-#endif
+		bufferWidth, bufferHeight, 8,
+		Screen->format->Rmask, Screen->format->Gmask,
+		Screen->format->Bmask, Screen->format->Amask);
 
 	if (!BlitSurface)
 		error("Screen", "Unable to create blitting surface\n%s", SDL_GetError());
@@ -468,7 +545,9 @@ void ScreenPMD85::PrepareVideoMode()
 
 	GUI->defaultSurface = new SDL_Surface(*BlitSurface);
 	GUI->defaultSurface->pixels = bufferScreen;
-	GUI->prepareDefaultSurface(bufferWidth, bufferHeight);
+	GUI->prepareDefaultSurface(bufferWidth, bufferHeight, NULL);
+
+#endif
 
 	PrepareStatusBar();
 }
@@ -487,6 +566,10 @@ void ScreenPMD85::ReleaseVideoMode()
 		SDL_FreeSurface(Screen);
 		Screen = NULL;
 	}
+
+#ifdef OPENGL
+	glDeleteTextures(1, &TextureMain);
+#endif
 }
 //-----------------------------------------------------------------------------
 void ScreenPMD85::PrepareStatusBar()
@@ -603,6 +686,7 @@ void ScreenPMD85::RedrawStatusBar()
 //-----------------------------------------------------------------------------
 void ScreenPMD85::SetScaler()
 {
+#ifndef OPENGL
 	TDisplayMode reqDispMode = DispMode;
 
 	if (DispMode == DM_FULLSCREEN || !gvi.wm)
@@ -1157,6 +1241,7 @@ scalerMethodPrototype(point4xLCD)
 		dst += dstPitch * 4;
 		src += srcPitch;
 	}
+#endif
 }
 //-----------------------------------------------------------------------------
 void ScreenPMD85::RGBpalete(SDL_Color *pal)
