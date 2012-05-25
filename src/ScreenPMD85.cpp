@@ -33,8 +33,8 @@ ScreenPMD85::ScreenPMD85(TDisplayMode dispMode, int border)
 		warning("Screen", "Can't load status bar resource file");
 
 	SDL_SetColorKey(StatusBarIcons, SDL_SRCCOLORKEY, SDL_MapRGB(StatusBarIcons->format, 255, 0, 255));
-	RGBpalete(Palette);
 
+	RGBpalete(Palette);
 	DisplayModeChanging = true;
 	BlinkState = false;
 	BlinkingEnabled = false;
@@ -47,9 +47,9 @@ ScreenPMD85::ScreenPMD85(TDisplayMode dispMode, int border)
 	borderSize = (dispMode == DM_FULLSCREEN || !gvi.wm) ? 0 : (border * BORDER_MULTIPLIER);
 
 #ifdef OPENGL
-	TextureMain = 0;
-	TextureMainWidth = 0;
-	TextureMainHeight = 0;
+	Texture[0] = Texture[1] = 0;
+	TextureMainWidth = TextureMainHeight = 0;
+	TextureStatusWidth = TextureStatusHeight = 0;
 #endif
 
 	InitScreenSize(dispMode, false);
@@ -280,9 +280,12 @@ void ScreenPMD85::RefreshDisplay()
 	if ((GUI->isInMenu() && GUI->needRedraw) || !GUI->isInMenu()) {
 #ifdef OPENGL
 		GUI->needRedraw = false;
+		RedrawStatusBar();
 
-		glBindTexture(GL_TEXTURE_2D, TextureMain);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, TextureMainWidth, TextureMainHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, BlitSurface->pixels);
+		glBindTexture(GL_TEXTURE_2D, Texture[0]);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
+			TextureMainWidth, TextureMainHeight, 0,
+			GL_RGB, GL_UNSIGNED_BYTE, BlitSurface->pixels);
 
 		glBegin(GL_QUADS);
 			glTexCoord2f(0, 0);
@@ -290,9 +293,29 @@ void ScreenPMD85::RefreshDisplay()
 			glTexCoord2f(1, 0);
 			glVertex2f(BlitRectDest->x + BlitRectDest->w, BlitRectDest->y);
 			glTexCoord2f(1, 1);
-			glVertex2f(BlitRectDest->x + BlitRectDest->w, BlitRectDest->y + BlitRectDest->h);
+			glVertex2f(BlitRectDest->x + BlitRectDest->w,
+			           BlitRectDest->y + BlitRectDest->h);
 			glTexCoord2f(0, 1);
 			glVertex2f(BlitRectDest->x, BlitRectDest->y + BlitRectDest->h);
+		glEnd();
+
+		glBindTexture(GL_TEXTURE_2D, Texture[1]);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
+			TextureStatusWidth, TextureStatusHeight, 0,
+			GL_RGB, GL_UNSIGNED_BYTE, StatusBar->pixels);
+
+		glBegin(GL_QUADS);
+			glTexCoord2f(0, 0);
+			glVertex2f(BlitRectDest->x, BlitRectDest->y + BlitRectDest->h);
+			glTexCoord2f(1, 0);
+			glVertex2f(BlitRectDest->x + TextureStatusWidth,
+			           BlitRectDest->y + BlitRectDest->h);
+			glTexCoord2f(1, 1);
+			glVertex2f(BlitRectDest->x + TextureStatusWidth,
+			           BlitRectDest->y + BlitRectDest->h + TextureStatusHeight);
+			glTexCoord2f(0, 1);
+			glVertex2f(BlitRectDest->x,
+			           BlitRectDest->y + BlitRectDest->h + TextureStatusHeight);
 		glEnd();
 #else
 		if (SDL_LockSurface(BlitSurface) != 0)
@@ -328,7 +351,7 @@ void ScreenPMD85::FillBuffer(BYTE *videoRam)
 
 #ifdef OPENGL
 	dst = (BYTE *) BlitSurface->pixels;
-	w   = BlitSurface->pitch;
+	w = BlitSurface->pitch;
 #endif
 
 	a[0] = PAttr[0];
@@ -455,10 +478,15 @@ void ScreenPMD85::InitScreenSize(TDisplayMode reqDispMode, bool reqWidth384)
 
 #ifdef OPENGL
 	TextureMainWidth = TextureMainHeight = 1;
+	TextureStatusWidth = TextureStatusHeight = 1;
 	while (TextureMainWidth < (unsigned) bufferWidth)
 		TextureMainWidth <<= 1;
 	while (TextureMainHeight < (unsigned) bufferHeight)
 		TextureMainHeight <<= 1;
+	while (TextureStatusWidth < (unsigned) BlitRectDest->w)
+		TextureStatusWidth <<= 1;
+	while (TextureStatusHeight < (unsigned) (STATUSBAR_HEIGHT - (borderSize / BORDER_MULTIPLIER)))
+		TextureStatusHeight <<= 1;
 
 	BlitRectDest->w = (WORD) ((float) BlitRectDest->w * (((float) TextureMainWidth) / bufferWidth));
 	BlitRectDest->h = (WORD) ((float) BlitRectDest->h * (((float) TextureMainHeight) / bufferHeight));
@@ -484,7 +512,7 @@ void ScreenPMD85::PrepareVideoMode()
 
 #ifdef OPENGL
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-	iniflags = SDL_OPENGL;
+	iniflags = SDL_HWSURFACE | SDL_OPENGL;
 #endif
 
 	if (DispMode == DM_FULLSCREEN || !gvi.wm) {
@@ -508,30 +536,48 @@ void ScreenPMD85::PrepareVideoMode()
 	if (!BlitSurface)
 		error("Screen", "Unable to create blitting surface\n%s", SDL_GetError());
 
+	StatusBar = SDL_CreateRGBSurface(SDL_SWSURFACE,
+		TextureStatusWidth, TextureStatusHeight, 24,
+		Screen->format->Rmask, Screen->format->Gmask,
+		Screen->format->Bmask, Screen->format->Amask);
+
+	if (!StatusBar)
+		error("Screen", "Unable to create status bar surface\n%s", SDL_GetError());
+
+	SDL_Rect *r = new SDL_Rect;
+	r->x = 0;
+	r->y = GetMultiplier() * 2;
+	r->w = BlitRectSrc->w;
+	r->h = 1;
+
+	SDL_FillRect(BlitSurface, NULL, 0);
+	SDL_FillRect(StatusBar, NULL, 0);
+	SDL_FillRect(StatusBar, r, SDL_MapRGB(Screen->format, 12, 12, 12));
+	delete r;
+
 	GUI->defaultSurface = new SDL_Surface(*BlitSurface);
 	GUI->prepareDefaultSurface(bufferWidth, bufferHeight, Palette);
 
 	glEnable(GL_TEXTURE_2D);
-	glGenTextures(1, &TextureMain);
-	glBindTexture(GL_TEXTURE_2D, TextureMain);
+	glGenTextures(2, Texture);
+
+	glBindTexture(GL_TEXTURE_2D, Texture[0]);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-
-	SDL_FillRect(BlitSurface, NULL, 0);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, TextureMainWidth, TextureMainHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, BlitSurface->pixels);
 
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-	glClearDepth(1.0f);
-	glViewport(0, 0, Screen->w, Screen->h);
+	glBindTexture(GL_TEXTURE_2D, Texture[1]);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, TextureStatusWidth, TextureStatusHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, StatusBar->pixels);
 
+	glViewport(0, 0, Screen->w, Screen->h);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	glOrtho(0, Screen->w, Screen->h, 0, -1, 1);
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glLoadIdentity();
 
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	glClear(GL_COLOR_BUFFER_BIT);
 #else
 	BlitSurface = SDL_CreateRGBSurface(SDL_SWSURFACE,
 		bufferWidth, bufferHeight, 8,
@@ -547,9 +593,8 @@ void ScreenPMD85::PrepareVideoMode()
 	GUI->defaultSurface->pixels = bufferScreen;
 	GUI->prepareDefaultSurface(bufferWidth, bufferHeight, NULL);
 
-#endif
-
 	PrepareStatusBar();
+#endif
 }
 //-----------------------------------------------------------------------------
 void ScreenPMD85::ReleaseVideoMode()
@@ -568,12 +613,18 @@ void ScreenPMD85::ReleaseVideoMode()
 	}
 
 #ifdef OPENGL
-	glDeleteTextures(1, &TextureMain);
+	if (StatusBar) {
+		SDL_FreeSurface(StatusBar);
+		StatusBar = NULL;
+	}
+
+	glDeleteTextures(2, Texture);
 #endif
 }
 //-----------------------------------------------------------------------------
 void ScreenPMD85::PrepareStatusBar()
 {
+#ifndef OPENGL
 	SDL_Rect *r = new SDL_Rect(*BlitRectDest);
 	DWORD borderColor = SDL_MapRGB(Screen->format, 12, 12, 12);
 
@@ -606,44 +657,58 @@ void ScreenPMD85::PrepareStatusBar()
 	SDL_FillRect(Screen, r, 0);
 
 	delete r;
+#endif
 }
 //-----------------------------------------------------------------------------
 void ScreenPMD85::RedrawStatusBar()
 {
 	SDL_Rect *r = new SDL_Rect(*BlitRectDest), *s = new SDL_Rect;
 
+#ifdef OPENGL
+	SDL_Surface *surface = StatusBar;
+
+	r->w = BlitRectSrc->w;
+	r->h = BlitRectSrc->h;
+	r->x = r->w - (4 * STATUSBAR_SPACING);
+	r->y = ((STATUSBAR_HEIGHT - STATUSBAR_ICON) / 2)
+	     + (r->y / BORDER_MULTIPLIER)
+	     + (BlitRectSrc->h / 256);
+#else
+	SDL_Surface *surface = Screen;
+
 	r->x += r->w - (4 * STATUSBAR_SPACING);
 	r->y += r->h + ((STATUSBAR_HEIGHT - STATUSBAR_ICON) / 2)
 	             + (r->y / BORDER_MULTIPLIER)
 	             + (BlitRectSrc->h / 256);
+#endif
 
 	r->w = r->h = s->w = s->h = STATUSBAR_ICON;
 
 //	control LEDs on right side...
 	s->y = 0;
 	s->x = (ledState & 1) ? STATUSBAR_ICON : 0;
-	SDL_BlitSurface(StatusBarIcons, s, Screen, r);
+	SDL_BlitSurface(StatusBarIcons, s, surface, r);
 
 	r->x += STATUSBAR_SPACING;
 	s->x = (ledState & 2) ? (2 * STATUSBAR_ICON) : 0;
-	SDL_BlitSurface(StatusBarIcons, s, Screen, r);
+	SDL_BlitSurface(StatusBarIcons, s, surface, r);
 
 	r->x += STATUSBAR_SPACING;
 	s->x = (ledState & 4) ? (3 * STATUSBAR_ICON) : 0;
-	SDL_BlitSurface(StatusBarIcons, s, Screen, r);
+	SDL_BlitSurface(StatusBarIcons, s, surface, r);
 
 //	tape/disk icon...
 	r->x -= (4 * STATUSBAR_SPACING);
 	if (iconState) {
 		s->x = (iconState * STATUSBAR_ICON) + (3 * STATUSBAR_ICON);
-		SDL_BlitSurface(StatusBarIcons, s, Screen, r);
+		SDL_BlitSurface(StatusBarIcons, s, surface, r);
 	}
 	else
-		SDL_FillRect(Screen, r, 0);
+		SDL_FillRect(surface, r, 0);
 
 	delete s;
 
-	if (SDL_LockSurface(Screen) != 0) {
+	if (SDL_LockSurface(surface) != 0) {
 		delete r;
 		return;
 	}
@@ -653,19 +718,23 @@ void ScreenPMD85::RedrawStatusBar()
 	static BYTE pauseBlinker = 0;
 
 //	status text, cpu meter and blinking pause...
+#ifdef OPENGL
+	r->x = STATUSBAR_SPACING;
+#else
 	r->x = BlitRectDest->x + STATUSBAR_SPACING;
+#endif
 	r->y += 2;
 
-	GUI->printText(Screen, r->x, r->y, 0, status);
+	GUI->printText(surface, r->x, r->y, 0, status);
 	if (statusPercentage < 0) {
 		sprintf(status, "PAUSED");
-		GUI->printText(Screen, r->x, r->y, (pauseBlinker < 10) ? SDL_MapRGB(Screen->format, 224, 27, 76) : 0, status);
+		GUI->printText(surface, r->x, r->y, (pauseBlinker < 10) ? 111 : 0, status);
 		if (pauseBlinker++ >= 16)
 			pauseBlinker = 0;
 	}
 	else if (statusPercentage > 0) {
 		sprintf(status, "%sFPS:%d CPU:%d%%", computerModel, statusFPS, statusPercentage);
-		GUI->printText(Screen, r->x, r->y, SDL_MapRGB(Screen->format, 64, 64, 64), status);
+		GUI->printText(surface, r->x, r->y, 55, status);
 	}
 
 //	tape progress bar...
@@ -674,13 +743,13 @@ void ScreenPMD85::RedrawStatusBar()
 	r->w = tapProgressWidth - r->x;
 	r->h = 2;
 
-	SDL_FillRect(Screen, r, *(TapeBrowser->ProgressBar->Active) ? SDL_MapRGB(Screen->format, 16, 24, 16) : 0);
+	SDL_FillRect(surface, r, *(TapeBrowser->ProgressBar->Active) ? SDL_MapRGB(surface->format, 16, 24, 16) : 0);
 	if (*(TapeBrowser->ProgressBar->Active)) {
 		r->w = ((double) r->w / TapeBrowser->ProgressBar->Max) * TapeBrowser->ProgressBar->Position;
-		SDL_FillRect(Screen, r, SDL_MapRGB(Screen->format, 40, 100, 50));
+		SDL_FillRect(surface, r, SDL_MapRGB(surface->format, 40, 100, 50));
 	}
 
-	SDL_UnlockSurface(Screen);
+	SDL_UnlockSurface(surface);
 	delete r;
 }
 //-----------------------------------------------------------------------------
@@ -1333,7 +1402,7 @@ void ScreenPMD85::RGBpalete(SDL_Color *pal)
 		{  32,  64, 128, 0 },  // debugger highlight cursor
 		{  96, 112, 128, 0 },  // debugger border
 		{   0,   0,   0, 0 },  //
-		{   0,   0,   0, 0 }   //
+		{ 224,  27,  76, 0 }   //
 	};
 
 	memset(pal, 0, sizeof(SDL_Color) * 256);

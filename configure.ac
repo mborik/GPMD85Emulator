@@ -81,19 +81,24 @@ PKG_CHECK_MODULES([libSDL], [sdl],, [
 	], AC_MSG_ERROR([SDL library not found]))
 ])
 if test "x$opengl" = "xyes"; then
-	CXXFLAGS+=" -DOPENGL"
-	CFLAGS+=" -DOPENGL"
-	PKG_CHECK_MODULES([libGL], [gl],, [
+	PKG_CHECK_MODULES([libGL], [gl], [
+		CXXFLAGS+=" -DOPENGL"
+		CFLAGS+=" -DOPENGL"
+	], [
 		AC_CHECK_HEADER([SDL/SDL_opengl.h],
 			AC_CHECK_LIB([GL], [main], [
 				libGL_LIBS="-lGL"
 				AC_SUBST(libGL_LIBS)
+				CXXFLAGS+=" -DOPENGL"
+				CFLAGS+=" -DOPENGL"
 			], AC_CHECK_LIB([opengl32], [main], [
 				libGL_LIBS="-lopengl32"
 				AC_SUBST(libGL_LIBS)
-			], AC_MSG_ERROR([SDL library not found]))
+				CXXFLAGS+=" -DOPENGL"
+				CFLAGS+=" -DOPENGL"
+			], AC_MSG_WARN([OpenGL library not found]))
 		),
-		AC_MSG_ERROR([SDL header not found]))
+		AC_MSG_WARN([OpenGL header not found]))
 	])
 fi
 

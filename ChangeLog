@@ -1,3 +1,4 @@
+2012-05-26 [mborik] bugfix and fine-tuning of OpenGL screen rendering
 2012-05-24 [mborik] OpenGL screen rendering implementation
 2012-03-15 [mborik] instruction tracing in debugger (too buggy yet)
 2012-03-04 [mborik] first implementation of debugger (drawings only)
