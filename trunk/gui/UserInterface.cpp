@@ -158,12 +158,10 @@ void UserInterface::prepareDefaultSurface(int width, int height, SDL_Color *pale
 	frameLength = defaultSurface->pitch * defaultSurface->h;
 	frameSave = (BYTE *) realloc(frameSave, sizeof(BYTE) * frameLength);
 
-	defaultSurface->offset = 0;
 	defaultSurface->locked = 1;
 	defaultSurface->clip_rect.x = defaultSurface->clip_rect.y = 0;
 	defaultSurface->clip_rect.w = frameWidth  = width;
 	defaultSurface->clip_rect.h = frameHeight = height;
-	defaultSurface->flags = SDL_SWSURFACE | SDL_PREALLOC;
 
 	globalPalette = (palette) ? palette : defaultSurface->format->palette->colors;
 	maxCharsOnScreen = (frameWidth - (2 * GUI_CONST_BORDER)) / fontWidth;
@@ -171,24 +169,37 @@ void UserInterface::prepareDefaultSurface(int width, int height, SDL_Color *pale
 //-----------------------------------------------------------------------------
 void UserInterface::putPixel(SDL_Surface *s, int x, int y, BYTE col)
 {
+	SDL_PixelFormat *f = s->format;
 	SDL_Color c = globalPalette[col];
 	BYTE *d = ((BYTE *) s->pixels)
-			+ (x * s->format->BytesPerPixel)
+			+ (x * f->BytesPerPixel)
 			+ (y * s->pitch);
 
-	if (s->format->BytesPerPixel >= 3) {
-		*(d++) = c.r;
-		*(d++) = c.g;
-		*(d++) = c.b;
-		// NOTICE: we omits aplha channel, it should be initialized to zero!
-	}
-	else if (s->format->BytesPerPixel == 2) {
-		WORD rgb565 = (c.b + ((c.g % 64) << 6) + ((c.r % 32) << 11));
-		*(d++) = rgb565 / 256;
-		*(d++) = rgb565 % 256;
-	}
-	else
+	if (f->BytesPerPixel == 1)
 		*d = col;
+	else {
+		DWORD b = SDL_MapRGB(f, c.r, c.g, c.b);
+		if (f->BytesPerPixel == 2) {
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+			*(d++) = (b >> 8) & 0xFF;
+			*(d++) = b & 0xFF;
+#else
+			*(d++) = b & 0xFF;
+			*(d++) = (b >> 8) & 0xFF;
+#endif
+		}
+		else {
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+			*(d++) = (b >> 16) & 0xFF;
+			*(d++) = (b >> 8) & 0xFF;
+			*(d++) = b & 0xFF;
+#else
+			*(d++) = b & 0xFF;
+			*(d++) = (b >> 8) & 0xFF;
+			*(d++) = (b >> 16) & 0xFF;
+#endif
+		}
+	}
 }
 //-----------------------------------------------------------------------------
 void UserInterface::printChar(SDL_Surface *s, int x, int y, BYTE col, BYTE ch)
@@ -212,7 +223,7 @@ void UserInterface::printChar(SDL_Surface *s, int x, int y, BYTE col, BYTE ch)
 void UserInterface::printText(SDL_Surface *s, int x, int y, BYTE col, const char *msg)
 {
 	BYTE ch;
-	DWORD c = col;
+	BYTE c = col;
 	for (int i = 0, mx = x; i < (signed) strlen(msg); i++) {
 		ch = msg[i];
 
