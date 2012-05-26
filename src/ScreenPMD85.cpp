@@ -372,14 +372,23 @@ void ScreenPMD85::FillBuffer(BYTE *videoRam)
 			else
 				c = a[d];
 
-			for (d = 0x01; d != (Width384mode ? 0 : 0x40); d <<= 1) {
 #ifdef OPENGL
+			for (d = 0x01; d != (Width384mode ? 0 : 0x40); d <<= 1) {
 				*((SDL_Color *) p) = Palette[((b & d) ? c : 0)];
 				p += BlitSurface->format->BytesPerPixel;
-#else
-				*(p++) = (b & d) ? c : 0;
-#endif
 			}
+#else
+			*(p++) = (b & 0x01) ? c : 0;
+			*(p++) = (b & 0x02) ? c : 0;
+			*(p++) = (b & 0x04) ? c : 0;
+			*(p++) = (b & 0x08) ? c : 0;
+			*(p++) = (b & 0x10) ? c : 0;
+			*(p++) = (b & 0x20) ? c : 0;
+			if (Width384mode) {
+				*(p++) = (b & 0x40) ? c : 0;
+				*(p++) = (b & 0x80) ? c : 0;
+			}
+#endif
 		}
 
 		dst += w;
@@ -512,6 +521,7 @@ void ScreenPMD85::PrepareVideoMode()
 
 #ifdef OPENGL
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);
 	iniflags = SDL_HWSURFACE | SDL_OPENGL;
 #endif
 
@@ -555,9 +565,15 @@ void ScreenPMD85::PrepareVideoMode()
 	SDL_FillRect(StatusBar, r, SDL_MapRGB(Screen->format, 12, 12, 12));
 	delete r;
 
-	GUI->defaultSurface = new SDL_Surface(*BlitSurface);
+	GUI->defaultSurface = SDL_CreateRGBSurfaceFrom(BlitSurface->pixels,
+		BlitSurface->w, BlitSurface->h,
+		BlitSurface->format->BitsPerPixel, BlitSurface->pitch,
+		BlitSurface->format->Rmask, BlitSurface->format->Gmask,
+		BlitSurface->format->Bmask, BlitSurface->format->Amask);
 	GUI->prepareDefaultSurface(bufferWidth, bufferHeight, Palette);
 
+	glDisable(GL_LIGHTING);
+	glDisable(GL_DEPTH_TEST);
 	glEnable(GL_TEXTURE_2D);
 	glGenTextures(2, Texture);
 
@@ -575,12 +591,14 @@ void ScreenPMD85::PrepareVideoMode()
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	glOrtho(0, Screen->w, Screen->h, 0, -1, 1);
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
 
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
 #else
 	BlitSurface = SDL_CreateRGBSurface(SDL_SWSURFACE,
-		bufferWidth, bufferHeight, 8,
+		BlitRectSrc->w, BlitRectSrc->h, 8,
 		Screen->format->Rmask, Screen->format->Gmask,
 		Screen->format->Bmask, Screen->format->Amask);
 
@@ -589,9 +607,11 @@ void ScreenPMD85::PrepareVideoMode()
 
 	SDL_SetPalette(BlitSurface, SDL_LOGPAL | SDL_PHYSPAL, Palette, 0, 256);
 
-	GUI->defaultSurface = new SDL_Surface(*BlitSurface);
-	GUI->defaultSurface->pixels = bufferScreen;
-	GUI->prepareDefaultSurface(bufferWidth, bufferHeight, NULL);
+	GUI->defaultSurface = SDL_CreateRGBSurfaceFrom(bufferScreen,
+		bufferWidth, bufferHeight, 8, bufferWidth,
+		BlitSurface->format->Rmask, BlitSurface->format->Gmask,
+		BlitSurface->format->Bmask, BlitSurface->format->Amask);
+	GUI->prepareDefaultSurface(bufferWidth, bufferHeight, Palette);
 
 	PrepareStatusBar();
 #endif
@@ -600,7 +620,7 @@ void ScreenPMD85::PrepareVideoMode()
 void ScreenPMD85::ReleaseVideoMode()
 {
 	if (GUI->defaultSurface) {
-		delete GUI->defaultSurface;
+		SDL_FreeSurface(GUI->defaultSurface);
 		GUI->defaultSurface = NULL;
 	}
 	if (BlitSurface) {
