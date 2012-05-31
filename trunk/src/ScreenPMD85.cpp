@@ -1,5 +1,5 @@
 /*	ScreenPMD85.cpp: Core of graphical output and screen generation
-	Copyright (c) 2010-2011 Martin Borik <mborik@users.sourceforge.net>
+	Copyright (c) 2010-2012 Martin Borik <mborik@users.sourceforge.net>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -26,13 +26,6 @@ ScreenPMD85::ScreenPMD85(TDisplayMode dispMode, int border)
 	BlitRectSrc = NULL;
 	BlitRectDest = NULL;
 	bufferScreen = NULL;
-
-	debug("Screen", "Loading resources");
-	StatusBarIcons = SDL_LoadBMP(LocateResource("statusbar.bmp", false));
-	if (!StatusBarIcons)
-		warning("Screen", "Can't load status bar resource file");
-
-	SDL_SetColorKey(StatusBarIcons, SDL_SRCCOLORKEY, SDL_MapRGB(StatusBarIcons->format, 255, 0, 255));
 
 	RGBpalete(Palette);
 	DisplayModeChanging = true;
@@ -69,10 +62,6 @@ ScreenPMD85::~ScreenPMD85()
 	SDL_Flip(Screen);
 
 	ReleaseVideoMode();
-
-	if (StatusBarIcons)
-		SDL_FreeSurface(StatusBarIcons);
-	StatusBarIcons = NULL;
 
 	if (BlitRectDest)
 		delete BlitRectDest;
@@ -539,17 +528,13 @@ void ScreenPMD85::PrepareVideoMode()
 
 #ifdef OPENGL
 	BlitSurface = SDL_CreateRGBSurface(SDL_SWSURFACE,
-		TextureMainWidth, TextureMainHeight, 24,
-		Screen->format->Rmask, Screen->format->Gmask,
-		Screen->format->Bmask, Screen->format->Amask);
+		TextureMainWidth, TextureMainHeight, 24, SDL_DEFAULT_MASK_QUAD);
 
 	if (!BlitSurface)
 		error("Screen", "Unable to create blitting surface\n%s", SDL_GetError());
 
 	StatusBar = SDL_CreateRGBSurface(SDL_SWSURFACE,
-		TextureStatusWidth, TextureStatusHeight, 24,
-		Screen->format->Rmask, Screen->format->Gmask,
-		Screen->format->Bmask, Screen->format->Amask);
+		TextureStatusWidth, TextureStatusHeight, 24, SDL_DEFAULT_MASK_QUAD);
 
 	if (!StatusBar)
 		error("Screen", "Unable to create status bar surface\n%s", SDL_GetError());
@@ -598,9 +583,7 @@ void ScreenPMD85::PrepareVideoMode()
 	glClear(GL_COLOR_BUFFER_BIT);
 #else
 	BlitSurface = SDL_CreateRGBSurface(SDL_SWSURFACE,
-		BlitRectSrc->w, BlitRectSrc->h, 8,
-		Screen->format->Rmask, Screen->format->Gmask,
-		Screen->format->Bmask, Screen->format->Amask);
+		BlitRectSrc->w, BlitRectSrc->h, 8, SDL_DEFAULT_MASK_QUAD);
 
 	if (!BlitSurface)
 		error("Screen", "Unable to create blitting surface\n%s", SDL_GetError());
@@ -707,21 +690,21 @@ void ScreenPMD85::RedrawStatusBar()
 //	control LEDs on right side...
 	s->y = 0;
 	s->x = (ledState & 1) ? STATUSBAR_ICON : 0;
-	SDL_BlitSurface(StatusBarIcons, s, surface, r);
+	SDL_LowerBlit(GUI->icons, s, surface, r);
 
 	r->x += STATUSBAR_SPACING;
 	s->x = (ledState & 2) ? (2 * STATUSBAR_ICON) : 0;
-	SDL_BlitSurface(StatusBarIcons, s, surface, r);
+	SDL_LowerBlit(GUI->icons, s, surface, r);
 
 	r->x += STATUSBAR_SPACING;
 	s->x = (ledState & 4) ? (3 * STATUSBAR_ICON) : 0;
-	SDL_BlitSurface(StatusBarIcons, s, surface, r);
+	SDL_LowerBlit(GUI->icons, s, surface, r);
 
 //	tape/disk icon...
 	r->x -= (4 * STATUSBAR_SPACING);
 	if (iconState) {
 		s->x = (iconState * STATUSBAR_ICON) + (3 * STATUSBAR_ICON);
-		SDL_BlitSurface(StatusBarIcons, s, surface, r);
+		SDL_LowerBlit(GUI->icons, s, surface, r);
 	}
 	else
 		SDL_FillRect(surface, r, 0);

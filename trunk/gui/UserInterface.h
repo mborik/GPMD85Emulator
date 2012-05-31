@@ -57,6 +57,12 @@
 #define GUI_COLOR_DBG_CURSOR 92
 #define GUI_COLOR_DBG_BORDER 93
 //-----------------------------------------------------------------------------
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+#define SDL_DEFAULT_MASK_QUAD 0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff
+#else
+#define SDL_DEFAULT_MASK_QUAD 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000
+#endif
+//-----------------------------------------------------------------------------
 typedef struct _GUI_MENU_ENTRY {
 	TMenuItemType type;
 	const char *text;
@@ -116,6 +122,7 @@ class UserInterface : public sigslot::has_slots<>
 		BYTE uiQueryState;
 		sigslot::signal0<> uiCallback;
 
+		SDL_Surface *icons;
 		SDL_Surface *defaultSurface;
 		GUI_FILESELECTOR_DATA *fileSelector;
 		GUI_TAPEDIALOG_DATA *tapeDialog;
@@ -165,7 +172,8 @@ class UserInterface : public sigslot::has_slots<>
 		SDL_Rect *cMenu_rect;
 		int cMenu_leftMargin, cMenu_count, cMenu_hilite;
 
-		void putPixel(SDL_Surface *s, int x, int y, BYTE col);
+		SDL_Surface *loadIcons(const char *file);
+		void putPixel(SDL_Surface *s, int x, int y, BYTE col, bool setAlpha = false);
 		void printChar(SDL_Surface *s, int x, int y, BYTE col, BYTE ch);
 		void printTitle(SDL_Surface *s, int x, int y, int w, BYTE col, const char *msg);
 		void printFormatted(SDL_Surface *s, int x, int y, BYTE col, const char *msg, ...);
