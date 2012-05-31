@@ -24,7 +24,7 @@ UserInterface *GUI;
 //-----------------------------------------------------------------------------
 UserInterface::UserInterface()
 {
-	debug("GUI", "Initializing");
+	debug("GUI", "Initializing, loading resources...");
 
 #pragma pack(push, 1)
 	struct FNT_HEADER {
@@ -93,8 +93,12 @@ UserInterface::UserInterface()
 
 	if (fontData == NULL)
 		error("GUI", "Can't load font resource file");
+	debug("GUI", "Font resource loaded");
 
-	debug("GUI", "Font loaded");
+	icons = loadIcons(LocateResource("statusbar.bmp", false));
+	if (icons == NULL)
+		error("GUI", "Can't load status bar icons resource file");
+	debug("GUI", "Status bar icons resource loaded");
 
 	frameSave = NULL;
 	globalPalette = NULL;
@@ -136,6 +140,10 @@ UserInterface::~UserInterface()
 		delete [] fontData;
 	fontData = NULL;
 
+	if (icons)
+		SDL_FreeSurface(icons);
+	icons = NULL;
+
 	if (cMenu_rect)
 		delete cMenu_rect;
 	cMenu_rect = NULL;
@@ -153,6 +161,49 @@ UserInterface::~UserInterface()
 	}
 }
 //-----------------------------------------------------------------------------
+SDL_Surface *UserInterface::loadIcons(const char *file)
+{
+	SDL_Surface *src = SDL_LoadBMP(file);
+	if (!src)
+		return NULL;
+
+	if (src->format->BitsPerPixel >= 24) {
+		SDL_SetColorKey(src, SDL_SRCCOLORKEY, SDL_MapRGB(src->format, 255, 0, 255));
+		return src;
+	}
+	else if (src->format->BitsPerPixel != 8 || !src->format->palette) {
+		SDL_FreeSurface(src);
+		debug("GUI", "Status bar icons resource has invalid color depth (%d)!", src->format->BitsPerPixel);
+		return NULL;
+	}
+
+	int x, y;
+	BYTE *b = NULL, mask;
+
+	globalPalette = src->format->palette->colors;
+	for (mask = 0; mask < src->format->palette->ncolors; mask++) {
+		// masking of fuchsia color
+		if (globalPalette[mask].r == 0xff ||
+		    globalPalette[mask].b == 0xff ||
+		    globalPalette[mask].g == 0x00)
+				break;
+	}
+
+	SDL_Surface *dst = SDL_CreateRGBSurface(SDL_SWSURFACE,
+		src->w, src->h, 32, SDL_DEFAULT_MASK_QUAD);
+	SDL_FillRect(dst, NULL, 0);
+
+	for (y = 0; y < src->h; y++) {
+		b = ((BYTE *) src->pixels) + (y * src->pitch);
+		for (x = 0; x < src->w; x++) {
+			if (b[x] != mask)
+				putPixel(dst, x, y, b[x], true);
+		}
+	}
+
+	return dst;
+}
+//-----------------------------------------------------------------------------
 void UserInterface::prepareDefaultSurface(int width, int height, SDL_Color *palette)
 {
 	frameLength = defaultSurface->pitch * defaultSurface->h;
@@ -167,7 +218,7 @@ void UserInterface::prepareDefaultSurface(int width, int height, SDL_Color *pale
 	maxCharsOnScreen = (frameWidth - (2 * GUI_CONST_BORDER)) / fontWidth;
 }
 //-----------------------------------------------------------------------------
-void UserInterface::putPixel(SDL_Surface *s, int x, int y, BYTE col)
+void UserInterface::putPixel(SDL_Surface *s, int x, int y, BYTE col, bool setAlpha)
 {
 	SDL_PixelFormat *f = s->format;
 	SDL_Color c = globalPalette[col];
@@ -182,21 +233,27 @@ void UserInterface::putPixel(SDL_Surface *s, int x, int y, BYTE col)
 		if (f->BytesPerPixel == 2) {
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
 			*(d++) = (b >> 8) & 0xFF;
-			*(d++) = b & 0xFF;
+			*d = b & 0xFF;
 #else
 			*(d++) = b & 0xFF;
-			*(d++) = (b >> 8) & 0xFF;
+			*d = (b >> 8) & 0xFF;
 #endif
 		}
 		else {
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
-			*(d++) = (b >> 16) & 0xFF;
-			*(d++) = (b >> 8) & 0xFF;
-			*(d++) = b & 0xFF;
+			if (setAlpha && f->BytesPerPixel == 4)
+				*d = (b >> 24) & 0xFF;
+
+			*(++d) = (b >> 16) & 0xFF;
+			*(++d) = (b >> 8) & 0xFF;
+			*(++d) = b & 0xFF;
 #else
 			*(d++) = b & 0xFF;
 			*(d++) = (b >> 8) & 0xFF;
 			*(d++) = (b >> 16) & 0xFF;
+
+			if (setAlpha && f->BytesPerPixel == 4)
+				*d = (b >> 24) & 0xFF;
 #endif
 		}
 	}

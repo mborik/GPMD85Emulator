@@ -1,5 +1,5 @@
 /*	ScreenPMD85.h: Core of graphical output and screen generation
-	Copyright (c) 2010-2011 Martin Borik <mborik@users.sourceforge.net>
+	Copyright (c) 2010-2012 Martin Borik <mborik@users.sourceforge.net>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -100,7 +100,6 @@ public:
 private:
 	SDL_Surface *Screen;
 	SDL_Surface *BlitSurface;
-	SDL_Surface *StatusBarIcons;
 	SDL_Rect *BlitRectSrc;
 	SDL_Rect *BlitRectDest;
 
