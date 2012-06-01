@@ -20,22 +20,22 @@
 //---------------------------------------------------------------------------
 #include "globals.h"
 //---------------------------------------------------------------------------
-// typ pristupu k bloku pamati
-#define MA_RO     1   // ROM, len citanie, pokus o zapis sa ignoruje
-#define MA_WO     2   // RWM, len zapis, pokus o citanie sa ignoruje
-#define MA_RW     3   // RWM, citanie i zapis
-#define MA_NA     0   // neobsadeny blok pamati, pokus o zapis sa ignoruje
-                      // pokus o citanie vrati NA_BYTE alebo NA_WORD
+// type of memory block access
+#define MA_RO     1   // ROM, read only, write attempt is ignored
+#define MA_WO     2   // RWM, write only, read attempt is ignored
+#define MA_RW     3   // RWM, read and write
+#define MA_NA     0   // unallocated memory block, write attempt is ignored
+                      // read attempt returns NA_BYTE or NA_WORD
 
-// operacie
-#define OP_READ   1   // operacia citania
-#define OP_WRITE  2   // operacia zapisu
+// operations
+#define OP_READ   1   // read operation
+#define OP_WRITE  2   // write operation
 
-// hodnota citana z neexistujucej pamate
+// return value for non-existing memory access
 #define NA_BYTE   0xFF
 #define NA_WORD   (NA_BYTE | (NA_BYTE << 8))
 
-// stranky
+// pages
 #define NO_PAGED  -1
 #define PAGE_ANY  -99999
 //---------------------------------------------------------------------------
@@ -52,30 +52,30 @@ public:
 	bool GetMem(BYTE *dest, int physAddr, int page, int size);
 	bool FillMem(int destAddr, int page, BYTE value, int size);
 
-	// metody volane procesorom
+	// methods called by CPU
 	BYTE ReadByte(int physAdr);
 	WORD ReadWord(int physAdr);
 	void WriteByte(int physAdr, BYTE value);
 	void WriteWord(int physAdr, WORD value);
 
-	int  Page; // cislo aktualnej stranky
-	bool C2717Remapped; // zapnutie/vypnutie preadresovania
+	int  Page;          // current page number
+	bool C2717Remapped; // turn on/off Consul 2717 re-addressing
 
 private:
 
 	typedef struct Block {
-		int size;      // velkost bloku  0400h - 10000h (1kB - 64kB)
-		int address;   // fyzicka adresa 0000h -  FC00h
-		BYTE *pointer; // ukazovatel do virtualneho pamatoveho priestoru
-		int page;      // cislo stranky (-1 = nestrankovany blok pamati)
-		int access;    // "typ pamati" a sposob pristupu k nej
-		Block *next;   // ukazovatel na dalsi blok pamati
+		int size;      // block size 0400h - 10000h (1kB - 64kB)
+		int address;   // physical address 0000h - FC00h
+		BYTE *pointer; // pointer to virtual memory area
+		int page;      // page number (-1 means non-paged memory block)
+		int access;    // "memory type" and its access type
+		Block *next;   // pointer to next memory block
 	} BLOCK;
 
-	BYTE *Memory;     // ukazovatel na virtualny pamatovy priestor
-	int MemSize;      // velkost virtualneho pamatoveho priestoru
-	BLOCK *Blocks;    // ukazovatel na prvy pamatovy blok
-	BLOCK *LastBlock; // ukazovatel na posledny pamatovy blok
+	BYTE *Memory;      // pointer to virtual memory area
+	int MemSize;       // size of virtual memory area
+	BLOCK *Blocks;     // pointer to first memory block
+	BLOCK *LastBlock;  // pointer to last memory block
 
 	int C2717Remap(int address);
 	int FindPointer(int physAdr, int len, int page, int oper, BYTE **point);

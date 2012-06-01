@@ -23,9 +23,8 @@
 #include "ChipUSART8251.h"
 #include "ChipPIT8253.h"
 //---------------------------------------------------------------------------
-// Interface magnetofonu a IRPS pouziva oficialne tieto adresy portov:
-//    1Eh a 1Fh
-// Vdaka neuplnej adresacii sa zrkadlia na 1Ch a 1Dh
+// Cassette recorder interface and IRPS uses port addresses 1Eh and 1Fh
+// Because of incomplete address decoder these mirror at 1Ch and 1Dh
 #define IIF_TAPE_MASK         0xFC
 #define IIF_TAPE_ADR          0x1C
 
@@ -34,8 +33,7 @@
 #define IIF_TAPE_REG_CWR      0x1D
 #define IIF_TAPE_REG_STAT     0x1D
 
-// Didaktik Alfa pouziva adresy
-//    0F0h a 0F1h
+// Didaktik Alfa uses addresses 0F0h and 0F1h
 #define IIF_TAPE_MASK_A       0xFC
 #define IIF_TAPE_ADR_A        0xF0
 

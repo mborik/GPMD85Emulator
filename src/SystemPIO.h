@@ -23,6 +23,8 @@
 #include "ChipPIO8255.h"
 #include "ChipMemory.h"
 //---------------------------------------------------------------------------
+#define BEEP_FREQ_SEPARATED
+
 #define SYSTEM_PIO_MASK   0x8C
 #define SYSTEM_PIO_ADR    0x84
 
@@ -32,19 +34,17 @@
 #define SYSTEM_REG_C      0x86
 #define SYSTEM_REG_CWR    0x87
 
-#define BEEP_FREQ_SEPARATED
-
 #ifdef BEEP_FREQ_SEPARATED
-#define HALF_PERIOD_1KH   ((CPU_FREQ / 1000) / 2) // 1 kHz  (R9 z rozkl. obrazu)
-#define HALF_PERIOD_4KH   ((CPU_FREQ / 4000) / 2) // 4 kHz  (R7 z rozkl. obrazu)
+#define HALF_PERIOD_1KH   ((CPU_FREQ / 1000) / 2) // 1 kHz  (R9 from horizontal synchronization)
+#define HALF_PERIOD_4KH   ((CPU_FREQ / 4000) / 2) // 4 kHz  (R7 from horizontal synchronization)
 #else
-#define R_CNT_PERIOD      (CPU_FREQ / 1024000) // STB 1,024 MHz
+#define R_CNT_PERIOD      (CPU_FREQ / 1024000)    // STB 1,024 MHz
 #define R_MAX_COUNT       (20480 * R_CNT_PERIOD)
 #define R9_MASK           (1 << (9 + 1))
 #define R7_MASK           (1 << (7 + 1))
 #endif
 //---------------------------------------------------------------------------
-// struktura mapy klavesnice
+// keyboard map structure
 typedef struct {
 	WORD vkey;
 	BYTE column;

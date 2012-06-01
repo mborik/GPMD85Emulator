@@ -51,10 +51,10 @@ SystemPIO::SystemPIO(TComputerModel model, ChipMemory *memory) : ChipPIO8255(fal
 #endif
 }
 //---------------------------------------------------------------------------
-// metody zdedene z triedy PeripheralDevice
+// methods inherited from PeripheralDevice class
 //---------------------------------------------------------------------------
 /**
- * Metoda je volana procesorom pri jeho resete.
+ * Method is executed after CPU reset.
  */
 void SystemPIO::resetDevice(int ticks)
 {
@@ -63,7 +63,7 @@ void SystemPIO::resetDevice(int ticks)
 }
 //---------------------------------------------------------------------------
 /**
- * Metoda je volana procesorom pri zapise na porty systemoveho PIO.
+ * Method is called by CPU during write to ports of system PIO.
  */
 void SystemPIO::writeToDevice(BYTE port, BYTE value, int ticks)
 {
@@ -92,7 +92,7 @@ void SystemPIO::writeToDevice(BYTE port, BYTE value, int ticks)
 }
 //---------------------------------------------------------------------------
 /**
- * Metoda je volana procesorom pri citani z portov systemoveho PIO.
+ * Method is called by CPU during read from ports of system PIO.
  */
 BYTE SystemPIO::readFromDevice(BYTE port, int ticks)
 {
@@ -333,9 +333,9 @@ KEYMAP SystemPIO::KeyMapMatoExt[] = {
 };
 //---------------------------------------------------------------------------
 /**
- * Metoda na zaklade stalcenych klaves modifikuje mapu reprezentujucu
- * klavesnicovu maticu. Je volana pravidelne prostrednictvom Refresh timera.
- * Podla modelu sa prezera prislusna mapa klaves.
+ * This method identifies a map of keyboard matrix based on keys pressed.
+ * It is called repeatedly by Refresh timer.
+ * The keymap is being searched based on computer model.
  */
 void SystemPIO::ScanKeyboard(BYTE *KeyBuffer)
 {
@@ -398,7 +398,7 @@ void SystemPIO::ScanKeyboard(BYTE *KeyBuffer)
 		else
 			ShiftStopCtrl &= ~0x40;
 
-		// riadiace klavesy a numericka klavesnica
+		// control keys and numeric keypad
 		if (extMato == true) {
 			if (KeyBuffer[SDLK_LSHIFT] || KeyBuffer[SDLK_RSHIFT])
 				bi = 36;
@@ -445,7 +445,7 @@ void SystemPIO::ScanKeyboard(BYTE *KeyBuffer)
 		else
 			ShiftStopCtrl &= ~0x40;
 
-		// numericka klavesnica
+		// numeric keypad
 		if (numpad == true) {
 			bi = 0;
 			while (KeyMapNumpad[bi].vkey) {
@@ -467,9 +467,9 @@ void SystemPIO::ScanKeyboard(BYTE *KeyBuffer)
 }
 //---------------------------------------------------------------------------
 /**
- * Metoda je pouzita ako notifikacna funkcia pri citani z portu B.
- * Metoda pripravi stav portu B, co je prave adresovany stlpec klavesnicovej
- * matice.
+ * Method is used as notification function during reading of Port B.
+ * Method setup status of Port B which represents currently addressed column
+ * of key matrix.
  */
 void SystemPIO::ReadKeyboardB()
 {
@@ -494,9 +494,9 @@ void SystemPIO::ReadKeyboardB()
 }
 //---------------------------------------------------------------------------
 /**
- * Metoda je pouzita ako notifikacna funkcia pri citani z portu C pre pocitac
- * MATO.
- * Metoda pripravi stav portu C, co je stav klaves Shift, Ctrl a Stop.
+ * Method is used as notification function during readin of Port C for
+ * computer MATO. Method setup status of Port C which represents status
+ * of Shift, Ctrl & Stop keys.
  */
 void SystemPIO::ReadKeyboardC()
 {
@@ -504,8 +504,8 @@ void SystemPIO::ReadKeyboardC()
 }
 //---------------------------------------------------------------------------
 /**
- * Metoda je pouzita ako notifikacna funkcia pri zapise na horne bity portu C.
- * Metoda obsluhuje strankovanie pamate.
+ * Method is used as notification function while upper bits of port C are
+ * being written Method handles memory paging.
  */
 void SystemPIO::WritePaging()
 {
@@ -514,7 +514,7 @@ void SystemPIO::WritePaging()
 	if (model == CM_C2717) {
 		width384 = ((pg & 32) + 1);         // 48/64 chars per line mode
 		memory->Page = ((pg & 64) ? 0 : 1); // AllRAM
-		memory->C2717Remapped = (pg & 128); // preadresovanie od 0xC000
+		memory->C2717Remapped = (pg & 128); // re-adressing to C000h
 	}
 	else {
 		if (model == CM_V2A || model == CM_V3) {
@@ -535,8 +535,8 @@ void SystemPIO::WritePaging()
 }
 //---------------------------------------------------------------------------
 /**
- * Metoda je pouzita ako notifikacna funkcia pri zapise na dolne bity portu C.
- * Metoda obsluhuje pipak a LED.
+ * Method is used as notification function while lower bits of port C are
+ * being written. Method handles speaker and LED.
  */
 void SystemPIO::WriteSound()
 {
@@ -555,8 +555,8 @@ void SystemPIO::WriteSound()
 		bool out = (beep & 4) || ((beep & 2) && state4kh) || ((beep & 1) && state1kh);
 #else
 		bool out = (beep & 4)
-				|| ((beep & 2) && (videoCounter & R7_MASK))
-				|| ((beep & 1) && (videoCounter & R9_MASK));
+		       || ((beep & 2) && (videoCounter & R7_MASK))
+		       || ((beep & 1) && (videoCounter & R9_MASK));
 #endif
 
 		PrepareSample(CHNL_SPEAKER, out, currentTicks);
@@ -574,9 +574,9 @@ void SystemPIO::WriteSound()
 }
 //---------------------------------------------------------------------------
 /**
- * Metoda je posluchacom tickov procesora.
- * Vytvara 1kHz a 4kHz signaly (tony), ktore su originale brane z rozkladu
- * obrazu.
+ * Method is listener of CPU ticks.
+ * It generates 1kHz and 4kHz signals (tones) which are derived from screen
+ * synchronization.
  */
 void SystemPIO::SoundService(int ticks, int dur)
 {

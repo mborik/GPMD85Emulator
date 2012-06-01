@@ -79,7 +79,7 @@ private:
 public:
 	ChipPIT8253();
 
-	// strana CPU
+	// CPU side
 	void CpuWrite(TPITCounter dest, BYTE val);
 	BYTE CpuRead(TPITCounter src);
 
@@ -89,7 +89,7 @@ public:
 	COUNTER Counters[3];
 
 protected:
-	// strana periferie
+	// peripheral side
 	void PeripheralSetGate(TPITCounter counter, bool state);
 	void PeripheralSetClock(TPITCounter counter, bool state);
 	bool PeripheralReadOut(TPITCounter counter);

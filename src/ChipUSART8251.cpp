@@ -25,16 +25,31 @@
 ChipUSART8251::ChipUSART8251()
 {
 	ChipReset(true);
-	ByteTransferMode = false;
-	CWR = 0;
-	SyncChar1 = 0;
-	SyncChar2 = 0;
-	Command = 0;
+
+	CWR = Command = CharLen = Factor = 0;
+
 	SyncMode = false;
-	RxBreakState = false;
-	RxFactorCounter = 0;
-	RxState = 0;
-	RxD = true;
+	SynDetState = false;
+	SyncChar1 = SyncChar2 = 0;
+
+	RxState = TxState = 0;
+	RxChar = TxChar = 0;
+	RxShift = TxShift = 0;
+	RxParity = TxParity = false;
+	RxBitCounter = TxBitCounter = 0;
+	RxFactorCounter = TxFactorCounter = 0;
+	RxBreakState = TxBreakState = false;
+	RxBreakCounter = 0;
+
+	StatusRxR = false;
+	StatusTxR = StatusTxE = true;
+	ParityError = OverrunError = FrameError = false;
+
+	TxC = false;
+	RxD = RxC = TxD = true;
+	_DSR = _CTS = true;
+
+	ByteTransferMode = false;
 }
 //---------------------------------------------------------------------------
 /**
@@ -458,6 +473,7 @@ void ChipUSART8251::PeripheralSetTxC(bool state)
 			case STOP_BIT15 : // 1/2 stop bit
 				if (TxFactorCounter > 1)
 					TxFactorCounter /= 2;
+					/* no break */
 			case STOP_BIT2 :  // 2. stop bit
 				TxD = true;
 				TxState = ASYNC_TX_IDLE;

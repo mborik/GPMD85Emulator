@@ -25,7 +25,7 @@ int main(int argc, char** argv)
 	printf("\n- and you are welcome to redistribute it under certain conditions.\n\n");
 
 	PathUserHome = SDL_getenv("HOME");
-	PathApplication = get_current_dir_name();
+	PathApplication = getcwd(NULL, PATH_MAX);
 	PathResources = new char[(strlen(DIR_RESOURCES) + 1)];
 	PathAppConfig = new char[(strlen(PathUserHome) + 16)];
 	strcpy(PathResources, DIR_RESOURCES);
@@ -66,7 +66,7 @@ int main(int argc, char** argv)
 		}
 	}
 
-	if (!(gvi.w + gvi.h)) {
+	if (!gvi.w || !gvi.h) {
 		gvi.w = vi->current_w;
 		gvi.h = vi->current_h;
 	}
@@ -91,6 +91,8 @@ int main(int argc, char** argv)
 		else
 			warning("", "Can't load icon resource file");
 	}
+	else
+		SDL_ShowCursor(0);
 
 	debug(NULL, "Initialization process started...");
 
@@ -131,6 +133,7 @@ int main(int argc, char** argv)
 					}
 					else if ((waitForRelease = Emulator->TestHotkeys()) == true)
 						k = 4;
+					break;
 
 				case SDL_ACTIVEEVENT:
 					if (Settings->pauseOnFocusLost &&
