@@ -1,3 +1,5 @@
+2012-06-01 [ikon/SinDiKat] comment translation sk>en (1st phase)
+2012-05-31 [mborik] fullscreen toggle; some minor fixes
 2012-05-30 [mborik] reworked status bar icons loading and some palette problems solved
 2012-05-26 [mborik] bugfix and fine-tuning of OpenGL screen rendering
 2012-05-24 [mborik] OpenGL screen rendering implementation

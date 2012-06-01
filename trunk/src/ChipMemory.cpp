@@ -18,9 +18,9 @@
 #include "ChipMemory.h"
 //---------------------------------------------------------------------------
 /**
- * Konstruktor vytvori pamatovy priestor.
+ * Constructor will create memory area.
  *
- * @param totalSizeKB celkova velkost pamate v kB (ROM + RAM)
+ * @param totalSizeKB total memory size in kB (ROM + RAM)
  */
 ChipMemory::ChipMemory(WORD totalSizeKB)
 {
@@ -34,8 +34,8 @@ ChipMemory::ChipMemory(WORD totalSizeKB)
 }
 //---------------------------------------------------------------------------
 /**
- * Destruktor uvolni alokovanu pamat pamatoveho priestoru a zaroven zrusi
- * definovane bloky pamate.
+ * Destructor will free up allocated memory space and destroy defined
+ * memory blocks.
  */
 ChipMemory::~ChipMemory()
 {
@@ -52,17 +52,17 @@ ChipMemory::~ChipMemory()
 }
 //---------------------------------------------------------------------------
 /*
- * Definuje blok pamate o pozadovanej velkosti, fyzickom umiestneni, umiestneni
- * vo virtualnom priestore, pozadovanom cisle stranky a pristupovym atributom.
+ * Defines memory block with required size, physical location, location in
+ * virtual area, requested page number and access attribute.
  *
- * @param physAddrKB fyzicka adresa v pamati v kB - 0 az 63 kB
- * @param sizeKB vekost bloku v kB - 1 az 64 kB
- * @param virtOffset offset do virtualneho priestoru, kde sa dany blok nachadza
- * @param page cislo stranky, do ktorej blok patri; NO_PAGED pre nestrankovany
- *                                                  blok
- * @param memAccess sposob pristupu do bloku - MA_RO, MA_RW, MA_WO, MA_NA
- * @return true, ak sa podarilo blok zadefinovat
- *         false, ak niektory z parametrov nevyhovoval
+ * @param physAddrKB physical memory address in kB - 0 az 63 kB
+ * @param sizeKB block size in kB - 1 az 64 kB
+ * @param virtOffset offset to virtual area where block is located
+ * @param page number of page where block belongs to;
+ *        NO_PAGED for non-paged block
+ * @param memAccess access type for block - MA_RO, MA_RW, MA_WO, MA_NA
+ * @return true, if block defined succefully
+ *         false, if some of parameter is incorrect
  */
 bool ChipMemory::AddBlock(BYTE physAddrKB, BYTE sizeKB, int virtOffset, int page, int memAccess)
 {
@@ -93,13 +93,13 @@ bool ChipMemory::AddBlock(BYTE physAddrKB, BYTE sizeKB, int virtOffset, int page
 }
 //---------------------------------------------------------------------------
 /*
- * Vrati adresu do virtualneho priestoru zodpovedajucu pozadovanej fyzickej
- * adrese v pamati, cislu stranky a operacii.
+ * Returns address to virtual area corresponding to requested physical
+ * address in memory, page number and operation.
  *
- * @param physAddr fyzicka adresa do pamate - 0 az FFFFh
- * @param page pozadovane cislo stranky
- * @param oper pozadovany typ operacie - OP_WRITE alebo OP_READ
- * @return adresa do virtualneho priestoru; NULL, ak taky blok pamate neexistuje
+ * @param physAddr physical address in memory - 0 to FFFFh
+ * @param page requested page number
+ * @param oper requested type of operation - OP_WRITE or OP_READ
+ * @return address to virtual area or NULL, if this block doesn’t exist
  */
 BYTE* ChipMemory::GetMemPointer(int physAddr, int page, int oper)
 {
@@ -115,15 +115,15 @@ BYTE* ChipMemory::GetMemPointer(int physAddr, int page, int oper)
 }
 //---------------------------------------------------------------------------
 /*
- * Skopiruje do fyzickej pamate, ktora predstavuje ROM, udaje zo zdrojovej
- * adresy. Vrati true pri uspechu; false, ak su chybne parametre alebo pamat
- * nie je zadefinovana.
+ * Copies data from source address to physical memory which represents ROM
+ * Returns true if succcess; false if parameters are incorrect or memory
+ * is not defined.
  *
- * @param physAddrKB fyzicka "kilobytova" adresa do pamate - 0 az 63
- * @param page cislo stranky, ktora by mala byt "nastrankovana"
- * @param src pointer do pamate odkial sa kopiruju data do fyzickej pamate
- * @param size pocet bytov, ktore maju byt skopirovane
- * @return true pri uspechu; false inak
+ * @param physAddrKB physical kilobyte address to memory - 0 az 63
+ * @param page number of page which should be paged in
+ * @param src pointer to memory from where to copy data to physical memory
+ * @param size number of bytes to be copied
+ * @return true if success; false otherwise
  */
 bool ChipMemory::PutRom(BYTE physAddrKB, int page, BYTE *src, int size)
 {
@@ -150,15 +150,15 @@ bool ChipMemory::PutRom(BYTE physAddrKB, int page, BYTE *src, int size)
 }
 //---------------------------------------------------------------------------
 /*
- * Skopiruje do fyzickej pamate, do ktorej je mozne zapisovat data zo zdrojovej
- * adresy. Vrati true pri uspechu; false, ak su chybne parametre alebo pamat
- * nie je zadefinovana.
+ * Copies data to physical memory where it is possible to write data from
+ * base address. Returns true if succcess; false if parameters are incorrect
+ * or memory is not defined.
  *
- * @param physAddr fyzicka adresa do pamate - 0 az FFFFh
- * @param page cislo stranky, ktora by mala byt "nastrankovana"
- * @param src pointer do pamate odkial sa kopiruju data do fyzickej pamate
- * @param size pocet bytov, ktore maju byt skopirovane
- * @return true pri uspechu; false inak
+ * @param physAddr physical memory address - 0 to FFFFh
+ * @param page number of page which should be paged in
+ * @param src pointer to memory from where to copy data to physical memory
+ * @param size number of bytes to be copied
+ * @return true if success; false otherwise
  */
 bool ChipMemory::PutMem(int physAddr, int page, BYTE *src, int size)
 {
@@ -184,15 +184,15 @@ bool ChipMemory::PutMem(int physAddr, int page, BYTE *src, int size)
 }
 //---------------------------------------------------------------------------
 /*
- * Skopiruje pozadovanu cast z fyzickej pamate na pozadovane miesto.
- * Vrati true pri uspechu; false, ak su chybne parametre alebo pamat nie je
- * zadefinovana.
+ * Copies requested part of physical memory to desired location.
+ * Returns true if succcess; false if parameters are incorrect or memory
+ * is not defined.
  *
- * @param dest pointer do pamate kam sa ulozi cast fyzickej pamate
- * @param physAddr fyzicka adresa do pamate - 0 az FFFFh
- * @param page cislo stranky, ktora by mala byt "nastrankovana"
- * @param size pocet bytov, ktore maju byt skopirovane
- * @return true pri uspechu; false inak
+ * @param dest pointer to memory where to store part of physical memory
+ * @param physAddr physical memory address - 0 to FFFFh
+ * @param page number of page which should be paged in
+ * @param size number of bytes to be copied
+ * @return true if success; false otherwise
  */
 bool ChipMemory::GetMem(BYTE *dest, int physAddr, int page, int size)
 {
@@ -220,14 +220,14 @@ bool ChipMemory::GetMem(BYTE *dest, int physAddr, int page, int size)
 }
 //---------------------------------------------------------------------------
 /*
- * Vyplni danu pamatovu oblast pozadovanou hodnotou. Vrati true pri uspechu;
- * false, ak su chybne parametre alebo pamat nie je zadefinovana.
+ * Fills in given memory area by desired value. Returns true if success;
+ * false if parameters are incorrect or memory is not defined.
  *
- * @param destAddr fyzicka cielova adresa do pamate - 0 az FFFFh
- * @param page cislo stranky, ktora by mala byt "nastrankovana"
- * @param value hodnota, ktorou sa pamat vyplni
- * @param size velkost pamate, ktora ma byt vyplnena
- * @return true pri uspechu; false inak
+ * @param destAddr physical destination address - 0 to FFFFh
+ * @param page number of page which should be paged in
+ * @param value fill memory with this value
+ * @param size memory size to be filled in
+ * @return true if success; false otherwise
  */
 bool ChipMemory::FillMem(int destAddr, int page, BYTE value, int size)
 {
@@ -252,12 +252,12 @@ bool ChipMemory::FillMem(int destAddr, int page, BYTE value, int size)
 }
 //---------------------------------------------------------------------------
 /*
- * Precita byte z pamate z danej adresy. Ak je na danej adrese pamat
- * typu MA_WO alebo MA_NA, vrati sa hodnota NA_BYTE.
- * Metodu pouziva hlavne procesor. Zohladnuje sa aktualna stranka a premapovanie.
+ * Reads the byte from given memory address. If type of memory is MA_WO
+ * or MA_NA then returns value NA_BYTE. Method is heavily using CPU.
+ * Current page and remapping are considered.
  *
- * @param physAddr fyzicka adresa do pamate - 0 az FFFFh
- * @return byte z pamate
+ * @param physAddr physical address to memory - 0 to FFFFh
+ * @return byte from memory
  */
 BYTE ChipMemory::ReadByte(int physAdr)
 {
@@ -275,12 +275,12 @@ BYTE ChipMemory::ReadByte(int physAdr)
 }
 //---------------------------------------------------------------------------
 /*
- * Precita 2 nasledujuce byty z pamate z danej adresy. Ak je na danej adrese
- * pamat typu MA_WO alebo MA_NA, vrati sa hodnota NA_WORD.
- * Metodu pouziva hlavne procesor. Zohladnuje sa aktualna stranka a premapovanie.
+ * Reads 2 consecutive bytes from given memory address. If type of memory
+ * is MA_WO or MA_NA then returns value NA_WORD.
+ * Method is heavily using CPU. Current page and remapping are considered.
  *
- * @param physAddr fyzicka adresa do pamate - 0 az FFFFh
- * @return 2 byte z pamate
+ * @param physAddr physical address to memory - 0 to FFFFh
+ * @return 2 bytes from memory
  */
 WORD ChipMemory::ReadWord(int physAdr)
 {
@@ -293,12 +293,12 @@ WORD ChipMemory::ReadWord(int physAdr)
 }
 //---------------------------------------------------------------------------
 /*
- * Zapise pozadovany byte do pamate na danu adresu. Ak je na danej adrese pamat
- * typu MA_RO alebo MA_NA, nic sa nestane.
- * Metodu pouziva hlavne procesor. Zohladnuje sa aktualna stranka.
+ * Writes requested byte to given memory address. If memory type at given
+ * location is MA_WO or MA_NA, nothing will happen.
+ * Method is heavily using CPU. Current page is considered.
  *
- * @param physAddr fyzicka adresa do pamate - 0 az FFFFh
- * @param value hodnota zapisovana do pamate
+ * @param physAddr physical address to memory - 0 to FFFFh
+ * @param value value to be written to memory
  */
 void ChipMemory::WriteByte(int physAdr, BYTE value)
 {
@@ -315,12 +315,12 @@ void ChipMemory::WriteByte(int physAdr, BYTE value)
 }
 //---------------------------------------------------------------------------
 /*
- * Zapise 2 byty do pamate na danu adresu. Ak je na danej adrese pamat
- * typu MA_RO alebo MA_NA, nic sa nestane.
- * Metodu pouziva hlavne procesor. Zohladnuje sa aktualna stranka.
+ * Writes 2 bytes to given memory address. If memory type at given
+ * location is MA_WO or MA_NA, nothing will happen.
+ * Method is heavily using CPU. Current page is considered.
  *
- * @param physAddr fyzicka adresa do pamate - 0 az FFFFh
- * @param value hodnota zapisovana do pamate
+ * @param physAddr physical address to memory - 0 to FFFFh
+ * @param value value to be written to memory
  */
 void ChipMemory::WriteWord(int physAdr, WORD value)
 {
@@ -339,18 +339,19 @@ int ChipMemory::C2717Remap(int address)
 }
 //---------------------------------------------------------------------------
 /*
- * Vyhlada pozadovany blok vo virtualnom priestore, ulozi jeho adresu na adresu
- * vstupneho parametra 'point' a vrati pocet bytov, ktore sa do daneho bloku
- * vojdu. Ak dany blok nema zadefinovanu adresu vo virtualnom priestore (MA_NA),
- * ulozi sa adresa NULL. Ak zodpovedajuci blok vobec neexistuje alebo su zadane
- * parametre chybne, je vratena hodnota -1 a ulozena adresa NULL.
+ * Searches for requested block in virtual area, returns its address into
+ * address of output parameter 'point' and returns number of bytes that
+ * can fit to the block. If requested block has no address defined in virtual
+ * area (MA_NA), returns NULL value into address of output parameter 'point'.
+ * If requested block doesn't exist or parameters are incorrect, returns
+ * value -1 and NULL in 'point' adress.
  *
- * @param physAddr fyzicka adresa do pamate - 0 az FFFFh
- * @param len velkost pozadovaneho bloku
- * @param page pozadovane cislo stranky
- * @param oper pozadovany typ operacie - OP_WRITE alebo OP_READ
- * @point adresa premennej do ktorej sa ulozi adresa do virtualneho priestoru
- * @return pocet bytov, ktore sa "vojdu" do najdeneho bloku
+ * @param physAddr physical address to memory - 0 to FFFFh
+ * @param len lenght of requested block
+ * @param page requested page number
+ * @param oper requested type of operation - OP_WRITE or OP_READ
+ * @param point address of variable where to store address to virtual area
+ * @return number of bytes that can fit to block found
  */
 int ChipMemory::FindPointer(int physAdr, int len, int page, int oper, BYTE **point)
 {

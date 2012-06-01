@@ -345,7 +345,7 @@ void TEmulator::CpuTimerCallback()
 			cpu->IncTCycles();
 
 			// status bar LED's state
-			// (with pull-down delay simulation)
+			// (with pull-up delay simulation)
 			if (systemPIO)
 				video->SetLedState(systemPIO->ledState);
 		}
@@ -524,9 +524,15 @@ bool TEmulator::TestHotkeys()
 #endif
 
 			case SDLK_f:	// FULL-SCREEN
-				if (gvi.wm && (gvi.w + gvi.h))
+			case SDLK_RETURN:
+				if (!gvi.wm || !(gvi.w && gvi.h))
+					break;
+
+				if (Settings->Screen->size == DM_FULLSCREEN)
+					ActionSizeChange((int) Settings->Screen->realsize);
+				else
 					ActionSizeChange(0);
-				break;
+				return true;
 
 			case SDLK_m:	// MONO/STANDARD MODES
 				if (video->GetColorProfile() == CP_STANDARD) {

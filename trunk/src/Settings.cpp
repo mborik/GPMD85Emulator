@@ -133,8 +133,10 @@ TSettings::TSettings()
 		model->romModuleInserted = cfgGetBoolValue(n, "rmm-inserted", false, &(model->romModuleInserted));
 
 		s = cfgGetStringValue(n, "rmm-name");
-		if ((model->romModule = findROMmodule(s)))
-			cfgGetStringValue(n, "rmm-name", (char **) &(model->romModule));
+		if ((model->romModule = findROMmodule(s))) {
+			char * tmp = cfgGetStringValue(n, "rmm-name", (char **) &(model->romModule));
+			delete [] tmp;
+		}
 		else
 			model->romModuleInserted = false;
 
@@ -472,8 +474,10 @@ TSettings::TSettings()
 		cfgInsertNewLine(n->next, "hw-version", LT_RAOM, (void *) &(RaomModule->type));
 
 	s = cfgGetStringValue(n, "rmm-name");
-	if ((RaomModule->module = findROMmodule(s)))
-		cfgGetStringValue(n, "rmm-name", (char **) &(RaomModule->module));
+	if ((RaomModule->module = findROMmodule(s))) {
+		char * tmp = cfgGetStringValue(n, "rmm-name", (char **) &(RaomModule->module));
+		delete [] tmp;
+	}
 	else
 		RaomModule->inserted = false;
 

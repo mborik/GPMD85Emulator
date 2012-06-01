@@ -411,6 +411,7 @@ void ScreenPMD85::InitScreenSize(TDisplayMode reqDispMode, bool reqWidth384)
 				Width = (reqWidth384) ? 1152 : 864;
 				Height = 768;
 				break;
+
 			case DM_QUADRUPLESIZE:
 				Width = (reqWidth384) ? 1536 : 1152;
 				Height = 1024;
@@ -509,8 +510,20 @@ void ScreenPMD85::PrepareVideoMode()
 	       (gvi.hw ? SDL_HWSURFACE | SDL_HWPALETTE : SDL_SWSURFACE);
 
 #ifdef OPENGL
-	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);
+	static bool firstTime = true;
+	if (firstTime) {
+		debug("Screen", "OpenGL subsystem initialization...");
+
+		SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
+		SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
+		SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
+		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);
+		if (SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1) != 0)
+			warning("Screen", "OpenGL double buffer not present!");
+
+		firstTime = false;
+	}
+
 	iniflags = SDL_HWSURFACE | SDL_OPENGL;
 #endif
 
@@ -763,7 +776,7 @@ void ScreenPMD85::SetScaler()
 
 	if (DispMode == DM_FULLSCREEN || !gvi.wm)
 		reqDispMode = FullScreenScaleMode;
- 
+
 	switch (reqDispMode) {
 		default:
 		case DM_NORMAL:

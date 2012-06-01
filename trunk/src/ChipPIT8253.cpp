@@ -18,12 +18,11 @@
 #include "ChipPIT8253.h"
 //---------------------------------------------------------------------------
 /**
- * Konstruktor pre vytvorenie objektu cipu PIT 8253. Zodpoveda stavu Power-up,
- * teda pripojeniu napajania.
- * Na rozdiel od originalneho cipu, ktory je po pripojeni napajania v neurcitom
- * stave, su vsetky 3 citace nastavene do modu 0, s binarnym odpocitavanim,
- * Read/Load v mode LSB, MSB a s pociatocnou hodnotou 65535.
- * Zaroven sa nastavia adresy notifykacnych funkcii na NULL.
+ * Constructor creates object for chip PIT 8253. Initialization in Power-up
+ * state corresponds to providing a power supply to the chip.
+ * Original chip remains unitialized, while here all 3 counters are set to
+ * mode 0, with binary decrement, Read/Load in mode LSB, MSB and initial
+ * value 65535. All addresses of notification functions are set to NULL.
  */
 ChipPIT8253::ChipPIT8253()
 {
@@ -47,14 +46,14 @@ ChipPIT8253::ChipPIT8253()
 }
 //---------------------------------------------------------------------------
 /**
- * Metoda GetChipState je pouzivana pri vytvarani Snapshotu a ulozi niektore
- * vnutorne registre chipu do buffra. Ak je buffer null, vrati potrebnu velkost
- * buffra v bytoch.
- * Data sa do buffra ulozia v poradi:
+ * Method GetChipState is used during Snapshot creation and it saves some of
+ * internal registers of chip into a buffer. If buffer is null it returns
+ * size of buffer in bytes.
+ * Data is saved into buffer in following order:
  *    CWR0, Init0L, Init0H, CWR1, Init1L, Init1H, CWR2, Init2L, Init2H
  *
- * @param buffer buffer kam sa ulozi stav chipu
- * @return pocet bytov ulozenych do buffra
+ * @param buffer buffer where chip status will be saved
+ * @return number of bytes saved into buffer
  */
 int ChipPIT8253::GetChipState(BYTE *buffer)
 {
@@ -74,13 +73,13 @@ int ChipPIT8253::GetChipState(BYTE *buffer)
 }
 //---------------------------------------------------------------------------
 /**
- * Metoda SetChipState je pouzivana po otvoreni Snapshotu pre prednastavenie
- * niektorych vnutornych registrov chipu.
- * Data v buffri musia byt v poradi:
+ * Method SetChips is used during open Snapshot load to pre-set some
+ * internal registers of chip.
+ * Mandatory order of data in buffer:
  *    CWR0, Init0L, Init0H, CWR1, Init1L, Init1H, CWR2, Init2L, Init2H
  *
- * @param buffer buffer kam sa ulozi stav chipu
- * @return pocet bytov ulozenych do buffra
+ * @param buffer buffer where chip status will be saved
+ * @return number of bytes saved into buffer
  */
 void ChipPIT8253::SetChipState(BYTE *buffer)
 {
@@ -106,16 +105,16 @@ void ChipPIT8253::SetChipState(BYTE *buffer)
 }
 //---------------------------------------------------------------------------
 /**
- * Metodu CpuWrite vola mikroprocesor pri vykonavani instrukcie OUT - zapis na
- * port (CPU -> PIT). Zodpoveda teda privedeniu urovne L na vstupy /CS (21) a
- * /WR (23).
- * Podla rezimu a stavu Read/Load sa zapis udeje do LSB alebo MSB registra
- * inicializacnej hodnoty citaca.
- * Ak sa pri zapise riadiaceho slova zmeni stav vystupu citaca, je volana
- * prislusna notifikacna funkcia.
+ * Method CpuWrite is invoked by microprocessor during OUT instruction -
+ * write port (CPU -> PIT). It corresponds to setting logic level L on inputs
+ * /CS (21) and /WR (23).
+ * Write operation depends on mode and Read/Load status. LSB or MSB register
+ * of counter preset is written eventually.
+ * If status of counter is changed during write of control word corresponding
+ * notification function is invoked.
  *
- * @param dest oznacuje citac alebo riadiace slovo (TPITCounter)
- * @param val posielana hodnota
+ * @param dest distinguish between counter value or control word (TPITCounter)
+ * @param val value to be sent
  */
 void ChipPIT8253::CpuWrite(TPITCounter dest, BYTE val)
 {
@@ -232,16 +231,16 @@ void ChipPIT8253::CpuWrite(TPITCounter dest, BYTE val)
 }
 //---------------------------------------------------------------------------
 /**
- * Metodu CpuRead vola mikroprocesor pri vykonavani instrukcie IN - citanie z
- * portu (CPU <- PIT). Zodpoveda teda privedeniu urovne L na vstupy /CS (21) a
- * /RD (22).
- * Ak bol nastaveny mod CAPTURE, vratena hodnota zodpoveda predtym zachytenej
- * hodnote daneho citaca. Inak je vratena aktualna hodnota citaca. Podla rezimu
- * Read/Load je to LSB alebo MSB.
- * Citanie riadiaceho slova nie je mozne a je vratena hodnota 0xFF.
+ * Method CpuRead is invoked by microprocessor during IN instruction -
+ * read port (CPU <- PIT). It corresponds to setting logic level L on inputs
+ * /CS (21) and /RD (22).
+ * It returns fetched value of counter if CAPTURE mode have been set.
+ * Current value of counter is returned otherwise. Depending on mode
+ * Read/Load it returns LSB or MSB. Reading of control word is not possible
+ * and return value is always 0xFF.
  *
- * @param src oznacuje citac (TPITCounter), z ktoreho sa ma udaj precitat
- * @return hodnota z citaca
+ * @param src sets the counter to be read (TPITCounter)
+ * @return value of counter
  */
 BYTE ChipPIT8253::CpuRead(TPITCounter src)
 {
@@ -290,7 +289,7 @@ BYTE ChipPIT8253::CpuRead(TPITCounter src)
 			}
 			break;
 
-		default :  // datova zbernica je v Z (tretom stave)
+		default :  // data bus is in hi-Z (high impedance state)
 			break;
 	}
 

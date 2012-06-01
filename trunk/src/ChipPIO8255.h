@@ -23,9 +23,9 @@
 enum TPIOPort { PP_PortA = 0, PP_PortB, PP_PortC, PP_CWR, PP_PortCH, PP_PortCL };
 enum TPIOPortBit { PP_Bit0 = 0, PP_Bit1, PP_Bit2, PP_Bit3, PP_Bit4, PP_Bit5, PP_Bit6, PP_Bit7 };
 //---------------------------------------------------------------------------
-#define CWR_MASK      0x80  // maska zapisu CWR
+#define CWR_MASK      0x80  // bit mask of write CWR
 
-// skupina A
+// group A
 #define GA_MODE       0x60
 #define GA_MODE0      0x00
 #define GA_MODE1      0x20
@@ -37,7 +37,7 @@ enum TPIOPortBit { PP_Bit0 = 0, PP_Bit1, PP_Bit2, PP_Bit3, PP_Bit4, PP_Bit5, PP_
 #define PORTCH_INP    0x08
 #define PORTCH_OUT    0x00
 
-// skupina B
+// group B
 #define GB_MODE       0x04
 #define GB_MODE0      0x00
 #define GB_MODE1      0x04
@@ -48,33 +48,33 @@ enum TPIOPortBit { PP_Bit0 = 0, PP_Bit1, PP_Bit2, PP_Bit3, PP_Bit4, PP_Bit5, PP_
 #define PORTCL_INP    0x01
 #define PORTCL_OUT    0x00
 
-// nastavenie CWR po resete - vsetky porty su v mode 0 ako vstupy
+// setting of CWR after reset - all ports are in mode 0 as outputs
 #define BASIC_CWR     (CWR_MASK | GA_MODE0 | PORTA_INP | PORTCH_INP | GB_MODE0 | PORTB_INP | PORTCL_INP)
 //---------------------------------------------------------------------------
-#define _STBA         PP_Bit4         // Strobe A - vstup
+#define _STBA         PP_Bit4         // Strobe A - input
 #define _STBA_MASK    (1 << _STBA)
-#define IBFA          PP_Bit5         // Input buffer A full - vystup
+#define IBFA          PP_Bit5         // Input buffer A full - output
 #define IBFA_MASK     (1 << IBFA)
-#define _OBFA         PP_Bit7         // Output buffer A full - vystup
+#define _OBFA         PP_Bit7         // Output buffer A full - output
 #define _OBFA_MASK    (1 << _OBFA)
-#define _ACKA         PP_Bit6         // Acknowledge A - vstup
+#define _ACKA         PP_Bit6         // Acknowledge A - input
 #define _ACKA_MASK    (1 << _ACKA)
-#define INTRA         PP_Bit3         // Interrupt request A - vystup
+#define INTRA         PP_Bit3         // Interrupt request A - output
 #define INTRA_MASK    (1 << INTRA)
 #define INTEAIN       PP_Bit4         // Interrupt enable A input - status
 #define INTEAIN_MASK  (1 << INTEAIN)
 #define INTEAOUT      PP_Bit6         // Interrupt enable A output - status
 #define INTEAOUT_MASK (1 << INTEAOUT)
 
-#define _STBB         PP_Bit2         // Strobe B - vstup
+#define _STBB         PP_Bit2         // Strobe B - input
 #define _STBB_MASK    (1 << _STBB)
-#define IBFB          PP_Bit1         // Input buffer B full - vystup
+#define IBFB          PP_Bit1         // Input buffer B full - output
 #define IBFB_MASK     (1 << IBFB)
-#define _OBFB         PP_Bit1         // Output buffer B full - vystup
+#define _OBFB         PP_Bit1         // Output buffer B full - output
 #define _OBFB_MASK    (1 << _OBFB)
-#define _ACKB         PP_Bit2         // Acknowledge B - vstup
+#define _ACKB         PP_Bit2         // Acknowledge B - input
 #define _ACKB_MASK    (1 << _ACKB)
-#define INTRB         PP_Bit0         // Interrupt request B - vystup
+#define INTRB         PP_Bit0         // Interrupt request B - output
 #define INTRB_MASK    (1 << INTRB)
 #define INTEB         PP_Bit2         // Interrupt enable B - status
 #define INTEB_MASK    (1 << INTEB)
@@ -82,13 +82,13 @@ enum TPIOPortBit { PP_Bit0 = 0, PP_Bit1, PP_Bit2, PP_Bit3, PP_Bit4, PP_Bit5, PP_
 class ChipPIO8255 : public sigslot::has_slots<>
 {
 public:
-	// konstruktor
+	// constructor
 	ChipPIO8255(bool reset);
 
 	int GetChipState(BYTE *buffer);
 	void SetChipState(BYTE *buffer);
 
-	// notifikacne funkcie
+	// notification functions
 	sigslot::signal0<> OnCpuReadA;
 	sigslot::signal0<> OnCpuReadB;
 	sigslot::signal0<> OnCpuReadC;
@@ -105,12 +105,12 @@ public:
 	sigslot::signal1<BYTE> OnCpuWriteCWR;
 
 protected:
-	// strana CPU
+	// CPU state
 	void ChipReset(bool clearNotifyFunc);
 	void CpuWrite(TPIOPort dest, BYTE val);
 	BYTE CpuRead(TPIOPort src);
 
-	// strana periferie (portov)
+	// peripheral (ports) side
 	void PeripheralWriteByte(TPIOPort dest, BYTE val);
 	BYTE PeripheralReadByte(TPIOPort src);
 	void PeripheralChangeBit(TPIOPort dest, TPIOPortBit bit, bool state);
@@ -120,7 +120,7 @@ private:
 	void NotifyOnWritePortC(BYTE oldVal, BYTE newVal);
 	void ClearAllNotifyFunctions();
 
-	// interne registre
+	// internal registers
 	BYTE CWR;
 	BYTE InBufferA;
 	BYTE InLatchA;
@@ -131,8 +131,8 @@ private:
 	BYTE InBufferC;
 	BYTE OutLatchC;
 
-	// INTE klopne obvody (Flip-Flop)
-	// povolenie prerusenia v modoch 1 a 2
+	// INTE Flip-Flops
+	// enable interrupt in Mode 1 and 2
 	bool InteAin;  // PC4
 	bool InteAout; // PC6
 	bool InteB;    // PC2

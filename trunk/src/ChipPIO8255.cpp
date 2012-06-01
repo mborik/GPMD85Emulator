@@ -17,13 +17,13 @@
 //---------------------------------------------------------------------------
 #include "ChipPIO8255.h"
 /**
- * Konstruktor pre vytvorenie objektu cipu PIO 8255. Zodpoveda stavu Power-up,
- * teda pripojeniu napajania.
- * Na rozdiel od originalneho cipu, ktory je po pripojeni napajania v neurcitom
- * stave, je mozne v konstruktore previest ihned reset cipu.
- * Zaroven sa zrusia vsetky notifykacne funkcie.
-
- * @param reset ak je true, prevedie sa zaroven reset cipu
+ * Constructor creates object for PIO 8255 chip.
+ * Corresponds to Power-up state, default state after connecting the power.
+ * Difference between this implementation and real chip is the possibility to
+ * immediately reset the virtual chip while real hardware always remains
+ * uninitialized. All notification functions will be cleared.
+ *
+* @param reset if true, perform reset o chip
  */
 ChipPIO8255::ChipPIO8255(bool reset)
 {
@@ -33,7 +33,9 @@ ChipPIO8255::ChipPIO8255(bool reset)
 		ClearAllNotifyFunctions();
 }
 //---------------------------------------------------------------------------
-/** Privatna metoda pre zrusenie vsetkych notifykacnych funkcii. */
+/**
+ * Private method to disable all notifications.
+ */
 void ChipPIO8255::ClearAllNotifyFunctions()
 {
 	OnCpuWriteA.disconnect_all();
@@ -51,22 +53,22 @@ void ChipPIO8255::ClearAllNotifyFunctions()
 }
 //---------------------------------------------------------------------------
 /**
- * Metoda ChipReset prevedie reset cipu. Zodpoveda privedeniu urovne H na vstup
- * RESET (35).
- * Volitelne je mozne zrusit vsetky notifikacne funkcie.
+ * Method ChipReset performs reset of a chip. It is an equivalent to
+ * providing H logical state to RESET input pin (35)
+ * Optionally notification functions can be disabled.
  *
- * @param clearNotifyFunc ak je true, zrusi vsetky notifykacne funkcie
+ * @param clearNotifyFunc if true, disable notification functions
  */
 void ChipPIO8255::ChipReset(bool clearNotifyFunc)
 {
 	if (clearNotifyFunc == true)
 		ClearAllNotifyFunctions();
 
-	// nastav vsetky porty do modu 0
-	// vynuluj vsetky vnutorne registre
+	// set all of ports of mode 0
+	// reset all internal registers
 	CpuWrite(PP_CWR, BASIC_CWR); // b10011011
-	InLatchA = 0; // samotne nastavenie rezimu nenuluje vstupny latch
-	InLatchB = 0;
+	InLatchA = 0; // mode setting don't reset input latch,
+	InLatchB = 0; // we do it manually
 }
 //---------------------------------------------------------------------------
 /**
@@ -166,37 +168,42 @@ void ChipPIO8255::CpuWrite(TPIOPort dest, BYTE val)
 
 	switch (dest) {
 		case PP_PortA :
-			if ((CWR & GA_MODE) == GA_MODE0) { // Mod 0
+			// mode 0
+			if ((CWR & GA_MODE) == GA_MODE0) {
 				// zmena hodnoty
 				OutLatchA = val;
-				OnCpuWriteA();  // notifikacia
+				// notification
+				OnCpuWriteA();
 			}
-			else { // Mod 1, 2
+			// mode 1, 2
+			else {
 				OutLatchA = val;
 				oldVal = OutLatchC;
 				OutLatchC &= (BYTE)(~(INTRA_MASK | _OBFA_MASK));
-				// notifikacia
+				// notification
 				NotifyOnWritePortC(oldVal, OutLatchC);
 			}
 			break;
 
 		case PP_PortB :
-			if ((CWR & GB_MODE) == GB_MODE0) { // Mod 0
-				// zmena hodnoty
+			// mode 0
+			if ((CWR & GB_MODE) == GB_MODE0) {
 				OutLatchB = val;
-				OnCpuWriteB();  // notifikacia
+				// notification
+				OnCpuWriteB();
 			}
-			else { // Mod 1
+			// mode 1
+			else {
 				OutLatchB = val;
 				oldVal = OutLatchC;
 				OutLatchC &= ~(INTRB_MASK | _OBFB_MASK);
-				// notifikacia
+				// notification
 				NotifyOnWritePortC(oldVal, OutLatchC);
 			}
 			break;
 
 		case PP_PortC :
-			// ovplyvnene su iba vystupne bity v Mode 0
+			// in mode 0 are affected only output bits
 			oldVal = OutLatchC;
 
 			if ((CWR & (GB_MODE | PORTCL_DIR)) == (GB_MODE0 | PORTCL_OUT)
@@ -207,30 +214,29 @@ void ChipPIO8255::CpuWrite(TPIOPort dest, BYTE val)
 			else if ((CWR & (GA_MODE | PORTCH_DIR)) == (GA_MODE0 | PORTCH_OUT))
 				OutLatchC = (BYTE)((OutLatchC & 0x0F) | (val & 0xF0));
 
-			// notifikacia
+			// notifications
 			NotifyOnWritePortC(oldVal, OutLatchC);
 			break;
 
 		case PP_CWR :
 			if (val & CWR_MASK) {
-				// nastavenie rezimu PIO
+				// setting of PIO mode
 				CWR = val;
 				if ((CWR & GA_MODE) == GA_MODE)
 					CWR &= ~GA_MODE1;
 
-				// vynuluj vsetky vnutorne registre
-				InBufferA = 0xFF; // Pull-up
-//				InLatchA = 0; nastavenie rezimu nenuluje vstupny latch
+				// reset all internal registers
+				InBufferA = 0xFF; // pull-up
 				OutLatchA = 0;
 
-				InBufferB = 0xFF; // Pull-up
+				InBufferB = 0xFF; // pull-up
 				if ((CWR & GB_MODE) != GB_MODE0)
 					InLatchB = 0;
 				OutLatchB = 0;
 
 				InBufferC = 0;
 				if ((CWR & GB_MODE) == GB_MODE0)
-					InBufferC |= 0x07; // Pull-up
+					InBufferC |= 0x07; // pull-up
 				if ((CWR & GA_MODE) == GA_MODE0)
 					InBufferC |= 0xF8;
 
@@ -241,7 +247,7 @@ void ChipPIO8255::CpuWrite(TPIOPort dest, BYTE val)
 				if ((CWR & GA_MODE) != GA_MODE0)
 					OutLatchC |= _OBFA_MASK;
 
-				// zakaz preruseni
+				// disable interupt
 				InteAin = false;
 				InteAout = false;
 				InteB = false;
@@ -262,7 +268,7 @@ void ChipPIO8255::CpuWrite(TPIOPort dest, BYTE val)
 				NotifyOnWritePortC((BYTE)(~OutLatchC), OutLatchC);
 			}
 			else {
-				// nastavenie bitov portu C
+				// setting of bits of port C
 				bool inte = false;
 				val &= 0x0F;
 
@@ -361,22 +367,27 @@ BYTE ChipPIO8255::CpuRead(TPIOPort src)
 		case PP_PortA :
 			mode = (BYTE)(CWR & (GA_MODE | PORTA_DIR));
 
-			// notifikacia je len v mode 0, vstup
-			// v ostatnych modoch sa uplatnuju handshake signaly
+			// notification is enabled only in mode 0, input,
+			// in other modes there are handshake signals
 			if (mode == (GA_MODE0 | PORTA_INP))
 				OnCpuReadA();
 
-			if (mode == (GA_MODE0 | PORTA_INP))  // Mod 0, Vstup
-				ret_val = InBufferA;  // precitanie hodnoty zo vstupu
-			else if (mode == (GA_MODE0 | PORTA_OUT))  // Mod 0, Vystup
-			// precitanie hodnoty vystupneho latchu s ohladom na stav vstupnych liniek
-				ret_val = OutLatchA & InBufferA;
-			else if (mode == (GA_MODE1 | PORTA_OUT))  // Mod 1, Vystup
-				ret_val = OutLatchA;  // precitanie hodnoty vystupneho latchu
-			else if (mode == (GA_MODE1 | PORTA_INP) // Mod 1, Vstup
-							 || (CWR & GA_MODE) == GA_MODE2) { // alebo Mod 2
-				ret_val = InLatchA; // precitanie hodnoty, ktoru dodala periferia
-				// signal /RD nuluje bity INTRA a IBFA
+			// mode 0, input
+			if (mode == (GA_MODE0 | PORTA_INP))
+				ret_val = InBufferA;  // reading of value from input
+			// mode 0, output
+			else if (mode == (GA_MODE0 | PORTA_OUT))
+				ret_val = OutLatchA & InBufferA; // reading of value from
+				            // output latch with respect to state of input
+			// mode 1, output
+			else if (mode == (GA_MODE1 | PORTA_OUT))
+				ret_val = OutLatchA; // reading of value from output latch
+			// mode 1, input or mode 2
+			else if (mode == (GA_MODE1 | PORTA_INP)
+			        || (CWR & GA_MODE) == GA_MODE2) {
+				ret_val = InLatchA;  // reading of value supplied by peripheral
+
+				// /RD signal resets INTRA and IBFA bits
 				oldVal = OutLatchC;
 				OutLatchC &= ~(INTRA_MASK | IBFA_MASK);
 				NotifyOnWritePortC(oldVal, OutLatchC);
@@ -386,20 +397,25 @@ BYTE ChipPIO8255::CpuRead(TPIOPort src)
 		case PP_PortB :
 			mode = (BYTE)(CWR & (GB_MODE | PORTB_DIR));
 
-			// notifikacia je len v mode 0, vstup
-			// v ostatnych modoch sa uplatnuju handshake signaly
+			// notification is enabled only in mode 0, input,
+			// in other modes there are handshake signals
 			if (mode == (GB_MODE0 | PORTB_INP))
 				OnCpuReadB();
 
-			if (mode == (GB_MODE0 | PORTB_OUT)) // Mod 0, Vystup
-				ret_val = OutLatchB;  // precitanie hodnoty vystupneho latchu
-			else if (mode == (GB_MODE0 | PORTB_INP)) // Mod 0, Vstup
-				ret_val = InBufferB;  // precitanie hodnoty zo vstupu
-			else if (mode == (GB_MODE1 | PORTB_OUT))  // Mod 1, Vystup
-				ret_val = OutLatchB;  // precitanie hodnoty vystupneho latchu
-			else if (mode == (GB_MODE1 | PORTB_INP)) {  // Mod 1, Vstup
-				ret_val = InLatchB; // precitanie hodnoty, ktoru dodala periferia
-				// signal /RD nuluje bity INTRB a IBFB
+			// mode 0, output
+			if (mode == (GB_MODE0 | PORTB_OUT))
+				ret_val = OutLatchB; // reading of value from output latch
+			// mode 0, input
+			else if (mode == (GB_MODE0 | PORTB_INP))
+				ret_val = InBufferB; // reading of value from input
+			// mode 1, output
+			else if (mode == (GB_MODE1 | PORTB_OUT))
+				ret_val = OutLatchB; // reading of value from output latch
+			// mode 1, input
+			else if (mode == (GB_MODE1 | PORTB_INP)) {
+				ret_val = InLatchB;  // reading of value supplied by peripheral
+
+				// /RD signal resets INTRB and IBFB bits
 				oldVal = OutLatchC;
 				OutLatchC &= ~(INTRB_MASK | IBFB_MASK);
 				NotifyOnWritePortC(oldVal, OutLatchC);
@@ -410,7 +426,7 @@ BYTE ChipPIO8255::CpuRead(TPIOPort src)
 			ret_val = 0;
 
 			if (OnCpuReadCH.isset() || OnCpuReadCL.isset()) {
-				 // Mod 0, Vstup
+				// mode 0, input
 				if ((CWR & (GA_MODE | PORTCH_DIR)) == (GA_MODE0 | PORTCH_INP))
 					OnCpuReadCH();
 
@@ -418,19 +434,23 @@ BYTE ChipPIO8255::CpuRead(TPIOPort src)
 					OnCpuReadCL();
 			}
 			else if (OnCpuReadC.isset()) {
-				 // Mod 0, Vstup
+				// mode 0, input
 				if ((CWR & (GB_MODE | PORTCL_DIR)) == (GB_MODE0 | PORTCL_INP)
 				 || (CWR & (GA_MODE | PORTCH_DIR)) == (GA_MODE0 | PORTCH_INP))
 					OnCpuReadC();
 			}
 
-			if ((CWR & (GB_MODE | PORTCL_DIR)) == (GB_MODE0 | PORTCL_OUT)) // Mod 0, Vystup
+			// mode 0, output
+			if ((CWR & (GB_MODE | PORTCL_DIR)) == (GB_MODE0 | PORTCL_OUT))
 				ret_val |= (BYTE)(OutLatchC & 0x0F);
-			else if ((CWR & (GB_MODE | PORTCL_DIR)) == (GB_MODE0 | PORTCL_INP)) // Mod 0, Vstup
+			// mode 0, input
+			else if ((CWR & (GB_MODE | PORTCL_DIR)) == (GB_MODE0 | PORTCL_INP))
 				ret_val |= (BYTE)(InBufferC & 0x0F);
-			if ((CWR & (GA_MODE | PORTCH_DIR)) == (GA_MODE0 | PORTCH_OUT)) // Mod 0, Vystup
+			// mode 0, output
+			if ((CWR & (GA_MODE | PORTCH_DIR)) == (GA_MODE0 | PORTCH_OUT))
 				ret_val |= (BYTE)(OutLatchC & 0xF0);
-			else if ((CWR & (GA_MODE | PORTCH_DIR)) == (GA_MODE0 | PORTCH_INP)) // Mod 0, Vstup
+			// mode 0, input
+			else if ((CWR & (GA_MODE | PORTCH_DIR)) == (GA_MODE0 | PORTCH_INP))
 				ret_val |= (BYTE)(InBufferC & 0xF0);
 
 			switch (CWR & GA_MODE) {
@@ -481,8 +501,8 @@ BYTE ChipPIO8255::CpuRead(TPIOPort src)
 			}
 			break;
 
-		case PP_CWR :     // NMOS verzia 8255 neumoznuje citanie CWR
-			ret_val = CWR;  // toto je mozne len v CMOS verzii 82C55
+		case PP_CWR :    // NMOS version of 8255 doesn't allow read of CWR
+			ret_val = CWR;  // this is possible only in CMOS version 82C55
 			break;
 
 		default :
@@ -510,7 +530,7 @@ void ChipPIO8255::PeripheralWriteByte(TPIOPort dest, BYTE val)
 		case PP_PortC :
 			oldVal = OutLatchC;
 			if ((CWR & GB_MODE) == GB_MODE1) {
-				// vstup
+				// input
 				if ((CWR & PORTB_DIR) == PORTB_INP) {
 					if ((InBufferC & _STBB_MASK) == _STBB_MASK && (val & _STBB_MASK) == 0) {
 						// /STB  --__
@@ -526,7 +546,8 @@ void ChipPIO8255::PeripheralWriteByte(TPIOPort dest, BYTE val)
 							OutLatchC &= ~INTRB_MASK;
 					}
 				}
-				else { // vystup
+				// output
+				else {
 					if ((InBufferC & _ACKB_MASK) == _ACKB_MASK && (val & _ACKB_MASK) == 0) {
 						// /ACK  --__
 						OutLatchC |= _OBFB_MASK;
@@ -543,7 +564,7 @@ void ChipPIO8255::PeripheralWriteByte(TPIOPort dest, BYTE val)
 			}
 
 			if ((CWR & GA_MODE) != GA_MODE0) {
-				// vstup
+				// input
 				if ((CWR & GA_MODE) == GA_MODE2
 						|| (CWR & (GA_MODE | PORTA_DIR)) == (GA_MODE1 | PORTA_INP)) {
 					if ((InBufferC & _STBA_MASK) == _STBA_MASK && (val & _STBA_MASK) == 0) {
@@ -561,7 +582,7 @@ void ChipPIO8255::PeripheralWriteByte(TPIOPort dest, BYTE val)
 					}
 				}
 
-				// vystup
+				// output
 				if ((CWR & GA_MODE) == GA_MODE2
 						|| (CWR & (GA_MODE | PORTA_DIR)) == (GA_MODE1 | PORTA_OUT)) {
 					if ((InBufferC & _ACKA_MASK) == _ACKA_MASK && (val & _ACKA_MASK) == 0) {

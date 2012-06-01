@@ -23,16 +23,16 @@
 enum TUSARTReg { UR_CTRL = 0, UR_STATUS = 0, UR_DATA = 1 };
 enum TUSARTPin { UP_TXD, UP_TXR, UP_TXE, UP_RXR, UP_DTR, UP_RTS, UP_SYN, UP_BRK };
 //-----------------------------------------------------------------------------
-// ******** riadiace slovo ********
+// ******** control word ********
 
-// BaudRate faktor pre asynchronny rezim alebo volba synchronneho rezimu
+// BaudRate factor for asynchronous mode or select synchronous mode
 #define BRF_MASK      0x03
-#define BRF_SYNC      0x00    // synchronny rezim
+#define BRF_SYNC      0x00    // synchronous mode
 #define BRF_ASYNC_1   0x01
 #define BRF_ASYNC_16  0x02
 #define BRF_ASYNC_64  0x03
 
-// velkost slabiky
+// data size
 #define CL_MASK       0x0C
 #define CL_5          0x00
 #define CL_6          0x04
@@ -40,131 +40,131 @@ enum TUSARTPin { UP_TXD, UP_TXR, UP_TXE, UP_RXR, UP_DTR, UP_RTS, UP_SYN, UP_BRK 
 #define CL_8          0x0C
 #define CL_SHIFT      2
 
-// povolenie parity
+// enable parity
 #define PEN_MASK      0x10
 #define PEN_DIABLED   0x00
 #define PEN_ENABLED   0x10
 
-// typ parity
+// parity type
 #define PT_MASK       0x20
 #define PT_ODD        0x00
 #define PT_EVEN       0x20
 
-// dlzka stop bitu - ma zmysel iba pre Tx a asynchronny rezim
+// size of stop bit - valid only for Tx and asynchronous mode
 #define SBL_MASK      0xC0
 #define SBL_INVALID   0x00
 #define SBL_1         0x40
 #define SBL_15        0x80
 #define SBL_2         0xC0
 
-// volba sposobu synchronizacie v synchronnom rezime - interna/externa
+// select synchronization method in synchronous mode - internal/external
 #define ESD_MASK      0x40
-#define ESD_INTERNAL  0x00    // vyvod SYNDET je vystup
-#define ESD_EXTERNAL  0x40    // vyvod SYNDET je vstup
+#define ESD_INTERNAL  0x00    // pin SYNDET is output
+#define ESD_EXTERNAL  0x40    // pin SYNDET is input
 
-// pocet synchronizacnych znakov v synchronnom rezime
+// number of synchronization marks in synchronous mode
 #define SCS_MASK      0x80
-#define SCS_2         0x00    // 2 synchronizacne znaky
-#define SCS_1         0x80    // 1 synchronizacny znak
+#define SCS_2         0x00    // 2 synchronization marks
+#define SCS_1         0x80    // 1 synchronization mark
 
 //-----------------------------------------------------------------------------
-// ******** povelove slovo ********
+// ******** command word ********
 
-// povolenie cinnosti vysielaca
+// enable transmitter function
 #define TEN_MASK      0x01
 #define TEN_DISABLED  0x00
 #define TEN_ENABLED   0x01
 
-// ovladanie DTR
+// DTR control
 #define DTR_MASK      0x02
 #define DTR_OFF       0x00    // /DTR = 1
 #define DTR_ON        0x02    // /DTR = 0
 
-// povolenie cinnosti prijimaca
+// enable receiver function
 #define REN_MASK      0x04
 #define REN_DISABLED  0x00
 #define REN_ENABLED   0x04
 
-// vysielanie znaku BREAK
+// BREAK mark transmission
 #define SBC_MASK      0x08
-#define SBC_NORMAL    0x00    // normalna cinnost
+#define SBC_NORMAL    0x00    // standard operation
 #define SBC_BREAK     0x08    // TxD = 0
 
-// nulovanie chybovych priznakov
+// clear error flags
 #define ER_MASK       0x10
 #define ER_NONE       0x00
-#define ER_RESET      0x10    // nulovanie priznakov PE, OE, FE
+#define ER_RESET      0x10    // clear flags PE, OE, FE
 
-// ovladanie RTS
+// RTS control
 #define RTS_MASK      0x20
 #define RTS_OFF       0x00    // /RTS = 1
 #define RTS_ON        0x20    // /RTS = 0
 
-// interne nulovanie 8251
+// internal reset of 8251
 #define IR_MASK       0x40
 #define IR_NONE       0x00
-#define IR_RESET      0x40    // interny reset - 8251 ocakava riadiace slovo
+#define IR_RESET      0x40    // internal reset - 8251 expects control word
 
-// vyhladavanie znaku SYNC pri internej synchronizacii v synchronnom rezime
+// find SYNC mark during internal synchronization in synchronous mode
 #define EHM_MASK      0x80
 #define EHM_DISABLED  0x00
 #define EHM_ENABLED   0x80
 
 //-----------------------------------------------------------------------------
-// ******** stavove slovo ********
+// ******** status word ********
 
-// vyrovnavaci register vysielaca je prazdny
-#define TXRDY_MASK    0x01
+// transmitter buffer register is empty
+#define TXRDY_MASK    0x01p
 #define TXRDY_FULL    0x00
 #define TXRDY_EMPTY   0x01
 
-// prijimac prijal slabiku (pripravenost prijimaca prijat slabiku) - vyvod RxR
+// receiver received data (ready to receive data - pin RxR)
 #define RXRDY_MASK    0x02
 #define RXRDY_NO      0x00
 #define RXRDY_YES     0x02
 
-// vyrovnavaci aj vysielaci register vysielaca je prazdny - vyvod TxE
+// buffer and transmit registers are empty - pin TxE
 #define TXE_MASK      0x04
 #define TXE_FULL      0x00
 #define TXE_EMPTY     0x04
 
-// priznak - chyba parity
+// flag - parity error
 #define PE_MASK       0x08
 #define PE_NO         0x00
 #define PE_YES        0x08
 
-// priznak - chyba prebehu - CPU si neprevzalo znak
+// flag - overflow error - CPU didn’t take the data
 #define OE_MASK       0x10
 #define OE_NO         0x00
 #define OE_YES        0x10
 
-// priznak - chyba ukoncenia - v asynchronnom rezime neprisiel platny STOP bit
+// flag - framing error - no STOP bit received in asynchronous mode
 #define FE_MASK       0x20
 #define FE_NO         0x00
 #define FE_YES        0x20
 
-// pri internej synchronizacii sa dosiahla slabikova synchr. - vystup SYNDET
+// data synchronization achieved during internal synchronization - output SYNDET
 #define SYNDET_MASK   0x40
 #define SYNDET_NO     0x00
 #define SYNDET_YES    0x40
 
-// bol detekovany znak BREAK v asynchronnom rezime - vystup BRKDET
+// BREAK mark detected in synchronous mode - output BRKDET
 #define BREAK_MASK    0x40
 #define BREAK_NO      0x00
 #define BREAK_YES     0x40
 
-// stav vstupu /DSR
+// status of /DSR output
 #define DSR_MASK      0x80
 #define DSR_OFF       0x00    // /DSR = 1
 #define DSR_ON        0x80    // /DSR = 0
 //-----------------------------------------------------------------------------
-// status inicializacie
+// status of initialization
 #define INIT_MODE     0
 #define INIT_SYNC1    1
 #define INIT_SYNC2    2
 #define COMMAND_MODE  3
 //-----------------------------------------------------------------------------
-// status prijimaca a vysielaca
+// status of receiver and transmitter
 #define STATE_MASK    0x3F
 #define SYNC_MASK     0xC0
 #define SYNC_HUNT     0
@@ -182,15 +182,15 @@ enum TUSARTPin { UP_TXD, UP_TXR, UP_TXE, UP_RXR, UP_DTR, UP_RTS, UP_SYN, UP_BRK 
 class ChipUSART8251 : public sigslot::has_slots<>
 {
 public:
-	// konstruktor
+	// constructor
 	ChipUSART8251();
 
-	// strana CPU
+	// CPU side
 	void ChipReset(bool clearNotifyFunc);
 	void CpuWrite(TUSARTReg dest, BYTE val);
 	BYTE CpuRead(TUSARTReg src);
 
-	// nastavenie notifikacnych funkcii
+	// notification functions settings
 	sigslot::signal0<> OnTxDChange;
 	sigslot::signal0<> OnTxRChange;
 	sigslot::signal0<> OnTxEChange;
@@ -213,7 +213,7 @@ public:
 	void SetChipState(BYTE *buffer);
 
 protected:
-	// strana periferie
+	// peripheral side
 	void PeripheralSetRxD(bool state);
 	bool PeripheralReadTxD();
 
@@ -232,8 +232,8 @@ protected:
 	void PeripheralSetSynDet(bool state);
 	bool PeripheralReadSynBrk();
 
-	// pomocne metody pre zapis a citanie celeho bytu
-	// a vynutene zrychlenie prijimania a vysielania
+	// helper methods for complete byte write and read
+	// and forced acceleration of reception and transmission
 	void SetByteTransferMode(bool byteTransferMode);
 	void PeripheralWriteByte(BYTE value);
 	BYTE PeripheralReadByte();
@@ -244,39 +244,39 @@ private:
 	BYTE CWR;
 	BYTE Command;
 
-	int CharLen;
-	int Factor;
+	int  CharLen;
+	int  Factor;
 
 	bool SyncMode;
 	bool SynDetState;
 	BYTE SyncChar1;
 	BYTE SyncChar2;
 
-	int RxState;
+	int  RxState;
 	BYTE RxChar;
 	BYTE RxShift;
 	bool RxParity;
-	int RxBitCounter;
-	int RxFactorCounter;
-	bool RxBreakState; // RxD je drzany v stave Log.0
-	int RxBreakCounter;
+	int  RxBitCounter;
+	int  RxFactorCounter;
+	bool RxBreakState; // RxD held in Log.0 state
+	int  RxBreakCounter;
 
-	int TxState;
+	int  TxState;
 	BYTE TxChar;
 	BYTE TxShift;
 	bool TxParity;
-	int TxBitCounter;
-	int TxFactorCounter;
+	int  TxBitCounter;
+	int  TxFactorCounter;
 	bool TxBreakState;
 
 	bool StatusTxR;
 	bool StatusRxR;
 	bool StatusTxE;
 
-	// chybove priznaky
-	bool ParityError;  // chyba parity
-	bool OverrunError; // chyba prebehu, CPU si neprevzalo predoslu slabiku
-	bool FrameError;   // chyba ukoncenia ramca v asynchronnom rezime
+	// error flags
+	bool ParityError;  // parity error
+	bool OverrunError; // overrun error, CPU didn’t take previous data
+	bool FrameError;   // end of frame error in asynchronous mode
 
 	bool TxD;
 	bool TxC;

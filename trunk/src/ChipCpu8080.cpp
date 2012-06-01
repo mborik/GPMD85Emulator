@@ -1439,4 +1439,3 @@ void ChipCpu8080::SetInterruptController(InterruptController *intContr)
 		intContr->cpu = this;
 }
 //-----------------------------------------------------------------------------
-
