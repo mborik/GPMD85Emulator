@@ -125,11 +125,19 @@ class TSettings
 			TDebugListSource listSource;
 			int listOffset;
 		};
+		struct SetMemoryBlock {
+			int start;
+			int length;
+			bool rom;
+			bool hex;
+			bool remapping;
+			char *fileName;
+		};
 
 		enum cfgIniLineType {
 			LT_EMPTY, LT_COMMENT, LT_DELIMITER, LT_SECTION, LT_ITEM, LT_LIST,
 			LT_STRING, LT_QUOTED, LT_NUMBER, LT_BOOL, LT_RADIX, LT_AUTOSTOP,
-			LT_SCR_SIZE, LT_SCR_HP, LT_SCR_COL, LT_SCR_PAL, LT_COLOR,
+			LT_SCR_SIZE, LT_SCR_HP, LT_SCR_COL, LT_SCR_PAL, LT_COLOR, LT_ROM,
 			LT_NOTATION, LT_DEBUGLIST, LT_DEBUGSRC, LT_MOUSE, LT_JOY, LT_RAOM
 		};
 		typedef struct cfgIniLine {
@@ -160,6 +168,8 @@ class TSettings
 		bool showHiddenFiles;
 		bool autosaveSettings;
 
+		double emulationSpeed;
+
 		BYTE modelsCount;
 		BYTE romPackagesCount;
 
@@ -176,6 +186,7 @@ class TSettings
 		SetStoragePMD32 *PMD32;
 		SetStorageRAOM *RaomModule;
 		SetDebugger *Debugger;
+		SetMemoryBlock *MemoryBlock;
 
 		TSettings();
 		virtual ~TSettings();

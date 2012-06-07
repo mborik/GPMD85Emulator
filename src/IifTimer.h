@@ -37,31 +37,25 @@
 //---------------------------------------------------------------------------
 class IifTimer : public PeripheralDevice, public ChipPIT8253 {
 public:
-	IifTimer();
+	IifTimer(TComputerModel model);
 
 	virtual void writeToDevice(BYTE port, BYTE value, int ticks);
 	virtual BYTE readFromDevice(BYTE port, int ticks);
-
-	// for IF Musica
-	sigslot::signal3<int, bool, int> PrepareSample;
 
 	void ITimerService(int ticks, int dur);
 	void Timer0OutChange(TPITCounter cnt, bool out);
 	void EnableMouse602(bool enable, ChipCpu8080 *_cpu);
 	void Mouse602Clock(TPITCounter counter, bool outState);
-
-	inline void EnableUsartClock(bool enable) { ct1On = enable; }
-	inline void EnableIfMusica(bool enable) { musica = enable; }
+	inline void EnableUsartClock(bool enable) { ctUsartOn = enable; }
 
 private:
 	ChipCpu8080 *cpu;
+	TComputerModel model;
 
-	int cntRtc;
+	int  cntRtc;
 	bool stateRtc;
-	bool ct1On;
-
-	bool musica;
-	int currentTicks;
+	bool ctUsartOn;
+	int  currentTicks;
 
 	// Mouse 602 (Ing. Vit Libovicky concept)
 	bool mouse602;

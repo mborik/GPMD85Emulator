@@ -48,6 +48,7 @@ class TEmulator : public sigslot::has_slots<>
 		virtual ~TEmulator();
 
 		void ProcessSettings(BYTE filter);
+		bool ProcessRawFile(bool save);
 
 		void BaseTimerCallback();
 		void CpuTimerCallback();
@@ -64,12 +65,14 @@ class TEmulator : public sigslot::has_slots<>
 		void ActionSnapLoad();
 		void ActionSnapSave();
 		void ActionROMLoad(BYTE type);
+		void ActionRawFile(bool save);
 
 		void ActionReset();
 		void ActionHardReset();
-		void ActionSound(bool mute);
+		void ActionSound(BYTE action);
 		void ActionPlayPause();
 		void ActionPlayPause(bool play, bool globalChange = true);
+		void ActionSpeedChange();
 		void ActionSizeChange(int mode);
 
 	private:
@@ -114,6 +117,7 @@ class TEmulator : public sigslot::has_slots<>
 		void SaveTape(char *fileName, BYTE *flag);
 		void InsertPMD32Disk(char *fileName, BYTE *flag);
 		void ChangeROMFile(char *fileName, BYTE *flag);
+		void SelectRawFile(char *fileName, BYTE *flag);
 };
 //---------------------------------------------------------------------------
 extern TEmulator *Emulator;

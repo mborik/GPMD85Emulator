@@ -321,21 +321,25 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 				break;
 			}
 			else
-				// select ".." and continue in next case...
 				ptr = fileSelector->dirEntries[0];
+				/* no break, only select ".." and continue in next case... */
 
 		case SDLK_RETURN:
 		case SDLK_KP_ENTER:
 			change = keyhandlerFileSelectorSearchClean();
 			if (*ptr == '\xA0') {
 				lastItem = ptr + 1;
-				if ((ptr = strrchr(lastItem, '.'))) {
+				if ((ptr = strrchr(lastItem, '.')) && fileSelector->extFilter) {
 					for (b = 0; fileSelector->extFilter[b] != NULL; b++) {
 						if (strcasecmp(ptr + 1, fileSelector->extFilter[b]) == 0) {
 							keyhandlerFileSelectorCallback(lastItem);
 							return;
 						}
 					}
+				}
+				else if (!fileSelector->extFilter) {
+					keyhandlerFileSelectorCallback(lastItem);
+					return;
 				}
 			}
 			else if (TestDir(fileSelector->path, ptr + 1, &lastItem)) {

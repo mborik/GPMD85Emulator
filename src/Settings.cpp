@@ -25,7 +25,7 @@ TSettings::TSettings()
 	int i, j, k;
 	char *cmodel, *buf, *s;
 
-	debug("Settings", "Configuration parser initialization");
+	debug("Settings", "Configuration parser initialization...");
 
 	if ((buf = LocateResource("default.conf", true)) == NULL)
 		error("Settings", "Configuration file not found!");
@@ -34,7 +34,7 @@ TSettings::TSettings()
 	if (cfgRoot == NULL)
 		error("Settings", "Couldn't parse configuration file: %s", buf);
 
-	debug(NULL, "Configuration XML parsed, reading elements");
+	debug(NULL, "Configuration file loaded, parsing elements");
 
 	if (strcmp(cfgRoot->value, "GNU/GPL PMD 85 Emulator Configuration File") != 0)
 		warning("Settings", "Invalid header of configuration file!");
@@ -50,7 +50,9 @@ TSettings::TSettings()
 	cmodel = cfgGetStringValue(n, "current-model");
 
 	isPaused = false;
+	emulationSpeed = 1.0f;
 
+//# ROM Module packackes definition
 	n = cfgFindSection(cfgRoot, "RomModulePackages");
 	romPackagesCount = cfgCountChildAttributes(n);
 	RomPackages = new SetRomPackage *[romPackagesCount];
@@ -86,6 +88,7 @@ TSettings::TSettings()
 		}
 	}
 
+//# Computer models definition
 	k = 8;
 	n = cfgRoot;
 	CurrentModel = NULL;
@@ -168,6 +171,7 @@ TSettings::TSettings()
 		delete [] cmodel;
 	cmodel = NULL;
 
+//# Snapshot settings
 	n = cfgFindSection(cfgRoot, "Snapshot");
 
 	Snapshot = new SetSnapshot;
@@ -176,6 +180,7 @@ TSettings::TSettings()
 	Snapshot->dontRunOnLoad = cfgGetBoolValue(n, "dont-run-snapshot-on-load", false, &(Snapshot->dontRunOnLoad));
 	Snapshot->fileName = cfgGetStringValue(n, "recent-file", &(Snapshot->fileName));
 
+//# Tape Browser settings
 	n = cfgFindSection(cfgRoot, "TapeBrowser");
 
 	TapeBrowser = new SetTapeBrowser;
@@ -209,6 +214,7 @@ TSettings::TSettings()
 	else
 		cfgInsertNewLine(n->next, "auto-stop", LT_AUTOSTOP, (void *) &(TapeBrowser->autoStop));
 
+//# Debugger settings
 	n = cfgFindSection(cfgRoot, "Debugger");
 
 	Debugger = new SetDebugger;
@@ -270,10 +276,43 @@ TSettings::TSettings()
 
 	Debugger->listOffset = cfgGetIntValue(n, "list-offset", 0, &(Debugger->listOffset));
 
+//# Memory Block read/write settings
+	n = cfgFindSection(cfgRoot, "MemoryBlock");
+
+	MemoryBlock = new SetMemoryBlock;
+	MemoryBlock->start = cfgGetIntValue(n, "start", 0, &(MemoryBlock->start));
+	MemoryBlock->length = cfgGetIntValue(n, "length", 0, &(MemoryBlock->length));
+
+	MemoryBlock->hex = false;
+	if ((m = cfgGetLine(n, "radix")) != NULL) {
+		if (strcmp(m->value, "hex") == 0)
+			MemoryBlock->hex = true;
+
+		m->type = LT_RADIX;
+		m->ptr = (void *) &(MemoryBlock->hex);
+	}
+	else
+		cfgInsertNewLine(n->next, "radix", LT_RADIX, (void *) &(MemoryBlock->hex));
+
+	MemoryBlock->rom = false;
+	if ((m = cfgGetLine(n, "source")) != NULL) {
+		if (strcmp(m->value, "rom") == 0)
+			MemoryBlock->rom = true;
+
+		m->type = LT_ROM;
+		m->ptr = (void *) &(MemoryBlock->rom);
+	}
+	else
+		cfgInsertNewLine(n->next, "source", LT_ROM, (void *) &(MemoryBlock->rom));
+
+	MemoryBlock->remapping = cfgGetBoolValue(n, "remapping", false, &(MemoryBlock->remapping));
+	MemoryBlock->fileName = cfgGetStringValue(n, "recent-file", &(MemoryBlock->fileName));
+
+//# Screen configuration
 	n = cfgFindSection(cfgRoot, "Screen");
 
 	Screen = new SetScreen;
-	cfgGetIntValue(n, "border", 0, &(Screen->border));
+	Screen->border = cfgGetIntValue(n, "border", 0, &(Screen->border));
 
 	Screen->size = DM_NORMAL;
 	if ((m = cfgGetLine(n, "size")) != NULL) {
@@ -345,6 +384,7 @@ TSettings::TSettings()
 	Screen->attr10 = cfgGetColorValue(n, "attr10", AQUA, &(Screen->attr10));
 	Screen->attr11 = cfgGetColorValue(n, "attr11", YELLOW, &(Screen->attr11));
 
+//# Sound settings
 	n = cfgFindSection(cfgRoot, "Sound");
 
 	Sound = new SetSound;
@@ -352,6 +392,7 @@ TSettings::TSettings()
 	Sound->volume = cfgGetIntValue(n, "volume", 64, &(Sound->volume));
 	Sound->ifMusica = cfgGetBoolValue(n, "if-musica", false, &(Sound->ifMusica));
 
+//# Keyboard settings
 	n = cfgFindSection(cfgRoot, "Keyboard");
 
 	Keyboard = new SetKeyboard;
@@ -359,6 +400,7 @@ TSettings::TSettings()
 	Keyboard->useNumpad = cfgGetBoolValue(n, "use-numpad", false, &(Keyboard->useNumpad));
 	Keyboard->useMatoCtrl = cfgGetBoolValue(n, "mato-ctrl", false, &(Keyboard->useMatoCtrl));
 
+//# Mouse configuration
 	n = cfgFindSection(cfgRoot, "Mouse");
 
 	Mouse = new SetMouse;
@@ -377,6 +419,7 @@ TSettings::TSettings()
 	else
 		cfgInsertNewLine(n->next, "type", LT_MOUSE, (void *) &(Mouse->type));
 
+//# Joysticks configuration
 	n = cfgFindSection(cfgRoot, "Joystick-GPIO0");
 
 	Joystick = new SetJoystick;
@@ -439,6 +482,7 @@ TSettings::TSettings()
 	else
 		cfgInsertNewLine(n->next, "type", LT_JOY, (void *) &(Joystick->GPIO1->type));
 
+//# PMD-32 disk drive
 	n = cfgFindSection(cfgRoot, "PMD-32");
 
 	PMD32 = new SetStoragePMD32;
@@ -455,6 +499,7 @@ TSettings::TSettings()
 	PMD32->driveD.image = cfgGetStringValue(n, "drive-d-file", &(PMD32->driveD.image));
 	PMD32->driveD.writeProtect = cfgGetBoolValue(n, "drive-d-wp", false, &(PMD32->driveD.writeProtect));
 
+//# RAOM Module
 	n = cfgFindSection(cfgRoot, "RaomModule");
 
 	RaomModule = new SetStorageRAOM;
@@ -938,6 +983,12 @@ void TSettings::storeSettings()
 							break;
 					}
 					std = true;
+					break;
+
+				case LT_ROM:
+					b = *((bool *) entry->ptr);
+					buf = (char *) (b ? "rom" : "ram");
+					std = b = true;
 					break;
 
 				case LT_NOTATION:

@@ -18,12 +18,13 @@
 #include "IifTimer.h"
 #include "CommonUtils.h"
 //---------------------------------------------------------------------------
-IifTimer::IifTimer() : ChipPIT8253()
+IifTimer::IifTimer(TComputerModel model) : ChipPIT8253()
 {
+	this->model = model;
+
 	cntRtc = 0;
 	stateRtc = true;
-	ct1On = false;
-	musica = false;
+	ctUsartOn = false;
 	mouse602 = false;
 	cpu = NULL;
 
@@ -34,8 +35,8 @@ IifTimer::IifTimer() : ChipPIT8253()
 	PeripheralSetGate(CT_2, true);
 	PeripheralSetClock(CT_2, stateRtc);
 
-	Counters[0].OnOutChange.connect(this, &IifTimer::Timer0OutChange);
-	ct1On = true;
+	if (model == CM_V1 && model == CM_V2 && model == CM_V2A && model == CM_V3)
+		Counters[0].OnOutChange.connect(this, &IifTimer::Timer0OutChange);
 }
 //---------------------------------------------------------------------------
 void IifTimer::writeToDevice(BYTE port, BYTE value, int ticks)
@@ -102,45 +103,47 @@ void IifTimer::ITimerService(int ticks, int dur)
 		PeripheralSetClock(CT_2, stateRtc);
 	}
 
-	// Timer T1 - clock for USART
-	if (ct1On) {
-		for (int ii = 0; ii < dur; ii++) {
-			PeripheralSetClock(CT_1, true);
-			PeripheralSetClock(CT_1, false);
+	// Timer T1 - clock for USART - PMD 85
+	// Timer T0 - clock for USART - C2717
+	if (ctUsartOn == true) {
+		if (model == CM_C2717) {
+			for (int ii = 0; ii < dur; ii++) {
+				PeripheralSetClock(CT_0, true);
+				PeripheralSetClock(CT_0, false);
+			}
+		}
+		else {
+			for (int ii = 0; ii < dur; ii++) {
+				PeripheralSetClock(CT_1, true);
+				PeripheralSetClock(CT_1, false);
+			}
 		}
 	}
 
-	// Timer T0 - clock for 1st channel of IF Musica
 	currentTicks = ticks;
-	if (musica) {
-		for (int ii = 0; ii < dur; ii++) {
-			PeripheralSetClock(CT_0, true);
-			PeripheralSetClock(CT_0, false);
-			currentTicks++;
-		}
-	}
 }
 //---------------------------------------------------------------------------
 void IifTimer::Timer0OutChange(TPITCounter cnt, bool out)
 {
-	// first channel of IF Musica
-	if (musica)
-		PrepareSample(CHNL_MUSICA_1, out, currentTicks);
-
 	// Mouse 602 (Ing. Vit Libovicky concept)
-	else if (mouse602 && cpu != NULL && !out)
+	if (mouse602 && cpu != NULL && !out)
 		cpu->DoInterrupt();
 }
 //---------------------------------------------------------------------------
 void IifTimer::EnableMouse602(bool enable, ChipCpu8080 *_cpu)
 {
-	if (enable && _cpu) {
-		Counters[1].OnOutChange.connect(this, &IifTimer::Mouse602Clock);
+	mouse602 = (model == CM_V1) ? enable : false;
 
-		mouse602 = enable;
-		cpu = _cpu;
-		ct1On = true;
+	if (mouse602 && _cpu)
+		Counters[1].OnOutChange.connect(this, &IifTimer::Mouse602Clock);
+	else {
+		Counters[1].OnOutChange.disconnect_all();
+		mouse602 = false;
+		_cpu = NULL;
 	}
+
+	ctUsartOn = mouse602;
+	cpu = _cpu;
 }
 //---------------------------------------------------------------------------
 void IifTimer::Mouse602Clock(TPITCounter counter, bool outState)

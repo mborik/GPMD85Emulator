@@ -524,7 +524,7 @@ void ScreenPMD85::PrepareVideoMode()
 		firstTime = false;
 	}
 
-	iniflags = SDL_HWSURFACE | SDL_OPENGL;
+	iniflags = SDL_DOUBLEBUF | SDL_HWSURFACE | SDL_OPENGL;
 #endif
 
 	if (DispMode == DM_FULLSCREEN || !gvi.wm) {

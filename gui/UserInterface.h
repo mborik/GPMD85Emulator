@@ -83,15 +83,10 @@ class UserInterface : public sigslot::has_slots<>
 	public:
 		enum GUI_MENU_TYPE {
 			GUI_TYPE_MENU,              // General menu
-			GUI_TYPE_SELECT,            // Select machine
-			GUI_TYPE_PERIPHERALS,       // Peripherals options
-			GUI_TYPE_MEMORY,            // ROM files dialog
 			GUI_TYPE_FILESELECTOR,      // File selector
-			GUI_TYPE_DISKIMAGES,        // Disk images dialog
 			GUI_TYPE_TAPEBROWSER,       // Tape-browser
 			GUI_TYPE_TAPE_POPUP,        // Tape-browser popup menu
 			GUI_TYPE_DEBUGGER,          // Debugger dialog
-			GUI_TYPE_MEMORYBLOCK,       // Memory block dialog
 			GUI_TYPE_POKE               // Poke dialog
 		};
 

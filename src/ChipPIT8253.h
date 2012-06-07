@@ -50,6 +50,11 @@ enum TPITCounter { CT_0 = 0, CT_1, CT_2, CT_CWR };
 #define TYPE_MASK   0x01
 #define TYPE_BINARY 0x00
 #define TYPE_BCD    0x01
+
+#define STAT_OUT    0x80
+#define STAT_NULL   0x40
+#define STAT_GATE   0x20
+#define STAT_CLK    0x10
 //---------------------------------------------------------------------------
 class ChipPIT8253 : public sigslot::has_slots<>
 {
@@ -60,6 +65,7 @@ private:
 
 		WORD InitValue;
 		int OnInit;
+		bool InitValWritten;
 
 		WORD CounterValue;
 		bool WaitMsbRead;
@@ -71,6 +77,7 @@ private:
 		bool Clock;
 		bool Out;
 
+		bool Triggered;
 		bool Counting;
 		sigslot::signal2<TPITCounter, bool> OnOutChange;
 
@@ -87,6 +94,7 @@ public:
 	void SetChipState(BYTE *buffer);
 
 	COUNTER Counters[3];
+	bool DecrementCounter(int cnt);
 
 protected:
 	// peripheral side

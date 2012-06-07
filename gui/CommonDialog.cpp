@@ -43,12 +43,15 @@ BYTE UserInterface::queryDialog(const char *title, bool save)
 	drawMenu(data);
 
 	bool change;
+	DWORD nextTick;
 	SDL_Event event;
 	GUI_MENU_ENTRY *ptr;
 	uiQueryState = GUI_QUERY_NONE;
 
 	SDL_Delay(GPU_TIMER_INTERVAL);
 	while (uiQueryState == GUI_QUERY_NONE) {
+		nextTick = SDL_GetTicks() + CPU_TIMER_INTERVAL;
+
 		while (SDL_PollEvent(&event)) {
 			switch (event.type) {
 				case SDL_KEYDOWN:
@@ -94,11 +97,16 @@ BYTE UserInterface::queryDialog(const char *title, bool save)
 							break;
 						}
 					}
+					break;
 
 				default:
 					break;
 			}
 		}
+
+		// have a break, have a tick-tock...
+		while (SDL_GetTicks() < nextTick)
+			SDL_Delay(1);
 	}
 
 	memcpy(defaultSurface->pixels, bkm_frameSave, frameLength);
@@ -179,8 +187,11 @@ void UserInterface::messageBox(const char *text, ...)
 	SDL_Delay(GPU_TIMER_INTERVAL);
 
 	i = 1;
+	DWORD nextTick;
 	SDL_Event event;
 	while (i) {
+		nextTick = SDL_GetTicks() + CPU_TIMER_INTERVAL;
+
 		while (SDL_PollEvent(&event)) {
 			switch (event.type) {
 				case SDL_KEYDOWN:
@@ -195,11 +206,16 @@ void UserInterface::messageBox(const char *text, ...)
 						default:
 							break;
 					}
+					break;
 
 				default:
 					break;
 			}
 		}
+
+		// have a break, have a tick-tock...
+		while (SDL_GetTicks() < nextTick)
+			SDL_Delay(1);
 	}
 
 	memcpy(defaultSurface->pixels, bkm_frameSave, frameLength);

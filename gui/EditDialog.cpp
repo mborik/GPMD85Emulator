@@ -46,6 +46,7 @@ BYTE UserInterface::editBox(const char *title, char *buffer, BYTE maxLength, boo
 	y += (2 * GUI_CONST_BORDER);
 	w -= (2 * GUI_CONST_BORDER);
 
+	DWORD nextTick;
 	BYTE result = -1;
 	SDL_Event event;
 	bool atTheEnd = true, change = true;
@@ -53,6 +54,8 @@ BYTE UserInterface::editBox(const char *title, char *buffer, BYTE maxLength, boo
 	SDL_EnableUNICODE(1);
 	SDL_Delay(GPU_TIMER_INTERVAL);
 	while (result == (BYTE) -1) {
+		nextTick = SDL_GetTicks() + CPU_TIMER_INTERVAL;
+
 		while (SDL_PollEvent(&event)) {
 			switch (event.type) {
 				case SDL_KEYDOWN:
@@ -156,6 +159,7 @@ BYTE UserInterface::editBox(const char *title, char *buffer, BYTE maxLength, boo
 							}
 							break;
 					}
+					break;
 
 				default:
 					break;
@@ -176,6 +180,10 @@ BYTE UserInterface::editBox(const char *title, char *buffer, BYTE maxLength, boo
 				break;
 			}
 		}
+
+		// have a break, have a tick-tock...
+		while (SDL_GetTicks() < nextTick)
+			SDL_Delay(1);
 	}
 
 	memcpy(defaultSurface->pixels, bkm_frameSave, frameLength);

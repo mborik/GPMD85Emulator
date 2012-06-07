@@ -39,6 +39,7 @@ const char *dcb_kbd_nums_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_kbd_mato_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_emu_m3cmp_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_emu_pause_state(GUI_MENU_ENTRY *ptr);
+const char *dcb_emu_speed_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_emu_focus_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_emu_asave_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_machine_state(GUI_MENU_ENTRY *ptr);
@@ -52,6 +53,12 @@ const char *dcb_p32_imgs_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_p32_extc_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_p32_sdcd_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_p32_imgd_state(GUI_MENU_ENTRY *ptr);
+const char *dcb_blk_file_state(GUI_MENU_ENTRY *ptr);
+const char *dcb_blk_strt_state(GUI_MENU_ENTRY *ptr);
+const char *dcb_blk_leng_state(GUI_MENU_ENTRY *ptr);
+const char *dcb_blk_hexa_state(GUI_MENU_ENTRY *ptr);
+const char *dcb_blk_roma_state(GUI_MENU_ENTRY *ptr);
+const char *dcb_blk_rmap_state(GUI_MENU_ENTRY *ptr);
 //-----------------------------------------------------------------------------
 bool ccb_tape_command(GUI_MENU_ENTRY *ptr);
 bool ccb_tape_new(GUI_MENU_ENTRY *ptr);
@@ -67,6 +74,7 @@ bool ccb_kbd_xchg(GUI_MENU_ENTRY *ptr);
 bool ccb_kbd_nums(GUI_MENU_ENTRY *ptr);
 bool ccb_kbd_mato(GUI_MENU_ENTRY *ptr);
 bool ccb_emu_pause(GUI_MENU_ENTRY *ptr);
+bool ccb_emu_speed(GUI_MENU_ENTRY *ptr);
 bool ccb_emu_reset(GUI_MENU_ENTRY *ptr);
 bool ccb_emu_hardreset(GUI_MENU_ENTRY *ptr);
 bool ccb_emu_m3cmp(GUI_MENU_ENTRY *ptr);
@@ -79,6 +87,12 @@ bool ccb_rom_pckg(GUI_MENU_ENTRY *ptr);
 bool ccb_p32_imgd(GUI_MENU_ENTRY *ptr);
 bool ccb_p32_conn(GUI_MENU_ENTRY *ptr);
 bool ccb_p32_extc(GUI_MENU_ENTRY *ptr);
+bool ccb_blk_strt(GUI_MENU_ENTRY *ptr);
+bool ccb_blk_leng(GUI_MENU_ENTRY *ptr);
+bool ccb_blk_hexa(GUI_MENU_ENTRY *ptr);
+bool ccb_blk_roma(GUI_MENU_ENTRY *ptr);
+bool ccb_blk_rmap(GUI_MENU_ENTRY *ptr);
+bool ccb_blk_exec(GUI_MENU_ENTRY *ptr);
 bool ccb_tapebrowser(GUI_MENU_ENTRY *ptr);
 bool ccb_exit(GUI_MENU_ENTRY *ptr);
 //-----------------------------------------------------------------------------
@@ -126,6 +140,36 @@ static GUI_MENU_ENTRY gui_p32_images_menu[] = {
 	{ MI_CHECKBOX, "DRIVE \aD:", NULL, SDLK_d, NULL, ccb_p32_imgd, dcb_p32_imgd_state, true, false, 0x8004 },
 	{ MENU_END }
 };
+static GUI_MENU_ENTRY gui_memblock_read_menu[] = {
+	{ MI_TITLE, "READ MEMORY BLOCK" },
+	{ MI_DIALOG, "\aFILE", NULL, SDLK_f, NULL, ccb_fileselector, dcb_blk_file_state, true, false, 7 },
+	{ MI_SEPARATOR },
+	{ MI_VALUE, "\aSTART ADDRESS", NULL, SDLK_s, NULL, ccb_blk_strt, dcb_blk_strt_state, true },
+	{ MI_VALUE, "\aLENGTH", NULL, SDLK_l, NULL, ccb_blk_leng, dcb_blk_leng_state, true },
+	{ MI_SEPARATOR },
+	{ MI_CHECKBOX, "\aHEX VALUES", NULL, SDLK_h, NULL, ccb_blk_hexa, dcb_blk_hexa_state, true },
+	{ MI_SEPARATOR },
+	{ MI_CHECKBOX, "\aROM ACCESS", NULL, SDLK_r, NULL, ccb_blk_roma, dcb_blk_roma_state },
+	{ MI_CHECKBOX, "\aC\215\216\217 REMAP", NULL, SDLK_b, NULL, ccb_blk_rmap, dcb_blk_rmap_state },
+	{ MI_SEPARATOR },
+	{ MI_STANDARD, "\aOK", NULL, SDLK_o, NULL, ccb_blk_exec, NULL, true, false },
+	{ MENU_END }
+};
+static GUI_MENU_ENTRY gui_memblock_write_menu[] = {
+	{ MI_TITLE, "WRITE MEMORY BLOCK" },
+	{ MI_DIALOG, "\aFILE", NULL, SDLK_f, NULL, ccb_fileselector, dcb_blk_file_state, true, true, 7 },
+	{ MI_SEPARATOR },
+	{ MI_VALUE, "\aSTART ADDRESS", NULL, SDLK_s, NULL, ccb_blk_strt, dcb_blk_strt_state, true },
+	{ MI_VALUE, "\aLENGTH", NULL, SDLK_l, NULL, ccb_blk_leng, dcb_blk_leng_state, true },
+	{ MI_SEPARATOR },
+	{ MI_CHECKBOX, "\aHEX VALUES", NULL, SDLK_h, NULL, ccb_blk_hexa, dcb_blk_hexa_state, true },
+	{ MI_SEPARATOR },
+	{ MI_CHECKBOX, "\aROM ACCESS", NULL, SDLK_r, NULL, ccb_blk_roma, dcb_blk_roma_state },
+	{ MI_CHECKBOX, "\aC\215\216\217 REMAP", NULL, SDLK_b, NULL, ccb_blk_rmap, dcb_blk_rmap_state },
+	{ MI_SEPARATOR },
+	{ MI_STANDARD, "\aOK", NULL, SDLK_o, NULL, NULL, NULL, true, true },
+	{ MENU_END }
+};
 static GUI_MENU_ENTRY gui_file_menu[] = {
 	{ MI_TITLE, "FILE" },
 	{ MI_STANDARD, "\aNEW \aTAPE", NULL, SDLK_n, NULL, ccb_tape_new, NULL, true, false, 0 },
@@ -137,7 +181,8 @@ static GUI_MENU_ENTRY gui_file_menu[] = {
 	{ MI_SEPARATOR },
 	{ MI_SUBMENU, "\aDISK IMAGES", "F6", SDLK_d, gui_p32_images_menu, NULL, dcb_p32_imgs_state, false },
 	{ MI_SEPARATOR },
-	{ MI_DIALOG, "\aMEMORY BLOCK", "F11", SDLK_m, NULL, NULL, NULL, false },
+	{ MI_SUBMENU, "\aREAD FROM MEMORY", "F11", SDLK_r, gui_memblock_read_menu, NULL, NULL, true },
+	{ MI_SUBMENU, "\aWRITE TO MEMORY", "^F11", SDLK_w, gui_memblock_write_menu, NULL, NULL, true },
 	{ MI_SEPARATOR },
 	{ MI_STANDARD, "SAVE SCREENS\aHOT", NULL, SDLK_h, NULL, NULL, NULL, false },
 	{ MENU_END }
@@ -214,6 +259,7 @@ static GUI_MENU_ENTRY gui_emu_kbd_menu[] = {
 };
 static GUI_MENU_ENTRY gui_emu_menu[] = {
 	{ MI_TITLE, "EMULATOR" },
+	{ MI_VALUE, "\aEMULATION SPEED", NULL, SDLK_e, NULL, ccb_emu_speed, dcb_emu_speed_state, true },
 	{ MI_CHECKBOX, "\aPAUSE", "F3", SDLK_p, NULL, ccb_emu_pause, dcb_emu_pause_state, true },
 	{ MI_SEPARATOR },
 	{ MI_STANDARD, "\aRESET", "F5", SDLK_r, NULL, ccb_emu_reset, NULL, true },
@@ -271,7 +317,7 @@ static GUI_MENU_ENTRY gui_pers_menu[] = {
 	{ MI_SEPARATOR },
 	{ MI_SUBMENU, "PMD \a32", NULL, SDLK_3, gui_p32_menu, NULL, NULL, true },
 	{ MI_SEPARATOR },
-	{ MI_CHECKBOX, "MU\aSICA\220 INTERFACE", NULL, SDLK_s, NULL, NULL, NULL, false },
+	{ MI_CHECKBOX, "M\aIF 85", NULL, SDLK_i, NULL, NULL, NULL, false },
 	{ MENU_END }
 };
 static GUI_MENU_ENTRY UNUSED_VARIABLE gui_main_menu[] = {
@@ -284,7 +330,7 @@ static GUI_MENU_ENTRY UNUSED_VARIABLE gui_main_menu[] = {
 	{ MI_SUBMENU, "\aPERIPHERALS", "F10", SDLK_p, gui_pers_menu, NULL, NULL, true },
 	{ MI_SEPARATOR },
 	{ MI_DIALOG, "\aTAPE BROWSER", "T", SDLK_t, NULL, ccb_tapebrowser, NULL, true },
-	{ MI_DIALOG, "DEBU\aGGER", "F12", SDLK_g, NULL, NULL, NULL, false },
+	{ MI_DIALOG, "DEBU\aGGER", "F12", SDLK_g, NULL, NULL, NULL, true },
 	{ MI_DIALOG, "P\aOKE", NULL, SDLK_o, NULL, NULL, NULL, false },
 	{ MI_SEPARATOR },
 	{ MI_DIALOG, "\aABOUT", "^F1", SDLK_a, NULL, NULL, NULL, false },
