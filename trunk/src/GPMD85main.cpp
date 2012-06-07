@@ -18,6 +18,7 @@
 //-----------------------------------------------------------------------------
 #include "CommonUtils.h"
 #include "GPMD85main.h"
+#include "UserInterfaceData.h"
 //-----------------------------------------------------------------------------
 TEmulator *Emulator;
 //-----------------------------------------------------------------------------
@@ -289,21 +290,19 @@ void TEmulator::BaseTimerCallback()
 //-----------------------------------------------------------------------------
 void TEmulator::CpuTimerCallback()
 {
-	DWORD beg = SDL_GetTicks();
-	static int tc, tci;
-	static bool cy, fl;
-
 	if (!isActive || !isRunning)
 		return;
+
+	DWORD beg = SDL_GetTicks();
+	WORD pc, fl = (0x8B6C | ((model == CM_V3) ? 6000 : 0));
+	int tci, tc = 0,
+	    tcpf = (TCYCLES_PER_FRAME * Settings->emulationSpeed);
 
 	if (sound)
 		sound->PrepareBuffer();
 
-	fl = (model == CM_MATO) ? false : ifTape->IsFlashLoadOn();
-
-	tc = 0;
 	do {
-		WORD pc = cpu->GetPC();
+		pc = cpu->GetPC();
 
 		// catch debugger breakpoint
 		if (Debugger->CheckBreakPoint(pc)) {
@@ -317,17 +316,15 @@ void TEmulator::CpuTimerCallback()
 			cpu->SetPC(0xFFF0);
 
 		// tape flash loading - ROM routine entry-point mapping
-		if (fl) {
-			if (model != CM_V1) {
-				if (pc == (0x8B6C | ((model == CM_V3) ? 6000 : 0))) {
-					BYTE byte = 0;
-					cy = ifTape->GetTapeByte(&byte);
+		if (ifTape->IsFlashLoadOn() && pc == fl &&
+		    model != CM_V1 && model != CM_MATO) {
 
-					cpu->SetAF((byte << 8) | (cy ? FLAG_CY : 0));
-					cpu->SetPC(0x8B9B | ((model == CM_V3) ? 6000 : 0));
-					cpu->SetTCycles(cpu->GetTCycles() + 200);
-				}
-			}
+			BYTE byte = 0;
+			bool cy = ifTape->GetTapeByte(&byte);
+
+			cpu->SetAF((byte << 8) | (cy ? FLAG_CY : 0));
+			cpu->SetPC(fl + 0x2F);
+			cpu->SetTCycles(cpu->GetTCycles() + 200);
 		}
 
 		// back to debugger after RET, Rx instructions
@@ -340,8 +337,8 @@ void TEmulator::CpuTimerCallback()
 			tci = cpu->DoInstruction();
 
 		tc += tci;
-		while (tc > 13) {
-			tc -= 13;
+		while (tc > TCYCLES_VIDEO_SLOW) {
+			tc -= TCYCLES_VIDEO_SLOW;
 			cpu->IncTCycles();
 
 			// status bar LED's state
@@ -349,9 +346,9 @@ void TEmulator::CpuTimerCallback()
 			if (systemPIO)
 				video->SetLedState(systemPIO->ledState);
 		}
-	} while (cpu->GetTCycles() < TCYCLES_PER_FRAME);
+	} while (cpu->GetTCycles() < tcpf);
 
-	cpu->SetTCycles(cpu->GetTCycles() - TCYCLES_PER_FRAME);
+	cpu->SetTCycles(cpu->GetTCycles() - tcpf);
 	cpuUsage += (SDL_GetTicks() - beg);
 }
 //-----------------------------------------------------------------------------
@@ -577,7 +574,10 @@ bool TEmulator::TestHotkeys()
 				break;
 
 			case SDLK_F3:	// PLAY/PAUSE
-				ActionPlayPause();
+				if (key & KM_SHIFT)
+					ActionSpeedChange();
+				else
+					ActionPlayPause();
 				break;
 
 			case SDLK_F4:	// EXIT
@@ -593,7 +593,7 @@ bool TEmulator::TestHotkeys()
 
 			case SDLK_F6:	// DISK IMAGES
 				ActionPlayPause(false, false);
-				GUI->menuOpen(UserInterface::GUI_TYPE_DISKIMAGES);
+				GUI->menuOpen(UserInterface::GUI_TYPE_MENU, gui_p32_images_menu);
 				break;
 
 			case SDLK_F7:	// LOAD/SAVE SNAPSHOT
@@ -604,23 +604,28 @@ bool TEmulator::TestHotkeys()
 				break;
 
 			case SDLK_F8:	// SOUND ON/OFF
-				ActionSound(!Settings->Sound->mute);
+				ActionSound((key & KM_SHIFT) ? -1 : Settings->Sound->mute);
 				break;
 
 			case SDLK_F9:	// MODEL SELECT/MEMORY MENU
 				ActionPlayPause(false, false);
 				if (key & KM_SHIFT)
-					GUI->menuOpen(UserInterface::GUI_TYPE_MEMORY);
+					GUI->menuOpen(UserInterface::GUI_TYPE_MENU, gui_mem_menu);
 				else
-					GUI->menuOpen(UserInterface::GUI_TYPE_SELECT);
+					GUI->menuOpen(UserInterface::GUI_TYPE_MENU, gui_machine_menu);
 				break;
 
 			case SDLK_F10:	// PERIPHERALS
 				ActionPlayPause(false, false);
-				GUI->menuOpen(UserInterface::GUI_TYPE_PERIPHERALS);
+				GUI->menuOpen(UserInterface::GUI_TYPE_MENU, gui_pers_menu);
 				break;
 
-			case SDLK_F11:
+			case SDLK_F11:	// MEMORY BLOCK READ/WRITE
+				ActionPlayPause(false, false);
+				if (key & KM_SHIFT)
+					GUI->menuOpen(UserInterface::GUI_TYPE_MENU, gui_memblock_write_menu);
+				else
+					GUI->menuOpen(UserInterface::GUI_TYPE_MENU, gui_memblock_read_menu);
 				break;
 
 			case SDLK_F12:	// DEBUGGER
@@ -902,6 +907,30 @@ void TEmulator::ActionROMLoad(BYTE type)
 	GUI->menuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
 }
 //---------------------------------------------------------------------------
+void TEmulator::ActionRawFile(bool save)
+{
+	ActionPlayPause(false, false);
+
+	GUI->fileSelector->tag = (BYTE) save;
+	GUI->fileSelector->type = save ? GUI_FS_BASESAVE : GUI_FS_BASELOAD;
+	GUI->fileSelector->title = "SELECT RAW FILE";
+	GUI->fileSelector->extFilter = NULL;
+	GUI->fileSelector->callback.disconnect_all();
+	GUI->fileSelector->callback.connect(this, &TEmulator::SelectRawFile);
+
+	if (Settings->MemoryBlock->fileName) {
+		char *file = ComposeFilePath(Settings->MemoryBlock->fileName);
+		strcpy(GUI->fileSelector->path, file);
+		delete [] file;
+
+		while (!TestDir(GUI->fileSelector->path, (char *) "..", NULL));
+	}
+	else
+		strcpy(GUI->fileSelector->path, PathApplication);
+
+	GUI->menuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
+}
+//---------------------------------------------------------------------------
 void TEmulator::ActionReset()
 {
 	cpu->Reset();
@@ -916,14 +945,27 @@ void TEmulator::ActionHardReset()
 	ActionPlayPause(!Settings->isPaused, false);
 }
 //---------------------------------------------------------------------------
-void TEmulator::ActionSound(bool mute)
+void TEmulator::ActionSound(BYTE action)
 {
-	Settings->Sound->mute = mute;
-
-	if (mute)
+	if (action == 0) {
 		sound->SoundMute();
-	else
+		Settings->Sound->mute = true;
+	}
+	else if (action == 1) {
 		sound->SoundOn();
+		Settings->Sound->mute = false;
+	}
+	else {
+		ActionPlayPause(false, false);
+
+		ccb_snd_volume(NULL);
+		if (GUI->uiSetChanges & PS_SOUND) {
+			sound->SoundOn();
+			Settings->Sound->mute = false;
+		}
+
+		ActionPlayPause(!Settings->isPaused, false);
+	}
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionPlayPause()
@@ -961,6 +1003,13 @@ void TEmulator::ActionSizeChange(int mode)
 		Settings->Screen->realsize = (TDisplayMode) video->GetMultiplier();
 	}
 
+	ActionPlayPause(!Settings->isPaused, false);
+}
+//---------------------------------------------------------------------------
+void TEmulator::ActionSpeedChange()
+{
+	ActionPlayPause(false, false);
+	ccb_emu_speed(NULL);
 	ActionPlayPause(!Settings->isPaused, false);
 }
 //---------------------------------------------------------------------------
@@ -1184,7 +1233,7 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 		cpu->AddDevice(IIF_GPIO_ADR, IIF_GPIO_MASK, ifGpio, true);
 
 		// Timer interface
-		ifTimer = new IifTimer();
+		ifTimer = new IifTimer(model);
 		cpu->AddDevice(IIF_TIMER_ADR, IIF_TIMER_MASK, ifTimer, false);
 		cpu->TCyclesListeners.connect(ifTimer, &IifTimer::ITimerService);
 
@@ -1201,7 +1250,7 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 
 		// pin tape interface signal to timer
 		if (model != CM_V1 && model != CM_ALFA) {
-			ifTimer->Counters[1].OnOutChange.connect(ifTape, &IifTape::TapeClockService23);
+			ifTimer->Counters[((model == CM_C2717) ? 0 : 1)].OnOutChange.connect(ifTape, &IifTape::TapeClockService23);
 			ifTimer->EnableUsartClock(true);
 		}
 
@@ -1788,5 +1837,114 @@ void TEmulator::ChangeROMFile(char *fileName, BYTE *flag)
 
 	romChanged = true;
 	*flag = 1;
+}
+//---------------------------------------------------------------------------
+void TEmulator::SelectRawFile(char *fileName, BYTE *flag)
+{
+	long int length = Settings->MemoryBlock->length;
+	bool save = (bool) *flag;
+	FILE *f = NULL;
+
+	*flag = 0xFF;
+	if (save)
+		*flag = 1;
+	else if ((f = fopen(fileName, "rb"))) {
+		if (fseek(f, 0, SEEK_END) == 0) {
+			length = ftell(f);
+			if (length > 0 && length < 65536)
+				*flag = 1;
+		}
+
+		fclose(f);
+		f = NULL;
+	}
+
+	if (*flag == 0xFF)
+		GUI->messageBox("FATAL ERROR!\nINVALID LENGTH OR CAN'T OPEN FILE!");
+	else {
+		if (Settings->MemoryBlock->fileName)
+			delete [] Settings->MemoryBlock->fileName;
+
+		Settings->MemoryBlock->fileName = new char[(strlen(fileName) + 1)];
+		strcpy(Settings->MemoryBlock->fileName, fileName);
+
+		Settings->MemoryBlock->length = length;
+	}
+}
+//---------------------------------------------------------------------------
+bool TEmulator::ProcessRawFile(bool save)
+{
+	int length = Settings->MemoryBlock->length,
+	    start = Settings->MemoryBlock->start;
+
+	if (start < 0 || start > 65535)
+		return false;
+	if (length <= 0 || length > 65535)
+		return false;
+	if ((start + length) > 65535)
+		length = 65536 - start;
+
+	char *fn = ComposeFilePath(Settings->MemoryBlock->fileName);
+	if (!fn)
+		return false;
+
+	BYTE *buff = NULL;
+	bool ret = true;
+
+	if (!save) {
+		buff = new BYTE[length];
+		length = ReadFromFile(fn, 0, length, buff);
+
+		if (length > 0) {
+			bool oldRemap;
+
+			if (model == CM_C2717) {
+				oldRemap = memory->C2717Remapped;
+				memory->C2717Remapped = Settings->MemoryBlock->remapping;
+			}
+
+			for (int i = 0; i < length; i++)
+				memory->WriteByte(start + i, *(buff + i));
+
+			if (model == CM_C2717)
+				memory->C2717Remapped = oldRemap;
+		}
+		else
+			ret = false;
+	}
+	else {
+		int oldPage;
+		bool oldRemap;
+		buff = new BYTE[length];
+
+		if (model == CM_V2A || model == CM_V3 || model == CM_C2717) {
+			oldPage = memory->Page;
+			memory->Page = (int) Settings->MemoryBlock->rom;
+
+			if (model == CM_C2717) {
+				oldRemap = memory->C2717Remapped;
+				memory->C2717Remapped = Settings->MemoryBlock->remapping;
+			}
+		}
+
+		for (int i = 0; i < length; i++)
+			*(buff + i) = memory->ReadByte(start + i);
+
+		if (model == CM_V2A || model == CM_V3 || model == CM_C2717) {
+			memory->Page = oldPage;
+
+			if (model == CM_C2717)
+				memory->C2717Remapped = oldRemap;
+		}
+
+		if (WriteToFile(fn, 0, length, buff, true) < 0)
+			ret = false;
+	}
+
+	if (buff)
+		delete [] buff;
+	delete [] fn;
+
+	return ret;
 }
 //---------------------------------------------------------------------------

@@ -21,7 +21,7 @@
  * Constructor creates object for chip PIT 8253. Initialization in Power-up
  * state corresponds to providing a power supply to the chip.
  * Original chip remains unitialized, while here all 3 counters are set to
- * mode 0, with binary decrement, Read/Load in mode LSB, MSB and initial
+ * mode 1, with binary decrement, Read/Load in mode LSB, MSB and initial
  * value 65535. All addresses of notification functions are set to NULL.
  */
 ChipPIT8253::ChipPIT8253()
@@ -35,6 +35,8 @@ ChipPIT8253::ChipPIT8253()
 		Counters[ii].CapturedValue = 0;
 		Counters[ii].Captured = 0;
 
+		Counters[ii].Counting = false;
+		Counters[ii].InitValWritten = false;
 		Counters[ii].Counting = false;
 
 		Counters[ii].Gate = false;
@@ -50,7 +52,8 @@ ChipPIT8253::ChipPIT8253()
  * internal registers of chip into a buffer. If buffer is null it returns
  * size of buffer in bytes.
  * Data is saved into buffer in following order:
- *    CWR0, Init0L, Init0H, CWR1, Init1L, Init1H, CWR2, Init2L, Init2H
+ *    CWR0, Init0L, Init0H, CWR1, Init1L, Init1H, CWR2, Init2L, Init2H,
+ *    Cnt0L, Cnt0H, Cnt1L, Cnt1H, Cnt2L, Cnt2H
  *
  * @param buffer buffer where chip status will be saved
  * @return number of bytes saved into buffer
@@ -67,9 +70,26 @@ int ChipPIT8253::GetChipState(BYTE *buffer)
 		*(buffer + 6) = Counters[2].CWR;
 		*(buffer + 7) = (BYTE)(Counters[2].InitValue & 0xFF);
 		*(buffer + 8) = (BYTE)((Counters[2].InitValue >> 8) & 0xFF);
+
+		*(buffer + 9) = (BYTE)(Counters[0].CounterValue & 0xFF);
+		*(buffer + 10) = (BYTE)((Counters[0].CounterValue >> 8) & 0xFF);
+		*(buffer + 11) = (BYTE)(Counters[1].CounterValue & 0xFF);
+		*(buffer + 12) = (BYTE)((Counters[1].CounterValue >> 8) & 0xFF);
+		*(buffer + 13) = (BYTE)(Counters[2].CounterValue & 0xFF);
+		*(buffer + 14) = (BYTE)((Counters[2].CounterValue >> 8) & 0xFF);
+
+		*(buffer + 15) = (BYTE)(((Counters[0].Out) ? STAT_OUT  : 0)
+                            |  ((Counters[0].Gate) ? STAT_GATE : 0)
+                            | ((Counters[0].Clock) ? STAT_CLK  : 0));
+		*(buffer + 16) = (BYTE)(((Counters[1].Out) ? STAT_OUT  : 0)
+                            |  ((Counters[1].Gate) ? STAT_GATE : 0)
+                            | ((Counters[1].Clock) ? STAT_CLK  : 0));
+		*(buffer + 17) = (BYTE)(((Counters[2].Out) ? STAT_OUT  : 0)
+                            |  ((Counters[2].Gate) ? STAT_GATE : 0)
+                            | ((Counters[2].Clock) ? STAT_CLK  : 0));
 	}
 
-	return 9;
+	return 18;
 }
 //---------------------------------------------------------------------------
 /**
@@ -128,14 +148,14 @@ void ChipPIT8253::CpuWrite(TPITCounter dest, BYTE val)
 			cnt = (int)dest;
 			switch (Counters[cnt].CWR & RL_MASK) {
 				case RL_LSB :
-					Counters[cnt].InitValue = (WORD)((Counters[cnt].InitValue & 0xFF00) | val);
-//					Counters[cnt].InitValue = (WORD)(val);
+//					Counters[cnt].InitValue = (WORD)((Counters[cnt].InitValue & 0xFF00) | val);
+					Counters[cnt].InitValue = (WORD)(val);
 					Counters[cnt].OnInit = 0;
 					break;
 
 				case RL_MSB :
-					Counters[cnt].InitValue = (WORD)((Counters[cnt].InitValue & 0xFF) | ((WORD)val << 8));
-//					Counters[cnt].InitValue = (WORD)(val << 8);
+//					Counters[cnt].InitValue = (WORD)((Counters[cnt].InitValue & 0xFF) | ((WORD)val << 8));
+					Counters[cnt].InitValue = (WORD)(val << 8);
 					Counters[cnt].OnInit = 0;
 					break;
 
@@ -147,25 +167,22 @@ void ChipPIT8253::CpuWrite(TPITCounter dest, BYTE val)
 					else {
 						Counters[cnt].InitValue = val;                // LSB
 						Counters[cnt].OnInit = 1;
+						if ((Counters[cnt].CWR & MODE_MASK) == MODE_0) {
+							Counters[cnt].Counting = false;
+							Counters[cnt].Out = false;
+						}
 					}
 					break;
 			}
-			Counters[cnt].Counting = false;
 
 			if (Counters[cnt].OnInit == 0) {
-				if ((Counters[cnt].CWR & TYPE_MASK) == TYPE_BCD) {
-					Counters[cnt].InitValue
-						= (WORD)(((Counters[cnt].InitValue >> 12) & 0x0F) * 1000
-						+ ((Counters[cnt].InitValue >> 8) & 0x0F) * 100
-						+ ((Counters[cnt].InitValue >> 4) & 0x0F) * 10
-						+ (Counters[cnt].InitValue & 0x0F));
-				}
+				Counters[cnt].InitValWritten = true;
 				oldOut = Counters[cnt].Out;
 
 				switch (Counters[cnt].CWR & MODE_MASK) {
 					case MODE_0 :
 						Counters[cnt].Out = false;
-						Counters[cnt].CounterValue = Counters[cnt].InitValue;
+//						Counters[cnt].CounterValue = Counters[cnt].InitValue;
 						Counters[cnt].Counting = Counters[cnt].Gate;
 						break;
 
@@ -179,9 +196,15 @@ void ChipPIT8253::CpuWrite(TPITCounter dest, BYTE val)
 					case MODE_2X :
 					case MODE_3 :
 					case MODE_3X :
+						Counters[cnt].Out = true;
+						Counters[cnt].Counting = Counters[cnt].Gate;
+						if (Counters[cnt].Counting == false)
+							Counters[cnt].CounterValue = Counters[cnt].InitValue;
+						break;
+
 					case MODE_4 :
 						Counters[cnt].Out = true;
-						Counters[cnt].CounterValue = Counters[cnt].InitValue;
+//						Counters[cnt].CounterValue = Counters[cnt].InitValue;
 						Counters[cnt].Counting = Counters[cnt].Gate;
 						break;
 				}
@@ -197,35 +220,25 @@ void ChipPIT8253::CpuWrite(TPITCounter dest, BYTE val)
 			cnt = ((val & CNT_MASK) >> CNT_SHIFT);
 
 			if ((val & RL_MASK) == RL_CAPTURE) {
-				Counters[cnt].Captured = ((Counters[cnt].CWR & RL_MASK) == RL_BOTH) ? 2 : 1;
-				if ((Counters[cnt].CWR & TYPE_MASK) == TYPE_BCD) {
-					Counters[cnt].CapturedValue = 0;
-					WORD cntval = Counters[cnt].CounterValue;
-					for (int ii = 0; ii < 4 && cntval > 0; ii++) {
-						Counters[cnt].CapturedValue += (WORD)((cntval % 10) << (4 * ii));
-						cntval /= (WORD)10;
-					}
-				}
-				else
+				if (Counters[cnt].Captured == 0) {
+					Counters[cnt].Captured = ((Counters[cnt].CWR & RL_MASK) == RL_BOTH) ? 2 : 1;
 					Counters[cnt].CapturedValue = Counters[cnt].CounterValue;
+				}
 			}
 			else {
 				Counters[cnt].CWR = val;
 				Counters[cnt].OnInit = ((Counters[cnt].CWR & RL_MASK) == RL_BOTH) ? 2 : 1;
+				Counters[cnt].InitValWritten = false;
 				Counters[cnt].WaitMsbRead = false;
 				Counters[cnt].Captured = 0;
+				Counters[cnt].Counting = false;
+
+				oldOut = Counters[cnt].Out;
+				Counters[cnt].Out = ((Counters[cnt].CWR & MODE_MASK) != MODE_0);
+
+				if (oldOut != Counters[cnt].Out)
+					Counters[cnt].OnOutChange((TPITCounter)cnt, Counters[cnt].Out);
 			}
-
-			Counters[cnt].Counting = false;
-
-			oldOut = Counters[cnt].Out;
-			if ((Counters[cnt].CWR & MODE_MASK) == MODE_0)
-				Counters[cnt].Out = false;
-			else
-				Counters[cnt].Out = true;
-
-			if (oldOut != Counters[cnt].Out)
-				Counters[cnt].OnOutChange((TPITCounter)cnt, Counters[cnt].Out);
 			break;
 	}
 }
@@ -312,11 +325,10 @@ void ChipPIT8253::PeripheralSetGate(TPITCounter counter, bool state)
 			break;
 
 		case MODE_1 :
-			if (oldGate == false && state == true) {
-				Counters[cnt].CounterValue = Counters[cnt].InitValue;
-				Counters[cnt].Counting = true;
-				Counters[cnt].Out = false;
-			}
+		case MODE_5 :
+			Counters[cnt].Counting = state;
+			if (oldGate == false && state == true)
+				Counters[cnt].Triggered = true;
 			break;
 
 		case MODE_2 :
@@ -326,16 +338,8 @@ void ChipPIT8253::PeripheralSetGate(TPITCounter counter, bool state)
 			Counters[cnt].Counting = state;
 			if (state == false)
 				Counters[cnt].Out = true;
-			if (oldGate == false && state == true)
-				Counters[cnt].CounterValue = Counters[cnt].InitValue;
-			break;
-
-		case MODE_5 :
-			Counters[cnt].Counting = state;
-			if (oldGate == false && state == true) {
-				Counters[cnt].CounterValue = Counters[cnt].InitValue;
-				Counters[cnt].Out = true;
-			}
+			else if (oldGate == false && state == true)
+				Counters[cnt].Triggered = true;
 			break;
 	}
 
@@ -351,8 +355,8 @@ void ChipPIT8253::PeripheralSetClock(TPITCounter counter, bool state)
 		return;
 
 	int cnt = (int)counter;
-	if (Counters[cnt].OnInit > 0)
-		return;
+//	if (Counters[cnt].OnInit > 0)
+//		return;
 
 	bool oldOut = Counters[cnt].Out;
 	bool oldClock = Counters[cnt].Clock;
@@ -360,71 +364,119 @@ void ChipPIT8253::PeripheralSetClock(TPITCounter counter, bool state)
 
 	switch (Counters[cnt].CWR & MODE_MASK) {
 		case MODE_0 :
-			if (oldClock == true && state == false
-					&& Counters[cnt].Counting == true) {
-				if (--Counters[cnt].CounterValue == 0)
-					Counters[cnt].Out = true;
-				if (Counters[cnt].CounterValue == 0xFFFF
-						&& ((Counters[cnt].CWR & TYPE_MASK) == TYPE_BCD))
-					Counters[cnt].CounterValue = 9999;
+			if (oldClock == true && state == false) {
+				if (Counters[cnt].InitValWritten == true) {
+					Counters[cnt].CounterValue = Counters[cnt].InitValue;
+					Counters[cnt].InitValWritten = false;
+				}
+				else if (Counters[cnt].Counting == true) {
+					if (DecrementCounter(cnt))
+						Counters[cnt].Out = true;
+				}
 			}
 			break;
 
 		case MODE_1 :
-			if (oldClock == true && state == false
-					&& Counters[cnt].Counting == true) {
-				if (--Counters[cnt].CounterValue == 0) {
-					Counters[cnt].Out = true;
-					Counters[cnt].Counting = false;
+			if (oldClock == true && state == false) {
+				if (Counters[cnt].Triggered == true) {
+					Counters[cnt].Triggered = false;
+					Counters[cnt].InitValWritten = false;
+					Counters[cnt].CounterValue = Counters[cnt].InitValue;
+					Counters[cnt].Out = false;
+					Counters[cnt].Counting = true;
+				}
+				else if (Counters[cnt].Counting == true) {
+					if (DecrementCounter(cnt))
+						Counters[cnt].Out = true;
 				}
 			}
 			break;
 
 		case MODE_2 :
 		case MODE_2X :
-			if (oldClock == true && state == false
-					&& Counters[cnt].Counting == true) {
-				if (--Counters[cnt].CounterValue == 0) {
+			if (oldClock == true && state == false) {
+				if (Counters[cnt].Triggered == true) {
+					Counters[cnt].Triggered = false;
+					Counters[cnt].InitValWritten = false;
 					Counters[cnt].CounterValue = Counters[cnt].InitValue;
-					Counters[cnt].Out = true;
 				}
-				else if (Counters[cnt].CounterValue == 1)
-					Counters[cnt].Out = false;
+				else if (Counters[cnt].Counting == true) {
+					if (DecrementCounter(cnt)) {
+						Counters[cnt].InitValWritten = false;
+						Counters[cnt].CounterValue = Counters[cnt].InitValue;
+						Counters[cnt].Out = true;
+					}
+					else if (Counters[cnt].CounterValue == 1)
+						Counters[cnt].Out = false;
+				}
 			}
 			break;
 
 		case MODE_3 :
 		case MODE_3X :
-			if (oldClock == true && state == false
-					&& Counters[cnt].Counting == true) {
-				if (Counters[cnt].Out == true) {
-					Counters[cnt].CounterValue--;
-					if (Counters[cnt].CounterValue & 1)
-						Counters[cnt].CounterValue--;
-				}
-				else {
-					if (Counters[cnt].CounterValue & 1)
-						Counters[cnt].CounterValue--;
-					Counters[cnt].CounterValue -= (WORD)2;
-				}
-
-				if (Counters[cnt].CounterValue == 0) {
+			if (oldClock == true && state == false) {
+				if (Counters[cnt].Triggered == true) {
 					Counters[cnt].CounterValue = Counters[cnt].InitValue;
-					Counters[cnt].Out = !Counters[cnt].Out;
+					Counters[cnt].InitValWritten = false;
+					Counters[cnt].Triggered = false;
+				}
+				else if (Counters[cnt].Counting == true) {
+					if (Counters[cnt].Out == true) {
+						DecrementCounter(cnt);
+						if (Counters[cnt].CounterValue & 1)
+							DecrementCounter(cnt);
+					}
+					else {
+						if (Counters[cnt].CounterValue & 1)
+							DecrementCounter(cnt);
+						DecrementCounter(cnt);
+						DecrementCounter(cnt);
+					}
+
+					if (Counters[cnt].CounterValue == 0) {
+						Counters[cnt].InitValWritten = false;
+						Counters[cnt].CounterValue = Counters[cnt].InitValue;
+						Counters[cnt].Out = !Counters[cnt].Out;
+					}
 				}
 			}
 			break;
 
 		case MODE_4 :
-		case MODE_5 :
-			if (oldClock == true && state == false
-					&& Counters[cnt].Counting == true) {
-				if (--Counters[cnt].CounterValue == 0) {
-					Counters[cnt].Out = true;
-					Counters[cnt].Counting = false;
+			if (oldClock == true && state == false) {
+				if (Counters[cnt].InitValWritten == true) {
+					Counters[cnt].CounterValue = Counters[cnt].InitValue;
+					Counters[cnt].InitValWritten = false;
 				}
-				else if (Counters[cnt].CounterValue == 1)
-					Counters[cnt].Out = false;
+				else if (Counters[cnt].Counting == true) {
+					if (DecrementCounter(cnt))
+						Counters[cnt].Out = false;
+					else if (((Counters[cnt].CWR & TYPE_MASK) == TYPE_BINARY
+					        && Counters[cnt].CounterValue == 0xFFFF)
+					      || ((Counters[cnt].CWR & TYPE_MASK) == TYPE_BCD
+					        && Counters[cnt].CounterValue == 0x9999))
+						Counters[cnt].Out = true;
+				}
+			}
+			break;
+
+		case MODE_5 :
+			if (oldClock == true && state == false) {
+				if (Counters[cnt].Triggered == true) {
+					Counters[cnt].Triggered = false;
+					Counters[cnt].InitValWritten = false;
+					Counters[cnt].CounterValue = Counters[cnt].InitValue;
+					Counters[cnt].Out = true;
+				}
+				else if (Counters[cnt].Counting == true) {
+					if (DecrementCounter(cnt))
+						Counters[cnt].Out = false;
+					else if (((Counters[cnt].CWR & TYPE_MASK) == TYPE_BINARY
+					        && Counters[cnt].CounterValue == 0xFFFF)
+					      || ((Counters[cnt].CWR & TYPE_MASK) == TYPE_BCD
+					        && Counters[cnt].CounterValue == 0x9999))
+						Counters[cnt].Out = true;
+				}
 			}
 			break;
 	}
@@ -439,5 +491,30 @@ bool ChipPIT8253::PeripheralReadOut(TPITCounter counter)
 		return false;
 
 	return Counters[(int) counter].Out;
+}
+//---------------------------------------------------------------------------
+bool ChipPIT8253::DecrementCounter(int cnt)
+{
+	if (--Counters[cnt].CounterValue == 0)
+		return true;
+	if ((Counters[cnt].CWR & TYPE_MASK) == TYPE_BINARY)
+		return false;
+
+	WORD cntval = Counters[cnt].CounterValue;
+	if ((cntval & 0x000F) == 0x000F) {
+		cntval = (WORD) ((cntval & 0xFFF0) | 0x0009);
+		if ((cntval & 0x00F0) == 0x00F0) {
+			cntval = (WORD) ((cntval & 0xFF0F) | 0x0090);
+			if ((cntval & 0x0F00) == 0x0F00) {
+				cntval = (WORD) ((cntval & 0xF0FF) | 0x0900);
+				if ((cntval & 0xF000) == 0xF000)
+					cntval = (WORD) ((cntval & 0x0FFF) | 0x9000);
+			}
+		}
+
+		Counters[cnt].CounterValue = cntval;
+	}
+
+	return false;
 }
 //---------------------------------------------------------------------------

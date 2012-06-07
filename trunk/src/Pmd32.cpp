@@ -714,14 +714,27 @@ void Pmd32::Disk32ServiceSendResultCommand()
 			break;
 
 		case 'P': // get disk parameters
-			*buffer = drives[drvnum].tracks;
-			*(buffer + 1) = drives[drvnum].sectors;
-			*(buffer + 2) = drives[drvnum].sectorSize;
-			point = buffer;
-			byteCounter = 3;
-			CRC = 0;
-			diskState = SEND_DATA;
-			noSend = true;
+			if (drvnum > 3) {
+				toSend = RESULT_BD;
+				diskState = WAIT_COMMAND;
+			}
+			else {
+				toSend = RESULT_OK;
+				if (drives[drvnum].handle == NULL) {
+					*buffer = 0;
+					*(buffer + 1) = 0;
+					*(buffer + 2) = 0;
+				}
+				else {
+					*buffer = drives[drvnum].tracks;
+					*(buffer + 1) = drives[drvnum].sectors;
+					*(buffer + 2) = drives[drvnum].sectorSize;
+				}
+				point = buffer;
+				byteCounter = 3;
+				CRC = 0;
+				diskState = SEND_DATA;
+			}
 			break;
 	}
 }

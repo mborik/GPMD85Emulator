@@ -483,26 +483,6 @@ void UserInterface::menuOpen(GUI_MENU_TYPE type, void *data)
 				data = gui_main_menu;
 				break;
 
-			case GUI_TYPE_SELECT:
-				type = GUI_TYPE_MENU;
-				data = gui_machine_menu;
-				break;
-
-			case GUI_TYPE_PERIPHERALS:
-				type = GUI_TYPE_MENU;
-				data = gui_pers_menu;
-				break;
-
-			case GUI_TYPE_MEMORY:
-				type = GUI_TYPE_MENU;
-				data = gui_mem_menu;
-				break;
-
-			case GUI_TYPE_DISKIMAGES:
-				type = GUI_TYPE_MENU;
-				data = gui_p32_images_menu;
-				break;
-
 			case GUI_TYPE_FILESELECTOR:
 			case GUI_TYPE_TAPEBROWSER:
 			case GUI_TYPE_DEBUGGER:

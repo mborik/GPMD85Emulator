@@ -1,8 +1,11 @@
+2012-06-07 [mborik] implemented read/write memory block; some time-critical bugs in dialogues
+2012-06-05 [mborik] imported rombor's improvements in emulation of 8253, ifTimer and PMD32; removed ifMusica occurrences
+2012-06-04 [mborik] implemented emulation speed change
 2012-06-01 [ikon/SinDiKat] comment translation sk>en (1st phase)
 2012-05-31 [mborik] fullscreen toggle; some minor fixes
 2012-05-30 [mborik] reworked status bar icons loading and some palette problems solved
 2012-05-26 [mborik] bugfix and fine-tuning of OpenGL screen rendering
-2012-05-24 [mborik] OpenGL screen rendering implementation
+2012-05-24 [mborik] OpenGL screen rendering implementation which can be enabled with configure (--with-opengl)
 2012-03-15 [mborik] instruction tracing in debugger (too buggy yet)
 2012-03-04 [mborik] first implementation of debugger (drawings only)
 2012-02-22 [mborik] improvements and some mods on quick-searching in fileSelector (with some ideas by ub880d :)
