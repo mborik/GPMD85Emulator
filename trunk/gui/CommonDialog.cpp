@@ -99,6 +99,10 @@ BYTE UserInterface::queryDialog(const char *title, bool save)
 					}
 					break;
 
+				case SDL_VIDEOEXPOSE:
+					Emulator->RefreshDisplay();
+					break;
+
 				default:
 					break;
 			}
@@ -206,6 +210,10 @@ void UserInterface::messageBox(const char *text, ...)
 						default:
 							break;
 					}
+					break;
+
+				case SDL_VIDEOEXPOSE:
+					Emulator->RefreshDisplay();
 					break;
 
 				default:

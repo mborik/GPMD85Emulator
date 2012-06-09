@@ -268,13 +268,17 @@ void ScreenPMD85::RefreshDisplay()
 
 	if ((GUI->isInMenu() && GUI->needRedraw) || !GUI->isInMenu()) {
 #ifdef OPENGL
+		if (SDL_LockSurface(BlitSurface) != 0)
+			return;
+
 		GUI->needRedraw = false;
-		RedrawStatusBar();
 
 		glBindTexture(GL_TEXTURE_2D, Texture[0]);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
+		glTexImage2D(GL_TEXTURE_2D, 0, PixelFormat,
 			TextureMainWidth, TextureMainHeight, 0,
-			GL_RGB, GL_UNSIGNED_BYTE, BlitSurface->pixels);
+			PixelFormat, DataType, BlitSurface->pixels);
+
+		SDL_UnlockSurface(BlitSurface);
 
 		glBegin(GL_QUADS);
 			glTexCoord2f(0, 0);
@@ -288,10 +292,12 @@ void ScreenPMD85::RefreshDisplay()
 			glVertex2f(BlitRectDest->x, BlitRectDest->y + BlitRectDest->h);
 		glEnd();
 
+		RedrawStatusBar();
+
 		glBindTexture(GL_TEXTURE_2D, Texture[1]);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
+		glTexImage2D(GL_TEXTURE_2D, 0, PixelFormat,
 			TextureStatusWidth, TextureStatusHeight, 0,
-			GL_RGB, GL_UNSIGNED_BYTE, StatusBar->pixels);
+			PixelFormat, DataType, StatusBar->pixels);
 
 		glBegin(GL_QUADS);
 			glTexCoord2f(0, 0);
@@ -510,6 +516,8 @@ void ScreenPMD85::PrepareVideoMode()
 	       (gvi.hw ? SDL_HWSURFACE | SDL_HWPALETTE : SDL_SWSURFACE);
 
 #ifdef OPENGL
+	iniflags = SDL_HWSURFACE | SDL_OPENGL;
+
 	static bool firstTime = true;
 	if (firstTime) {
 		debug("Screen", "OpenGL subsystem initialization...");
@@ -517,14 +525,34 @@ void ScreenPMD85::PrepareVideoMode()
 		SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
 		SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
 		SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
+		SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 0);
 		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);
-		if (SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1) != 0)
+		if (SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1))
 			warning("Screen", "OpenGL double buffer not present!");
+		else
+			iniflags |= SDL_DOUBLEBUF;
+
+		PixelFormat = GL_RGB, DataType = GL_UNSIGNED_BYTE;
+
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+		// The first is PowerPC-only, as it's slow on Intel Mac Minis [Andrew Collier]
+		if (glExtension("GL_APPLE_packed_pixel") && glExtension("GL_EXT_bgra"))
+			PixelFormat = GL_BGR_EXT;
+#endif
+
+		// Store Mac textures locally if possible for an AGP transfer boost
+		// Note: do this for ATI cards only at present, as both nVidia and Intel seems to suffer a performance hit
+		if (glExtension("GL_APPLE_client_storage") &&
+			!memcmp(glGetString(GL_RENDERER), "ATI", 3))
+				glPixelStorei(GL_UNPACK_CLIENT_STORAGE_APPLE, GL_TRUE);
+
+		Clamp = GL_CLAMP;
+		// Try for edge-clamped textures, to avoid visible seams between filtered tiles (mainly OS X)
+		if (glExtension("GL_SGIS_texture_edge_clamp"))
+			Clamp = GL_CLAMP_TO_EDGE;
 
 		firstTime = false;
 	}
-
-	iniflags = SDL_DOUBLEBUF | SDL_HWSURFACE | SDL_OPENGL;
 #endif
 
 	if (DispMode == DM_FULLSCREEN || !gvi.wm) {
@@ -576,14 +604,22 @@ void ScreenPMD85::PrepareVideoMode()
 	glGenTextures(2, Texture);
 
 	glBindTexture(GL_TEXTURE_2D, Texture[0]);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, Clamp);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, Clamp);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, TextureMainWidth, TextureMainHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, BlitSurface->pixels);
+	glTexImage2D(GL_TEXTURE_2D, 0, PixelFormat,
+		TextureMainWidth, TextureMainHeight, 0,
+		PixelFormat, DataType, BlitSurface->pixels);
 
 	glBindTexture(GL_TEXTURE_2D, Texture[1]);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, Clamp);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, Clamp);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, TextureStatusWidth, TextureStatusHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, StatusBar->pixels);
+	glTexImage2D(GL_TEXTURE_2D, 0, PixelFormat,
+		TextureStatusWidth, TextureStatusHeight, 0,
+		PixelFormat, DataType, StatusBar->pixels);
 
 	glViewport(0, 0, Screen->w, Screen->h);
 	glMatrixMode(GL_PROJECTION);
@@ -1326,6 +1362,34 @@ scalerMethodPrototype(point4xLCD)
 		dst += dstPitch * 4;
 		src += srcPitch;
 	}
+#else
+}
+//-----------------------------------------------------------------------------
+/*
+ * Search for extName in the extensions string. Use of strstr()
+ * is not sufficient because extension names can be prefixes of
+ * other extension names. Could use strtok() but the constant
+ * string returned by glGetString can be in read-only memory.
+ */
+GLboolean ScreenPMD85::glExtension(const char *extName)
+{
+	char *p = (char *) glGetString(GL_EXTENSIONS);
+	char *end = NULL;
+	int extNameLen;
+
+	if (p) {
+		extNameLen = strlen(extName);
+		end = p + strlen(p);
+
+		while (p < end) {
+			int n = strcspn(p, " ");
+			if ((extNameLen == n) && (strncmp(extName, p, n) == 0))
+				return GL_TRUE;
+			p += (n + 1);
+		}
+	}
+
+	return GL_FALSE;
 #endif
 }
 //-----------------------------------------------------------------------------

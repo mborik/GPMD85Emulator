@@ -224,16 +224,17 @@ void TEmulator::ProcessSettings(BYTE filter)
 //-----------------------------------------------------------------------------
 void TEmulator::BaseTimerCallback()
 {
+	static SDL_Event e = { SDL_VIDEOEXPOSE };
 	static DWORD blinkCounter = 0;
 	static DWORD lastTick = 0;
 	static DWORD nextTick = SDL_GetTicks() + MEASURE_PERIOD;
 	static DWORD thisTime = 0;
 	static BYTE  frames = 0;
 
-	thisTime = SDL_GetTicks();
-
 	if (!isActive)
 		return;
+
+	thisTime = SDL_GetTicks();
 
 	// blinking toggle
 	if (blinkCounter >= 500) {
@@ -282,7 +283,7 @@ void TEmulator::BaseTimerCallback()
 		frames = 0;
 	}
 
-	video->RefreshDisplay();
+	SDL_PushEvent(&e);
 
 	lastTick = thisTime;
 	frames++;

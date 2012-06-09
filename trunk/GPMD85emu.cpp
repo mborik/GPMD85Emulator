@@ -141,6 +141,10 @@ int main(int argc, char** argv)
 						Emulator->ActionPlayPause(event.active.gain);
 					break;
 
+				case SDL_VIDEOEXPOSE:
+					Emulator->RefreshDisplay();
+					break;
+
 				default:
 					break;
 			}
@@ -159,6 +163,9 @@ int main(int argc, char** argv)
 		while (SDL_GetTicks() < nextTick)
 			SDL_Delay(1);
 	}
+
+	SDL_FillRect(GUI->defaultSurface, NULL, 0);
+	Emulator->RefreshDisplay();
 
 	debug("", "Main CPU loop terminated");
 	SDL_RemoveTimer(Emulator->BaseTimer);

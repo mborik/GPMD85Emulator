@@ -46,6 +46,7 @@ class TEmulator : public sigslot::has_slots<>
 
 		TEmulator();
 		virtual ~TEmulator();
+		inline void RefreshDisplay() { video->RefreshDisplay(); }
 
 		void ProcessSettings(BYTE filter);
 		bool ProcessRawFile(bool save);

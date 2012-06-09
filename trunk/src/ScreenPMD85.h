@@ -105,9 +105,11 @@ private:
 
 #ifdef OPENGL
 	SDL_Surface *StatusBar;
-	GLuint  Texture[2];
+	GLuint  Texture[2], Clamp;
+	GLenum  PixelFormat, DataType;
 	GLsizei TextureMainWidth, TextureStatusWidth;
 	GLsizei TextureMainHeight, TextureStatusHeight;
+	GLboolean glExtension(const char *extName);
 #else
 	scalerMethod Scaler;
 #endif
