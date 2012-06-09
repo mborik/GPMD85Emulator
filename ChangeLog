@@ -1,4 +1,5 @@
-2012-06-07 [mborik] implemented read/write memory block; some time-critical bugs in dialogues
+2012-06-08 [mborik] fixed multithreaded video rendering problems (especially in OpenGL) with SDL_VIDEOEXPOSE event
+2012-06-07 [mborik] implemented read/write memory block; fixed some time-critical bugs in dialogues
 2012-06-05 [mborik] imported rombor's improvements in emulation of 8253, ifTimer and PMD32; removed ifMusica occurrences
 2012-06-04 [mborik] implemented emulation speed change
 2012-06-01 [ikon/SinDiKat] comment translation sk>en (1st phase)

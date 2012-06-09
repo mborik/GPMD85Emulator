@@ -161,6 +161,10 @@ BYTE UserInterface::editBox(const char *title, char *buffer, BYTE maxLength, boo
 					}
 					break;
 
+				case SDL_VIDEOEXPOSE:
+					Emulator->RefreshDisplay();
+					break;
+
 				default:
 					break;
 			}
