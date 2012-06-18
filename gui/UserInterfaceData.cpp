@@ -726,6 +726,13 @@ bool ccb_tapebrowser(GUI_MENU_ENTRY *ptr)
 	return true;
 }
 //-----------------------------------------------------------------------------
+bool ccb_debugger(GUI_MENU_ENTRY *ptr)
+{
+	GUI->uiCallback.connect(Emulator, &TEmulator::ActionDebugger);
+	GUI->uiSetChanges |= PS_CLOSEALL;
+	return true;
+}
+//-----------------------------------------------------------------------------
 bool ccb_exit(GUI_MENU_ENTRY *ptr)
 {
 	Emulator->ActionExit();

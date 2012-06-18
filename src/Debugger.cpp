@@ -69,7 +69,7 @@ char TDebugger::instr8080[256][11] = {
 // % - 8-bit operand
 // & - 16-bit operand / address
 // * - 16-bit jump address
-// @ - address in RET instruction
+// @ - address in RST instruction
 char TDebugger::instrZ80[256][14] = {
 	" nop",         " ld   bc,&",   " ld   (bc),a", " inc  bc",      " inc  b",      " dec  b",      " ld   b,%",    " rlca",
 	"!nop",         " add  hl,bc",  " ld   a,(bc)", " dec  bc",      " inc  c",      " dec  c",      " ld   c,%",    " rrca",
@@ -543,7 +543,8 @@ void TDebugger::DoStepToNext()
 bool TDebugger::CheckBreakPoint(WORD adr)
 {
 	for (int ii = 0; ii < MAX_BREAK_POINTS; ii++)
-		return (bp[ii].active && adr == bp[ii].addr);
+		if (bp[ii].active && adr == bp[ii].addr)
+			return true;
 
 	return false;
 }
@@ -553,8 +554,10 @@ bool TDebugger::CheckDebugRet(int *t)
 	BYTE oc = memory->ReadByte(cpu->GetPC());
 	*t = cpu->DoInstruction();
 
-	return ((oc == 0xC9 || oc == 0xD9 ||
-		((oc & 0xC7) == 0xC0 && *t == 11)) &&
-			wsp < cpu->GetSP());
+	if ((oc == 0xC9 || oc == 0xD9 || ((oc & 0xC7) == 0xC0 && *t == 11))
+	  && wsp < cpu->GetSP())
+		return true;
+
+	return false;
 }
 //---------------------------------------------------------------------------

@@ -295,9 +295,8 @@ void TEmulator::CpuTimerCallback()
 		return;
 
 	DWORD beg = SDL_GetTicks();
-	WORD pc, fl = (0x8B6C | ((model == CM_V3) ? 6000 : 0));
-	int tci, tc = 0,
-	    tcpf = (TCYCLES_PER_FRAME * Settings->emulationSpeed);
+	WORD pc, loader = (0x8B6C | ((model == CM_V3) ? 6000 : 0));
+	int tci, tc = 0, tcpf = (TCYCLES_PER_FRAME * Settings->emulationSpeed);
 
 	if (sound)
 		sound->PrepareBuffer();
@@ -317,14 +316,14 @@ void TEmulator::CpuTimerCallback()
 			cpu->SetPC(0xFFF0);
 
 		// tape flash loading - ROM routine entry-point mapping
-		if (ifTape->IsFlashLoadOn() && pc == fl &&
-		    model != CM_V1 && model != CM_MATO) {
+		if (pc == loader && model != CM_V1 && model != CM_MATO &&
+		          ifTape && ifTape->IsFlashLoadOn()) {
 
 			BYTE byte = 0;
 			bool cy = ifTape->GetTapeByte(&byte);
 
 			cpu->SetAF((byte << 8) | (cy ? FLAG_CY : 0));
-			cpu->SetPC(fl + 0x2F);
+			cpu->SetPC(loader + 0x2F);
 			cpu->SetTCycles(cpu->GetTCycles() + 200);
 		}
 
@@ -643,7 +642,7 @@ void TEmulator::ActionExit()
 	ActionPlayPause(false, false);
 
 	if (TapeBrowser->tapeChanged) {
-		BYTE result = GUI->queryDialog("SAVE CHANGES?", true);
+		BYTE result = GUI->queryDialog("SAVE TAPE CHANGES?", true);
 		if (result == GUI_QUERY_SAVE) {
 			ActionTapeSave();
 			return;
@@ -689,7 +688,7 @@ void TEmulator::ActionTapeNew()
 
 	BYTE result = GUI_QUERY_DONTSAVE;
 	if (TapeBrowser->tapeChanged) {
-		result = GUI->queryDialog("SAVE CHANGES?", true);
+		result = GUI->queryDialog("SAVE TAPE CHANGES?", true);
 		if (result == GUI_QUERY_SAVE) {
 			GUI->menuCloseAll();
 			ActionTapeSave();
@@ -715,7 +714,7 @@ void TEmulator::ActionTapeLoad(bool import)
 	ActionPlayPause(false, false);
 
 	if (!import && TapeBrowser->tapeChanged) {
-		BYTE result = GUI->queryDialog("SAVE CHANGES?", true);
+		BYTE result = GUI->queryDialog("SAVE TAPE CHANGES?", true);
 		if (result == GUI_QUERY_SAVE) {
 			ActionTapeSave();
 			return;
