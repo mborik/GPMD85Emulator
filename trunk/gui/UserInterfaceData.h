@@ -94,6 +94,7 @@ bool ccb_blk_roma(GUI_MENU_ENTRY *ptr);
 bool ccb_blk_rmap(GUI_MENU_ENTRY *ptr);
 bool ccb_blk_exec(GUI_MENU_ENTRY *ptr);
 bool ccb_tapebrowser(GUI_MENU_ENTRY *ptr);
+bool ccb_debugger(GUI_MENU_ENTRY *ptr);
 bool ccb_exit(GUI_MENU_ENTRY *ptr);
 //-----------------------------------------------------------------------------
 static GUI_MENU_ENTRY UNUSED_VARIABLE *gui_rom_packages = NULL;
@@ -148,8 +149,6 @@ static GUI_MENU_ENTRY gui_memblock_read_menu[] = {
 	{ MI_VALUE, "\aLENGTH", NULL, SDLK_l, NULL, ccb_blk_leng, dcb_blk_leng_state, true },
 	{ MI_SEPARATOR },
 	{ MI_CHECKBOX, "\aHEX VALUES", NULL, SDLK_h, NULL, ccb_blk_hexa, dcb_blk_hexa_state, true },
-	{ MI_SEPARATOR },
-	{ MI_CHECKBOX, "\aROM ACCESS", NULL, SDLK_r, NULL, ccb_blk_roma, dcb_blk_roma_state },
 	{ MI_CHECKBOX, "\aC\215\216\217 REMAP", NULL, SDLK_b, NULL, ccb_blk_rmap, dcb_blk_rmap_state },
 	{ MI_SEPARATOR },
 	{ MI_STANDARD, "\aOK", NULL, SDLK_o, NULL, ccb_blk_exec, NULL, true, false },
@@ -330,7 +329,7 @@ static GUI_MENU_ENTRY UNUSED_VARIABLE gui_main_menu[] = {
 	{ MI_SUBMENU, "\aPERIPHERALS", "F10", SDLK_p, gui_pers_menu, NULL, NULL, true },
 	{ MI_SEPARATOR },
 	{ MI_DIALOG, "\aTAPE BROWSER", "T", SDLK_t, NULL, ccb_tapebrowser, NULL, true },
-	{ MI_DIALOG, "DEBU\aGGER", "F12", SDLK_g, NULL, NULL, NULL, true },
+	{ MI_DIALOG, "DEBU\aGGER", "F12", SDLK_g, NULL, ccb_debugger, NULL, true },
 	{ MI_DIALOG, "P\aOKE", NULL, SDLK_o, NULL, NULL, NULL, false },
 	{ MI_SEPARATOR },
 	{ MI_DIALOG, "\aABOUT", "^F1", SDLK_a, NULL, NULL, NULL, false },

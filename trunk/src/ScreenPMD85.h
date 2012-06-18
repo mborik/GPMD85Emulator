@@ -1,6 +1,9 @@
 /*	ScreenPMD85.h: Core of graphical output and screen generation
 	Copyright (c) 2010-2012 Martin Borik <mborik@users.sourceforge.net>
 
+	OpenGL screen initialization and rendering inspired by SimCoupe code
+	Copyright (c) 1999-2006 Simon Owen <simon.owen@simcoupe.org>
+
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
 	the Free Software Foundation, either version 3 of the License, or
@@ -30,6 +33,23 @@
 //-----------------------------------------------------------------------------
 #ifdef OPENGL
 #include "SDL_opengl.h"
+//-----------------------------------------------------------------------------
+inline GLboolean glExtension(const char *extName)
+{
+	if (char *p = (char *) glGetString(GL_EXTENSIONS)) {
+		int extNameLen = strlen(extName);
+		char *end = p + strlen(p);
+
+		while (p < end) {
+			int n = strcspn(p, " ");
+			if ((extNameLen == n) && (strncmp(extName, p, n) == 0))
+				return GL_TRUE;
+			p += (n + 1);
+		}
+	}
+
+	return GL_FALSE;
+}
 #else
 //-----------------------------------------------------------------------------
 #define scalerMethodPrototype(function) void function(BYTE *dst, WORD dstPitch, const BYTE *src, WORD srcPitch, WORD w, WORD h)
@@ -109,7 +129,6 @@ private:
 	GLenum  PixelFormat, DataType;
 	GLsizei TextureMainWidth, TextureStatusWidth;
 	GLsizei TextureMainHeight, TextureStatusHeight;
-	GLboolean glExtension(const char *extName);
 #else
 	scalerMethod Scaler;
 #endif

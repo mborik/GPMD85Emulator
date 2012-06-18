@@ -180,6 +180,18 @@ void UserInterface::keyhandlerDebugWindow(WORD key)
 			change = true;
 			break;
 
+		case SDLK_h | KM_CTRL:
+			Settings->Debugger->hex = !Settings->Debugger->hex;
+			drawDebugWindow();
+			change = true;
+			break;
+
+		case SDLK_z | KM_CTRL:
+			Settings->Debugger->z80 = !Settings->Debugger->z80;
+			drawDebugWindow();
+			change = true;
+			break;
+
 		case SDLK_F7 | KM_SHIFT:
 			Debugger->DoStepToNext();
 			break;

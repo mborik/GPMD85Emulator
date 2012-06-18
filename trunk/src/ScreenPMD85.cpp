@@ -1,6 +1,9 @@
 /*	ScreenPMD85.cpp: Core of graphical output and screen generation
 	Copyright (c) 2010-2012 Martin Borik <mborik@users.sourceforge.net>
 
+	OpenGL screen initialization and rendering inspired by SimCoupe code
+	Copyright (c) 1999-2006 Simon Owen <simon.owen@simcoupe.org>
+
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
 	the Free Software Foundation, either version 3 of the License, or
@@ -37,12 +40,17 @@ ScreenPMD85::ScreenPMD85(TDisplayMode dispMode, int border)
 	iconState = 0;
 	statusFPS = 0;
 	statusPercentage = 0;
-	borderSize = (dispMode == DM_FULLSCREEN || !gvi.wm) ? 0 : (border * BORDER_MULTIPLIER);
+	borderSize = 0;
+	if (dispMode != DM_FULLSCREEN && gvi.wm)
+		borderSize = (border * BORDER_MULTIPLIER);
 
 #ifdef OPENGL
 	Texture[0] = Texture[1] = 0;
 	TextureMainWidth = TextureMainHeight = 0;
 	TextureStatusWidth = TextureStatusHeight = 0;
+	PixelFormat = GL_NONE;
+	DataType = GL_UNSIGNED_BYTE;
+	Clamp = GL_CLAMP;
 #endif
 
 	InitScreenSize(dispMode, false);
@@ -541,12 +549,12 @@ void ScreenPMD85::PrepareVideoMode()
 #endif
 
 		// Store Mac textures locally if possible for an AGP transfer boost
-		// Note: do this for ATI cards only at present, as both nVidia and Intel seems to suffer a performance hit
+		// Note: do this for ATI cards only at present, as both nVidia
+		// and Intel seems to suffer a performance hit
 		if (glExtension("GL_APPLE_client_storage") &&
 			!memcmp(glGetString(GL_RENDERER), "ATI", 3))
 				glPixelStorei(GL_UNPACK_CLIENT_STORAGE_APPLE, GL_TRUE);
 
-		Clamp = GL_CLAMP;
 		// Try for edge-clamped textures, to avoid visible seams between filtered tiles (mainly OS X)
 		if (glExtension("GL_SGIS_texture_edge_clamp"))
 			Clamp = GL_CLAMP_TO_EDGE;
@@ -608,18 +616,12 @@ void ScreenPMD85::PrepareVideoMode()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, Clamp);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexImage2D(GL_TEXTURE_2D, 0, PixelFormat,
-		TextureMainWidth, TextureMainHeight, 0,
-		PixelFormat, DataType, BlitSurface->pixels);
 
 	glBindTexture(GL_TEXTURE_2D, Texture[1]);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, Clamp);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, Clamp);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexImage2D(GL_TEXTURE_2D, 0, PixelFormat,
-		TextureStatusWidth, TextureStatusHeight, 0,
-		PixelFormat, DataType, StatusBar->pixels);
 
 	glViewport(0, 0, Screen->w, Screen->h);
 	glMatrixMode(GL_PROJECTION);
@@ -1362,34 +1364,6 @@ scalerMethodPrototype(point4xLCD)
 		dst += dstPitch * 4;
 		src += srcPitch;
 	}
-#else
-}
-//-----------------------------------------------------------------------------
-/*
- * Search for extName in the extensions string. Use of strstr()
- * is not sufficient because extension names can be prefixes of
- * other extension names. Could use strtok() but the constant
- * string returned by glGetString can be in read-only memory.
- */
-GLboolean ScreenPMD85::glExtension(const char *extName)
-{
-	char *p = (char *) glGetString(GL_EXTENSIONS);
-	char *end = NULL;
-	int extNameLen;
-
-	if (p) {
-		extNameLen = strlen(extName);
-		end = p + strlen(p);
-
-		while (p < end) {
-			int n = strcspn(p, " ");
-			if ((extNameLen == n) && (strncmp(extName, p, n) == 0))
-				return GL_TRUE;
-			p += (n + 1);
-		}
-	}
-
-	return GL_FALSE;
 #endif
 }
 //-----------------------------------------------------------------------------
