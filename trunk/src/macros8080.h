@@ -61,8 +61,9 @@
 // ANA r   ANA M   ANI byte
 #define ANA(value)\
 {\
+	F = (BYTE) (((A & 0x08) | ((value) & 0x08)) ? FLAG_AC : 0);\
 	A &= (value);\
-	F = (BYTE)(FLAG_AC | sz53p1Table[A]);\
+	F |= sz53p1Table[A];\
 }
 
 // ADC r   ADC M   ACI byte
