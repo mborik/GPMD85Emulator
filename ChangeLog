@@ -1,3 +1,5 @@
+2014-02-24 [Staon]  project tracker ticket #2: ScanDir compatibility bug
+2012-06-19 [mborik] fixed crashes during OpenGL initialization with reinterpret_cast
 2012-06-18 [mborik] prerelease bugfixes and mods
 2012-06-08 [mborik] fixed multithreaded video rendering problems (especially in OpenGL) with SDL_VIDEOEXPOSE event
 2012-06-07 [mborik] implemented read/write memory block; fixed some time-critical bugs in dialogues

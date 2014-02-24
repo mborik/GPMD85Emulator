@@ -1,11 +1,15 @@
 # GPMD85emu autoconf
-# mborik, 10/2011, 02/2012
+# mborik, 10/2011-04/2014
 
 AC_PREREQ([2.59])
-AC_INIT([GPMD85emulator], [0.9.1206], [mborik@users.sourceforge.net], [gpmd85emu], [http://gpmd85emulator.sourceforge.net/])
-AM_INIT_AUTOMAKE([GPMD85emulator], [0.9.1206])
+AC_INIT([GPMD85emulator], [0.9.1402], [mborik@users.sourceforge.net],
+        [gpmd85emu], [http://gpmd85emulator.sourceforge.net/])
 AC_CONFIG_SRCDIR([GPMD85emu.cpp])
+
+AM_INIT_AUTOMAKE()
 AC_CONFIG_HEADERS([config.h])
+AC_DEFINE_UNQUOTED([PACKAGE_YEAR], "`date +%Y`",
+                   [Define to the build year of this package.])
 
 # Checks for programs:
 AC_PROG_RANLIB
