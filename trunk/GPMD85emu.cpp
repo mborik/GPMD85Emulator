@@ -20,7 +20,7 @@
 //-----------------------------------------------------------------------------
 int main(int argc, char** argv)
 {
-	printf("\n= %s v%s ~ Copyright (c) 2012 ~ %s =", PACKAGE_NAME, VERSION, PACKAGE_URL);
+	printf("\n= %s v%s ~ Copyright (c) %s ~ %s =", PACKAGE_NAME, VERSION, PACKAGE_YEAR, PACKAGE_URL);
 	printf("\n- This program comes with ABSOLUTELY NO WARRANTY. This is free software,");
 	printf("\n- and you are welcome to redistribute it under certain conditions.\n\n");
 
