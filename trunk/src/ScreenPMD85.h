@@ -36,9 +36,11 @@
 //-----------------------------------------------------------------------------
 inline GLboolean glExtension(const char *extName)
 {
-	if (char *p = (char *) glGetString(GL_EXTENSIONS)) {
+	const char *p = reinterpret_cast<const char *> (glGetString(GL_EXTENSIONS));
+
+	if (p != NULL) {
 		int extNameLen = strlen(extName);
-		char *end = p + strlen(p);
+		const char *end = p + strlen(p);
 
 		while (p < end) {
 			int n = strcspn(p, " ");
