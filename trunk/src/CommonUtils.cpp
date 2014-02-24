@@ -389,6 +389,7 @@ void CommonUtils::commonScanDir(const char *dir, char ***filenames, int *numfile
 	DIR *directory = NULL;
 	char filemode;
 	char **newpt;
+	struct stat statdata;
 
 	if (*filenames) {
 		newpt = *filenames;
@@ -411,12 +412,34 @@ void CommonUtils::commonScanDir(const char *dir, char ***filenames, int *numfile
 	while (true) {
 		dirent = readdir(directory);
 		if (dirent) {
-			if (dirent->d_type == DT_REG || dirent->d_type == DT_LNK)
+#ifdef HAVE_STRUCT_DIRENT_D_TYPE
+			if (dirent->d_type == DT_REG)
 				filemode = '\xA0'; // fake for qsort: directories on top
 			else if (dirent->d_type == DT_DIR)
 				filemode = DIR_DELIMITER;
+			else if (dirent->d_type == DT_UNKNOWN || dirent->d_type == DT_LNK) {
+#endif
+				// fallback if the d_type is supported neither by the system
+				// nor the filesystem, or d_type is symbolic link:
+				if (dir)
+					sprintf(buffer, "%s%c%s", dir, DIR_DELIMITER, dirent->d_name);
+				else
+					sprintf(buffer, "%s", dirent->d_name);
+
+				if (stat(buffer, &statdata) < 0)
+					continue;
+
+				if (S_ISREG(statdata.st_mode))
+					filemode = '\xA0'; // fake for qsort: directories on top
+				else if (S_ISDIR(statdata.st_mode))
+					filemode = DIR_DELIMITER;
+				else
+					continue;
+#ifdef HAVE_STRUCT_DIRENT_D_TYPE
+			}
 			else
 				continue;
+#endif
 
 			// exclude "dot dir" and hidden files...
 			if (dirent->d_name[0] == '.') {
