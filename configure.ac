@@ -111,6 +111,7 @@ AC_CHECK_HEADERS([inttypes.h memory.h stddef.h stdint.h stdlib.h string.h string
 
 AC_HEADER_STAT
 AC_HEADER_DIRENT
+AC_STRUCT_DIRENT_D_TYPE
 AC_HEADER_STDBOOL
 AC_C_BIGENDIAN
 AC_C_INLINE
