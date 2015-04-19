@@ -171,7 +171,7 @@ static GUI_MENU_ENTRY gui_memblock_write_menu[] = {
 };
 static GUI_MENU_ENTRY gui_file_menu[] = {
 	{ MI_TITLE, "FILE" },
-	{ MI_STANDARD, "\aNEW \aTAPE", NULL, SDLK_n, NULL, ccb_tape_new, NULL, true, false, 0 },
+	{ MI_STANDARD, "\aNEW TAPE", NULL, SDLK_n, NULL, ccb_tape_new, NULL, true, false, 0 },
 	{ MI_DIALOG, "OPEN \aTAPE", "F2", SDLK_t, NULL, ccb_fileselector, NULL, true, false, 1 },
 	{ MI_DIALOG, "SAVE T\aAPE", "^F2", SDLK_a, NULL, ccb_fileselector, dcb_tape_save_state, false, false, 2 },
 	{ MI_SEPARATOR },
@@ -180,8 +180,8 @@ static GUI_MENU_ENTRY gui_file_menu[] = {
 	{ MI_SEPARATOR },
 	{ MI_SUBMENU, "\aDISK IMAGES", "F6", SDLK_d, gui_p32_images_menu, NULL, dcb_p32_imgs_state, false },
 	{ MI_SEPARATOR },
-	{ MI_SUBMENU, "\aREAD FROM MEMORY", "F11", SDLK_r, gui_memblock_read_menu, NULL, NULL, true },
-	{ MI_SUBMENU, "\aWRITE TO MEMORY", "^F11", SDLK_w, gui_memblock_write_menu, NULL, NULL, true },
+	{ MI_SUBMENU, "\aLOAD MEMORY", "F11", SDLK_l, gui_memblock_read_menu, NULL, NULL, true },
+	{ MI_SUBMENU, "SAVE \aMEMORY", "^F11", SDLK_m, gui_memblock_write_menu, NULL, NULL, true },
 	{ MI_SEPARATOR },
 	{ MI_STANDARD, "SAVE SCREENS\aHOT", NULL, SDLK_h, NULL, NULL, NULL, false },
 	{ MENU_END }
