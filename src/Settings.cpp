@@ -1155,6 +1155,8 @@ TSettings::SetRomModuleFile *TSettings::checkRMMfile(char *name)
 			else
 				rmf->err = 0;
 		}
+	} else {
+		printf("Warning! Wrong file extension (expecting '.rmm'), file ignored: %s\n", rmf->rmmFile);
 	}
 
 	return rmf;
