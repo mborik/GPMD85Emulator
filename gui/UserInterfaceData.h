@@ -166,7 +166,7 @@ static GUI_MENU_ENTRY gui_memblock_write_menu[] = {
 	{ MI_CHECKBOX, "\aROM ACCESS", NULL, SDLK_r, NULL, ccb_blk_roma, dcb_blk_roma_state },
 	{ MI_CHECKBOX, "\aC\215\216\217 REMAP", NULL, SDLK_b, NULL, ccb_blk_rmap, dcb_blk_rmap_state },
 	{ MI_SEPARATOR },
-	{ MI_STANDARD, "\aOK", NULL, SDLK_o, NULL, NULL, NULL, true, true },
+	{ MI_STANDARD, "\aOK", NULL, SDLK_o, NULL, ccb_blk_exec, NULL, true, true },
 	{ MENU_END }
 };
 static GUI_MENU_ENTRY gui_file_menu[] = {
