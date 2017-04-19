@@ -142,7 +142,7 @@ void UserInterface::drawDebugWindow()
 //-----------------------------------------------------------------------------
 void UserInterface::keyhandlerDebugWindow(WORD key)
 {
-	bool change = false;
+	bool UNUSED_VARIABLE change = false;
 
 	switch (key) {
 		case SDLK_F1 | KM_ALT:

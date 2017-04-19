@@ -70,8 +70,8 @@ int ChipCpu8080::length[256] = {
 //
 BYTE ChipCpu8080::auxcarryAddTable[8] = { 0, FLAG_AC, FLAG_AC, FLAG_AC, 0, 0, 0, FLAG_AC };
 BYTE ChipCpu8080::auxcarrySubTable[8] = { FLAG_AC, FLAG_AC, 0, FLAG_AC, 0, FLAG_AC, 0, 0 };
-BYTE ChipCpu8080::sz53p1Table[0x100] = { -1 };
-WORD ChipCpu8080::daaTable[0x400] = { -1 };
+BYTE ChipCpu8080::sz53p1Table[0x100] = { (BYTE) -1 };
+WORD ChipCpu8080::daaTable[0x400] = { (WORD) -1 };
 //-----------------------------------------------------------------------------
 ChipCpu8080::ChipCpu8080(ChipMemory *mem)
 {

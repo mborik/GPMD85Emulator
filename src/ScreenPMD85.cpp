@@ -184,9 +184,10 @@ void ScreenPMD85::SetColorAttr(int Index, TColor Attr)
 {
 	if (Index >= 0 && Index <= 3) {
 		CAttr[Index] = Attr;
-		if (ColorProfile == CP_COLOR)
+		if (ColorProfile == CP_COLOR) {
 			PAttr[Index] = Attr;
 			PAttr[Index + 4] = Attr;
+		}
 	}
 }
 //---------------------------------------------------------------------------

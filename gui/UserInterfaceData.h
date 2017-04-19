@@ -101,14 +101,14 @@ static GUI_MENU_ENTRY UNUSED_VARIABLE *gui_rom_packages = NULL;
 static GUI_MENU_ENTRY UNUSED_VARIABLE gui_query_confirm[] = {
 	{ MI_TITLE },
 	{ MI_STANDARD, "\aYES", NULL, SDLK_y, NULL, NULL, NULL, true, true, GUI_QUERY_YES },
-	{ MI_STANDARD, "\aNO", NULL, SDLK_n, NULL, NULL, NULL, true, true, GUI_QUERY_CANCEL },
+	{ MI_STANDARD, "\aNO", NULL, SDLK_n, NULL, NULL, NULL, true, true, (WORD) GUI_QUERY_CANCEL },
 	{ MENU_END }
 };
 static GUI_MENU_ENTRY UNUSED_VARIABLE gui_query_save[] = {
 	{ MI_TITLE },
 	{ MI_STANDARD, "DO\aN'T SAVE", NULL, SDLK_n, NULL, NULL, NULL, true, true, GUI_QUERY_DONTSAVE },
 	{ MI_STANDARD, "\aSAVE", NULL, SDLK_s, NULL, NULL, NULL, true, true, GUI_QUERY_SAVE },
-	{ MI_STANDARD, "\aCANCEL", NULL, SDLK_c, NULL, NULL, NULL, true, true, GUI_QUERY_CANCEL },
+	{ MI_STANDARD, "\aCANCEL", NULL, SDLK_c, NULL, NULL, NULL, true, true, (WORD) GUI_QUERY_CANCEL },
 	{ MENU_END }
 };
 static GUI_MENU_ENTRY UNUSED_VARIABLE gui_tapebrowser_popup[] = {
@@ -221,7 +221,7 @@ static GUI_MENU_ENTRY gui_view_colors_menu[] = {
 #ifndef OPENGL
 static GUI_MENU_ENTRY gui_view_scaler_menu[] = {
 	{ MI_TITLE, "SCALER" },
-	{ MI_RADIO, "\aLCD EMULATION\220", "5", SDLK_l, NULL, ccb_view_sclr, dcb_view_sclr_state, true, false, -1 },
+	{ MI_RADIO, "\aLCD EMULATION\220", "5", SDLK_l, NULL, ccb_view_sclr, dcb_view_sclr_state, true, false, (WORD) -1 },
 	{ MI_RADIO, "HALFPASS \a0%", "6", SDLK_0, NULL, ccb_view_sclr, dcb_view_sclr_state, true, false, HP_0 },
 	{ MI_RADIO, "HALFPASS \a25%", "7", SDLK_2, NULL, ccb_view_sclr, dcb_view_sclr_state, true, false, HP_25 },
 	{ MI_RADIO, "HALFPASS \a50%", "8", SDLK_5, NULL, ccb_view_sclr, dcb_view_sclr_state, true, false, HP_50 },
