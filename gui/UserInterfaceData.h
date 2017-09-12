@@ -221,7 +221,7 @@ static GUI_MENU_ENTRY gui_view_colors_menu[] = {
 #ifndef OPENGL
 static GUI_MENU_ENTRY gui_view_scaler_menu[] = {
 	{ MI_TITLE, "SCALER" },
-	{ MI_RADIO, "\aLCD EMULATION\220", "5", SDLK_l, NULL, ccb_view_sclr, dcb_view_sclr_state, true, false, -1 },
+	{ MI_RADIO, "\aLCD EMULATION\220", "5", SDLK_l, NULL, ccb_view_sclr, dcb_view_sclr_state, true, false, (uint16_t)-1 },
 	{ MI_RADIO, "HALFPASS \a0%", "6", SDLK_0, NULL, ccb_view_sclr, dcb_view_sclr_state, true, false, HP_0 },
 	{ MI_RADIO, "HALFPASS \a25%", "7", SDLK_2, NULL, ccb_view_sclr, dcb_view_sclr_state, true, false, HP_25 },
 	{ MI_RADIO, "HALFPASS \a50%", "8", SDLK_5, NULL, ccb_view_sclr, dcb_view_sclr_state, true, false, HP_50 },
