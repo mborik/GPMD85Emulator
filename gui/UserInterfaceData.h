@@ -21,7 +21,7 @@
 #include "globals.h"
 #include "UserInterface.h"
 //-----------------------------------------------------------------------------
-static const char *uicch = new char[32];
+static const char UNUSED_VARIABLE *uicch = new char[32];
 //-----------------------------------------------------------------------------
 const char *dcb_tape_save_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_tape_noempty_state(GUI_MENU_ENTRY *ptr);

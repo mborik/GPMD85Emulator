@@ -18,6 +18,9 @@
 #include "IifTape.h"
 #include "CommonUtils.h"
 //---------------------------------------------------------------------------
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-aliasing"
+//---------------------------------------------------------------------------
 IifTape::IifTape(TComputerModel model) : ChipUSART8251()
 {
 	OnRtsSet.connect(this, &IifTape::FnOnRtsSet);
@@ -487,4 +490,6 @@ int IifTape::GetSavedBlock(BYTE **pbuf)
 	*pbuf = buff;
 	return txByteCounter;
 }
+//---------------------------------------------------------------------------
+#pragma GCC diagnostic pop
 //---------------------------------------------------------------------------

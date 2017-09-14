@@ -688,7 +688,9 @@ void TTapeBrowser::PrepareData(bool head)
 			dataLen += (WORD) 2;
 	}
 
-	fread(buffer, sizeof(BYTE), dataLen, hFile);
+	if (fread(buffer, sizeof(BYTE), dataLen, hFile) < dataLen)
+		warning("TapeBrowser", "PrepareData: File read error!");
+
 	fclose(hFile);
 }
 //---------------------------------------------------------------------------

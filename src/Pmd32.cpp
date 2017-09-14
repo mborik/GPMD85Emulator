@@ -961,7 +961,10 @@ int Pmd32::CheckImageType(char *fn, BYTE *trk, BYTE *sec, BYTE *phys)
 		}
 
 		*buf = c;
-		fgets(buf + 1, 63, file);
+		if (fgets(buf + 1, 63, file) == NULL) {
+			ret = RESULT_CR;
+			break;
+		}
 
 		for (i = 0; buf[i] > ' ' || ptr[i + 1] > ' '; i++) {
 			if (toupper(buf[i]) != toupper(ptr[i])) {

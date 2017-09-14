@@ -1896,7 +1896,7 @@ bool TEmulator::ProcessRawFile(bool save)
 		length = ReadFromFile(fn, 0, length, buff);
 
 		if (length > 0) {
-			bool oldRemap;
+			bool oldRemap = false;
 
 			if (model == CM_C2717) {
 				oldRemap = memory->C2717Remapped;
@@ -1913,8 +1913,8 @@ bool TEmulator::ProcessRawFile(bool save)
 			ret = false;
 	}
 	else {
-		int oldPage;
-		bool oldRemap;
+		int oldPage = -1;
+		bool oldRemap = false;
 		buff = new BYTE[length];
 
 		if (model == CM_V2A || model == CM_V3 || model == CM_C2717) {

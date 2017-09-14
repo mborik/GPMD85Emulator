@@ -70,22 +70,23 @@ UserInterface::UserInterface()
 	FILE *f = fopen(LocateResource("base.fnt", false), "rb");
 	FNT_HEADER *fnt = new FNT_HEADER;
 
-	fread(fnt, sizeof(FNT_HEADER), 1, f);
-	if (fnt->version == 0x300 && fnt->type == 0
-	 && fnt->italic == 0 && fnt->underline == 0
-	 && fnt->strikeout == 0 && fnt->weight == 400
-	 && fnt->pitchfamily == 0x30 && fnt->width <= 8
-	 && fnt->avgwidth == fnt->width && fnt->maxwidth == fnt->width
-	 && fnt->firstchar == 32 && fnt->flags == 0x11 && fnt->coloroffset == 0) {
+	if (fread(fnt, sizeof(FNT_HEADER), 1, f) == 1
+		&& fnt->version == 0x300 && fnt->type == 0
+		&& fnt->italic == 0 && fnt->underline == 0
+		&& fnt->strikeout == 0 && fnt->weight == 400
+		&& fnt->pitchfamily == 0x30 && fnt->width <= 8
+		&& fnt->avgwidth == fnt->width && fnt->maxwidth == fnt->width
+		&& fnt->firstchar == 32 && fnt->flags == 0x11 && fnt->coloroffset == 0) {
 
-		int len = fnt->height * ((fnt->lastchar - fnt->firstchar) + 1);
+		size_t len = fnt->height * ((fnt->lastchar - fnt->firstchar) + 1);
 		fontData = new BYTE[len];
 		fontWidth = fnt->width;
 		fontHeight = fnt->height;
 		fontLineHeight = fnt->height + 1;
 
 		fseek(f, fnt->bitsoffset, SEEK_SET);
-		fread(fontData, sizeof(BYTE), len, f);
+		if (fread(fontData, sizeof(BYTE), len, f) < len)
+			warning("GUI", "Possibly corrupted font resource file");
 	}
 
 	delete fnt;

@@ -242,20 +242,23 @@ bool SoundDriver::CloseWaveFile()
 
 	fseek(hFile, 0L, SEEK_END);
 	DWORD flen = ftell(hFile);
+	size_t rr, wr = 0, hlen = sizeof(WAVE_HEADER);
 
 	fseek(hFile, 0L, SEEK_SET);
-	fread(&head, sizeof(WAVE_HEADER), 1, hFile);
+	rr = fread(&head, hlen, 1, hFile);
 
-	head.totLength = flen - 8;
-	head.dataLength = flen - sizeof(WAVE_HEADER);
+	if (rr == 1) {
+		head.totLength = flen - 8;
+		head.dataLength = flen - hlen;
 
-	fseek(hFile, 0L, SEEK_SET);
-	fwrite(&head, sizeof(WAVE_HEADER), 1, hFile);
+		fseek(hFile, 0L, SEEK_SET);
+		wr = fwrite(&head, hlen, 1, hFile);
+	}
 
 	fclose(hFile);
 	hFile = NULL;
 
-	return true;
+	return (rr == wr);
 }
 //---------------------------------------------------------------------------
 #if FADEOUT_ON
