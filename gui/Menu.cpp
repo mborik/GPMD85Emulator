@@ -55,7 +55,7 @@ void UserInterface::drawMenu(void *data)
 			}
 
 			k += (strlen(wrk) * fontWidth) +
-				(menuStack[menuStackLevel].type != GUI_TYPE_TAPE_POPUP) ? GUI_CONST_HOTKEYCHAR : 0;
+				((menuStack[menuStackLevel].type != GUI_TYPE_TAPE_POPUP) ? GUI_CONST_HOTKEYCHAR : 0);
 		}
 
 		if (ptr->detail) {
@@ -134,7 +134,8 @@ void UserInterface::drawMenuItems()
 			mx += r->w - 12;
 			if ((wrk = ptr->hotkey) != NULL) {
 				BYTE c = (ptr->enabled) ? GUI_COLOR_HOTKEY : GUI_COLOR_DISABLED;
-				char hkchr = (menuStack[menuStackLevel].type != GUI_TYPE_TAPE_POPUP) ? SCHR_HOTKEY : ' ';
+				char hkchr = (menuStack[menuStackLevel].type != GUI_TYPE_TAPE_POPUP)
+						? (char) SCHR_HOTKEY : ' ';
 
 				mx -= GUI_CONST_HOTKEYCHAR + (strlen(wrk) * 6);
 				if (wrk[0] == '^') {

@@ -1,0 +1,65 @@
+# hidden files & backups
+*~
+.*
+!.gitignore
+
+# prerequisites
+.deps
+*.d
+
+# compiled object files
+*.slo
+*.lo
+*.o
+*.obj
+*.ko
+*.elf
+
+# precompiled headers
+*.gch
+*.pch
+
+# compiled dynamic libraries
+*.so
+*.so.*
+*.dylib
+*.dll
+
+# compiled static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# executable
+/GPMD85emu
+
+# autoconf
+/autom4te.cache
+/autoscan.log
+/autoscan-*.log
+/aclocal.m4
+/compile
+/config.h
+/config.guess
+/config.log
+/config.status
+/config.sub
+/configure
+/configure.scan
+/depcomp
+/install-sh
+/missing
+/stamp-*
+
+# automake
+Makefile
+Makefile.in
+/ar-lib
+/mdate-sh
+/py-compile
+/test-driver
+/ylwrap
+
+# libtool
+/ltmain.sh

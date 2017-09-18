@@ -1,15 +1,26 @@
-AUTHORS:
+## AUTHORS
 
-~ rombor [Roman Borik] <pmd85emu@gmail.com>
++ rombor [Roman Borik] <pmd85emu@gmail.com>
   - author of original Windows version, who programmed emulation of i8080 CPU,
-    all PMD 85 co-processors and support chips, but he is not affiliated with
-    this *nix port in any way.
+    all PMD 85 co-processors and support chips
+    (but he is not affiliated with this *nix port in any way).
 
-~ mborik [Martin Borik] <mborik@users.sourceforge.net>
-  - co-author of original Windows version and lead-programmer of this GNU GPL
++ mborik [Martin Borik] <mborik@users.sourceforge.net>
+  - co-author of original Windows version and lead-developer of this GNU GPL
     *nix port, who adapt original emulation code to GCC standards, completelly
-    rewrite generation of image and sound to SDL and programmed new menu.
+    rewrite image and sound rendering to SDL and make a new on-screen GUI.
 
-~ ub880d <ub880d@users.sourceforge.net>
-  - support developer, lead-tester, bug-finder...
++ ub880d <ub880d@users.sourceforge.net>
+  - support developer, maintainer, test-lead.
 
+
+### SPECIAL THANKS FOR THE SUPPORT:
+
++ ikon/SinDiKaT
+  - translation of rombor's comments in classes from slovak language.
+
++ mikezt/zeroteam
+  - quick-search in file-selector and beta-testing.
+
++ Staon
+  - fixing compatibility bug in file-selector's ScanDir.

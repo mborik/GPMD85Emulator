@@ -69,6 +69,9 @@
 #    include <ndir.h>
 #  endif
 #endif
+#ifdef HAVE_SYS_SYSLIMITS_H
+#  include <sys/syslimits.h>
+#endif
 #ifdef HAVE_STDBOOL_H
 #  include <stdbool.h>
 #else

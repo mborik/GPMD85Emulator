@@ -80,11 +80,6 @@ class TEmulator : public sigslot::has_slots<>
 		bool inmenu;
 
 		int cpuUsage;
-		int ledState;
-		int diskIcon;
-		int tapeIcon;
-		int diskHold;
-
 		ChipCpu8080 *cpu;
 		ChipMemory *memory;
 		ScreenPMD85 *video;

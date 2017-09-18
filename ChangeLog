@@ -1,3 +1,9 @@
+2017-09-18 [mborik] warnings suppression (phase 2), project update, repo cleanup and fixing the build for MacOS
+2017-09-14 [mborik] warnings suppression (phase 1)
+2017-04-19 [ub880d] bugfix in screen rendering and fixing the build for new gcc (narrowing conversions)
+2016-07-25 [ub880d] fixed missing callback on menu entry "OK" of "SAVE MEMORY"
+2015-05-24 [ub880d] added warning about wrong file extension for ROM modules
+2015-04-19 [ub880d] fixed labels/shortcuts in menu 'FILE'
 2014-02-24 [Staon]  project tracker ticket #2: ScanDir compatibility bug
 2012-06-19 [mborik] fixed crashes during OpenGL initialization with reinterpret_cast
 2012-06-18 [mborik] prerelease bugfixes and mods
@@ -5,7 +11,7 @@
 2012-06-07 [mborik] implemented read/write memory block; fixed some time-critical bugs in dialogues
 2012-06-05 [mborik] imported rombor's improvements in emulation of 8253, ifTimer and PMD32; removed ifMusica occurrences
 2012-06-04 [mborik] implemented emulation speed change
-2012-06-01 [ikon/SinDiKat] comment translation sk>en (1st phase)
+2012-06-01 [ikon]   comment translation sk>en (1st phase)
 2012-05-31 [mborik] fullscreen toggle; some minor fixes
 2012-05-30 [mborik] reworked status bar icons loading and some palette problems solved
 2012-05-26 [mborik] bugfix and fine-tuning of OpenGL screen rendering

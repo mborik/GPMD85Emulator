@@ -1,12 +1,12 @@
 # GPMD85emu autoconf
-# mborik, 10/2011-04/2014
+# mborik, 10/2011-04/2014, 09/2017
 
 AC_PREREQ([2.59])
-AC_INIT([GPMD85emulator], [0.9.1402], [mborik@users.sourceforge.net],
+AC_INIT([GPMD85emulator], [0.9.1709], [mborik@users.sourceforge.net],
         [gpmd85emu], [http://gpmd85emulator.sourceforge.net/])
 AC_CONFIG_SRCDIR([GPMD85emu.cpp])
 
-AM_INIT_AUTOMAKE()
+AM_INIT_AUTOMAKE([foreign])
 AC_CONFIG_HEADERS([config.h])
 AC_DEFINE_UNQUOTED([PACKAGE_YEAR], "`date +%Y`",
                    [Define to the build year of this package.])
@@ -15,6 +15,15 @@ AC_DEFINE_UNQUOTED([PACKAGE_YEAR], "`date +%Y`",
 AC_PROG_RANLIB
 AC_PROG_CXX
 AC_PROG_CC
+
+# Add an additional flag if using CLANG
+AC_MSG_CHECKING([if compiling with clang])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([], [[
+	#ifndef __clang__
+		not clang
+	#endif
+]])], [clang=yes], [clang=no])
+AC_MSG_RESULT([$clang])
 
 # Check if we have enabled debug mode:
 AC_MSG_CHECKING([gpmd85emu: Debug mode])
@@ -35,7 +44,9 @@ if test "x$debug" = "xyes"; then
 else
 	CXXFLAGS="-Os -Wall"
 	CFLAGS="-Os -Wall"
-	LDFLAGS="-s"
+	if test "x$clang" = "xno"; then
+		LDFLAGS="-s"
+	fi
 	DEBUG=
 fi
 AC_MSG_RESULT([${debug}])
@@ -111,7 +122,11 @@ AC_SUBST(CFLAGS)
 AC_SUBST(DEBUG)
 
 # Checks for header files:
-AC_CHECK_HEADERS([inttypes.h memory.h stddef.h stdint.h stdlib.h string.h strings.h unistd.h])
+AC_CHECK_HEADERS([\
+	inttypes.h memory.h string.h strings.h \
+	stddef.h stdint.h stdlib.h unistd.h \
+	sys/syslimits.h \
+])
 
 AC_HEADER_STAT
 AC_HEADER_DIRENT

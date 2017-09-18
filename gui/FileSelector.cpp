@@ -95,7 +95,7 @@ void UserInterface::drawFileSelector(bool update)
 		while (strlen(ptr) > (DWORD) (maxCharsOnScreen - 1))
 			ptr++;
 		c = *(--ptr);
-		*ptr = SCHR_BROWSE;
+		*ptr = (char) SCHR_BROWSE;
 	}
 
 	printText(defaultSurface, cMenu_rect->x + GUI_CONST_BORDER,
@@ -158,14 +158,14 @@ void UserInterface::drawFileSelectorItems()
 		}
 		else {
 			c = GUI_COLOR_HOTKEY;
-			ptr[1] = SCHR_BROWSE;
+			ptr[1] = (char) SCHR_BROWSE;
 			ptr[2] = '\0';
 		}
 
 		if (strlen(ptr) > (DWORD) itemCharWidth) {
 			while (strlen(ptr) > (DWORD) (itemCharWidth - 1))
 				ptr[strlen(ptr) - 1] = '\0';
-			ptr[strlen(ptr)] = SCHR_BROWSE;
+			ptr[strlen(ptr)] = (char) SCHR_BROWSE;
 		}
 
 		printText(defaultSurface, x + GUI_CONST_HOTKEYCHAR, y + 2, c, ptr + 1);

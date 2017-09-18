@@ -115,10 +115,7 @@ private:
 	bool halt;               // processor halted
 	bool inta;               // has been accepted interupt
 
-	// semafory
 	bool isexe;              // instruction is executing?
-	bool isint;              // instruction is executing after interupt?
-
 	int TCycles;             // T-Cycles counter
 	int TCyclesTotal;        // T-Cycles counter (total)
 	int lastInstrTCycles;    // T-Cycles from last instruction
