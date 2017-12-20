@@ -903,7 +903,7 @@ int Pmd32::InsertDisk(int drive, char *file, bool WP)
 	drives[drive].filePath = new char[strlen(file) + 1];
 	strcpy(drives[drive].filePath, file);
 
-	drives[drive].handle = fopen(file, "rb");
+	drives[drive].handle = fopen(file, "rb+");
 	drives[drive].wp = WP;
 
 	if (drives[drive].handle == NULL)
