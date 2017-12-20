@@ -357,8 +357,8 @@ TSettings::TSettings()
 			Screen->colorProfile = CP_MONO;
 		else if (strcmp(m->value, "color") == 0)
 			Screen->colorProfile = CP_COLOR;
-		else if (strcmp(m->value, "multicolor") == 0)
-			Screen->colorProfile = CP_MULTICOLOR;
+		else if (strcmp(m->value, "colorace") == 0)
+			Screen->colorProfile = CP_COLORACE;
 
 		m->type = LT_SCR_COL;
 		m->ptr = (void *) &(Screen->colorProfile);
@@ -904,8 +904,8 @@ void TSettings::storeSettings()
 						case CP_COLOR:
 							buf = (char *) "color";
 							break;
-						case CP_MULTICOLOR:
-							buf = (char *) "multicolor";
+						case CP_COLORACE:
+							buf = (char *) "colorace";
 							break;
 						default:
 							buf = (char *) "standard";

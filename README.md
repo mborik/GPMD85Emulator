@@ -18,7 +18,7 @@
 - **ikon/SinDiKat**
   - translation of comments in classes from slovak language
 - **mikezt/zeroteam**
-  - quick-search in file-selector and beta-testing
+  - quick-search in file-selector, bugfixes and beta-testing
 - **Staon**
   - fixing compatibility bug in file-selector's ScanDir
 
@@ -43,4 +43,4 @@
   with optional parameter `./configure --with-opengl`.
 - to enable trace informations use `./configure --enable-trace`.
 
-## 
+##

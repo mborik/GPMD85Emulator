@@ -166,7 +166,7 @@ void ScreenPMD85::SetColorProfile(TColorProfile ColProf)
 			BlinkingEnabled = false;
 			break;
 
-		case CP_MULTICOLOR:
+		case CP_COLORACE:
 			PAttr[0] = BLACK;
 			PAttr[1] = RED;
 			PAttr[2] = BLUE;
@@ -348,10 +348,10 @@ void ScreenPMD85::FillBuffer(BYTE *videoRam)
 	if (DisplayModeChanging || videoRam == NULL)
 		return;
 
-	bool multicol = (ColorProfile == CP_MULTICOLOR);
-	WORD h = bufferHeight, w = bufferWidth;
+	bool colorace = (ColorProfile == CP_COLORACE);
+	int i, h = bufferHeight, w = bufferWidth;
 	BYTE *dst = bufferScreen, *p;
-	BYTE a[4], b, c, d, i;
+	BYTE a[4], b, c, d, e;
 
 #ifdef OPENGL
 	dst = (BYTE *) BlitSurface->pixels;
@@ -360,16 +360,19 @@ void ScreenPMD85::FillBuffer(BYTE *videoRam)
 
 	a[0] = PAttr[0];
 	a[1] = PAttr[1];
-	a[2] = BlinkingEnabled ? ((BlinkState) ? PAttr[2] : 0) : PAttr[2];
-	a[3] = BlinkingEnabled ? ((BlinkState) ? PAttr[3] : 0) : PAttr[3];
+	a[2] = (BlinkingEnabled & BlinkState) ? PAttr[2] : 0;
+	a[3] = (BlinkingEnabled & BlinkState) ? PAttr[3] : 0;
 
 	while (h--) {
 		p = dst;
-		for (i = 0; i < 48; ++i) {
-			d = ((b = *(videoRam + i)) & 0xC0) >> 6;
-			if (multicol) {
-				c = (*(videoRam + i + ((((h % 2) << 1) - 1) * 64)) & 0xC0) >> 6;
-				c = PAttr[(d | c | ((d * c) ? 0 : 4))];
+		for (i = 0; i < 48; i++) {
+			b = videoRam[i];
+			d = (b & 0xC0) >> 6;
+
+			if (colorace) {
+				e = videoRam[i + ((h & 1) ? 64 : -64)];
+				c = (e & 0xC0) >> 6;
+				c = PAttr[d | c | ((d & c) ? 0 : 4)];
 			}
 			else if (Width384mode)
 				c = a[0];

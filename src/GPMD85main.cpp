@@ -544,8 +544,8 @@ bool TEmulator::TestHotkeys()
 
 			case SDLK_c:	// COLOR MODES
 				if (video->GetColorProfile() == CP_COLOR) {
-					video->SetColorProfile(CP_MULTICOLOR);
-					Settings->Screen->colorProfile = CP_MULTICOLOR;
+					video->SetColorProfile(CP_COLORACE);
+					Settings->Screen->colorProfile = CP_COLORACE;
 				}
 				else {
 					video->SetColorProfile(CP_COLOR);

@@ -200,7 +200,7 @@ static GUI_MENU_ENTRY gui_view_cmode_menu[] = {
 	{ MI_RADIO, "\aMONOCHROMATIC", "M", SDLK_m, NULL, ccb_view_cmod, dcb_view_cmod_state, true, false, CP_MONO },
 	{ MI_RADIO, "\aSTANDARD", "M", SDLK_s, NULL, ccb_view_cmod, dcb_view_cmod_state, true, false, CP_STANDARD },
 	{ MI_RADIO, "\aCOLOR", "C", SDLK_c, NULL, ccb_view_cmod, dcb_view_cmod_state, true, false, CP_COLOR },
-	{ MI_RADIO, "COLOR\aACE\220", "C", SDLK_a, NULL, ccb_view_cmod, dcb_view_cmod_state, true, false, CP_MULTICOLOR },
+	{ MI_RADIO, "COLOR\aACE\220", "C", SDLK_a, NULL, ccb_view_cmod, dcb_view_cmod_state, true, false, CP_COLORACE },
 	{ MENU_END }
 };
 static GUI_MENU_ENTRY gui_view_cpal_menu[] = {

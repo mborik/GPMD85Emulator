@@ -1,3 +1,5 @@
+2017-12-21 [mborik] refactoring of ScreenPMD85::FillBuffer and keyword multicolor to proper ColorAce
+2017-12-20 [mikezt] fixed disk image saving problems
 2017-09-18 [mborik] warnings suppression (phase 2), project update, repo cleanup and fixing the build for MacOS
 2017-09-14 [mborik] warnings suppression (phase 1)
 2017-04-19 [ub880d] bugfix in screen rendering and fixing the build for new gcc (narrowing conversions)
