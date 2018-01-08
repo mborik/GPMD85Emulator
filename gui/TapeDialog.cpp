@@ -177,11 +177,11 @@ void UserInterface::keyhandlerTapeDialog(WORD key)
 	bool change = false;
 
 	switch (key) {
-		case SDLK_F1 | KM_ALT:
-			key = SDLK_MENU;
+		case SDL_SCANCODE_F1 | KM_ALT:
+			key = SDL_SCANCODE_MENU;
 			break;
-		case SDLK_F4 | KM_ALT:
-			key = SDLK_POWER;
+		case SDL_SCANCODE_F4 | KM_ALT:
+			key = SDL_SCANCODE_POWER;
 			break;
 		default:
 			key &= (KM_ALT ^ 0xFFFF);
@@ -189,32 +189,32 @@ void UserInterface::keyhandlerTapeDialog(WORD key)
 	}
 
 	switch (key) {
-		case SDLK_POWER:
+		case SDL_SCANCODE_POWER:
 			Emulator->ActionExit();
 			menuCloseAll();
 			needRelease = true;
 			return;
 
-		case SDLK_ESCAPE:
+		case SDL_SCANCODE_ESCAPE:
 			menuClose();
 			needRelease = true;
 			return;
 
-		case SDLK_f:
+		case SDL_SCANCODE_F:
 			prevLeftMargin = cMenu_leftMargin;
 			Settings->TapeBrowser->flash = !Settings->TapeBrowser->flash;
 			drawTapeDialog(false);
 			change = true;
 			break;
 
-		case SDLK_o:
+		case SDL_SCANCODE_O:
 			prevLeftMargin = cMenu_leftMargin;
 			Settings->TapeBrowser->monitoring = !Settings->TapeBrowser->monitoring;
 			drawTapeDialog(false);
 			change = true;
 			break;
 
-		case SDLK_a:
+		case SDL_SCANCODE_A:
 			prevLeftMargin = cMenu_leftMargin;
 			if (Settings->TapeBrowser->autoStop == AS_OFF)
 				Settings->TapeBrowser->autoStop = AS_NEXTHEAD;
@@ -226,14 +226,14 @@ void UserInterface::keyhandlerTapeDialog(WORD key)
 			change = true;
 			break;
 
-		case SDLK_h:
+		case SDL_SCANCODE_H:
 			prevLeftMargin = cMenu_leftMargin;
 			Settings->TapeBrowser->hex = !Settings->TapeBrowser->hex;
 			drawTapeDialog();
 			change = true;
 			break;
 
-		case SDLK_p:
+		case SDL_SCANCODE_P:
 			needRelease = true;
 			if (!cMenu_count)
 				break;
@@ -250,7 +250,7 @@ void UserInterface::keyhandlerTapeDialog(WORD key)
 			}
 			break;
 
-		case SDLK_END | KM_SHIFT:
+		case SDL_SCANCODE_END | KM_SHIFT:
 			needRelease = true;
 			if (!cMenu_count)
 				break;
@@ -260,7 +260,7 @@ void UserInterface::keyhandlerTapeDialog(WORD key)
 			}
 			break;
 
-		case SDLK_SPACE:
+		case SDL_SCANCODE_SPACE:
 			needRelease = true;
 			if (!cMenu_count)
 				break;
@@ -268,7 +268,7 @@ void UserInterface::keyhandlerTapeDialog(WORD key)
 			change = true;
 			break;
 
-		case SDLK_INSERT:
+		case SDL_SCANCODE_INSERT:
 			if (!cMenu_count)
 				break;
 			prevLeftMargin = cMenu_leftMargin;
@@ -279,7 +279,7 @@ void UserInterface::keyhandlerTapeDialog(WORD key)
 			change = true;
 			break;
 
-		case SDLK_DELETE | KM_SHIFT:
+		case SDL_SCANCODE_DELETE | KM_SHIFT:
 			needRelease = true;
 			if (!cMenu_count)
 				break;
@@ -291,9 +291,9 @@ void UserInterface::keyhandlerTapeDialog(WORD key)
 			change = true;
 			break;
 
-		case SDLK_UP   | KM_SHIFT:
+		case SDL_SCANCODE_UP   | KM_SHIFT:
 			change = true;
-		case SDLK_DOWN | KM_SHIFT:
+		case SDL_SCANCODE_DOWN | KM_SHIFT:
 			if (!cMenu_count)
 				break;
 			prevLeftMargin = cMenu_leftMargin;
@@ -304,15 +304,15 @@ void UserInterface::keyhandlerTapeDialog(WORD key)
 			change = true;
 			break;
 
-		case SDLK_MENU:
-		case SDLK_RETURN:
-		case SDLK_KP_ENTER:
+		case SDL_SCANCODE_MENU:
+		case SDL_SCANCODE_RETURN:
+		case SDL_SCANCODE_KP_ENTER:
 			needRelease = true;
 			menuOpen(GUI_TYPE_TAPE_POPUP);
 			break;
 
-		case SDLK_LEFT:
-		case SDLK_PAGEUP:
+		case SDL_SCANCODE_LEFT:
+		case SDL_SCANCODE_PAGEUP:
 			if (i > 0) {
 				i -= GUI_CONST_TAPE_ITEMS;
 				if (i < 0)
@@ -321,8 +321,8 @@ void UserInterface::keyhandlerTapeDialog(WORD key)
 			}
 			break;
 
-		case SDLK_RIGHT:
-		case SDLK_PAGEDOWN:
+		case SDL_SCANCODE_RIGHT:
+		case SDL_SCANCODE_PAGEDOWN:
 			if (i < (cMenu_count - 1)) {
 				i += GUI_CONST_TAPE_ITEMS;
 				if (i >= cMenu_count)
@@ -331,27 +331,27 @@ void UserInterface::keyhandlerTapeDialog(WORD key)
 			}
 			break;
 
-		case SDLK_UP:
+		case SDL_SCANCODE_UP:
 			if (i > 0) {
 				i--;
 				change = true;
 			}
 			break;
 
-		case SDLK_DOWN:
+		case SDL_SCANCODE_DOWN:
 			if (i < (cMenu_count - 1)) {
 				i++;
 				change = true;
 			}
 			break;
 
-		case SDLK_HOME:
+		case SDL_SCANCODE_HOME:
 			i = 0;
 			needRelease = true;
 			change = true;
 			break;
 
-		case SDLK_END:
+		case SDL_SCANCODE_END:
 			i = (cMenu_count - 1);
 			needRelease = true;
 			change = true;

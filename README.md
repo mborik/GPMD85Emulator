@@ -4,7 +4,7 @@
 
 > Notice that GPMD85Emulator is not aimed to build and run on Windows,
 > because there is our much better and feature-rich PMD 85 Emulator
-> specifically for this platform: https://pmd85.borik.net/wiki/Emulator
+> specifically for this platform (https://pmd85.borik.net/wiki/Emulator)
 
 ## AUTHORS:
 - **mborik** _[Martin Bórik]_
@@ -23,10 +23,10 @@
   - fixing compatibility bug in file-selector's ScanDir
 
 ## REQUIRED LIBRARIES:
-- **SDL - Simple DirectMedia Library** _(v1.2.x)_
+- **SDL - Simple DirectMedia Library** _(v2.0.x)_
 
 ## HOTKEYS:
-- function `[f]` keys are any of Alt|Win|Mac|Meta keys
+- function `[f]` keys are any of Alt, Win, Mac or Meta keys
 - main menu appear with `[f]+F1` or with the "menu key"
 - for start/stop of tape emulator use `[f]+P` hotkey
 
@@ -39,8 +39,4 @@
 - _(optional)_ install to the system dirs with `sudo make install`
 
 ## CONFIGURATION PARAMETERS:
-- to enable **OpenGL** screen rendering you will need to run configuration
-  with optional parameter `./configure --with-opengl`.
 - to enable trace informations use `./configure --enable-trace`.
-
-##

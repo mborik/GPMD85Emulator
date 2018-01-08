@@ -1,6 +1,6 @@
 /*	GPMD85main.cpp: Core of emulation and interface.
 	Copyright (c) 2006-2010 Roman Borik <pmd85emu@gmail.com>
-	Copyright (c) 2011-2012 Martin Borik <mborik@users.sourceforge.net>
+	Copyright (c) 2011-2018 Martin Borik <mborik@users.sourceforge.net>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -36,8 +36,13 @@ TEmulator::TEmulator()
 	romModule = NULL;
 	raomModule = NULL;
 	sound = NULL;
-	keyBuffer = NULL;
 	cpuUsage = 0;
+
+	SDL_zero(exposeEvent);
+	exposeEvent.type = SDL_WINDOWEVENT;
+	exposeEvent.window.type = SDL_WINDOWEVENT;
+	exposeEvent.window.event = SDL_WINDOWEVENT_EXPOSED;
+	exposeEvent.window.windowID = gvi.windowID;
 
 	model = CM_UNKNOWN;
 	romChanged = false;
@@ -73,7 +78,6 @@ TEmulator::~TEmulator()
 		delete memory;
 	memory = NULL;
 
-	keyBuffer = NULL;
 	if (systemPIO)
 		delete systemPIO;
 	systemPIO = NULL;
@@ -224,7 +228,6 @@ void TEmulator::ProcessSettings(BYTE filter)
 //-----------------------------------------------------------------------------
 void TEmulator::BaseTimerCallback()
 {
-	static SDL_Event e = { SDL_VIDEOEXPOSE };
 	static DWORD blinkCounter = 0;
 	static DWORD lastTick = 0;
 	static DWORD nextTick = SDL_GetTicks() + MEASURE_PERIOD;
@@ -283,7 +286,7 @@ void TEmulator::BaseTimerCallback()
 		frames = 0;
 	}
 
-	SDL_PushEvent(&e);
+	SDL_PushEvent(&exposeEvent);
 
 	lastTick = thisTime;
 	frames++;
@@ -356,30 +359,22 @@ bool TEmulator::TestHotkeys()
 {
 	WORD i, key = 0;
 
-	// get one pressed key from higher part of keymap buffer
-	for (i = SDLK_LAST; i > SDLK_COMPOSE; i--)
-		if (keyBuffer[i])
-			key = i;
-
 	// add shift/ctrl/alt flag
-	for (; i >= SDLK_NUMLOCK; i--) {
+	for (i = 256; i >= SDL_SCANCODE_LCTRL; i--) {
 		if (keyBuffer[i]) {
 			switch (i) {
-				case SDLK_LSHIFT:
-				case SDLK_RSHIFT:
+				case SDL_SCANCODE_LSHIFT:
+				case SDL_SCANCODE_RSHIFT:
 					key |= KM_SHIFT;
 					break;
-				case SDLK_LCTRL:
-				case SDLK_RCTRL:
+				case SDL_SCANCODE_LCTRL:
+				case SDL_SCANCODE_RCTRL:
 					key |= KM_CTRL;
 					break;
-				case SDLK_LALT:
-				case SDLK_RALT:
-				case SDLK_LMETA:
-				case SDLK_RMETA:
-				case SDLK_LSUPER:
-				case SDLK_RSUPER:
-				case SDLK_MODE:
+				case SDL_SCANCODE_LALT:
+				case SDL_SCANCODE_RALT:
+				case SDL_SCANCODE_LGUI:
+				case SDL_SCANCODE_RGUI:
 					key |= KM_ALT;
 					break;
 			}
@@ -387,8 +382,8 @@ bool TEmulator::TestHotkeys()
 	}
 
 	// get one pressed key from main part of keymap buffer
-	for (; i > SDLK_FIRST; i--) {
-		if ((i <= SDLK_DELETE || i >= SDLK_KP0) && keyBuffer[i]) {
+	for (; i > 0; i--) {
+		if (keyBuffer[i]) {
 			key = (key & 0xFE00) | i;
 			break;
 		}
@@ -396,20 +391,20 @@ bool TEmulator::TestHotkeys()
 
 	// special key replacements
 	switch (key) {
-		case SDLK_BREAK:
-			key = SDLK_ESCAPE;
+		case SDL_SCANCODE_CANCEL:
+			key = SDL_SCANCODE_ESCAPE;
 			break;
 
-		case SDLK_MENU:
-			key = KM_ALT | SDLK_F1;
+		case SDL_SCANCODE_MENU:
+			key = KM_ALT | SDL_SCANCODE_F1;
 			break;
 
-		case SDLK_PAUSE:
-			key = KM_ALT | SDLK_F3;
+		case SDL_SCANCODE_PAUSE:
+			key = KM_ALT | SDL_SCANCODE_F3;
 			break;
 
-		case SDLK_POWER:
-			key = KM_ALT | SDLK_F4;
+		case SDL_SCANCODE_POWER:
+			key = KM_ALT | SDL_SCANCODE_F4;
 			break;
 	}
 
@@ -420,17 +415,16 @@ bool TEmulator::TestHotkeys()
 
 		// special flag that close all menu windows
 		if (GUI->uiSetChanges & PS_CLOSEALL)
-			key = SDLK_ESCAPE;
+			key = SDL_SCANCODE_ESCAPE;
 
 		// if we leave menu and uiSetChanges is set, apply settings change
-		if (!GUI->isInMenu() && key == SDLK_ESCAPE) {
+		if (!GUI->isInMenu() && key == SDL_SCANCODE_ESCAPE) {
 			if (GUI->uiSetChanges) {
 				ProcessSettings(GUI->uiSetChanges);
 				GUI->uiSetChanges = 0;
 			}
 
 			video->FillBuffer(videoRam);
-			SDL_EnableKeyRepeat(0, 0);
 
 			// menu leaving callback was executed
 			GUI->uiCallback();
@@ -456,82 +450,73 @@ bool TEmulator::TestHotkeys()
 		i = key & 0x01FF;
 
 		switch (i) {
-			case SDLK_1:	// SCREEN SIZE 1x1
-				if (gvi.wm)
-					ActionSizeChange(1);
+			case SDL_SCANCODE_1:	// SCREEN SIZE 1x1
+				ActionSizeChange(1);
 				break;
 
-			case SDLK_2:	// SCREEN SIZE 2x2
-				if (gvi.wm)
-					ActionSizeChange(2);
+			case SDL_SCANCODE_2:	// SCREEN SIZE 2x2
+				ActionSizeChange(2);
 				break;
 
-			case SDLK_3:	// SCREEN SIZE 3x3
-				if (gvi.wm)
-					ActionSizeChange(3);
+			case SDL_SCANCODE_3:	// SCREEN SIZE 3x3
+				ActionSizeChange(3);
 				break;
 
-			case SDLK_4:	// SCREEN SIZE 4x4
-				if (gvi.wm)
-					ActionSizeChange(4);
+			case SDL_SCANCODE_4:	// SCREEN SIZE 4x4
+				ActionSizeChange(4);
 				break;
 
-#ifndef OPENGL
-			case SDLK_5:	// SCALER: LCD EMULATION
+			case SDL_SCANCODE_5:	// SCALER: LCD EMULATION
 				video->SetLcdMode(true);
 				video->SetHalfPassMode(HP_OFF);
 				Settings->Screen->lcdMode = true;
 				Settings->Screen->halfPass = HP_OFF;
 				break;
 
-			case SDLK_6:	// SCALER: HALFPASS 0%
+			case SDL_SCANCODE_6:	// SCALER: HALFPASS 0%
 				video->SetLcdMode(false);
 				video->SetHalfPassMode(HP_0);
 				Settings->Screen->lcdMode = false;
 				Settings->Screen->halfPass = HP_0;
 				break;
 
-			case SDLK_7:	// SCALER: HALFPASS 25%
+			case SDL_SCANCODE_7:	// SCALER: HALFPASS 25%
 				video->SetLcdMode(false);
 				video->SetHalfPassMode(HP_25);
 				Settings->Screen->lcdMode = false;
 				Settings->Screen->halfPass = HP_25;
 				break;
 
-			case SDLK_8:	// SCALER: HALFPASS 50%
+			case SDL_SCANCODE_8:	// SCALER: HALFPASS 50%
 				video->SetLcdMode(false);
 				video->SetHalfPassMode(HP_50);
 				Settings->Screen->lcdMode = false;
 				Settings->Screen->halfPass = HP_50;
 				break;
 
-			case SDLK_9:	// SCALER: HALFPASS 75%
+			case SDL_SCANCODE_9:	// SCALER: HALFPASS 75%
 				video->SetLcdMode(false);
 				video->SetHalfPassMode(HP_75);
 				Settings->Screen->lcdMode = false;
 				Settings->Screen->halfPass = HP_75;
 				break;
 
-			case SDLK_0:	// SCALER: PIXEL PRECISE
+			case SDL_SCANCODE_0:	// SCALER: PIXEL PRECISE
 				video->SetLcdMode(false);
 				video->SetHalfPassMode(HP_OFF);
 				Settings->Screen->lcdMode = false;
 				Settings->Screen->halfPass = HP_OFF;
 				break;
-#endif
 
-			case SDLK_f:	// FULL-SCREEN
-			case SDLK_RETURN:
-				if (!gvi.wm || !(gvi.w && gvi.h))
-					break;
-
+			case SDL_SCANCODE_F:	// FULL-SCREEN
+			case SDL_SCANCODE_RETURN:
 				if (Settings->Screen->size == DM_FULLSCREEN)
 					ActionSizeChange((int) Settings->Screen->realsize);
 				else
 					ActionSizeChange(0);
 				return true;
 
-			case SDLK_m:	// MONO/STANDARD MODES
+			case SDL_SCANCODE_M:	// MONO/STANDARD MODES
 				if (video->GetColorProfile() == CP_STANDARD) {
 					video->SetColorProfile(CP_MONO);
 					Settings->Screen->colorProfile = CP_MONO;
@@ -542,7 +527,7 @@ bool TEmulator::TestHotkeys()
 				}
 				break;
 
-			case SDLK_c:	// COLOR MODES
+			case SDL_SCANCODE_C:	// COLOR MODES
 				if (video->GetColorProfile() == CP_COLOR) {
 					video->SetColorProfile(CP_COLORACE);
 					Settings->Screen->colorProfile = CP_COLORACE;
@@ -553,61 +538,61 @@ bool TEmulator::TestHotkeys()
 				}
 				break;
 
-			case SDLK_p:	// PLAY/STOP TAPE
+			case SDL_SCANCODE_P:	// PLAY/STOP TAPE
 				ActionTapePlayStop();
 				break;
 
-			case SDLK_t:	// TAPE BROWSER
+			case SDL_SCANCODE_T:	// TAPE BROWSER
 				ActionTapeBrowser();
 				break;
 
-			case SDLK_F1:	// MAIN MENU
+			case SDL_SCANCODE_F1:	// MAIN MENU
 				ActionPlayPause(false, false);
 				GUI->menuOpen(UserInterface::GUI_TYPE_MENU);
 				break;
 
-			case SDLK_F2:	// LOAD/SAVE TAPE
+			case SDL_SCANCODE_F2:	// LOAD/SAVE TAPE
 				if (key & KM_SHIFT)
 					ActionTapeSave();
 				else
 					ActionTapeLoad();
 				break;
 
-			case SDLK_F3:	// PLAY/PAUSE
+			case SDL_SCANCODE_F3:	// PLAY/PAUSE
 				if (key & KM_SHIFT)
 					ActionSpeedChange();
 				else
 					ActionPlayPause();
 				break;
 
-			case SDLK_F4:	// EXIT
+			case SDL_SCANCODE_F4:	// EXIT
 				ActionExit();
 				break;
 
-			case SDLK_F5:	// RESET
+			case SDL_SCANCODE_F5:	// RESET
 				if (key & KM_SHIFT)
 					ActionHardReset();
 				else
 					ActionReset();
 				break;
 
-			case SDLK_F6:	// DISK IMAGES
+			case SDL_SCANCODE_F6:	// DISK IMAGES
 				ActionPlayPause(false, false);
 				GUI->menuOpen(UserInterface::GUI_TYPE_MENU, gui_p32_images_menu);
 				break;
 
-			case SDLK_F7:	// LOAD/SAVE SNAPSHOT
+			case SDL_SCANCODE_F7:	// LOAD/SAVE SNAPSHOT
 				if (key & KM_SHIFT)
 					ActionSnapSave();
 				else
 					ActionSnapLoad();
 				break;
 
-			case SDLK_F8:	// SOUND ON/OFF
+			case SDL_SCANCODE_F8:	// SOUND ON/OFF
 				ActionSound((key & KM_SHIFT) ? -1 : Settings->Sound->mute);
 				break;
 
-			case SDLK_F9:	// MODEL SELECT/MEMORY MENU
+			case SDL_SCANCODE_F9:	// MODEL SELECT/MEMORY MENU
 				ActionPlayPause(false, false);
 				if (key & KM_SHIFT)
 					GUI->menuOpen(UserInterface::GUI_TYPE_MENU, gui_mem_menu);
@@ -615,12 +600,12 @@ bool TEmulator::TestHotkeys()
 					GUI->menuOpen(UserInterface::GUI_TYPE_MENU, gui_machine_menu);
 				break;
 
-			case SDLK_F10:	// PERIPHERALS
+			case SDL_SCANCODE_F10:	// PERIPHERALS
 				ActionPlayPause(false, false);
 				GUI->menuOpen(UserInterface::GUI_TYPE_MENU, gui_pers_menu);
 				break;
 
-			case SDLK_F11:	// MEMORY BLOCK READ/WRITE
+			case SDL_SCANCODE_F11:	// MEMORY BLOCK READ/WRITE
 				ActionPlayPause(false, false);
 				if (key & KM_SHIFT)
 					GUI->menuOpen(UserInterface::GUI_TYPE_MENU, gui_memblock_write_menu);
@@ -628,7 +613,7 @@ bool TEmulator::TestHotkeys()
 					GUI->menuOpen(UserInterface::GUI_TYPE_MENU, gui_memblock_read_menu);
 				break;
 
-			case SDLK_F12:	// DEBUGGER
+			case SDL_SCANCODE_F12:	// DEBUGGER
 				ActionDebugger();
 				break;
 		}

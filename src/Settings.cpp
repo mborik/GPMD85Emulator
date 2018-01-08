@@ -1,5 +1,5 @@
 /*	Settings.cpp: Class for reading, handling and saveing settings
-	Copyright (c) 2011-2012 Martin Borik <mborik@users.sourceforge.net>
+	Copyright (c) 2011-2018 Martin Borik <mborik@users.sourceforge.net>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -428,11 +428,11 @@ TSettings::TSettings()
 
 	Joystick->GPIO0->connected = cfgGetBoolValue(n, "connected", false, &(Joystick->GPIO0->connected));
 	Joystick->GPIO0->guid = cfgGetStringValue(n, "guid", &(Joystick->GPIO0->guid));
-	Joystick->GPIO0->ctrlLeft = cfgGetIntValue(n, "left", SDLK_UNKNOWN, &(Joystick->GPIO0->ctrlLeft));
-	Joystick->GPIO0->ctrlRight = cfgGetIntValue(n, "right", SDLK_UNKNOWN, &(Joystick->GPIO0->ctrlRight));
-	Joystick->GPIO0->ctrlUp = cfgGetIntValue(n, "up", SDLK_UNKNOWN, &(Joystick->GPIO0->ctrlUp));
-	Joystick->GPIO0->ctrlDown = cfgGetIntValue(n, "down", SDLK_UNKNOWN, &(Joystick->GPIO0->ctrlDown));
-	Joystick->GPIO0->ctrlFire = cfgGetIntValue(n, "fire", SDLK_UNKNOWN, &(Joystick->GPIO0->ctrlFire));
+	Joystick->GPIO0->ctrlLeft = cfgGetIntValue(n, "left", SDL_SCANCODE_UNKNOWN, &(Joystick->GPIO0->ctrlLeft));
+	Joystick->GPIO0->ctrlRight = cfgGetIntValue(n, "right", SDL_SCANCODE_UNKNOWN, &(Joystick->GPIO0->ctrlRight));
+	Joystick->GPIO0->ctrlUp = cfgGetIntValue(n, "up", SDL_SCANCODE_UNKNOWN, &(Joystick->GPIO0->ctrlUp));
+	Joystick->GPIO0->ctrlDown = cfgGetIntValue(n, "down", SDL_SCANCODE_UNKNOWN, &(Joystick->GPIO0->ctrlDown));
+	Joystick->GPIO0->ctrlFire = cfgGetIntValue(n, "fire", SDL_SCANCODE_UNKNOWN, &(Joystick->GPIO0->ctrlFire));
 	Joystick->GPIO0->sensitivity = cfgGetIntValue(n, "sensitivity", -1, &(Joystick->GPIO0->sensitivity));
 	Joystick->GPIO0->pov = cfgGetIntValue(n, "pov", -1, &(Joystick->GPIO0->pov));
 
@@ -457,11 +457,11 @@ TSettings::TSettings()
 
 	Joystick->GPIO1->connected = cfgGetBoolValue(n, "connected", false, &(Joystick->GPIO1->connected));
 	Joystick->GPIO1->guid = cfgGetStringValue(n, "guid", &(Joystick->GPIO1->guid));
-	Joystick->GPIO1->ctrlLeft = cfgGetIntValue(n, "left", SDLK_UNKNOWN, &(Joystick->GPIO1->ctrlLeft));
-	Joystick->GPIO1->ctrlRight = cfgGetIntValue(n, "right", SDLK_UNKNOWN, &(Joystick->GPIO1->ctrlRight));
-	Joystick->GPIO1->ctrlUp = cfgGetIntValue(n, "up", SDLK_UNKNOWN, &(Joystick->GPIO1->ctrlUp));
-	Joystick->GPIO1->ctrlDown = cfgGetIntValue(n, "down", SDLK_UNKNOWN, &(Joystick->GPIO1->ctrlDown));
-	Joystick->GPIO1->ctrlFire = cfgGetIntValue(n, "fire", SDLK_UNKNOWN, &(Joystick->GPIO1->ctrlFire));
+	Joystick->GPIO1->ctrlLeft = cfgGetIntValue(n, "left", SDL_SCANCODE_UNKNOWN, &(Joystick->GPIO1->ctrlLeft));
+	Joystick->GPIO1->ctrlRight = cfgGetIntValue(n, "right", SDL_SCANCODE_UNKNOWN, &(Joystick->GPIO1->ctrlRight));
+	Joystick->GPIO1->ctrlUp = cfgGetIntValue(n, "up", SDL_SCANCODE_UNKNOWN, &(Joystick->GPIO1->ctrlUp));
+	Joystick->GPIO1->ctrlDown = cfgGetIntValue(n, "down", SDL_SCANCODE_UNKNOWN, &(Joystick->GPIO1->ctrlDown));
+	Joystick->GPIO1->ctrlFire = cfgGetIntValue(n, "fire", SDL_SCANCODE_UNKNOWN, &(Joystick->GPIO1->ctrlFire));
 	Joystick->GPIO1->sensitivity = cfgGetIntValue(n, "sensitivity", -1, &(Joystick->GPIO1->sensitivity));
 	Joystick->GPIO1->pov = cfgGetIntValue(n, "pov", -1, &(Joystick->GPIO1->pov));
 

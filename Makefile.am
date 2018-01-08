@@ -1,5 +1,5 @@
 # GPMD85emu automake
-# mborik, 10/2011, 02/2012
+# mborik, 10/2011, 02/2012, 01/2018
 
 AUTOMAKE_OPTIONS = foreign
 bin_PROGRAMS = GPMD85emu
@@ -20,7 +20,6 @@ AM_CPPFLAGS = \
 
 GPMD85emu_LDADD = \
 	@libSDL_LIBS@ \
-	@libGL_LIBS@ \
 	src/libGPMD85emu_core.a \
 	gui/libGPMD85emu_gui.a
 
@@ -37,6 +36,7 @@ noinst_HEADERS = \
 	config.h
 
 EXTRA_DIST = \
-	README \
 	AUTHORS \
+	INSTALL.md \
+	README.md \
 	ChangeLog

@@ -1,8 +1,5 @@
 /*	ScreenPMD85.h: Core of graphical output and screen generation
-	Copyright (c) 2010-2012 Martin Borik <mborik@users.sourceforge.net>
-
-	OpenGL screen initialization and rendering inspired by SimCoupe code
-	Copyright (c) 1999-2006 Simon Owen <simon.owen@simcoupe.org>
+	Copyright (c) 2010-2018 Martin Borik <mborik@users.sourceforge.net>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -31,53 +28,6 @@
 #define STATUSBAR_HEIGHT  20
 #define WEAK_REFRESH_TIME 200
 //-----------------------------------------------------------------------------
-#ifdef OPENGL
-#include "SDL_opengl.h"
-//-----------------------------------------------------------------------------
-inline GLboolean glExtension(const char *extName)
-{
-	const char *p = reinterpret_cast<const char *> (glGetString(GL_EXTENSIONS));
-
-	if (p != NULL) {
-		int extNameLen = strlen(extName);
-		const char *end = p + strlen(p);
-
-		while (p < end) {
-			int n = strcspn(p, " ");
-			if ((extNameLen == n) && (strncmp(extName, p, n) == 0))
-				return GL_TRUE;
-			p += (n + 1);
-		}
-	}
-
-	return GL_FALSE;
-}
-#else
-//-----------------------------------------------------------------------------
-#define scalerMethodPrototype(function) void function(BYTE *dst, WORD dstPitch, const BYTE *src, WORD srcPitch, WORD w, WORD h)
-typedef void (*scalerMethod)(BYTE *dst, WORD dstPitch, const BYTE *src, WORD srcPitch, WORD w, WORD h);
-//-----------------------------------------------------------------------------
-scalerMethodPrototype(point1x);
-scalerMethodPrototype(point2x);
-scalerMethodPrototype(point2xHP1);
-scalerMethodPrototype(point2xHP2);
-scalerMethodPrototype(point2xHP3);
-scalerMethodPrototype(point2xHP4);
-scalerMethodPrototype(point2xLCD);
-scalerMethodPrototype(point3x);
-scalerMethodPrototype(point3xHP1);
-scalerMethodPrototype(point3xHP2);
-scalerMethodPrototype(point3xHP3);
-scalerMethodPrototype(point3xHP4);
-scalerMethodPrototype(point3xLCD);
-scalerMethodPrototype(point4x);
-scalerMethodPrototype(point4xHP1);
-scalerMethodPrototype(point4xHP2);
-scalerMethodPrototype(point4xHP3);
-scalerMethodPrototype(point4xHP4);
-scalerMethodPrototype(point4xLCD);
-#endif
-//-----------------------------------------------------------------------------
 class ScreenPMD85
 {
 public:
@@ -101,7 +51,7 @@ public:
 	inline void ToggleBlinkStatus() { BlinkState = !BlinkState;}
 	inline bool GetBlinkStatus() { return BlinkState; }
 
-	inline int GetMultiplier() { return BlitRectSrc->w / bufferWidth; }
+	inline int GetMultiplier() { return BlitRectDest->w / bufferWidth; }
 
 	void SetColorProfile(TColorProfile ColProf);
 	inline TColorProfile GetColorProfile() { return ColorProfile; }
@@ -120,22 +70,10 @@ public:
 	void FillBuffer(BYTE *videoRam);
 
 private:
-	SDL_Surface *Screen;
-	SDL_Surface *BlitSurface;
-	SDL_Rect *BlitRectSrc;
+	SDL_Renderer *Renderer;
+	SDL_Texture *ScreenBuffer;
 	SDL_Rect *BlitRectDest;
 
-#ifdef OPENGL
-	SDL_Surface *StatusBar;
-	GLuint  Texture[2], Clamp;
-	GLenum  PixelFormat, DataType;
-	GLsizei TextureMainWidth, TextureStatusWidth;
-	GLsizei TextureMainHeight, TextureStatusHeight;
-#else
-	scalerMethod Scaler;
-#endif
-
-	BYTE *bufferScreen;
 	int bufferWidth;
 	int bufferHeight;
 	int Width;
@@ -162,15 +100,14 @@ private:
 	bool DisplayModeChanging;
 
 	void InitScreenSize(TDisplayMode reqDispMode, bool reqWidth384);
-	void InitScreenBuffer();
 	void PrepareVideoMode();
 	void ReleaseVideoMode();
-	void PrepareStatusBar();
-	void RedrawStatusBar();
-	void SetScaler();
 
-	SDL_Color Palette[256];
-	void RGBpalete(SDL_Color *pal);
+	void PrepareStatusBar(bool clear = false);
+	void RedrawStatusBar();
+
+	DWORD Palette[256];
+	void InitPalette();
 };
 //-----------------------------------------------------------------------------
 #endif

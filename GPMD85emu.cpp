@@ -1,5 +1,5 @@
 /*	GPMD85emu.cpp: Initialization and main program loop.
-	Copyright (c) 2011-2012 Martin Borik <mborik@users.sourceforge.net>
+	Copyright (c) 2011-2018 Martin Borik <mborik@users.sourceforge.net>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -40,59 +40,32 @@ int main(int argc, char** argv)
 		mkdir(PathAppConfig, 0755);
 
 	// initialization of SDL
-	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_NOPARACHUTE) < 0)
+	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_EVENTS) < 0)
 		error("", "Couldn't initialize SDL: %s\n", SDL_GetError());
 
-	const SDL_VideoInfo *vi = SDL_GetVideoInfo();
-	SDL_Rect** modes = SDL_ListModes(NULL, SDL_FULLSCREEN);
+	SDL_DisplayMode vi;
+	if (SDL_GetDesktopDisplayMode(0, &vi) != 0) {
+		debug(NULL, "Actual framebuffer resolution: %d x %d (%d Hz)",
+			vi.w, vi.h, vi.refresh_rate);
 
-	gvi.w = gvi.h = 0;
-	gvi.hw = vi->hw_available;
-	gvi.wm = vi->wm_available;
-	gvi.depth = vi->vfmt->BitsPerPixel;
-
-	if (modes > (SDL_Rect **) 0) {
-		debug(NULL, "Actual framebuffer resolution: %d x %d",
-			vi->current_w, vi->current_h);
-
-		for (int i = 0; modes[i]; i++) {
-			if (modes[i]->w == vi->current_w || modes[i]->h == vi->current_h) {
-				gvi.w = modes[i]->w;
-				gvi.h = modes[i]->h;
-
-				if (gvi.w == vi->current_w && gvi.h == vi->current_h)
-					break;
-			}
-		}
+		gvi.w = vi.w;
+		gvi.w = vi.h;
+		gvi.format = vi.format;
 	}
 
-	if (!gvi.w || !gvi.h) {
-		gvi.w = vi->current_w;
-		gvi.h = vi->current_h;
-	}
+	gvi.window = SDL_CreateWindow(PACKAGE_NAME, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 288, 256, SDL_WINDOW_HIDDEN);
+	if (gvi.window) {
+		gvi.windowID = SDL_GetWindowID(gvi.window);
 
-	if (SDL_VideoModeOK(gvi.w, gvi.h, gvi.depth, SDL_FULLSCREEN) == 0) {
-		warning("", "Full-screen disabled, no suitable resolution!");
-		gvi.w = gvi.h = 0;
-	}
-	else
-		debug(NULL, "Full-screen resolution: %d x %d", gvi.w, gvi.h);
-
-	SDL_EnableKeyRepeat(0, 0);
-
-	if (gvi.wm) {
-		SDL_WM_SetCaption(PACKAGE_NAME, NULL);
 		SDL_Surface *icon = SDL_LoadBMP(LocateResource("icon.bmp", false));
 		if (icon) {
-			SDL_SetColorKey(icon, SDL_SRCCOLORKEY, SDL_MapRGB(icon->format, 255, 0, 255));
-			SDL_WM_SetIcon(icon, NULL);
+			SDL_SetColorKey(icon, SDL_TRUE, SDL_MapRGB(icon->format, 255, 0, 255));
+			SDL_SetWindowIcon(gvi.window, icon);
 			SDL_FreeSurface(icon);
 		}
 		else
 			warning("", "Can't load icon resource file");
 	}
-	else
-		SDL_ShowCursor(0);
 
 	debug(NULL, "Initialization process started...");
 
@@ -105,7 +78,7 @@ int main(int argc, char** argv)
 
 	DWORD nextTick;
 	int i = 0, j, k = 0;
-	BYTE *kb = NULL;
+	BYTE *kb = Emulator->keyBuffer;
 	SDL_Event event;
 	bool waitForRelease = false;
 
@@ -118,10 +91,10 @@ int main(int argc, char** argv)
 				case SDL_QUIT:
 				case SDL_KEYUP:
 				case SDL_KEYDOWN:
-					Emulator->keyBuffer = kb = SDL_GetKeyState(&i);
-					kb[SDLK_NUMLOCK] = kb[SDLK_CAPSLOCK] = kb[SDLK_SCROLLOCK] = 0;
+					memcpy(kb, SDL_GetKeyboardState(NULL), SDL_NUM_SCANCODES);
+					kb[SDL_SCANCODE_NUMLOCKCLEAR] = kb[SDL_SCANCODE_CAPSLOCK] = kb[SDL_SCANCODE_SCROLLLOCK] = 0;
 					if (event.type == SDL_QUIT)
-						kb[SDLK_POWER] = 1;
+						kb[SDL_SCANCODE_POWER] = 1;
 
 					if (waitForRelease) {
 						for (j = --i; j > 0; j--) {
@@ -135,14 +108,18 @@ int main(int argc, char** argv)
 						k = 4;
 					break;
 
-				case SDL_ACTIVEEVENT:
-					if (Settings->pauseOnFocusLost &&
-							(event.active.state & (SDL_APPINPUTFOCUS | SDL_APPACTIVE)))
-						Emulator->ActionPlayPause(event.active.gain);
-					break;
+				case SDL_WINDOWEVENT:
+					if (event.window.windowID == gvi.windowID) {
+						if (event.window.event == SDL_WINDOWEVENT_EXPOSED) {
+							Emulator->RefreshDisplay();
+						}
+						else if (Settings->pauseOnFocusLost && (
+								event.window.event == SDL_WINDOWEVENT_FOCUS_GAINED ||
+								event.window.event == SDL_WINDOWEVENT_FOCUS_LOST)) {
 
-				case SDL_VIDEOEXPOSE:
-					Emulator->RefreshDisplay();
+							Emulator->ActionPlayPause((event.window.event == SDL_WINDOWEVENT_FOCUS_GAINED));
+						}
+					}
 					break;
 
 				default:

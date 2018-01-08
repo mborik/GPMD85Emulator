@@ -1,5 +1,5 @@
 /*	EditBox.cpp: Part of GUI rendering class: Editable input dialogs
-	Copyright (c) 2011-2012 Martin Borik <mborik@users.sourceforge.net>
+	Copyright (c) 2011-2018 Martin Borik <mborik@users.sourceforge.net>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -51,7 +51,6 @@ BYTE UserInterface::editBox(const char *title, char *buffer, BYTE maxLength, boo
 	SDL_Event event;
 	bool atTheEnd = true, change = true;
 
-	SDL_EnableUNICODE(1);
 	SDL_Delay(GPU_TIMER_INTERVAL);
 	while (result == (BYTE) -1) {
 		nextTick = SDL_GetTicks() + CPU_TIMER_INTERVAL;
@@ -60,12 +59,12 @@ BYTE UserInterface::editBox(const char *title, char *buffer, BYTE maxLength, boo
 			switch (event.type) {
 				case SDL_KEYDOWN:
 					switch (event.key.keysym.sym) {
-						case SDLK_ESCAPE:
+						case SDL_SCANCODE_ESCAPE:
 							result = 0;
 							break;
 
-						case SDLK_RETURN:
-						case SDLK_KP_ENTER:
+						case SDL_SCANCODE_RETURN:
+						case SDL_SCANCODE_KP_ENTER:
 							// trim left
 							cursor = 0;
 							while (buffer[cursor] == ' ')
@@ -86,21 +85,21 @@ BYTE UserInterface::editBox(const char *title, char *buffer, BYTE maxLength, boo
 							result = 1;
 							break;
 
-						case SDLK_LEFT:
+						case SDL_SCANCODE_LEFT:
 							if (cursor > 0) {
 								cursor--;
 								change = true;
 							}
 							break;
 
-						case SDLK_RIGHT:
+						case SDL_SCANCODE_RIGHT:
 							if (!atTheEnd) {
 								cursor++;
 								change = true;
 							}
 							break;
 
-						case SDLK_BACKSPACE:
+						case SDL_SCANCODE_BACKSPACE:
 							if (cursor > 0) {
 								cursor--;
 								for (i = cursor; i < len; i++)
@@ -109,7 +108,7 @@ BYTE UserInterface::editBox(const char *title, char *buffer, BYTE maxLength, boo
 							}
 							break;
 
-						case SDLK_INSERT:
+						case SDL_SCANCODE_INSERT:
 							if (!atTheEnd && len < maxLength) {
 								for (i = len + 1; i > cursor; i--)
 									buffer[i] = buffer[i - 1];
@@ -118,7 +117,7 @@ BYTE UserInterface::editBox(const char *title, char *buffer, BYTE maxLength, boo
 							}
 							break;
 
-						case SDLK_DELETE:
+						case SDL_SCANCODE_DELETE:
 							if (!atTheEnd) {
 								for (i = cursor; i < len; i++)
 									buffer[i] = buffer[i + 1];
@@ -126,14 +125,14 @@ BYTE UserInterface::editBox(const char *title, char *buffer, BYTE maxLength, boo
 							}
 							break;
 
-						case SDLK_HOME:
+						case SDL_SCANCODE_HOME:
 							if (cursor > 0) {
 								cursor = 0;
 								change = true;
 							}
 							break;
 
-						case SDLK_END:
+						case SDL_SCANCODE_END:
 							if (!atTheEnd) {
 								cursor = len;
 								change = true;
@@ -141,11 +140,11 @@ BYTE UserInterface::editBox(const char *title, char *buffer, BYTE maxLength, boo
 							break;
 
 						default:
-							if (event.key.keysym.unicode < 0x0020
-							 || event.key.keysym.unicode > 0x007E)
+							if (event.key.keysym.sym < SDLK_SPACE
+							 || event.key.keysym.sym > 0x007E)
 								break;
 
-							char c = (char) event.key.keysym.unicode;
+							char c = (char) event.key.keysym.sym & 0x7f;
 							if (cursor < maxLength) {
 								if (decimal && (c < '0' || c > '9'))
 									break;
@@ -161,8 +160,12 @@ BYTE UserInterface::editBox(const char *title, char *buffer, BYTE maxLength, boo
 					}
 					break;
 
-				case SDL_VIDEOEXPOSE:
-					Emulator->RefreshDisplay();
+				case SDL_WINDOWEVENT:
+					if (event.window.windowID == gvi.windowID &&
+						event.window.event == SDL_WINDOWEVENT_EXPOSED) {
+
+						Emulator->RefreshDisplay();
+					}
 					break;
 
 				default:
@@ -194,7 +197,6 @@ BYTE UserInterface::editBox(const char *title, char *buffer, BYTE maxLength, boo
 	delete [] bkm_frameSave;
 
 	SDL_Delay(GPU_TIMER_INTERVAL);
-	SDL_EnableUNICODE(0);
 	needRelease = true;
 	needRedraw = true;
 

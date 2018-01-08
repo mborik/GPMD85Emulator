@@ -188,13 +188,13 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 	BYTE b = 0;
 
 	switch (key) {
-		case SDLK_F4 | KM_ALT:
+		case SDL_SCANCODE_F4 | KM_ALT:
 			Emulator->ActionExit();
 			menuCloseAll();
 			needRelease = true;
 			return;
 
-		case SDLK_ESCAPE:
+		case SDL_SCANCODE_ESCAPE:
 			if (searchlen > 0) {
 				change = keyhandlerFileSelectorSearchClean();
 				needRelease = true;
@@ -206,7 +206,7 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 			}
 			break;
 
-		case SDLK_c | KM_ALT:
+		case SDL_SCANCODE_C | KM_ALT:
 			if (fileSelector->type == GUI_FS_SNAPSAVE) {
 				prevLeftMargin = cMenu_leftMargin;
 				Settings->Snapshot->saveCompressed = !Settings->Snapshot->saveCompressed;
@@ -215,7 +215,7 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 			}
 			break;
 
-		case SDLK_d | KM_ALT:
+		case SDL_SCANCODE_D | KM_ALT:
 			if (fileSelector->type == GUI_FS_SNAPLOAD) {
 				prevLeftMargin = cMenu_leftMargin;
 				Settings->Snapshot->dontRunOnLoad = !Settings->Snapshot->dontRunOnLoad;
@@ -224,7 +224,7 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 			}
 			break;
 
-		case SDLK_r | KM_ALT:
+		case SDL_SCANCODE_R | KM_ALT:
 			if (fileSelector->type == GUI_FS_SNAPSAVE) {
 				prevLeftMargin = cMenu_leftMargin;
 				Settings->Snapshot->saveWithMonitor = !Settings->Snapshot->saveWithMonitor;
@@ -233,21 +233,21 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 			}
 			break;
 
-		case SDLK_h | KM_ALT:
+		case SDL_SCANCODE_H | KM_ALT:
 			keyhandlerFileSelectorSearchClean();
 			strcpy(fileSelector->path, PathUserHome);
 			drawFileSelector();
 			needRelease = true;
 			break;
 
-		case SDLK_PERIOD | KM_ALT:
+		case SDL_SCANCODE_PERIOD | KM_ALT:
 			keyhandlerFileSelectorSearchClean();
 			Settings->showHiddenFiles = !Settings->showHiddenFiles;
 			drawFileSelector();
 			needRelease = true;
 			break;
 
-		case SDLK_TAB:
+		case SDL_SCANCODE_TAB:
 			if (fileSelector->type == GUI_FS_BASESAVE
 			 || fileSelector->type == GUI_FS_SNAPSAVE) {
 				char buffer[40];
@@ -293,7 +293,7 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 			}
 			break;
 
-		case SDLK_SPACE:
+		case SDL_SCANCODE_SPACE:
 			if (searchlen > 0) {
 				i = keyhandlerFileSelectorSearch(i);
 				if (i < 0)
@@ -305,7 +305,7 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 			}
 			break;
 
-		case SDLK_BACKSPACE:
+		case SDL_SCANCODE_BACKSPACE:
 			if (searchlen > 1) {
 				fileSelector->search[searchlen - 1] = '\0';
 				i = keyhandlerFileSelectorSearch();
@@ -324,8 +324,8 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 				ptr = fileSelector->dirEntries[0];
 				/* no break, only select ".." and continue in next case... */
 
-		case SDLK_RETURN:
-		case SDLK_KP_ENTER:
+		case SDL_SCANCODE_RETURN:
+		case SDL_SCANCODE_KP_ENTER:
 			change = keyhandlerFileSelectorSearchClean();
 			if (*ptr == '\xA0') {
 				lastItem = ptr + 1;
@@ -361,29 +361,29 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 			}
 			break;
 
-		case SDLK_LEFT:
-		case SDLK_PAGEUP:
+		case SDL_SCANCODE_LEFT:
+		case SDL_SCANCODE_PAGEUP:
 			change = keyhandlerFileSelectorSearchClean();
 			if (i > 0) {
-				i -= (key == SDLK_LEFT) ? halfpage : fileSelector->itemsOnPage;
+				i -= (key == SDL_SCANCODE_LEFT) ? halfpage : fileSelector->itemsOnPage;
 				if (i < 0)
 					i = 0;
 				change = true;
 			}
 			break;
 
-		case SDLK_RIGHT:
-		case SDLK_PAGEDOWN:
+		case SDL_SCANCODE_RIGHT:
+		case SDL_SCANCODE_PAGEDOWN:
 			change = keyhandlerFileSelectorSearchClean();
 			if (i < (cMenu_count - 1)) {
-				i += (key == SDLK_RIGHT) ? halfpage : fileSelector->itemsOnPage;
+				i += (key == SDL_SCANCODE_RIGHT) ? halfpage : fileSelector->itemsOnPage;
 				if (i >= cMenu_count)
 					i = (cMenu_count - 1);
 				change = true;
 			}
 			break;
 
-		case SDLK_UP:
+		case SDL_SCANCODE_UP:
 			change = keyhandlerFileSelectorSearchClean();
 			if (i > 0) {
 				i--;
@@ -391,7 +391,7 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 			}
 			break;
 
-		case SDLK_DOWN:
+		case SDL_SCANCODE_DOWN:
 			change = keyhandlerFileSelectorSearchClean();
 			if (i < (cMenu_count - 1)) {
 				i++;
@@ -399,14 +399,14 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 			}
 			break;
 
-		case SDLK_HOME:
+		case SDL_SCANCODE_HOME:
 			keyhandlerFileSelectorSearchClean();
 			i = 0;
 			needRelease = true;
 			change = true;
 			break;
 
-		case SDLK_END:
+		case SDL_SCANCODE_END:
 			keyhandlerFileSelectorSearchClean();
 			i = (cMenu_count - 1);
 			needRelease = true;
@@ -416,8 +416,8 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 		default:
 			b = (key & 127);
 			if (searchlen < 21 &&
-				((b > SDLK_SPACE && b <= SDLK_z) ||
-				 (key >= SDLK_KP0 && key <= SDLK_KP_PLUS))) {
+				((b > SDL_SCANCODE_SPACE && b <= SDL_SCANCODE_Z) ||
+				 (key >= SDL_SCANCODE_KP_0 && key <= SDL_SCANCODE_KP_PLUS))) {
 
 				if (key & KM_SHIFT) {
 					if (b >= 'a' && b <= 'z')
@@ -442,13 +442,13 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 						default:  b = 0; break;
 					}
 				}
-				else if (key >= SDLK_KP0 && key <= SDLK_KP9)
+				else if (key >= SDL_SCANCODE_KP_0 && key <= SDL_SCANCODE_KP_9)
 					b ^= 48;
-				else if (key == SDLK_KP_PERIOD)
+				else if (key == SDL_SCANCODE_KP_PERIOD)
 					b = '.';
-				else if (key == SDLK_KP_PLUS)
+				else if (key == SDL_SCANCODE_KP_PLUS)
 					b = '+';
-				else if (key == SDLK_KP_MINUS)
+				else if (key == SDL_SCANCODE_KP_MINUS)
 					b = '-';
 				else if (!((b >= 'a' && b <= 'z') || (b >= '0' && b <= '9'))) {
 					switch (b) {
