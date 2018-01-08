@@ -129,206 +129,206 @@ BYTE SystemPIO::readFromDevice(BYTE port, int ticks)
 // KEYBOARD MAPS
 // vkey, column, rowmask // comment: PMD key (PC key)
 KEYMAP SystemPIO::KeyMap[] = {
-	{ SDLK_TAB,          13,  1 },  // C-D       (Tab)
-	{ SDLK_KP_ENTER,     13, 16 },  // left EOL  (Enter)
-	{ SDLK_RETURN,       14, 16 },  // right EOL (Enter)
-//	{ SDLK_CAPSLOCK,     12, 16 },  // CapsLock for PMD 85-3 we can't handle
+	{ SDL_SCANCODE_TAB,          13,  1 },  // C-D       (Tab)
+	{ SDL_SCANCODE_KP_ENTER,     13, 16 },  // left EOL  (Enter)
+	{ SDL_SCANCODE_RETURN,       14, 16 },  // right EOL (Enter)
+//	{ SDL_SCANCODE_CAPSLOCK,     12, 16 },  // CapsLock for PMD 85-3 we can't handle
 //	                                // because of weird SDL CapsLock behavior
-	{ SDLK_SPACE,         0, 16 },  // SPACE
-	{ SDLK_PAGEUP,       14,  1 },  // RCL    (Page Up)
-	{ SDLK_PAGEDOWN,     14,  2 },  // CLR    (Page Down)
-	{ SDLK_END,          13,  8 },  // END    (End)
-	{ SDLK_HOME,         13,  4 },  // HOME   (Home)
-	{ SDLK_LEFT,         12,  4 },  // <--    (Left)
-	{ SDLK_UP,           12,  8 },  // [<--   (Up)
-	{ SDLK_RIGHT,        14,  4 },  // -->    (Right)
-	{ SDLK_DOWN,         14,  8 },  // -->]   (Down)
-	{ SDLK_INSERT,       12,  2 },  // INS    (Insert)
-	{ SDLK_DELETE,       13,  2 },  // DEL    (Delete)
-	{ SDLK_0,             9,  2 },  // 0
-	{ SDLK_1,             0,  2 },  // 1
-	{ SDLK_2,             1,  2 },  // 2
-	{ SDLK_3,             2,  2 },  // 3
-	{ SDLK_4,             3,  2 },  // 4
-	{ SDLK_5,             4,  2 },  // 5
-	{ SDLK_6,             5,  2 },  // 6
-	{ SDLK_7,             6,  2 },  // 7
-	{ SDLK_8,             7,  2 },  // 8
-	{ SDLK_9,             8,  2 },  // 9
-	{ SDLK_a,             0,  8 },  // A
-	{ SDLK_b,             5, 16 },  // B
-	{ SDLK_c,             3, 16 },  // C
-	{ SDLK_d,             2,  8 },  // D
-	{ SDLK_e,             2,  4 },  // E
-	{ SDLK_f,             3,  8 },  // F
-	{ SDLK_g,             4,  8 },  // G
-	{ SDLK_h,             5,  8 },  // H
-	{ SDLK_i,             7,  4 },  // I
-	{ SDLK_j,             6,  8 },  // J
-	{ SDLK_k,             7,  8 },  // K
-	{ SDLK_l,             8,  8 },  // L
-	{ SDLK_m,             7, 16 },  // M
-	{ SDLK_n,             6, 16 },  // N
-	{ SDLK_o,             8,  4 },  // O
-	{ SDLK_p,             9,  4 },  // P
-	{ SDLK_q,             0,  4 },  // Q
-	{ SDLK_r,             3,  4 },  // R
-	{ SDLK_s,             1,  8 },  // S
-	{ SDLK_t,             4,  4 },  // T
-	{ SDLK_u,             6,  4 },  // U
-	{ SDLK_v,             4, 16 },  // V
-	{ SDLK_w,             1,  4 },  // W
-	{ SDLK_x,             2, 16 },  // X
-	{ SDLK_y,             5,  4 },  // Z
-	{ SDLK_z,             1, 16 },  // Y
-	{ SDLK_F1,            0,  1 },  // K0   (F1)
-	{ SDLK_F2,            1,  1 },  // K1   (F2)
-	{ SDLK_F3,            2,  1 },  // K2   (F3)
-	{ SDLK_F4,            3,  1 },  // K3   (F4)
-	{ SDLK_F5,            4,  1 },  // K4   (F5)
-	{ SDLK_F6,            5,  1 },  // K5   (F6)
-	{ SDLK_F7,            6,  1 },  // K6   (F7)
-	{ SDLK_F8,            7,  1 },  // K7   (F8)
-	{ SDLK_F9,            8,  1 },  // K8   (F9)
-	{ SDLK_F10,           9,  1 },  // K9   (F10)
-	{ SDLK_F11,          10,  1 },  // K10  (F11)
-	{ SDLK_F12,          11,  1 },  // K11  (F12)
-	{ SDLK_QUOTE,         9,  8 },  // ;    (')
-	{ SDLK_EQUALS,       11,  8 },  // [ ]  (=)
-	{ SDLK_COMMA,         8, 16 },  // ,    (,)
-	{ SDLK_MINUS,        10,  2 },  // _    (-)
-	{ SDLK_PERIOD,        9, 16 },  // .    (.)
-	{ SDLK_SLASH,        10, 16 },  // /    (/)
-	{ SDLK_BACKQUOTE,    12,  1 },  // WRK  (`)
-	{ SDLK_LEFTBRACKET,  10,  4 },  // @    ([)
-	{ SDLK_BACKSLASH,    11,  2 },  // { }  (\)
-	{ SDLK_RIGHTBRACKET, 11,  4 },  // \    (])
-	{ SDLK_SEMICOLON,    10,  8 },  // :    (;)
+	{ SDL_SCANCODE_SPACE,         0, 16 },  // SPACE
+	{ SDL_SCANCODE_PAGEUP,       14,  1 },  // RCL    (Page Up)
+	{ SDL_SCANCODE_PAGEDOWN,     14,  2 },  // CLR    (Page Down)
+	{ SDL_SCANCODE_END,          13,  8 },  // END    (End)
+	{ SDL_SCANCODE_HOME,         13,  4 },  // HOME   (Home)
+	{ SDL_SCANCODE_LEFT,         12,  4 },  // <--    (Left)
+	{ SDL_SCANCODE_UP,           12,  8 },  // [<--   (Up)
+	{ SDL_SCANCODE_RIGHT,        14,  4 },  // -->    (Right)
+	{ SDL_SCANCODE_DOWN,         14,  8 },  // -->]   (Down)
+	{ SDL_SCANCODE_INSERT,       12,  2 },  // INS    (Insert)
+	{ SDL_SCANCODE_DELETE,       13,  2 },  // DEL    (Delete)
+	{ SDL_SCANCODE_0,             9,  2 },  // 0
+	{ SDL_SCANCODE_1,             0,  2 },  // 1
+	{ SDL_SCANCODE_2,             1,  2 },  // 2
+	{ SDL_SCANCODE_3,             2,  2 },  // 3
+	{ SDL_SCANCODE_4,             3,  2 },  // 4
+	{ SDL_SCANCODE_5,             4,  2 },  // 5
+	{ SDL_SCANCODE_6,             5,  2 },  // 6
+	{ SDL_SCANCODE_7,             6,  2 },  // 7
+	{ SDL_SCANCODE_8,             7,  2 },  // 8
+	{ SDL_SCANCODE_9,             8,  2 },  // 9
+	{ SDL_SCANCODE_A,             0,  8 },  // A
+	{ SDL_SCANCODE_B,             5, 16 },  // B
+	{ SDL_SCANCODE_C,             3, 16 },  // C
+	{ SDL_SCANCODE_D,             2,  8 },  // D
+	{ SDL_SCANCODE_E,             2,  4 },  // E
+	{ SDL_SCANCODE_F,             3,  8 },  // F
+	{ SDL_SCANCODE_G,             4,  8 },  // G
+	{ SDL_SCANCODE_H,             5,  8 },  // H
+	{ SDL_SCANCODE_I,             7,  4 },  // I
+	{ SDL_SCANCODE_J,             6,  8 },  // J
+	{ SDL_SCANCODE_K,             7,  8 },  // K
+	{ SDL_SCANCODE_L,             8,  8 },  // L
+	{ SDL_SCANCODE_M,             7, 16 },  // M
+	{ SDL_SCANCODE_N,             6, 16 },  // N
+	{ SDL_SCANCODE_O,             8,  4 },  // O
+	{ SDL_SCANCODE_P,             9,  4 },  // P
+	{ SDL_SCANCODE_Q,             0,  4 },  // Q
+	{ SDL_SCANCODE_R,             3,  4 },  // R
+	{ SDL_SCANCODE_S,             1,  8 },  // S
+	{ SDL_SCANCODE_T,             4,  4 },  // T
+	{ SDL_SCANCODE_U,             6,  4 },  // U
+	{ SDL_SCANCODE_V,             4, 16 },  // V
+	{ SDL_SCANCODE_W,             1,  4 },  // W
+	{ SDL_SCANCODE_X,             2, 16 },  // X
+	{ SDL_SCANCODE_Y,             5,  4 },  // Z
+	{ SDL_SCANCODE_Z,             1, 16 },  // Y
+	{ SDL_SCANCODE_F1,            0,  1 },  // K0   (F1)
+	{ SDL_SCANCODE_F2,            1,  1 },  // K1   (F2)
+	{ SDL_SCANCODE_F3,            2,  1 },  // K2   (F3)
+	{ SDL_SCANCODE_F4,            3,  1 },  // K3   (F4)
+	{ SDL_SCANCODE_F5,            4,  1 },  // K4   (F5)
+	{ SDL_SCANCODE_F6,            5,  1 },  // K5   (F6)
+	{ SDL_SCANCODE_F7,            6,  1 },  // K6   (F7)
+	{ SDL_SCANCODE_F8,            7,  1 },  // K7   (F8)
+	{ SDL_SCANCODE_F9,            8,  1 },  // K8   (F9)
+	{ SDL_SCANCODE_F10,           9,  1 },  // K9   (F10)
+	{ SDL_SCANCODE_F11,          10,  1 },  // K10  (F11)
+	{ SDL_SCANCODE_F12,          11,  1 },  // K11  (F12)
+	{ SDL_SCANCODE_SEMICOLON,     9,  8 },  // ;    (')
+	{ SDL_SCANCODE_EQUALS,       11,  8 },  // [ ]  (=)
+	{ SDL_SCANCODE_COMMA,         8, 16 },  // ,    (,)
+	{ SDL_SCANCODE_MINUS,        10,  2 },  // _    (-)
+	{ SDL_SCANCODE_PERIOD,        9, 16 },  // .    (.)
+	{ SDL_SCANCODE_SLASH,        10, 16 },  // /    (/)
+	{ SDL_SCANCODE_GRAVE,        12,  1 },  // WRK  (`)
+	{ SDL_SCANCODE_LEFTBRACKET,  10,  4 },  // @    ([)
+	{ SDL_SCANCODE_BACKSLASH,    11,  2 },  // { }  (\)
+	{ SDL_SCANCODE_RIGHTBRACKET, 11,  4 },  // \    (])
+	{ SDL_SCANCODE_SEMICOLON,    10,  8 },  // :    (;)
 	{ 0, 0, 0 }
 };
 
 // NUMERIC KEYPAD MAP
 // vkey, column, rowmask
 KEYMAP SystemPIO::KeyMapNumpad[] = {
-	{ SDLK_KP0,         9,   2 },  // Num 0
-	{ SDLK_KP1,         0,   2 },  // Num 1
-	{ SDLK_KP2,         1,   2 },  // Num 2
-	{ SDLK_KP3,         2,   2 },  // Num 3
-	{ SDLK_KP4,         3,   2 },  // Num 4
-	{ SDLK_KP5,         4,   2 },  // Num 5
-	{ SDLK_KP6,         5,   2 },  // Num 6
-	{ SDLK_KP7,         6,   2 },  // Num 7
-	{ SDLK_KP8,         7,   2 },  // Num 8
-	{ SDLK_KP9,         8,   2 },  // Num 9
-	{ SDLK_KP_PERIOD,   9,  16 },  // Num .
-	{ SDLK_KP_DIVIDE,   10, 16 },  // Num /
-	{ SDLK_KP_MULTIPLY, 10, 40 },  // Num *
-	{ SDLK_KP_PLUS,     9,  40 },  // Num +
-	{ SDLK_KP_MINUS,    9,  34 },  // Num -
+	{ SDL_SCANCODE_KP_0,        9,   2 },  // Num 0
+	{ SDL_SCANCODE_KP_1,        0,   2 },  // Num 1
+	{ SDL_SCANCODE_KP_2,        1,   2 },  // Num 2
+	{ SDL_SCANCODE_KP_3,        2,   2 },  // Num 3
+	{ SDL_SCANCODE_KP_4,        3,   2 },  // Num 4
+	{ SDL_SCANCODE_KP_5,        4,   2 },  // Num 5
+	{ SDL_SCANCODE_KP_6,        5,   2 },  // Num 6
+	{ SDL_SCANCODE_KP_7,        6,   2 },  // Num 7
+	{ SDL_SCANCODE_KP_8,        7,   2 },  // Num 8
+	{ SDL_SCANCODE_KP_9,        8,   2 },  // Num 9
+	{ SDL_SCANCODE_KP_PERIOD,   9,  16 },  // Num .
+	{ SDL_SCANCODE_KP_DIVIDE,   10, 16 },  // Num /
+	{ SDL_SCANCODE_KP_MULTIPLY, 10, 40 },  // Num *
+	{ SDL_SCANCODE_KP_PLUS,     9,  40 },  // Num +
+	{ SDL_SCANCODE_KP_MINUS,    9,  34 },  // Num -
 	{ 0, 0, 0 }
 };
 
 // MATO SPECIAL KEYBOARD MAP
 KEYMAP SystemPIO::KeyMapMato[] = {
-	{ SDLK_SPACE,        6,  4 },  // SPACE
-	{ SDLK_LEFT,         6, 16 },  // Left
-	{ SDLK_UP,           6,  2 },  // Up
-	{ SDLK_RIGHT,        6, 32 },  // Right
-	{ SDLK_DOWN,         6,  1 },  // Down
-	{ SDLK_0,            4,  2 },  // 0
-	{ SDLK_1,            0,  1 },  // 1
-	{ SDLK_2,            0,  2 },  // 2
-	{ SDLK_3,            0,  4 },  // 3
-	{ SDLK_4,            0,  8 },  // 4
-	{ SDLK_5,            0, 16 },  // 5
-	{ SDLK_6,            0, 32 },  // 6
-	{ SDLK_7,            0, 64 },  // 7
-	{ SDLK_8,            4,  8 },  // 8
-	{ SDLK_9,            5,  8 },  // 9
-	{ SDLK_a,            2,  1 },  // A
-	{ SDLK_b,            3, 16 },  // B
-	{ SDLK_c,            3,  4 },  // C
-	{ SDLK_d,            2,  4 },  // D
-	{ SDLK_e,            1,  4 },  // E
-	{ SDLK_f,            2,  8 },  // F
-	{ SDLK_g,            2, 16 },  // G
-	{ SDLK_h,            2, 32 },  // H
-	{ SDLK_i,            4, 64 },  // I
-	{ SDLK_j,            2, 64 },  // J
-	{ SDLK_k,            4, 32 },  // K
-	{ SDLK_l,            5, 32 },  // L
-	{ SDLK_m,            3, 64 },  // M
-	{ SDLK_n,            3, 32 },  // N
-	{ SDLK_o,            5, 64 },  // O
-	{ SDLK_p,            5,  1 },  // P
-	{ SDLK_q,            1,  1 },  // Q
-	{ SDLK_r,            1,  8 },  // R
-	{ SDLK_s,            2,  2 },  // S
-	{ SDLK_t,            1, 16 },  // T
-	{ SDLK_u,            1, 64 },  // U
-	{ SDLK_v,            3,  8 },  // V
-	{ SDLK_w,            1,  2 },  // W
-	{ SDLK_x,            3,  2 },  // X
-	{ SDLK_y,            1, 32 },  // Z
-	{ SDLK_z,            3,  1 },  // Y
-	{ SDLK_QUOTE,        5,  4 },  // ;  (')
-	{ SDLK_COMMA,        4, 16 },  // ,  (,)
-	{ SDLK_MINUS,        4,  1 },  // -  (-)
-	{ SDLK_PERIOD,       5, 16 },  // .  (.)
-	{ SDLK_SLASH,        5,  2 },  // /  (/)
-	{ SDLK_LEFTBRACKET,  6,  8 },  // @  ([)
-	{ SDLK_RIGHTBRACKET, 4,  4 },  // \  (])
-	{ SDLK_SEMICOLON,    6, 64 },  // :  (;)
+	{ SDL_SCANCODE_SPACE,        6,  4 },  // SPACE
+	{ SDL_SCANCODE_LEFT,         6, 16 },  // Left
+	{ SDL_SCANCODE_UP,           6,  2 },  // Up
+	{ SDL_SCANCODE_RIGHT,        6, 32 },  // Right
+	{ SDL_SCANCODE_DOWN,         6,  1 },  // Down
+	{ SDL_SCANCODE_0,            4,  2 },  // 0
+	{ SDL_SCANCODE_1,            0,  1 },  // 1
+	{ SDL_SCANCODE_2,            0,  2 },  // 2
+	{ SDL_SCANCODE_3,            0,  4 },  // 3
+	{ SDL_SCANCODE_4,            0,  8 },  // 4
+	{ SDL_SCANCODE_5,            0, 16 },  // 5
+	{ SDL_SCANCODE_6,            0, 32 },  // 6
+	{ SDL_SCANCODE_7,            0, 64 },  // 7
+	{ SDL_SCANCODE_8,            4,  8 },  // 8
+	{ SDL_SCANCODE_9,            5,  8 },  // 9
+	{ SDL_SCANCODE_A,            2,  1 },  // A
+	{ SDL_SCANCODE_B,            3, 16 },  // B
+	{ SDL_SCANCODE_C,            3,  4 },  // C
+	{ SDL_SCANCODE_D,            2,  4 },  // D
+	{ SDL_SCANCODE_E,            1,  4 },  // E
+	{ SDL_SCANCODE_F,            2,  8 },  // F
+	{ SDL_SCANCODE_G,            2, 16 },  // G
+	{ SDL_SCANCODE_H,            2, 32 },  // H
+	{ SDL_SCANCODE_I,            4, 64 },  // I
+	{ SDL_SCANCODE_J,            2, 64 },  // J
+	{ SDL_SCANCODE_K,            4, 32 },  // K
+	{ SDL_SCANCODE_L,            5, 32 },  // L
+	{ SDL_SCANCODE_M,            3, 64 },  // M
+	{ SDL_SCANCODE_N,            3, 32 },  // N
+	{ SDL_SCANCODE_O,            5, 64 },  // O
+	{ SDL_SCANCODE_P,            5,  1 },  // P
+	{ SDL_SCANCODE_Q,            1,  1 },  // Q
+	{ SDL_SCANCODE_R,            1,  8 },  // R
+	{ SDL_SCANCODE_S,            2,  2 },  // S
+	{ SDL_SCANCODE_T,            1, 16 },  // T
+	{ SDL_SCANCODE_U,            1, 64 },  // U
+	{ SDL_SCANCODE_V,            3,  8 },  // V
+	{ SDL_SCANCODE_W,            1,  2 },  // W
+	{ SDL_SCANCODE_X,            3,  2 },  // X
+	{ SDL_SCANCODE_Y,            1, 32 },  // Z
+	{ SDL_SCANCODE_Z,            3,  1 },  // Y
+	{ SDL_SCANCODE_SEMICOLON,    5,  4 },  // ;  (')
+	{ SDL_SCANCODE_COMMA,        4, 16 },  // ,  (,)
+	{ SDL_SCANCODE_MINUS,        4,  1 },  // -  (-)
+	{ SDL_SCANCODE_PERIOD,       5, 16 },  // .  (.)
+	{ SDL_SCANCODE_SLASH,        5,  2 },  // /  (/)
+	{ SDL_SCANCODE_LEFTBRACKET,  6,  8 },  // @  ([)
+	{ SDL_SCANCODE_RIGHTBRACKET, 4,  4 },  // \  (])
+	{ SDL_SCANCODE_SEMICOLON,    6, 64 },  // :  (;)
 	{ 0, 0, 0 }
 };
 
 KEYMAP SystemPIO::KeyMapMatoExt[] = {
-	{ SDLK_KP0,         4,   2 },  // Num 0
-	{ SDLK_KP1,         0,   1 },  // Num 1
-	{ SDLK_KP2,         0,   2 },  // Num 2
-	{ SDLK_KP3,         0,   4 },  // Num 3
-	{ SDLK_KP4,         0,   8 },  // Num 4
-	{ SDLK_KP5,         0,  16 },  // Num 5
-	{ SDLK_KP6,         0,  32 },  // Num 6
-	{ SDLK_KP7,         0,  64 },  // Num 7
-	{ SDLK_KP8,         4,   8 },  // Num 8
-	{ SDLK_KP9,         5,   8 },  // Num 9
-	{ SDLK_KP_PERIOD,   5,  16 },  // Num .
-	{ SDLK_KP_DIVIDE,   5,   2 },  // Num /
-	{ SDLK_KP_MINUS,    4,   1 },  // Num -
-	{ SDLK_KP_MULTIPLY, 6, 192 },  // Num *
-	{ SDLK_KP_PLUS,     5, 132 },  // Num +
+	{ SDL_SCANCODE_KP_0,        4,   2 },  // Num 0
+	{ SDL_SCANCODE_KP_1,        0,   1 },  // Num 1
+	{ SDL_SCANCODE_KP_2,        0,   2 },  // Num 2
+	{ SDL_SCANCODE_KP_3,        0,   4 },  // Num 3
+	{ SDL_SCANCODE_KP_4,        0,   8 },  // Num 4
+	{ SDL_SCANCODE_KP_5,        0,  16 },  // Num 5
+	{ SDL_SCANCODE_KP_6,        0,  32 },  // Num 6
+	{ SDL_SCANCODE_KP_7,        0,  64 },  // Num 7
+	{ SDL_SCANCODE_KP_8,        4,   8 },  // Num 8
+	{ SDL_SCANCODE_KP_9,        5,   8 },  // Num 9
+	{ SDL_SCANCODE_KP_PERIOD,   5,  16 },  // Num .
+	{ SDL_SCANCODE_KP_DIVIDE,   5,   2 },  // Num /
+	{ SDL_SCANCODE_KP_MINUS,    4,   1 },  // Num -
+	{ SDL_SCANCODE_KP_MULTIPLY, 6, 192 },  // Num *
+	{ SDL_SCANCODE_KP_PLUS,     5, 132 },  // Num +
 
 	// CNT bit added - idx=15
-	{ SDLK_TAB,         3,   4 },  // C-D    (Tab)
-	{ SDLK_PAGEUP,      3,   2 },  // RCL    (Page Up)
-	{ SDLK_PAGEDOWN,    3,  16 },  // CLL    (Page Down)
-	{ SDLK_END,         6,  32 },  // ENDL   (End)
-	{ SDLK_HOME,        6,   2 },  // BGNL   (Home)
-	{ SDLK_INSERT,      3,  64 },  // INST   (Insert)
-	{ SDLK_DELETE,      3,  32 },  // DELT   (Delete)
-	{ SDLK_BACKQUOTE,   3,   1 },  // WRK
+	{ SDL_SCANCODE_TAB,         3,   4 },  // C-D    (Tab)
+	{ SDL_SCANCODE_PAGEUP,      3,   2 },  // RCL    (Page Up)
+	{ SDL_SCANCODE_PAGEDOWN,    3,  16 },  // CLL    (Page Down)
+	{ SDL_SCANCODE_END,         6,  32 },  // ENDL   (End)
+	{ SDL_SCANCODE_HOME,        6,   2 },  // BGNL   (Home)
+	{ SDL_SCANCODE_INSERT,      3,  64 },  // INST   (Insert)
+	{ SDL_SCANCODE_DELETE,      3,  32 },  // DELT   (Delete)
+	{ SDL_SCANCODE_GRAVE,       3,   1 },  // WRK
 
-	{ SDLK_F1,          0,   1 },  // K0     (F1)
-	{ SDLK_F2,          0,   2 },  // K1     (F2)
-	{ SDLK_F3,          0,   4 },  // K2     (F3)
-	{ SDLK_F4,          0,   8 },  // K3     (F4)
-	{ SDLK_F5,          0,  16 },  // K4     (F5)
-	{ SDLK_F6,          0,  32 },  // K5     (F6)
-	{ SDLK_F7,          0,  64 },  // K6     (F7)
-	{ SDLK_F8,          4,   8 },  // K7     (F8)
-	{ SDLK_F9,          5,   8 },  // K8     (F9)
-	{ SDLK_F10,         4,   2 },  // K9     (F10)
-	{ SDLK_F11,         4,   1 },  // K10    (F11)
-	{ SDLK_F12,         4,   4 },  // K11    (F12)
+	{ SDL_SCANCODE_F1,          0,   1 },  // K0     (F1)
+	{ SDL_SCANCODE_F2,          0,   2 },  // K1     (F2)
+	{ SDL_SCANCODE_F3,          0,   4 },  // K2     (F3)
+	{ SDL_SCANCODE_F4,          0,   8 },  // K3     (F4)
+	{ SDL_SCANCODE_F5,          0,  16 },  // K4     (F5)
+	{ SDL_SCANCODE_F6,          0,  32 },  // K5     (F6)
+	{ SDL_SCANCODE_F7,          0,  64 },  // K6     (F7)
+	{ SDL_SCANCODE_F8,          4,   8 },  // K7     (F8)
+	{ SDL_SCANCODE_F9,          5,   8 },  // K8     (F9)
+	{ SDL_SCANCODE_F10,         4,   2 },  // K9     (F10)
+	{ SDL_SCANCODE_F11,         4,   1 },  // K10    (F11)
+	{ SDL_SCANCODE_F12,         4,   4 },  // K11    (F12)
 	{ 0, 0, 0 },
 
 	// shifted - idx=36
-	{ SDLK_INSERT,      5,   2 },  // PTL    (Shift + Insert)
-	{ SDLK_PAGEUP,      4,  16 },  // MON    (Shift + Page Up)
-	{ SDLK_PAGEDOWN,    5,  16 },  // DELL   (Shift + Page Down)
-	{ SDLK_END,         6,  16 },  // BEEP   (Shift + End)
-	{ SDLK_HOME,        3,   8 },  // CLS    (Shift + Home)
+	{ SDL_SCANCODE_INSERT,      5,   2 },  // PTL    (Shift + Insert)
+	{ SDL_SCANCODE_PAGEUP,      4,  16 },  // MON    (Shift + Page Up)
+	{ SDL_SCANCODE_PAGEDOWN,    5,  16 },  // DELL   (Shift + Page Down)
+	{ SDL_SCANCODE_END,         6,  16 },  // BEEP   (Shift + End)
+	{ SDL_SCANCODE_HOME,        3,   8 },  // CLS    (Shift + Home)
 	{ 0, 0, 0 }
 };
 //---------------------------------------------------------------------------
@@ -345,9 +345,8 @@ void SystemPIO::ScanKeyboard(BYTE *KeyBuffer)
 		return;
 
 	// pressing of ALT/META resets whole matrix because it's used for hotkeys
-	if (KeyBuffer[SDLK_MENU] || KeyBuffer[SDLK_LALT] || KeyBuffer[SDLK_RALT]
-	 || KeyBuffer[SDLK_LMETA] || KeyBuffer[SDLK_RMETA]
-	 || KeyBuffer[SDLK_LSUPER] || KeyBuffer[SDLK_RSUPER]) {
+	if (KeyBuffer[SDL_SCANCODE_MENU] || KeyBuffer[SDL_SCANCODE_LALT] || KeyBuffer[SDL_SCANCODE_RALT]
+	 || KeyBuffer[SDL_SCANCODE_LGUI] || KeyBuffer[SDL_SCANCODE_RGUI]) {
 		for (int ii = 0; ii < (int)sizeof(KeyColumns); ii++)
 			KeyColumns[ii] = 0;
 		ShiftStopCtrl = 0;
@@ -355,9 +354,9 @@ void SystemPIO::ScanKeyboard(BYTE *KeyBuffer)
 	}
 
 	if (exchZY == true) {
-		keyExchZY = KeyBuffer[SDLK_z];
-		KeyBuffer[SDLK_z] = keyExchYZ = KeyBuffer[SDLK_y];
-		KeyBuffer[SDLK_y] = keyExchZY;
+		keyExchZY = KeyBuffer[SDL_SCANCODE_Z];
+		KeyBuffer[SDL_SCANCODE_Z] = keyExchYZ = KeyBuffer[SDL_SCANCODE_Y];
+		KeyBuffer[SDL_SCANCODE_Y] = keyExchZY;
 	}
 
 	int bi = 0;
@@ -371,36 +370,36 @@ void SystemPIO::ScanKeyboard(BYTE *KeyBuffer)
 		}
 
 		// BackSpace
-		if (KeyBuffer[SDLK_BACKSPACE] && !KeyBuffer[SDLK_LEFT])
+		if (KeyBuffer[SDL_SCANCODE_BACKSPACE] && !KeyBuffer[SDL_SCANCODE_LEFT])
 			KeyColumns[6] |= 16;
 
 		// EOL
-		if (KeyBuffer[SDLK_RETURN] || KeyBuffer[SDLK_KP_ENTER])
+		if (KeyBuffer[SDL_SCANCODE_RETURN] || KeyBuffer[SDL_SCANCODE_KP_ENTER])
 			KeyColumns[7] |= 0x80;
 		else
 			KeyColumns[7] &= ~0x80;
 
 		// STOP
-		if (KeyBuffer[SDLK_ESCAPE])
+		if (KeyBuffer[SDL_SCANCODE_ESCAPE])
 			ShiftStopCtrl |= 0x10;
 		else
 			ShiftStopCtrl &= ~0x10;
 
 		// SHF
-		if (KeyBuffer[SDLK_LSHIFT] || KeyBuffer[SDLK_RSHIFT])
+		if (KeyBuffer[SDL_SCANCODE_LSHIFT] || KeyBuffer[SDL_SCANCODE_RSHIFT])
 			ShiftStopCtrl |= 0x20;
 		else
 			ShiftStopCtrl &= ~0x20;
 
 		// CNT
-		if (KeyBuffer[SDLK_LCTRL] || KeyBuffer[SDLK_RCTRL])
+		if (KeyBuffer[SDL_SCANCODE_LCTRL] || KeyBuffer[SDL_SCANCODE_RCTRL])
 			ShiftStopCtrl |= 0x40;
 		else
 			ShiftStopCtrl &= ~0x40;
 
 		// control keys and numeric keypad
 		if (extMato == true) {
-			if (KeyBuffer[SDLK_LSHIFT] || KeyBuffer[SDLK_RSHIFT])
+			if (KeyBuffer[SDL_SCANCODE_LSHIFT] || KeyBuffer[SDL_SCANCODE_RSHIFT])
 				bi = 36;
 			else
 				bi = 0;
@@ -430,17 +429,17 @@ void SystemPIO::ScanKeyboard(BYTE *KeyBuffer)
 		}
 
 		// BackSpace
-		if (KeyBuffer[SDLK_BACKSPACE] && !KeyBuffer[SDLK_LEFT])
+		if (KeyBuffer[SDL_SCANCODE_BACKSPACE] && !KeyBuffer[SDL_SCANCODE_LEFT])
 			KeyColumns[12] |= 4;
 
 		// SHIFT
-		if (KeyBuffer[SDLK_LSHIFT] || KeyBuffer[SDLK_RSHIFT])
+		if (KeyBuffer[SDL_SCANCODE_LSHIFT] || KeyBuffer[SDL_SCANCODE_RSHIFT])
 			ShiftStopCtrl |= 0x20;
 		else
 			ShiftStopCtrl &= ~0x20;
 
 		// STOP
-		if (KeyBuffer[SDLK_ESCAPE] || KeyBuffer[SDLK_LCTRL] || KeyBuffer[SDLK_RCTRL])
+		if (KeyBuffer[SDL_SCANCODE_ESCAPE] || KeyBuffer[SDL_SCANCODE_LCTRL] || KeyBuffer[SDL_SCANCODE_RCTRL])
 			ShiftStopCtrl |= 0x40;
 		else
 			ShiftStopCtrl &= ~0x40;
@@ -460,8 +459,8 @@ void SystemPIO::ScanKeyboard(BYTE *KeyBuffer)
 	}
 
 	if (exchZY == true) {
-		KeyBuffer[SDLK_z] = keyExchZY;
-		KeyBuffer[SDLK_y] = keyExchYZ;
+		KeyBuffer[SDL_SCANCODE_Z] = keyExchZY;
+		KeyBuffer[SDL_SCANCODE_Y] = keyExchYZ;
 	}
 
 }

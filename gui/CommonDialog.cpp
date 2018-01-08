@@ -1,5 +1,5 @@
 /*	CommonDialog.cpp: Part of GUI rendering class: Common popup dialogs
-	Copyright (c) 2011-2012 Martin Borik <mborik@users.sourceforge.net>
+	Copyright (c) 2011-2018 Martin Borik <mborik@users.sourceforge.net>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -59,23 +59,23 @@ BYTE UserInterface::queryDialog(const char *title, bool save)
 					change = false;
 
 					switch (event.key.keysym.sym) {
-						case SDLK_ESCAPE:
+						case SDL_SCANCODE_ESCAPE:
 							uiQueryState = GUI_QUERY_CANCEL;
 							break;
 
-						case SDLK_RETURN:
-						case SDLK_KP_ENTER:
+						case SDL_SCANCODE_RETURN:
+						case SDL_SCANCODE_KP_ENTER:
 							uiQueryState = ptr->action;
 							break;
 
-						case SDLK_UP:
+						case SDL_SCANCODE_UP:
 							if (cMenu_hilite > 0) {
 								cMenu_hilite--;
 								change = true;
 							}
 							break;
 
-						case SDLK_DOWN:
+						case SDL_SCANCODE_DOWN:
 							if (cMenu_hilite < (cMenu_count - 1)) {
 								cMenu_hilite++;
 								change = true;
@@ -99,8 +99,12 @@ BYTE UserInterface::queryDialog(const char *title, bool save)
 					}
 					break;
 
-				case SDL_VIDEOEXPOSE:
-					Emulator->RefreshDisplay();
+				case SDL_WINDOWEVENT:
+					if (event.window.windowID == gvi.windowID &&
+						event.window.event == SDL_WINDOWEVENT_EXPOSED) {
+
+						Emulator->RefreshDisplay();
+					}
 					break;
 
 				default:
@@ -193,6 +197,7 @@ void UserInterface::messageBox(const char *text, ...)
 	i = 1;
 	DWORD nextTick;
 	SDL_Event event;
+
 	while (i) {
 		nextTick = SDL_GetTicks() + CPU_TIMER_INTERVAL;
 
@@ -200,10 +205,10 @@ void UserInterface::messageBox(const char *text, ...)
 			switch (event.type) {
 				case SDL_KEYDOWN:
 					switch (event.key.keysym.sym) {
-						case SDLK_SPACE:
-						case SDLK_ESCAPE:
-						case SDLK_RETURN:
-						case SDLK_KP_ENTER:
+						case SDL_SCANCODE_SPACE:
+						case SDL_SCANCODE_ESCAPE:
+						case SDL_SCANCODE_RETURN:
+						case SDL_SCANCODE_KP_ENTER:
 							i = 0;
 							break;
 
@@ -212,8 +217,12 @@ void UserInterface::messageBox(const char *text, ...)
 					}
 					break;
 
-				case SDL_VIDEOEXPOSE:
-					Emulator->RefreshDisplay();
+				case SDL_WINDOWEVENT:
+					if (event.window.windowID == gvi.windowID &&
+						event.window.event == SDL_WINDOWEVENT_EXPOSED) {
+
+						Emulator->RefreshDisplay();
+					}
 					break;
 
 				default:

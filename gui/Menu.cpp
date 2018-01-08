@@ -172,26 +172,26 @@ void UserInterface::keyhandlerMenu(WORD key)
 	bool change = false;
 
 	switch (key) {
-		case SDLK_F4 | KM_ALT:
+		case SDL_SCANCODE_F4 | KM_ALT:
 			Emulator->ActionExit();
 			menuCloseAll();
 			needRelease = true;
 			return;
 
-		case SDLK_ESCAPE:
+		case SDL_SCANCODE_ESCAPE:
 			menuClose();
 			needRelease = true;
 			return;
 
-		case SDLK_SPACE:
+		case SDL_SCANCODE_SPACE:
 			if (ptr->enabled && ptr->type == MI_CHECKBOX
 			 && ptr->action >= 0x8000)
 				ptr->action |= 0x4000; // ... and continue in ENTER section...
 			else
 				break;
 
-		case SDLK_RETURN:
-		case SDLK_KP_ENTER:
+		case SDL_SCANCODE_RETURN:
+		case SDL_SCANCODE_KP_ENTER:
 			if (ptr->enabled) {
 				needRelease = true;
 
@@ -218,22 +218,22 @@ void UserInterface::keyhandlerMenu(WORD key)
 			}
 			break;
 
-		case SDLK_BACKSPACE:
-		case SDLK_LEFT:
+		case SDL_SCANCODE_BACKSPACE:
+		case SDL_SCANCODE_LEFT:
 			if (menuStackLevel > 0)
 				menuClose();
 
 			needRelease = true;
 			return;
 
-		case SDLK_RIGHT:
+		case SDL_SCANCODE_RIGHT:
 			if (ptr->enabled && ptr->type == MI_SUBMENU && ptr->submenu)
 				menuOpen(GUI_TYPE_MENU, ptr->submenu);
 
 			needRelease = true;
 			return;
 
-		case SDLK_UP:
+		case SDL_SCANCODE_UP:
 			cMenu_hilite--;
 			if (cMenu_hilite < 0)
 				cMenu_hilite += cMenu_count;
@@ -247,7 +247,7 @@ void UserInterface::keyhandlerMenu(WORD key)
 			change = true;
 			break;
 
-		case SDLK_DOWN:
+		case SDL_SCANCODE_DOWN:
 			cMenu_hilite++;
 			if (cMenu_hilite >= cMenu_count)
 				cMenu_hilite -= cMenu_count;
@@ -261,15 +261,15 @@ void UserInterface::keyhandlerMenu(WORD key)
 			change = true;
 			break;
 
-		case SDLK_HOME:
-		case SDLK_PAGEUP:
+		case SDL_SCANCODE_HOME:
+		case SDL_SCANCODE_PAGEUP:
 			cMenu_hilite = 0;
 			needRelease = true;
 			change = true;
 			break;
 
-		case SDLK_END:
-		case SDLK_PAGEDOWN:
+		case SDL_SCANCODE_END:
+		case SDL_SCANCODE_PAGEDOWN:
 			cMenu_hilite = (cMenu_count - 1);
 			needRelease = true;
 			change = true;

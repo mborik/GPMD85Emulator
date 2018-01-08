@@ -145,11 +145,11 @@ void UserInterface::keyhandlerDebugWindow(WORD key)
 	bool UNUSED_VARIABLE change = false;
 
 	switch (key) {
-		case SDLK_F1 | KM_ALT:
-			key = SDLK_MENU;
+		case SDL_SCANCODE_F1 | KM_ALT:
+			key = SDL_SCANCODE_MENU;
 			break;
-		case SDLK_F4 | KM_ALT:
-			key = SDLK_POWER;
+		case SDL_SCANCODE_F4 | KM_ALT:
+			key = SDL_SCANCODE_POWER;
 			break;
 		default:
 			key &= (KM_ALT ^ 0xFFFF);
@@ -157,18 +157,18 @@ void UserInterface::keyhandlerDebugWindow(WORD key)
 	}
 
 	switch (key) {
-		case SDLK_POWER:
+		case SDL_SCANCODE_POWER:
 			Emulator->ActionExit();
 			menuCloseAll();
 			needRelease = true;
 			return;
 
-		case SDLK_ESCAPE:
+		case SDL_SCANCODE_ESCAPE:
 			menuClose();
 			needRelease = true;
 			return;
 
-		case SDLK_TAB:
+		case SDL_SCANCODE_TAB:
 			if (Settings->Debugger->listType == DL_DUMP)
 				Settings->Debugger->listType = DL_ASCII;
 			else if (Settings->Debugger->listType == DL_ASCII)
@@ -180,32 +180,32 @@ void UserInterface::keyhandlerDebugWindow(WORD key)
 			change = true;
 			break;
 
-		case SDLK_h | KM_CTRL:
+		case SDL_SCANCODE_H | KM_CTRL:
 			Settings->Debugger->hex = !Settings->Debugger->hex;
 			drawDebugWindow();
 			change = true;
 			break;
 
-		case SDLK_z | KM_CTRL:
+		case SDL_SCANCODE_Z | KM_CTRL:
 			Settings->Debugger->z80 = !Settings->Debugger->z80;
 			drawDebugWindow();
 			change = true;
 			break;
 
-		case SDLK_F7 | KM_SHIFT:
+		case SDL_SCANCODE_F7 | KM_SHIFT:
 			Debugger->DoStepToNext();
 			break;
 
-		case SDLK_F7:
+		case SDL_SCANCODE_F7:
 			Debugger->DoStepInto();
 			drawDebugWindow();
 			break;
 
-		case SDLK_F8 | KM_SHIFT:
+		case SDL_SCANCODE_F8 | KM_SHIFT:
 			Debugger->DoStepOut();
 			break;
 
-		case SDLK_F8:
+		case SDL_SCANCODE_F8:
 			Debugger->DoStepOver();
 			drawDebugWindow();
 			break;

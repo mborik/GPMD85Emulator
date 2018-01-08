@@ -43,8 +43,8 @@ const char *dcb_tape_contblk_state(GUI_MENU_ENTRY *ptr)
 			f = l = GUI->tapeDialog->popup.hilite;
 		}
 
-		if ((i == SDLK_UP && f == 0) ||
-			(i == SDLK_DOWN && l == (TapeBrowser->totalBlocks - 1)))
+		if ((i == SDL_SCANCODE_UP && f == 0) ||
+			(i == SDL_SCANCODE_DOWN && l == (TapeBrowser->totalBlocks - 1)))
 			ptr->enabled = false;
 	}
 
@@ -53,7 +53,6 @@ const char *dcb_tape_contblk_state(GUI_MENU_ENTRY *ptr)
 //-----------------------------------------------------------------------------
 const char *dcb_view_size_state(GUI_MENU_ENTRY *ptr)
 {
-	ptr->enabled = (gvi.wm) ? true : false;
 	ptr->state = (Settings->Screen->size == (TDisplayMode) ptr->action);
 	return NULL;
 }
@@ -212,7 +211,7 @@ const char *dcb_mem_rpkg_state(GUI_MENU_ENTRY *ptr)
 			gui_rom_packages[i + 1].text = Settings->RomPackages[i]->name;
 			gui_rom_packages[i + 1].hotkey = NULL;
 			gui_rom_packages[i + 1].submenu = NULL;
-			gui_rom_packages[i + 1].key = SDLK_LAST;
+			gui_rom_packages[i + 1].key = -1;
 			gui_rom_packages[i + 1].enabled = true;
 			gui_rom_packages[i + 1].state = false;
 			gui_rom_packages[i + 1].action = i;

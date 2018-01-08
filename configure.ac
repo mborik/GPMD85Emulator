@@ -1,9 +1,9 @@
 # GPMD85emu autoconf
-# mborik, 10/2011-04/2014, 09/2017
+# mborik, 10/2011-04/2014, 09/2017-01/2018
 
 AC_PREREQ([2.59])
-AC_INIT([GPMD85emulator], [0.9.1709], [mborik@users.sourceforge.net],
-        [gpmd85emu], [http://gpmd85emulator.sourceforge.net/])
+AC_INIT([GPMD85emulator], [0.10.1801], [mborik@users.sourceforge.net],
+        [gpmd85emu], [https://github.com/mborik/GPMD85Emulator])
 AC_CONFIG_SRCDIR([GPMD85emu.cpp])
 
 AM_INIT_AUTOMAKE([foreign])
@@ -15,6 +15,7 @@ AC_DEFINE_UNQUOTED([PACKAGE_YEAR], "`date +%Y`",
 AC_PROG_RANLIB
 AC_PROG_CXX
 AC_PROG_CC
+AC_REQUIRE_CPP
 
 # Add an additional flag if using CLANG
 AC_MSG_CHECKING([if compiling with clang])
@@ -68,54 +69,20 @@ if test "x$trace" = "xyes"; then
 fi
 AC_MSG_RESULT([${trace}])
 
-# Check if we have to display screen with OpenGL:
-AC_MSG_CHECKING([gpmd85emu: OpenGL])
-AC_ARG_WITH([opengl],
-	AS_HELP_STRING([--with-opengl], [OpenGL support, default: no]),
-	[case "${withval}" in
-		yes) opengl=yes ;;
-		no)  opengl=no  ;;
-		*)   AC_MSG_ERROR([bad value ${withval} for --with-opengl]) ;;
-	esac],
-	[opengl=no]
-)
-AC_MSG_RESULT([${opengl}])
-
 resDir_CFLAGS=" -DDIR_RESOURCES=\"\\\""$\{pkgdatadir}"\\\"\""
 AC_SUBST(resDir_CFLAGS)
 
 # Checks for libraries (with classic lib/header solution if pkg-config fail):
-PKG_CHECK_MODULES([libSDL], [sdl],, [
-	AC_CHECK_LIB([SDL], [SDL_Quit], [
-		AC_CHECK_HEADER([SDL.h], [
-			libSDL_LIBS="-lSDL -lpthread"
-			libSDL_CFLAGS="-I${includedir}/SDL -D_GNU_SOURCE=1 -D_REENTRANT"
+PKG_CHECK_MODULES([libSDL], [sdl2],, [
+	AC_CHECK_LIB([SDL2], [SDL_Init], [
+		AC_CHECK_HEADER([SDL2/SDL.h], [
+			libSDL_LIBS="-lSDL2"
+			libSDL_CFLAGS="-I${includedir}/SDL2 -D_THREAD_SAFE"
 			AC_SUBST(libSDL_LIBS)
 			AC_SUBST(libSDL_CFLAGS)
-		], AC_MSG_ERROR([SDL header not found]))
-	], AC_MSG_ERROR([SDL library not found]))
+		], AC_MSG_ERROR([SDL2 header not found]))
+	], AC_MSG_ERROR([SDL2 library not found]))
 ])
-if test "x$opengl" = "xyes"; then
-	PKG_CHECK_MODULES([libGL], [gl], [
-		CXXFLAGS+=" -DOPENGL"
-		CFLAGS+=" -DOPENGL"
-	], [
-		AC_CHECK_HEADER([SDL/SDL_opengl.h],
-			AC_CHECK_LIB([GL], [main], [
-				libGL_LIBS="-lGL"
-				AC_SUBST(libGL_LIBS)
-				CXXFLAGS+=" -DOPENGL"
-				CFLAGS+=" -DOPENGL"
-			], AC_CHECK_LIB([opengl32], [main], [
-				libGL_LIBS="-lopengl32"
-				AC_SUBST(libGL_LIBS)
-				CXXFLAGS+=" -DOPENGL"
-				CFLAGS+=" -DOPENGL"
-			], AC_MSG_WARN([OpenGL library not found]))
-		),
-		AC_MSG_WARN([OpenGL header not found]))
-	])
-fi
 
 AC_SUBST(CXXFLAGS)
 AC_SUBST(CFLAGS)
@@ -123,8 +90,8 @@ AC_SUBST(DEBUG)
 
 # Checks for header files:
 AC_CHECK_HEADERS([\
+	stdio.h stdarg.h stddef.h stdint.h stdlib.h unistd.h \
 	inttypes.h memory.h string.h strings.h \
-	stddef.h stdint.h stdlib.h unistd.h \
 	sys/syslimits.h \
 ])
 

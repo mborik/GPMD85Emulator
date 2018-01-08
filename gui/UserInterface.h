@@ -1,5 +1,5 @@
 /*	UserInterface.h: Class for GUI rendering.
-	Copyright (c) 2011-2012 Martin Borik <mborik@users.sourceforge.net>
+	Copyright (c) 2011-2018 Martin Borik <mborik@users.sourceforge.net>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -59,8 +59,10 @@
 //-----------------------------------------------------------------------------
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
 #define SDL_DEFAULT_MASK_QUAD 0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff
+#define DWORD_COLOR_ENTRY(R, G, B) SDL_FOURCC(R, G, B, 0xff)
 #else
 #define SDL_DEFAULT_MASK_QUAD 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000
+#define DWORD_COLOR_ENTRY(R, G, B) SDL_FOURCC(0xff, B, G, R)
 #endif
 //-----------------------------------------------------------------------------
 typedef struct _GUI_MENU_ENTRY {

@@ -1,5 +1,5 @@
 /*	UserInterface.cpp: Class for GUI rendering.
-	Copyright (c) 2011-2012 Martin Borik <mborik@users.sourceforge.net>
+	Copyright (c) 2011-2018 Martin Borik <mborik@users.sourceforge.net>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -169,7 +169,7 @@ SDL_Surface *UserInterface::loadIcons(const char *file)
 		return NULL;
 
 	if (src->format->BitsPerPixel >= 24) {
-		SDL_SetColorKey(src, SDL_SRCCOLORKEY, SDL_MapRGB(src->format, 255, 0, 255));
+		SDL_SetColorKey(src, SDL_TRUE, SDL_MapRGB(src->format, 255, 0, 255));
 		return src;
 	}
 	else if (src->format->BitsPerPixel != 8 || !src->format->palette) {
@@ -499,8 +499,6 @@ void UserInterface::menuOpen(GUI_MENU_TYPE type, void *data)
 				return;
 		}
 	}
-
-	SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, GUI_CONST_KEY_REPEAT);
 
 	if (menuStackLevel < 0) {
 		uiSetChanges = 0;

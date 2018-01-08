@@ -1,6 +1,6 @@
 /*	GPMD85main.h: Core of emulation and interface.
 	Copyright (c) 2006-2010 Roman Borik <pmd85emu@gmail.com>
-	Copyright (c) 2011-2012 Martin Borik <mborik@users.sourceforge.net>
+	Copyright (c) 2011-2018 Martin Borik <mborik@users.sourceforge.net>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -42,7 +42,7 @@ class TEmulator : public sigslot::has_slots<>
 		bool isRunning;
 
 		SDL_TimerID BaseTimer;
-		BYTE *keyBuffer;
+		BYTE keyBuffer[SDL_NUM_SCANCODES];
 
 		TEmulator();
 		virtual ~TEmulator();
@@ -95,6 +95,7 @@ class TEmulator : public sigslot::has_slots<>
 
 		BYTE *videoRam;
 		TComputerModel model;
+		SDL_Event exposeEvent;
 		bool compatible32;
 		int  monitorLength;
 		bool romChanged;

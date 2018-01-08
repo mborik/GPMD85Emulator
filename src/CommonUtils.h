@@ -1,5 +1,5 @@
 /*	CommonUtils.cpp: Class with common static methods and properties.
-	Copyright (c) 2011-2012 Martin Borik <mborik@users.sourceforge.net>
+	Copyright (c) 2011-2018 Martin Borik <mborik@users.sourceforge.net>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -26,11 +26,11 @@ public:
 	static struct stat filestat;
 
 	static struct TGlobalVideoInfo {
-		unsigned hw:1;
-		unsigned wm:1;
-		unsigned depth:6;
-		unsigned w:16;
-		unsigned h:16;
+		SDL_Window *window;
+		DWORD windowID;
+		DWORD format;
+		unsigned int w;
+		unsigned int h;
 	} globalVideoInfo;
 
 	static char *pathApplicationConfig;
