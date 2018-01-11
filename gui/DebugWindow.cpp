@@ -18,7 +18,7 @@
 #include "UserInterface.h"
 #include "GPMD85main.h"
 //-----------------------------------------------------------------------------
-void UserInterface::drawDebugWidgetDisass(SDL_Rect *r, bool full)
+void UserInterface::DrawDebugWidgetDisass(GUI_SURFACE *s, SDL_Rect *r, bool full)
 {
 	int mx = r->x + (2 * fontWidth),
 		my = r->y + (GUI_CONST_BORDER / 2),
@@ -27,8 +27,8 @@ void UserInterface::drawDebugWidgetDisass(SDL_Rect *r, bool full)
 	r->w = (33 * fontWidth) + 1;
 	r->h = (l2 * fontLineHeight) + GUI_CONST_BORDER;
 
-	drawDebugFrame(defaultSurface, r->x, r->y, r->w, r->h);
-	drawRectangle(defaultSurface, r->x, my + (l1 * fontLineHeight) - 1,
+	DrawDebugFrame(s, r->x, r->y, r->w, r->h);
+	DrawRectangle(s, r->x, my + (l1 * fontLineHeight) - 1,
 			r->w - 1, fontLineHeight, GUI_COLOR_DBG_CURSOR);
 
 	BYTE b = l1;
@@ -37,9 +37,9 @@ void UserInterface::drawDebugWidgetDisass(SDL_Rect *r, bool full)
 		line = Debugger->FillDisass(&b);
 
 		if (line)
-			printText(defaultSurface, mx, my, GUI_COLOR_DBG_TEXT, line);
+			PrintText(s, mx, my, GUI_COLOR_DBG_TEXT, line);
 		if (b)
-			printChar(defaultSurface, mx - GUI_CONST_HOTKEYCHAR, my,
+			PrintChar(s, mx - GUI_CONST_HOTKEYCHAR, my,
 					GUI_COLOR_HIGHLIGHT, SCHR_NAVIGATOR);
 
 		my += fontLineHeight;
@@ -48,7 +48,7 @@ void UserInterface::drawDebugWidgetDisass(SDL_Rect *r, bool full)
 	r->x += r->w + 2;
 }
 //-----------------------------------------------------------------------------
-void UserInterface::drawDebugWidgetRegs(SDL_Rect *r)
+void UserInterface::DrawDebugWidgetRegs(GUI_SURFACE *s, SDL_Rect *r)
 {
 	int mx, my = r->y + (GUI_CONST_BORDER / 2);
 
@@ -56,37 +56,37 @@ void UserInterface::drawDebugWidgetRegs(SDL_Rect *r)
 	r->h = (6 * fontLineHeight) + GUI_CONST_BORDER;
 	mx = r->x + r->w;
 
-	drawDebugFrame(defaultSurface, r->x, r->y, r->w, r->h);
-	drawRectangle(defaultSurface, r->x, my + (4 * fontLineHeight) - 1,
+	DrawDebugFrame(s, r->x, r->y, r->w, r->h);
+	DrawRectangle(s, r->x, my + (4 * fontLineHeight) - 1,
 			r->w - 1, fontLineHeight, GUI_COLOR_DBG_CURSOR);
-	printText(defaultSurface, r->x + fontWidth, my,
+	PrintText(s, r->x + fontWidth, my,
 			GUI_COLOR_DBG_TEXT, Debugger->FillRegs());
 
 	r->w = (4 * fontWidth);
-	drawDebugFrame(defaultSurface, mx, r->y, r->w, r->h);
-	printText(defaultSurface, mx + fontWidth, r->y + (GUI_CONST_BORDER / 2),
+	DrawDebugFrame(s, mx, r->y, r->w, r->h);
+	PrintText(s, mx + fontWidth, r->y + (GUI_CONST_BORDER / 2),
 			GUI_COLOR_DBG_TEXT, Debugger->FillFlags());
 
 	r->y += r->h + 2;
 }
 //-----------------------------------------------------------------------------
-void UserInterface::drawDebugWidgetStack(SDL_Rect *r)
+void UserInterface::DrawDebugWidgetStack(GUI_SURFACE *s, SDL_Rect *r)
 {
 	int my = r->y + (GUI_CONST_BORDER / 2);
 
 	r->w = (14 * fontWidth);
 	r->h = (5 * fontLineHeight) + GUI_CONST_BORDER - 1;
 
-	drawDebugFrame(defaultSurface, r->x, r->y, r->w, r->h);
-	drawRectangle(defaultSurface, r->x, my + fontLineHeight - 1,
+	DrawDebugFrame(s, r->x, r->y, r->w, r->h);
+	DrawRectangle(s, r->x, my + fontLineHeight - 1,
 			r->w - 1, fontLineHeight, GUI_COLOR_DBG_CURSOR);
-	printText(defaultSurface, r->x + fontWidth, my,
+	PrintText(s, r->x + fontWidth, my,
 			GUI_COLOR_DBG_TEXT, Debugger->FillStack());
 
 	r->y += r->h + 2;
 }
 //-----------------------------------------------------------------------------
-void UserInterface::drawDebugWidgetBreaks(SDL_Rect *r)
+void UserInterface::DrawDebugWidgetBreaks(GUI_SURFACE *s, SDL_Rect *r)
 {
 	int mx = r->x + (2 * fontWidth),
 		my = r->y + (GUI_CONST_BORDER / 2);
@@ -94,7 +94,7 @@ void UserInterface::drawDebugWidgetBreaks(SDL_Rect *r)
 	r->w = 284;
 	r->h = fontLineHeight + GUI_CONST_BORDER;
 
-	drawDebugFrame(defaultSurface, r->x, r->y, r->w + 1, r->h);
+	DrawDebugFrame(s, r->x, r->y, r->w + 1, r->h);
 
 	BYTE b = -1;
 	char *line = NULL;
@@ -102,9 +102,9 @@ void UserInterface::drawDebugWidgetBreaks(SDL_Rect *r)
 		line = Debugger->FillBreakpoints(&b);
 
 		if (line)
-			printText(defaultSurface, mx, my, GUI_COLOR_DBG_TEXT, line);
+			PrintText(s, mx, my, GUI_COLOR_DBG_TEXT, line);
 
-		printCheck(defaultSurface, mx - GUI_CONST_HOTKEYCHAR + 1, my + 1,
+		PrintCheck(s, mx - GUI_CONST_HOTKEYCHAR + 1, my + 1,
 				GUI_COLOR_CHECKED, SCHR_CHECK, (bool) b);
 
 		mx += fontWidth * 8;
@@ -113,34 +113,38 @@ void UserInterface::drawDebugWidgetBreaks(SDL_Rect *r)
 	r->y += r->h + 2;
 }
 //-----------------------------------------------------------------------------
-void UserInterface::drawDebugWindow()
+void UserInterface::DrawDebugWindow()
 {
 	cMenu_data = NULL;
 	cMenu_hilite = cMenu_leftMargin = cMenu_count = 0;
 
 	int base;
 	SDL_Rect *r = new SDL_Rect;
+
+	GUI_SURFACE *defaultSurface = LockSurface(defaultTexture);
 	memset(defaultSurface->pixels, 0, frameLength);
 
-	r->x = base = (defaultSurface->clip_rect.w - 284) / 2;
-	r->y = (defaultSurface->clip_rect.h - 252) / 2;
+	r->x = base = (frameWidth - 284) / 2;
+	r->y = (frameHeight - 252) / 2;
 
-	drawDebugWidgetDisass(r, (Settings->Debugger->listType == DL_DISASM));
-	drawDebugWidgetRegs(r);
-	drawDebugWidgetStack(r);
+	DrawDebugWidgetDisass(defaultSurface, r, (Settings->Debugger->listType == DL_DISASM));
+	DrawDebugWidgetRegs(defaultSurface, r);
+	DrawDebugWidgetStack(defaultSurface, r);
 
 	if (Settings->Debugger->listType == DL_DUMP ||
 		Settings->Debugger->listType == DL_ASCII) {
 
 		r->x = base;
-		drawDebugWidgetBreaks(r);
+		DrawDebugWidgetBreaks(defaultSurface, r);
 	}
 
 	delete r;
+
+	UnlockSurface(defaultTexture, defaultSurface);
 	needRedraw = true;
 }
 //-----------------------------------------------------------------------------
-void UserInterface::keyhandlerDebugWindow(WORD key)
+void UserInterface::KeyhandlerDebugWindow(WORD key)
 {
 	bool UNUSED_VARIABLE change = false;
 
@@ -159,12 +163,12 @@ void UserInterface::keyhandlerDebugWindow(WORD key)
 	switch (key) {
 		case SDL_SCANCODE_POWER:
 			Emulator->ActionExit();
-			menuCloseAll();
+			MenuCloseAll();
 			needRelease = true;
 			return;
 
 		case SDL_SCANCODE_ESCAPE:
-			menuClose();
+			MenuClose();
 			needRelease = true;
 			return;
 
@@ -176,19 +180,19 @@ void UserInterface::keyhandlerDebugWindow(WORD key)
 			else if (Settings->Debugger->listType == DL_DISASM)
 				Settings->Debugger->listType = DL_DUMP;
 
-			drawDebugWindow();
+			DrawDebugWindow();
 			change = true;
 			break;
 
 		case SDL_SCANCODE_H | KM_CTRL:
 			Settings->Debugger->hex = !Settings->Debugger->hex;
-			drawDebugWindow();
+			DrawDebugWindow();
 			change = true;
 			break;
 
 		case SDL_SCANCODE_Z | KM_CTRL:
 			Settings->Debugger->z80 = !Settings->Debugger->z80;
-			drawDebugWindow();
+			DrawDebugWindow();
 			change = true;
 			break;
 
@@ -198,7 +202,7 @@ void UserInterface::keyhandlerDebugWindow(WORD key)
 
 		case SDL_SCANCODE_F7:
 			Debugger->DoStepInto();
-			drawDebugWindow();
+			DrawDebugWindow();
 			break;
 
 		case SDL_SCANCODE_F8 | KM_SHIFT:
@@ -207,7 +211,7 @@ void UserInterface::keyhandlerDebugWindow(WORD key)
 
 		case SDL_SCANCODE_F8:
 			Debugger->DoStepOver();
-			drawDebugWindow();
+			DrawDebugWindow();
 			break;
 	}
 
@@ -215,7 +219,7 @@ void UserInterface::keyhandlerDebugWindow(WORD key)
 	if (Debugger->flag == 8 || Debugger->flag == 9) {
 		if (Debugger->flag == 8)
 			Debugger->flag = 0;
-		menuClose();
+		MenuClose();
 		needRelease = true;
 		uiSetChanges |= PS_CLOSEALL;
 	}

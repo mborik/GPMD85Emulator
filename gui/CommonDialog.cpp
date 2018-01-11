@@ -19,7 +19,7 @@
 #include "UserInterfaceData.h"
 #include "GPMD85main.h"
 //-----------------------------------------------------------------------------
-BYTE UserInterface::queryDialog(const char *title, bool save)
+BYTE UserInterface::QueryDialog(const char *title, bool save)
 {
 	void *data = (save) ? gui_query_save : gui_query_confirm;
 	char *dialogTitle = new char[strlen(title) + 5];
@@ -27,8 +27,10 @@ BYTE UserInterface::queryDialog(const char *title, bool save)
 	sprintf(dialogTitle, "  %s  ", title);
 	((GUI_MENU_ENTRY *) data)->text = (const char *) dialogTitle;
 
+	GUI_SURFACE *defaultSurface = LockSurface(defaultTexture);
+
 	BYTE *bkm_frameSave = new BYTE[frameLength];
-	memcpy(bkm_frameSave, defaultSurface->pixels, frameLength);
+//	memcpy(bkm_frameSave, defaultSurface->pixels, frameLength); // TODO FIXME!
 
 	GUI_MENU_ENTRY *bkm_data = cMenu_data;
 	SDL_Rect *bkm_rect = new SDL_Rect(*cMenu_rect);
@@ -40,7 +42,7 @@ BYTE UserInterface::queryDialog(const char *title, bool save)
 	menuStack[menuStackLevel].data = data;
 	menuStack[menuStackLevel].hilite = cMenu_hilite = (save) ? 2 : 1;
 
-	drawMenu(data);
+	DrawMenu(data);
 
 	bool change;
 	DWORD nextTick;
@@ -58,7 +60,7 @@ BYTE UserInterface::queryDialog(const char *title, bool save)
 					ptr = &cMenu_data[cMenu_hilite + 1];
 					change = false;
 
-					switch (event.key.keysym.sym) {
+					switch (event.key.keysym.scancode) {
 						case SDL_SCANCODE_ESCAPE:
 							uiQueryState = GUI_QUERY_CANCEL;
 							break;
@@ -87,7 +89,7 @@ BYTE UserInterface::queryDialog(const char *title, bool save)
 					}
 
 					if (change) {
-						drawMenuItems();
+						DrawMenuItems();
 						break;
 					}
 
@@ -100,7 +102,7 @@ BYTE UserInterface::queryDialog(const char *title, bool save)
 					break;
 
 				case SDL_WINDOWEVENT:
-					if (event.window.windowID == gvi.windowID &&
+					if (event.window.windowID == gdc.windowID &&
 						event.window.event == SDL_WINDOWEVENT_EXPOSED) {
 
 						Emulator->RefreshDisplay();
@@ -112,12 +114,13 @@ BYTE UserInterface::queryDialog(const char *title, bool save)
 			}
 		}
 
-		// have a break, have a tick-tock...
 		while (SDL_GetTicks() < nextTick)
 			SDL_Delay(1);
 	}
 
-	memcpy(defaultSurface->pixels, bkm_frameSave, frameLength);
+//	memcpy(defaultSurface->pixels, bkm_frameSave, frameLength); // TODO FIXME!
+
+	UnlockSurface(defaultTexture, defaultSurface);
 	needRelease = true;
 	needRedraw = true;
 
@@ -142,15 +145,17 @@ BYTE UserInterface::queryDialog(const char *title, bool save)
 	return uiQueryState;
 }
 //-----------------------------------------------------------------------------
-void UserInterface::messageBox(const char *text, ...)
+void UserInterface::MessageBox(const char *text, ...)
 {
 	va_list va;
 	va_start(va, text);
 	vsprintf(msgbuffer, text, va);
 	va_end(va);
 
+	GUI_SURFACE *defaultSurface = LockSurface(defaultTexture);
+
 	BYTE *bkm_frameSave = new BYTE[frameLength];
-	memcpy(bkm_frameSave, defaultSurface->pixels, frameLength);
+//	memcpy(bkm_frameSave, defaultSurface->pixels, frameLength); // TODO FIXME!
 
 	menuStackLevel++;
 
@@ -185,10 +190,10 @@ void UserInterface::messageBox(const char *text, ...)
 	x = (frameWidth  - w) / 2;
 	y = (frameHeight - h) / 2;
 
-	drawOutlineRounded(defaultSurface, x - 1, y - 1, w + 2, h + 2, GUI_COLOR_SHADOW);
-	drawRectangle(defaultSurface, x + 1, y + 1, w - 2, h - 2, GUI_COLOR_BACKGROUND);
-	drawOutlineRounded(defaultSurface, x, y, w, h, GUI_COLOR_BORDER);
-	printText(defaultSurface, x + (2 * GUI_CONST_BORDER),
+	DrawOutlineRounded(defaultSurface, x - 1, y - 1, w + 2, h + 2, GUI_COLOR_SHADOW);
+	DrawRectangle(defaultSurface, x + 1, y + 1, w - 2, h - 2, GUI_COLOR_BACKGROUND);
+	DrawOutlineRounded(defaultSurface, x, y, w, h, GUI_COLOR_BORDER);
+	PrintText(defaultSurface, x + (2 * GUI_CONST_BORDER),
 			y + GUI_CONST_BORDER + 1, GUI_COLOR_FOREGROUND, msgbuffer);
 
 	needRedraw = true;
@@ -204,7 +209,7 @@ void UserInterface::messageBox(const char *text, ...)
 		while (SDL_PollEvent(&event)) {
 			switch (event.type) {
 				case SDL_KEYDOWN:
-					switch (event.key.keysym.sym) {
+					switch (event.key.keysym.scancode) {
 						case SDL_SCANCODE_SPACE:
 						case SDL_SCANCODE_ESCAPE:
 						case SDL_SCANCODE_RETURN:
@@ -218,7 +223,7 @@ void UserInterface::messageBox(const char *text, ...)
 					break;
 
 				case SDL_WINDOWEVENT:
-					if (event.window.windowID == gvi.windowID &&
+					if (event.window.windowID == gdc.windowID &&
 						event.window.event == SDL_WINDOWEVENT_EXPOSED) {
 
 						Emulator->RefreshDisplay();
@@ -230,15 +235,16 @@ void UserInterface::messageBox(const char *text, ...)
 			}
 		}
 
-		// have a break, have a tick-tock...
 		while (SDL_GetTicks() < nextTick)
 			SDL_Delay(1);
 	}
 
-	memcpy(defaultSurface->pixels, bkm_frameSave, frameLength);
+//	memcpy(defaultSurface->pixels, bkm_frameSave, frameLength); // TODO FIXME!
+	delete [] bkm_frameSave;
+
 	SDL_Delay(GPU_TIMER_INTERVAL);
 
-	delete [] bkm_frameSave;
+	UnlockSurface(defaultTexture, defaultSurface);
 	needRelease = true;
 	needRedraw = true;
 	menuStackLevel--;

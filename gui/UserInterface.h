@@ -42,25 +42,35 @@
 #define GUI_CONST_KEY_REPEAT 50
 #define GUI_CONST_TAPE_ITEMS 16
 //-----------------------------------------------------------------------------
-#define GUI_COLOR_SHADOW     80
-#define GUI_COLOR_BORDER     81
-#define GUI_COLOR_BACKGROUND 82
-#define GUI_COLOR_FOREGROUND 83
-#define GUI_COLOR_HIGHLIGHT  84
-#define GUI_COLOR_DISABLED   85
-#define GUI_COLOR_SEPARATOR  86
-#define GUI_COLOR_CHECKED    87
-#define GUI_COLOR_SMARTKEY   88
-#define GUI_COLOR_HOTKEY     89
-#define GUI_COLOR_DBG_BACK   90
-#define GUI_COLOR_DBG_TEXT   91
-#define GUI_COLOR_DBG_CURSOR 92
-#define GUI_COLOR_DBG_BORDER 93
+#define GUI_COLOR_SHADOW     16
+#define GUI_COLOR_BORDER     17
+#define GUI_COLOR_BACKGROUND 18
+#define GUI_COLOR_FOREGROUND 19
+#define GUI_COLOR_HIGHLIGHT  20
+#define GUI_COLOR_DISABLED   21
+#define GUI_COLOR_SEPARATOR  22
+#define GUI_COLOR_CHECKED    23
+#define GUI_COLOR_SMARTKEY   24
+#define GUI_COLOR_HOTKEY     25
+#define GUI_COLOR_DBG_BACK   26
+#define GUI_COLOR_DBG_TEXT   27
+#define GUI_COLOR_DBG_CURSOR 28
+#define GUI_COLOR_DBG_BORDER 29
+#define GUI_COLOR_STAT_TEXT  32
+#define GUI_COLOR_STAT_PAUSE 33
+#define GUI_COLOR_STATTAP_FG 34
+#define GUI_COLOR_STATTAP_BG 35
+//-----------------------------------------------------------------------------
+#define STATUSBAR_ICON    10
+#define STATUSBAR_SPACING 14
+#define STATUSBAR_HEIGHT  20
 //-----------------------------------------------------------------------------
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
+#define SDL_PIXELFORMAT_DEFAULT SDL_PIXELFORMAT_ABGR8888
 #define SDL_DEFAULT_MASK_QUAD 0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff
 #define DWORD_COLOR_ENTRY(R, G, B) SDL_FOURCC(R, G, B, 0xff)
 #else
+#define SDL_PIXELFORMAT_DEFAULT SDL_PIXELFORMAT_RGBA8888
 #define SDL_DEFAULT_MASK_QUAD 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000
 #define DWORD_COLOR_ENTRY(R, G, B) SDL_FOURCC(0xff, B, G, R)
 #endif
@@ -119,8 +129,12 @@ class UserInterface : public sigslot::has_slots<>
 		BYTE uiQueryState;
 		sigslot::signal0<> uiCallback;
 
-		SDL_Surface *icons;
-		SDL_Surface *defaultSurface;
+		DWORD globalPalette[256];
+		SDL_Texture *iconsTexture;
+		SDL_Texture *defaultTexture;
+		SDL_Texture *statusTexture;
+		SDL_Rect *statusRect;
+
 		GUI_FILESELECTOR_DATA *fileSelector;
 		GUI_TAPEDIALOG_DATA *tapeDialog;
 		sigslot::signal2<char *, BYTE *> editBoxValidator;
@@ -130,22 +144,35 @@ class UserInterface : public sigslot::has_slots<>
 
 		UserInterface();
 		virtual ~UserInterface();
-		void prepareDefaultSurface(int width, int height, SDL_Color *palette);
+		void InitDefaultTexture(int width, int height);
 
-		inline void setLineHeight(BYTE l) { fontLineHeight = (l > 0) ? l : (fontHeight + 1); }
-		inline bool isInMenu() { return (menuStackLevel >= 0); }
+		inline void SetLineHeight(BYTE l) { fontLineHeight = (l > 0) ? l : (fontHeight + 1); }
+		inline bool InMenu() { return (menuStackLevel >= 0); }
 
-		void printText(SDL_Surface *s, int x, int y, BYTE col, const char *msg);
-		BYTE queryDialog(const char *title, bool save);
-		void messageBox(const char *text, ...);
-		BYTE editBox(const char *title, char *buffer, BYTE maxLength, bool decimal);
+		BYTE QueryDialog(const char *title, bool save);
+		void MessageBox(const char *text, ...);
+		BYTE EditBox(const char *title, char *buffer, BYTE maxLength, bool decimal);
 
-		void menuOpen(GUI_MENU_TYPE type, void *data = NULL);
-		void menuClose();
-		void menuCloseAll();
-		void menuHandleKey(WORD key);
+		void MenuOpen(GUI_MENU_TYPE type, void *data = NULL);
+		void MenuClose();
+		void MenuCloseAll();
+		void MenuHandleKey(WORD key);
+
+		void InitStatusBarTexture();
+		void RedrawStatusBar();
+		void SetLedState(int led);
+		void SetIconState(int icon);
+		void SetComputerModel(TComputerModel model);
+		inline void SetStatusPercentage(int val) { statusPercentage = val; }
+		inline void SetStatusFPS(int val) { statusFPS = val; }
 
 	private:
+		int ledState;
+		int iconState;
+		int statusPercentage;
+		int statusFPS;
+		char computerModel[8];
+
 		BYTE *fontData;
 		BYTE  fontWidth;
 		BYTE  fontHeight;
@@ -156,7 +183,6 @@ class UserInterface : public sigslot::has_slots<>
 		DWORD frameLength;
 		WORD  frameWidth;
 		WORD  frameHeight;
-		SDL_Color *globalPalette;
 
 		short menuStackLevel;
 		struct GUI_MENU_STACK {
@@ -169,39 +195,51 @@ class UserInterface : public sigslot::has_slots<>
 		SDL_Rect *cMenu_rect;
 		int cMenu_leftMargin, cMenu_count, cMenu_hilite;
 
-		SDL_Surface *loadIcons(const char *file);
-		void putPixel(SDL_Surface *s, int x, int y, BYTE col, bool setAlpha = false);
-		void printChar(SDL_Surface *s, int x, int y, BYTE col, BYTE ch);
-		void printTitle(SDL_Surface *s, int x, int y, int w, BYTE col, const char *msg);
-		void printFormatted(SDL_Surface *s, int x, int y, BYTE col, const char *msg, ...);
-		void printRightAlign(SDL_Surface *s, int x, int y, BYTE col, const char *msg, ...);
-		void drawRectangle(SDL_Surface *s, int x, int y, int w, int h, BYTE col);
-		void drawLineH(SDL_Surface *s, int x, int y, int len, BYTE col);
-		void drawLineV(SDL_Surface *s, int x, int y, int len, BYTE col);
-		void drawOutline(SDL_Surface *s, int x, int y, int w, int h, BYTE col);
-		void drawOutlineRounded(SDL_Surface *s, int x, int y, int w, int h, BYTE col);
-		void drawDialogWithBorder(SDL_Surface *s, int x, int y, int w, int h);
-		void drawDebugFrame(SDL_Surface *s, int x, int y, int w, int h);
-		void printCheck(SDL_Surface *s, int x, int y, BYTE col, BYTE ch, bool state);
+		// based on SDL_Surface
+		typedef struct GUI_SURFACE {
+			DWORD format;
+			int   w, h;
+			int   pitch;
+			BYTE *pixels;
+		} GUI_SURFACE;
 
-		void drawMenuItems();
-		void drawMenu(void *data);
-		void drawFileSelectorItems();
-		void drawFileSelector(bool update = true);
-		void drawTapeDialogItems();
-		void drawTapeDialog(bool update = true);
-		void drawDebugWidgetDisass(SDL_Rect *r, bool full);
-		void drawDebugWidgetRegs(SDL_Rect *r);
-		void drawDebugWidgetStack(SDL_Rect *r);
-		void drawDebugWidgetBreaks(SDL_Rect *r);
-		void drawDebugWindow();
-		void keyhandlerMenu(WORD key);
-		void keyhandlerFileSelector(WORD key);
-		void keyhandlerFileSelectorCallback(char *fileName);
-		int  keyhandlerFileSelectorSearch(int from = 0);
-		bool keyhandlerFileSelectorSearchClean();
-		void keyhandlerTapeDialog(WORD key);
-		void keyhandlerDebugWindow(WORD key);
+		SDL_Texture *LoadImgToTexture(const char *file);
+		GUI_SURFACE *LockSurface(SDL_Texture *texture);
+		void UnlockSurface(SDL_Texture *texture, GUI_SURFACE *surface);
+
+		void PutPixel(GUI_SURFACE *s, int x, int y, BYTE col);
+		void PrintChar(GUI_SURFACE *s, int x, int y, BYTE col, BYTE ch);
+		void PrintText(GUI_SURFACE *s, int x, int y, BYTE col, const char *msg);
+		void PrintTitle(GUI_SURFACE *s, int x, int y, int w, BYTE col, const char *msg);
+		void PrintFormatted(GUI_SURFACE *s, int x, int y, BYTE col, const char *msg, ...);
+		void PrintRightAlign(GUI_SURFACE *s, int x, int y, BYTE col, const char *msg, ...);
+		void DrawLineH(GUI_SURFACE *s, int x, int y, int len, BYTE col);
+		void DrawLineV(GUI_SURFACE *s, int x, int y, int len, BYTE col);
+		void DrawRectangle(GUI_SURFACE *s, int x, int y, int w, int h, BYTE col);
+		void DrawOutline(GUI_SURFACE *s, int x, int y, int w, int h, BYTE col);
+		void DrawOutlineRounded(GUI_SURFACE *s, int x, int y, int w, int h, BYTE col);
+		void DrawDialogWithBorder(GUI_SURFACE *s, int x, int y, int w, int h);
+		void DrawDebugFrame(GUI_SURFACE *s, int x, int y, int w, int h);
+		void PrintCheck(GUI_SURFACE *s, int x, int y, BYTE col, BYTE ch, bool state);
+
+		void DrawMenuItems(GUI_SURFACE *s = NULL);
+		void DrawMenu(void *data);
+		void DrawFileSelectorItems(GUI_SURFACE *s = NULL);
+		void DrawFileSelector(bool update = true);
+		void DrawTapeDialogItems(GUI_SURFACE *s = NULL);
+		void DrawTapeDialog(bool update = true);
+		void DrawDebugWidgetDisass(GUI_SURFACE *s, SDL_Rect *r, bool full);
+		void DrawDebugWidgetRegs(GUI_SURFACE *s, SDL_Rect *r);
+		void DrawDebugWidgetStack(GUI_SURFACE *s, SDL_Rect *r);
+		void DrawDebugWidgetBreaks(GUI_SURFACE *s, SDL_Rect *r);
+		void DrawDebugWindow();
+		void KeyhandlerMenu(WORD key);
+		void KeyhandlerFileSelector(WORD key);
+		void KeyhandlerFileSelectorCallback(char *fileName);
+		int  KeyhandlerFileSelectorSearch(int from = 0);
+		bool KeyhandlerFileSelectorSearchClean();
+		void KeyhandlerTapeDialog(WORD key);
+		void KeyhandlerDebugWindow(WORD key);
 };
 //-----------------------------------------------------------------------------
 #endif

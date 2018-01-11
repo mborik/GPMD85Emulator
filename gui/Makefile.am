@@ -15,6 +15,7 @@ libGPMD85emu_gui_a_SOURCES = \
 	EditDialog.cpp \
 	Menu.cpp \
 	FileSelector.cpp \
+	StatusBar.cpp \
 	TapeDialog.cpp \
 	UserInterface.cpp \
 	UserInterfaceData.cpp

@@ -18,7 +18,7 @@
 #include "UserInterface.h"
 #include "GPMD85main.h"
 //-----------------------------------------------------------------------------
-void UserInterface::drawTapeDialog(bool update)
+void UserInterface::DrawTapeDialog(bool update)
 {
 	if (update || tapeDialog->entries == NULL)
 		TapeBrowser->FillFileList(&tapeDialog->entries,
@@ -44,11 +44,13 @@ void UserInterface::drawTapeDialog(bool update)
 	cMenu_rect->x = (frameWidth  - cMenu_rect->w) / 2;
 	cMenu_rect->y = (frameHeight - cMenu_rect->h) / 2;
 
-	drawDialogWithBorder(defaultSurface, cMenu_rect->x, cMenu_rect->y,
+	GUI_SURFACE *defaultSurface = LockSurface(defaultTexture);
+
+	DrawDialogWithBorder(defaultSurface, cMenu_rect->x, cMenu_rect->y,
 		cMenu_rect->w, cMenu_rect->h);
-	printTitle(defaultSurface, cMenu_rect->x, cMenu_rect->y + 1,
+	PrintTitle(defaultSurface, cMenu_rect->x, cMenu_rect->y + 1,
 		cMenu_rect->w, GUI_COLOR_BACKGROUND, "TAPE BROWSER");
-	drawLineH(defaultSurface, cMenu_rect->x + (GUI_CONST_BORDER / 2),
+	DrawLineH(defaultSurface, cMenu_rect->x + (GUI_CONST_BORDER / 2),
 		cMenu_rect->y + (3 * GUI_CONST_BORDER) +
 		(GUI_CONST_TAPE_ITEMS * GUI_CONST_ITEM_SIZE) + 6,
 		cMenu_rect->w - GUI_CONST_BORDER, GUI_COLOR_SEPARATOR);
@@ -56,28 +58,28 @@ void UserInterface::drawTapeDialog(bool update)
 	int mx = cMenu_rect->x + cMenu_rect->w - GUI_CONST_BORDER - 1,
 		my = cMenu_rect->y + cMenu_rect->h - 5 - (4 * fontLineHeight);
 
-	printText(defaultSurface, mx - (10 * fontWidth), my,
+	PrintText(defaultSurface, mx - (10 * fontWidth), my,
 		GUI_COLOR_FOREGROUND, "MENU \aE\aN\aT\aE\aR");
 
-	printText(defaultSurface, mx - (6 * fontWidth) - GUI_CONST_HOTKEYCHAR,
+	PrintText(defaultSurface, mx - (6 * fontWidth) - GUI_CONST_HOTKEYCHAR,
 		my + fontLineHeight, GUI_COLOR_FOREGROUND,
 		(TapeBrowser->playing ? "STOP \a\203\aP" : "PLAY \a\203\aP"));
 
 	mx = cMenu_rect->x + GUI_CONST_BORDER;
-	printText(defaultSurface, mx + GUI_CONST_CHK_MARGIN, my,
+	PrintText(defaultSurface, mx + GUI_CONST_CHK_MARGIN, my,
 		GUI_COLOR_FOREGROUND, "\aH HEX/DEC");
 
-	printCheck(defaultSurface, mx, my + fontLineHeight + 1, GUI_COLOR_CHECKED,
+	PrintCheck(defaultSurface, mx, my + fontLineHeight + 1, GUI_COLOR_CHECKED,
 		SCHR_CHECK, Settings->TapeBrowser->flash);
-	printText(defaultSurface, mx + GUI_CONST_CHK_MARGIN, my + fontLineHeight,
+	PrintText(defaultSurface, mx + GUI_CONST_CHK_MARGIN, my + fontLineHeight,
 		GUI_COLOR_FOREGROUND, "\aF FLASHLOAD");
 
-	printCheck(defaultSurface, mx, my + (2 * fontLineHeight) + 1,
+	PrintCheck(defaultSurface, mx, my + (2 * fontLineHeight) + 1,
 		GUI_COLOR_CHECKED, SCHR_CHECK, Settings->TapeBrowser->monitoring);
-	printText(defaultSurface, mx + GUI_CONST_CHK_MARGIN, my + (2 * fontLineHeight),
+	PrintText(defaultSurface, mx + GUI_CONST_CHK_MARGIN, my + (2 * fontLineHeight),
 		GUI_COLOR_FOREGROUND, "\aO AUDIO-OUT");
 
-	printText(defaultSurface, mx + GUI_CONST_CHK_MARGIN,
+	PrintText(defaultSurface, mx + GUI_CONST_CHK_MARGIN,
 		my + (3 * fontLineHeight), GUI_COLOR_FOREGROUND,
 		"\aA AUTO-STOP:");
 
@@ -95,7 +97,7 @@ void UserInterface::drawTapeDialog(bool update)
 			break;
 	}
 
-	printText(defaultSurface, mx + GUI_CONST_CHK_MARGIN + (13 * fontWidth),
+	PrintText(defaultSurface, mx + GUI_CONST_CHK_MARGIN + (13 * fontWidth),
 		my + (3 * fontLineHeight), GUI_COLOR_HOTKEY, autostop);
 
 	static char *ptr = NULL;
@@ -110,68 +112,81 @@ void UserInterface::drawTapeDialog(bool update)
 		ptr = (char *) "[NEW TAPE]";
 
 	my = cMenu_rect->y + GUI_CONST_ITEM_SIZE + 1;
-	printFormatted(defaultSurface, mx + GUI_CONST_HOTKEYCHAR, my,
+	PrintFormatted(defaultSurface, mx + GUI_CONST_HOTKEYCHAR, my,
 		GUI_COLOR_BORDER, ((strlen(ptr) > 28) ? "%.28s\205" : "%s"), ptr);
 
 	if (TapeBrowser->tapeChanged)
-		printChar(defaultSurface, mx, my, GUI_COLOR_CHECKED, '*');
+		PrintChar(defaultSurface, mx, my, GUI_COLOR_CHECKED, '*');
 
-	drawTapeDialogItems();
+	DrawTapeDialogItems(defaultSurface);
+
+	UnlockSurface(defaultTexture, defaultSurface);
+	needRedraw = true;
 }
 //-----------------------------------------------------------------------------
-void UserInterface::drawTapeDialogItems()
+void UserInterface::DrawTapeDialogItems(GUI_SURFACE *s)
 {
+	bool needUnlock = false;
+	if (s == NULL) {
+		s = LockSurface(defaultTexture);
+		needUnlock = true;
+	}
+
 	SDL_Rect *r = new SDL_Rect(*cMenu_rect);
 
 	r->x += GUI_CONST_BORDER;
 	r->y += (3 * GUI_CONST_BORDER) + 4;
 	r->w -= (2 * GUI_CONST_BORDER);
 
-	printChar(defaultSurface, r->x + r->w, r->y - 1, (cMenu_leftMargin > 0)
+	PrintChar(s, r->x + r->w, r->y - 1, (cMenu_leftMargin > 0)
 			? GUI_COLOR_BORDER : GUI_COLOR_BACKGROUND, SCHR_SCROLL_UP);
 
 	int i = cMenu_leftMargin, j = (cMenu_count) ? cMenu_hilite : -1;
 	for (; i < (cMenu_leftMargin + GUI_CONST_TAPE_ITEMS); i++) {
-		drawRectangle(defaultSurface, r->x - (GUI_CONST_BORDER / 2),
+		DrawRectangle(s, r->x - (GUI_CONST_BORDER / 2),
 			r->y - 2, r->w, GUI_CONST_ITEM_SIZE,
 			(i == j) ? GUI_COLOR_HIGHLIGHT : GUI_COLOR_BACKGROUND);
 
 		if (cMenu_count && i < cMenu_count) {
-			printChar(defaultSurface, r->x, r->y, GUI_COLOR_FOREGROUND,
+			PrintChar(s, r->x, r->y, GUI_COLOR_FOREGROUND,
 				(i == TapeBrowser->stopBlockIdx) ? SCHR_STOP :
 				(i == TapeBrowser->currBlockIdx) ? SCHR_NAVIGATOR : ' ');
 
-			printText(defaultSurface, r->x + GUI_CONST_HOTKEYCHAR, r->y,
+			PrintText(s, r->x + GUI_CONST_HOTKEYCHAR, r->y,
 				GUI_COLOR_FOREGROUND, tapeDialog->entries[i]);
 
 			if (tapeDialog->entries[i][28])
-				drawRectangle(defaultSurface, r->x - (GUI_CONST_BORDER / 2),
+				DrawRectangle(s, r->x - (GUI_CONST_BORDER / 2),
 					r->y - 2, 2, GUI_CONST_ITEM_SIZE, GUI_COLOR_SMARTKEY);
 			if (tapeDialog->entries[i][29])
-				printChar(defaultSurface, r->x + r->w - GUI_CONST_HOTKEYCHAR - 2,
+				PrintChar(s, r->x + r->w - GUI_CONST_HOTKEYCHAR - 2,
 					r->y, GUI_COLOR_BORDER, tapeDialog->entries[i][29]);
 		}
 
 		r->y += GUI_CONST_ITEM_SIZE;
 	}
 
-	printChar(defaultSurface, r->x + r->w,
+	PrintChar(s, r->x + r->w,
 		r->y - GUI_CONST_ITEM_SIZE + 2, (i < cMenu_count)
 			? GUI_COLOR_BORDER : GUI_COLOR_BACKGROUND, SCHR_SCROLL_DW);
 
 	r->h = (GUI_CONST_TAPE_ITEMS * GUI_CONST_ITEM_SIZE) + (GUI_CONST_BORDER / 2);
 	r->y -= r->h - (GUI_CONST_BORDER / 4);
 
-	drawLineV(defaultSurface, r->x + GUI_CONST_HOTKEYCHAR + (14 * fontWidth),
+	DrawLineV(s, r->x + GUI_CONST_HOTKEYCHAR + (14 * fontWidth),
 		r->y, r->h, GUI_COLOR_SEPARATOR);
-	drawLineV(defaultSurface, r->x + GUI_CONST_HOTKEYCHAR + (21 * fontWidth),
+	DrawLineV(s, r->x + GUI_CONST_HOTKEYCHAR + (21 * fontWidth),
 		r->y, r->h, GUI_COLOR_SEPARATOR);
 
+	if (needUnlock) {
+		UnlockSurface(defaultTexture, s);
+		needRedraw = true;
+	}
+
 	delete r;
-	needRedraw = true;
 }
 //-----------------------------------------------------------------------------
-void UserInterface::keyhandlerTapeDialog(WORD key)
+void UserInterface::KeyhandlerTapeDialog(WORD key)
 {
 	int i = cMenu_hilite, prevLeftMargin = 0;
 	bool change = false;
@@ -191,26 +206,26 @@ void UserInterface::keyhandlerTapeDialog(WORD key)
 	switch (key) {
 		case SDL_SCANCODE_POWER:
 			Emulator->ActionExit();
-			menuCloseAll();
+			MenuCloseAll();
 			needRelease = true;
 			return;
 
 		case SDL_SCANCODE_ESCAPE:
-			menuClose();
+			MenuClose();
 			needRelease = true;
 			return;
 
 		case SDL_SCANCODE_F:
 			prevLeftMargin = cMenu_leftMargin;
 			Settings->TapeBrowser->flash = !Settings->TapeBrowser->flash;
-			drawTapeDialog(false);
+			DrawTapeDialog(false);
 			change = true;
 			break;
 
 		case SDL_SCANCODE_O:
 			prevLeftMargin = cMenu_leftMargin;
 			Settings->TapeBrowser->monitoring = !Settings->TapeBrowser->monitoring;
-			drawTapeDialog(false);
+			DrawTapeDialog(false);
 			change = true;
 			break;
 
@@ -222,14 +237,14 @@ void UserInterface::keyhandlerTapeDialog(WORD key)
 				Settings->TapeBrowser->autoStop = AS_CURSOR;
 			else if (Settings->TapeBrowser->autoStop == AS_CURSOR)
 				Settings->TapeBrowser->autoStop = AS_OFF;
-			drawTapeDialog(false);
+			DrawTapeDialog(false);
 			change = true;
 			break;
 
 		case SDL_SCANCODE_H:
 			prevLeftMargin = cMenu_leftMargin;
 			Settings->TapeBrowser->hex = !Settings->TapeBrowser->hex;
-			drawTapeDialog();
+			DrawTapeDialog();
 			change = true;
 			break;
 
@@ -240,13 +255,13 @@ void UserInterface::keyhandlerTapeDialog(WORD key)
 			if (TapeBrowser->playing) {
 				TapeBrowser->ActionStop();
 				prevLeftMargin = cMenu_leftMargin;
-				drawTapeDialog();
+				DrawTapeDialog();
 				change = true;
 			}
 			else {
 				uiCallback.connect(Emulator, &TEmulator::ActionTapePlayStop);
 				uiSetChanges |= PS_CLOSEALL;
-				menuCloseAll();
+				MenuCloseAll();
 			}
 			break;
 
@@ -273,7 +288,7 @@ void UserInterface::keyhandlerTapeDialog(WORD key)
 				break;
 			prevLeftMargin = cMenu_leftMargin;
 			TapeBrowser->ToggleSelection(i);
-			drawTapeDialog();
+			DrawTapeDialog();
 			if (i < (cMenu_count - 1))
 				i++;
 			change = true;
@@ -285,7 +300,7 @@ void UserInterface::keyhandlerTapeDialog(WORD key)
 				break;
 			prevLeftMargin = cMenu_leftMargin;
 			TapeBrowser->DeleteSelected(i);
-			drawTapeDialog();
+			DrawTapeDialog();
 			if (cMenu_count && i >= cMenu_count)
 				i = cMenu_count - 1;
 			change = true;
@@ -298,7 +313,7 @@ void UserInterface::keyhandlerTapeDialog(WORD key)
 				break;
 			prevLeftMargin = cMenu_leftMargin;
 			TapeBrowser->MoveSelected(change, &i);
-			drawTapeDialog();
+			DrawTapeDialog();
 			if (prevLeftMargin > i)
 				prevLeftMargin = i;
 			change = true;
@@ -308,7 +323,7 @@ void UserInterface::keyhandlerTapeDialog(WORD key)
 		case SDL_SCANCODE_RETURN:
 		case SDL_SCANCODE_KP_ENTER:
 			needRelease = true;
-			menuOpen(GUI_TYPE_TAPE_POPUP);
+			MenuOpen(GUI_TYPE_TAPE_POPUP);
 			break;
 
 		case SDL_SCANCODE_LEFT:
@@ -378,7 +393,7 @@ void UserInterface::keyhandlerTapeDialog(WORD key)
 			cMenu_leftMargin = i - GUI_CONST_TAPE_ITEMS + 1;
 
 		cMenu_hilite = i;
-		drawTapeDialogItems();
+		DrawTapeDialogItems();
 	}
 }
 //-----------------------------------------------------------------------------

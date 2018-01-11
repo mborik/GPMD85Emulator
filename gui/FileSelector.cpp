@@ -18,13 +18,13 @@
 #include "UserInterface.h"
 #include "GPMD85main.h"
 //-----------------------------------------------------------------------------
-void UserInterface::drawFileSelector(bool update)
+void UserInterface::DrawFileSelector(bool update)
 {
 	if (update || fileSelector->dirEntries == NULL)
 		ScanDir(fileSelector->path, &fileSelector->dirEntries, &fileSelector->count, Settings->showHiddenFiles);
 
 	if (fileSelector->count <= 0) {
-		menuClose();
+		MenuClose();
 		return;
 	}
 
@@ -35,15 +35,17 @@ void UserInterface::drawFileSelector(bool update)
 	cMenu_rect->w = GUI_CONST_BORDER + (maxCharsOnScreen * fontWidth) + GUI_CONST_BORDER;
 	cMenu_rect->h = (3 * GUI_CONST_BORDER) + (17 * GUI_CONST_ITEM_SIZE) + GUI_CONST_BORDER + GUI_CONST_SEPARATOR;
 	cMenu_rect->x = 1;
-	cMenu_rect->y = (defaultSurface->h - cMenu_rect->h) / 2;
+	cMenu_rect->y = (frameHeight - cMenu_rect->h) / 2;
 
 	fileSelector->itemsOnPage = (fileSelector->type == GUI_FS_SNAPSAVE) ? 30 : 32;
 
-	drawDialogWithBorder(defaultSurface, cMenu_rect->x, cMenu_rect->y,
+	GUI_SURFACE *defaultSurface = LockSurface(defaultTexture);
+
+	DrawDialogWithBorder(defaultSurface, cMenu_rect->x, cMenu_rect->y,
 		cMenu_rect->w, cMenu_rect->h);
-	printTitle(defaultSurface, cMenu_rect->x, cMenu_rect->y + 1,
+	PrintTitle(defaultSurface, cMenu_rect->x, cMenu_rect->y + 1,
 		cMenu_rect->w, GUI_COLOR_BACKGROUND, fileSelector->title);
-	drawLineH(defaultSurface, cMenu_rect->x + (GUI_CONST_BORDER / 2),
+	DrawLineH(defaultSurface, cMenu_rect->x + (GUI_CONST_BORDER / 2),
 		cMenu_rect->y + (3 * GUI_CONST_BORDER) +
 		((fileSelector->itemsOnPage / 2) * GUI_CONST_ITEM_SIZE) + 4,
 		cMenu_rect->w - GUI_CONST_BORDER, GUI_COLOR_SEPARATOR);
@@ -51,42 +53,42 @@ void UserInterface::drawFileSelector(bool update)
 	int mx = cMenu_rect->x + cMenu_rect->w - GUI_CONST_BORDER - 1,
 		my = cMenu_rect->y + cMenu_rect->h - 6 - fontHeight;
 
-	printText(defaultSurface, mx - (6 * fontWidth) - GUI_CONST_HOTKEYCHAR, my,
+	PrintText(defaultSurface, mx - (6 * fontWidth) - GUI_CONST_HOTKEYCHAR, my,
 		GUI_COLOR_FOREGROUND, "HOME \a\203\aH");
 
 	if (fileSelector->type == GUI_FS_SNAPSAVE) {
-		printText(defaultSurface, mx - (14 * fontWidth), my - fontLineHeight,
+		PrintText(defaultSurface, mx - (14 * fontWidth), my - fontLineHeight,
 			GUI_COLOR_FOREGROUND, "ENTER NAME \aT\aA\aB");
 	}
 
 	// quick-search mini window
 	if (strlen(fileSelector->search)) {
 		int hx = (21 * fontWidth), hy = 6 + ((fileSelector->type == GUI_FS_SNAPSAVE) ? fontLineHeight + 2 : 0);
-		drawRectangle(defaultSurface, mx - hx - 2, my - hy, hx + 8, fontHeight + 6, GUI_COLOR_BACKGROUND);
-		drawOutlineRounded(defaultSurface, mx - hx - 2, my - hy, hx + 8, fontHeight + 6, GUI_COLOR_DISABLED);
-		printText(defaultSurface, mx - hx + 2, my - hy + 3, GUI_COLOR_SMARTKEY, fileSelector->search);
+		DrawRectangle(defaultSurface, mx - hx - 2, my - hy, hx + 8, fontHeight + 6, GUI_COLOR_BACKGROUND);
+		DrawOutlineRounded(defaultSurface, mx - hx - 2, my - hy, hx + 8, fontHeight + 6, GUI_COLOR_DISABLED);
+		PrintText(defaultSurface, mx - hx + 2, my - hy + 3, GUI_COLOR_SMARTKEY, fileSelector->search);
 	}
 
 	mx = cMenu_rect->x + GUI_CONST_BORDER;
 	if (fileSelector->type == GUI_FS_BASESAVE) {
-		printText(defaultSurface, mx, my,
+		PrintText(defaultSurface, mx, my,
 			GUI_COLOR_FOREGROUND, "\aT\aA\aB ENTER NAME");
 	}
 	else if (fileSelector->type == GUI_FS_SNAPLOAD) {
-		printCheck(defaultSurface, mx, my + 1, GUI_COLOR_CHECKED,
+		PrintCheck(defaultSurface, mx, my + 1, GUI_COLOR_CHECKED,
 			SCHR_CHECK, Settings->Snapshot->dontRunOnLoad);
-		printText(defaultSurface, mx + GUI_CONST_CHK_MARGIN, my,
+		PrintText(defaultSurface, mx + GUI_CONST_CHK_MARGIN, my,
 			GUI_COLOR_FOREGROUND, "\a\203\aD DEBUG AFTER LOAD");
 	}
 	else if (fileSelector->type == GUI_FS_SNAPSAVE) {
-		printCheck(defaultSurface, mx, my + 1, GUI_COLOR_CHECKED,
+		PrintCheck(defaultSurface, mx, my + 1, GUI_COLOR_CHECKED,
 			SCHR_CHECK, Settings->Snapshot->saveWithMonitor);
-		printText(defaultSurface, mx + GUI_CONST_CHK_MARGIN, my,
+		PrintText(defaultSurface, mx + GUI_CONST_CHK_MARGIN, my,
 			GUI_COLOR_FOREGROUND, "\a\203\aR SAVE WITH ROM");
 
-		printCheck(defaultSurface, mx, my - fontLineHeight + 1,
+		PrintCheck(defaultSurface, mx, my - fontLineHeight + 1,
 			GUI_COLOR_CHECKED, SCHR_CHECK, Settings->Snapshot->saveCompressed);
-		printText(defaultSurface, mx + GUI_CONST_CHK_MARGIN, my - fontLineHeight,
+		PrintText(defaultSurface, mx + GUI_CONST_CHK_MARGIN, my - fontLineHeight,
 			GUI_COLOR_FOREGROUND, "\a\203\aC SAVE COMPRESSED");
 	}
 
@@ -98,16 +100,25 @@ void UserInterface::drawFileSelector(bool update)
 		*ptr = (char) SCHR_BROWSE;
 	}
 
-	printText(defaultSurface, cMenu_rect->x + GUI_CONST_BORDER,
+	PrintText(defaultSurface, cMenu_rect->x + GUI_CONST_BORDER,
 		cMenu_rect->y + GUI_CONST_ITEM_SIZE + 1, GUI_COLOR_BORDER, ptr);
 
 	*ptr = c;
 
-	drawFileSelectorItems();
+	DrawFileSelectorItems(defaultSurface);
+
+	UnlockSurface(defaultTexture, defaultSurface);
+	needRedraw = true;
 }
 //-----------------------------------------------------------------------------
-void UserInterface::drawFileSelectorItems()
+void UserInterface::DrawFileSelectorItems(GUI_SURFACE *s)
 {
+	bool needUnlock = false;
+	if (s == NULL) {
+		s = LockSurface(defaultTexture);
+		needUnlock = true;
+	}
+
 	int i, x, y, c, halfpage = (fileSelector->itemsOnPage / 2),
 		itemCharWidth = (maxCharsOnScreen / 2) - 1,
 		itemPixelWidth = (itemCharWidth * fontWidth) + GUI_CONST_HOTKEYCHAR - 1;
@@ -119,14 +130,14 @@ void UserInterface::drawFileSelectorItems()
 	r->y += (3 * GUI_CONST_BORDER) + 2;
 	r->w -= (2 * GUI_CONST_BORDER);
 
-	printChar(defaultSurface, r->x + r->w, r->y + 1, (cMenu_leftMargin > 0)
+	PrintChar(s, r->x + r->w, r->y + 1, (cMenu_leftMargin > 0)
 			? GUI_COLOR_BORDER : GUI_COLOR_BACKGROUND, SCHR_SCROLL_UP);
 
 	for (i = cMenu_leftMargin; i < (cMenu_leftMargin + fileSelector->itemsOnPage); i++) {
 		x = r->x + (((i - cMenu_leftMargin) >= halfpage) ? itemPixelWidth : 0);
 		y = r->y + (((i - cMenu_leftMargin) % halfpage) * GUI_CONST_ITEM_SIZE);
 
-		drawRectangle(defaultSurface, x - 2, y, itemPixelWidth, GUI_CONST_ITEM_SIZE,
+		DrawRectangle(s, x - 2, y, itemPixelWidth, GUI_CONST_ITEM_SIZE,
 			(i == cMenu_hilite) ? GUI_COLOR_HIGHLIGHT : GUI_COLOR_BACKGROUND);
 
 		if (i >= cMenu_count)
@@ -137,7 +148,7 @@ void UserInterface::drawFileSelectorItems()
 
 		if (ptr[0] == DIR_DELIMITER) {
 			c = GUI_COLOR_HOTKEY;
-			printChar(defaultSurface, x, y + 2, c, SCHR_DIRECTORY);
+			PrintChar(s, x, y + 2, c, SCHR_DIRECTORY);
 		}
 		else if (ptr[0] == '\xA0') {
 			if (fileSelector->extFilter) {
@@ -168,18 +179,22 @@ void UserInterface::drawFileSelectorItems()
 			ptr[strlen(ptr)] = (char) SCHR_BROWSE;
 		}
 
-		printText(defaultSurface, x + GUI_CONST_HOTKEYCHAR, y + 2, c, ptr + 1);
+		PrintText(s, x + GUI_CONST_HOTKEYCHAR, y + 2, c, ptr + 1);
 	}
 
-	printChar(defaultSurface, r->x + r->w,
+	PrintChar(s, r->x + r->w,
 		r->y + ((halfpage - 1) * GUI_CONST_ITEM_SIZE) + 2, (i < cMenu_count)
 			? GUI_COLOR_BORDER : GUI_COLOR_BACKGROUND, SCHR_SCROLL_DW);
 
+	if (needUnlock) {
+		UnlockSurface(defaultTexture, s);
+		needRedraw = true;
+	}
+
 	delete r;
-	needRedraw = true;
 }
 //-----------------------------------------------------------------------------
-void UserInterface::keyhandlerFileSelector(WORD key)
+void UserInterface::KeyhandlerFileSelector(WORD key)
 {
 	int i = cMenu_hilite, halfpage = fileSelector->itemsOnPage / 2,
 			prevLeftMargin = 0, searchlen = strlen(fileSelector->search);
@@ -190,17 +205,17 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 	switch (key) {
 		case SDL_SCANCODE_F4 | KM_ALT:
 			Emulator->ActionExit();
-			menuCloseAll();
+			MenuCloseAll();
 			needRelease = true;
 			return;
 
 		case SDL_SCANCODE_ESCAPE:
 			if (searchlen > 0) {
-				change = keyhandlerFileSelectorSearchClean();
+				change = KeyhandlerFileSelectorSearchClean();
 				needRelease = true;
 			}
 			else {
-				menuClose();
+				MenuClose();
 				needRelease = true;
 				return;
 			}
@@ -210,7 +225,7 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 			if (fileSelector->type == GUI_FS_SNAPSAVE) {
 				prevLeftMargin = cMenu_leftMargin;
 				Settings->Snapshot->saveCompressed = !Settings->Snapshot->saveCompressed;
-				drawFileSelector(false);
+				DrawFileSelector(false);
 				change = true;
 			}
 			break;
@@ -219,7 +234,7 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 			if (fileSelector->type == GUI_FS_SNAPLOAD) {
 				prevLeftMargin = cMenu_leftMargin;
 				Settings->Snapshot->dontRunOnLoad = !Settings->Snapshot->dontRunOnLoad;
-				drawFileSelector(false);
+				DrawFileSelector(false);
 				change = true;
 			}
 			break;
@@ -228,22 +243,22 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 			if (fileSelector->type == GUI_FS_SNAPSAVE) {
 				prevLeftMargin = cMenu_leftMargin;
 				Settings->Snapshot->saveWithMonitor = !Settings->Snapshot->saveWithMonitor;
-				drawFileSelector(false);
+				DrawFileSelector(false);
 				change = true;
 			}
 			break;
 
 		case SDL_SCANCODE_H | KM_ALT:
-			keyhandlerFileSelectorSearchClean();
+			KeyhandlerFileSelectorSearchClean();
 			strcpy(fileSelector->path, PathUserHome);
-			drawFileSelector();
+			DrawFileSelector();
 			needRelease = true;
 			break;
 
 		case SDL_SCANCODE_PERIOD | KM_ALT:
-			keyhandlerFileSelectorSearchClean();
+			KeyhandlerFileSelectorSearchClean();
 			Settings->showHiddenFiles = !Settings->showHiddenFiles;
-			drawFileSelector();
+			DrawFileSelector();
 			needRelease = true;
 			break;
 
@@ -256,7 +271,7 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 				if (*ptr == '\xA0')
 					strcpy(buffer, ptr + 1);
 
-				if (editBox("ENTER FILENAME:", buffer, 32, false) && strlen(buffer) > 0) {
+				if (EditBox("ENTER FILENAME:", buffer, 32, false) && strlen(buffer) > 0) {
 					for (b = 0; b < strlen(buffer); b++) {
 						switch (buffer[b]) {
 						// multiplatform restricted characters in filenames;
@@ -276,7 +291,7 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 						if ((ptr = strrchr(buffer, '.'))) {
 							for (b = 0; fileSelector->extFilter[b] != NULL; b++) {
 								if (strcasecmp(ptr + 1, fileSelector->extFilter[b]) == 0) {
-									keyhandlerFileSelectorCallback(buffer);
+									KeyhandlerFileSelectorCallback(buffer);
 									return;
 								}
 							}
@@ -287,7 +302,7 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 						strcpy(ptr + 1, fileSelector->extFilter[0]);
 					}
 
-					keyhandlerFileSelectorCallback(buffer);
+					KeyhandlerFileSelectorCallback(buffer);
 					return;
 				}
 			}
@@ -295,12 +310,12 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 
 		case SDL_SCANCODE_SPACE:
 			if (searchlen > 0) {
-				i = keyhandlerFileSelectorSearch(i);
+				i = KeyhandlerFileSelectorSearch(i);
 				if (i < 0)
-					i = keyhandlerFileSelectorSearch();
+					i = KeyhandlerFileSelectorSearch();
 				if (i < 1)
 					i = cMenu_hilite;
-				drawFileSelector();
+				DrawFileSelector();
 				change = true;
 			}
 			break;
@@ -308,15 +323,15 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 		case SDL_SCANCODE_BACKSPACE:
 			if (searchlen > 1) {
 				fileSelector->search[searchlen - 1] = '\0';
-				i = keyhandlerFileSelectorSearch();
+				i = KeyhandlerFileSelectorSearch();
 				if (i < 1)
 					i = cMenu_hilite;
-				drawFileSelector();
+				DrawFileSelector();
 				change = true;
 				break;
 			}
 			else if (searchlen == 1) {
-				change = keyhandlerFileSelectorSearchClean();
+				change = KeyhandlerFileSelectorSearchClean();
 				needRelease = true;
 				break;
 			}
@@ -326,25 +341,25 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 
 		case SDL_SCANCODE_RETURN:
 		case SDL_SCANCODE_KP_ENTER:
-			change = keyhandlerFileSelectorSearchClean();
+			change = KeyhandlerFileSelectorSearchClean();
 			if (*ptr == '\xA0') {
 				lastItem = ptr + 1;
 				if ((ptr = strrchr(lastItem, '.')) && fileSelector->extFilter) {
 					for (b = 0; fileSelector->extFilter[b] != NULL; b++) {
 						if (strcasecmp(ptr + 1, fileSelector->extFilter[b]) == 0) {
-							keyhandlerFileSelectorCallback(lastItem);
+							KeyhandlerFileSelectorCallback(lastItem);
 							return;
 						}
 					}
 				}
 				else if (!fileSelector->extFilter) {
-					keyhandlerFileSelectorCallback(lastItem);
+					KeyhandlerFileSelectorCallback(lastItem);
 					return;
 				}
 			}
 			else if (TestDir(fileSelector->path, ptr + 1, &lastItem)) {
 				cMenu_hilite = 0;
-				drawFileSelector();
+				DrawFileSelector();
 				needRelease = true;
 
 				if (lastItem) {
@@ -363,7 +378,7 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 
 		case SDL_SCANCODE_LEFT:
 		case SDL_SCANCODE_PAGEUP:
-			change = keyhandlerFileSelectorSearchClean();
+			change = KeyhandlerFileSelectorSearchClean();
 			if (i > 0) {
 				i -= (key == SDL_SCANCODE_LEFT) ? halfpage : fileSelector->itemsOnPage;
 				if (i < 0)
@@ -374,7 +389,7 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 
 		case SDL_SCANCODE_RIGHT:
 		case SDL_SCANCODE_PAGEDOWN:
-			change = keyhandlerFileSelectorSearchClean();
+			change = KeyhandlerFileSelectorSearchClean();
 			if (i < (cMenu_count - 1)) {
 				i += (key == SDL_SCANCODE_RIGHT) ? halfpage : fileSelector->itemsOnPage;
 				if (i >= cMenu_count)
@@ -384,7 +399,7 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 			break;
 
 		case SDL_SCANCODE_UP:
-			change = keyhandlerFileSelectorSearchClean();
+			change = KeyhandlerFileSelectorSearchClean();
 			if (i > 0) {
 				i--;
 				change = true;
@@ -392,7 +407,7 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 			break;
 
 		case SDL_SCANCODE_DOWN:
-			change = keyhandlerFileSelectorSearchClean();
+			change = KeyhandlerFileSelectorSearchClean();
 			if (i < (cMenu_count - 1)) {
 				i++;
 				change = true;
@@ -400,14 +415,14 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 			break;
 
 		case SDL_SCANCODE_HOME:
-			keyhandlerFileSelectorSearchClean();
+			KeyhandlerFileSelectorSearchClean();
 			i = 0;
 			needRelease = true;
 			change = true;
 			break;
 
 		case SDL_SCANCODE_END:
-			keyhandlerFileSelectorSearchClean();
+			KeyhandlerFileSelectorSearchClean();
 			i = (cMenu_count - 1);
 			needRelease = true;
 			change = true;
@@ -465,13 +480,13 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 
 				fileSelector->search[searchlen++] = b;
 				fileSelector->search[searchlen] = '\0';
-				i = keyhandlerFileSelectorSearch();
+				i = KeyhandlerFileSelectorSearch();
 				if (i < 1) {
 					fileSelector->search[--searchlen] = '\0';
 					i = cMenu_hilite;
 				}
 				change = true;
-				drawFileSelector();
+				DrawFileSelector();
 			}
 			break;
 	}
@@ -490,11 +505,11 @@ void UserInterface::keyhandlerFileSelector(WORD key)
 			cMenu_leftMargin = i - halfpage;
 
 		cMenu_hilite = i;
-		drawFileSelectorItems();
+		DrawFileSelectorItems();
 	}
 }
 //-----------------------------------------------------------------------------
-void UserInterface::keyhandlerFileSelectorCallback(char *fileName)
+void UserInterface::KeyhandlerFileSelectorCallback(char *fileName)
 {
 	BYTE ret = fileSelector->tag;
 
@@ -507,7 +522,7 @@ void UserInterface::keyhandlerFileSelectorCallback(char *fileName)
 	  || fileSelector->type == GUI_FS_SNAPSAVE)
 	  && FileExists(fileSelector->path)) {
 
-		if (queryDialog("OVERWRITE?", false) != GUI_QUERY_YES) {
+		if (QueryDialog("OVERWRITE?", false) != GUI_QUERY_YES) {
 			*ptr = '\0';
 			return;
 		}
@@ -515,19 +530,19 @@ void UserInterface::keyhandlerFileSelectorCallback(char *fileName)
 
 	fileSelector->callback(fileSelector->path, &ret);
 	if (ret == 0) {
-		menuCloseAll();
+		MenuCloseAll();
 		needRelease = true;
 		uiSetChanges = PS_CLOSEALL;
 	}
 	else if (ret == 1) {
-		menuClose();
+		MenuClose();
 		needRelease = true;
 	}
 	else
 		*ptr = '\0';
 }
 //-----------------------------------------------------------------------------
-int UserInterface::keyhandlerFileSelectorSearch(int from)
+int UserInterface::KeyhandlerFileSelectorSearch(int from)
 {
 	char *ptr;
 
@@ -540,11 +555,11 @@ int UserInterface::keyhandlerFileSelectorSearch(int from)
 	return -1;
 }
 //-----------------------------------------------------------------------------
-bool UserInterface::keyhandlerFileSelectorSearchClean()
+bool UserInterface::KeyhandlerFileSelectorSearchClean()
 {
 	if (fileSelector->search[0] != '\0') {
 		fileSelector->search[0] = '\0';
-		drawFileSelector();
+		DrawFileSelector();
 		return true;
 	}
 

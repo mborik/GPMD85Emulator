@@ -407,7 +407,7 @@ bool ccb_view_brdr(GUI_MENU_ENTRY *ptr)
 	WORD value = ((ptr) ? ptr->action : Settings->Screen->border);
 
 	sprintf(msgbuffer, "%d", value);
-	if (GUI->editBox("CHANGE BORDER SIZE:", msgbuffer, 1, true) == 1) {
+	if (GUI->EditBox("CHANGE BORDER SIZE:", msgbuffer, 1, true) == 1) {
 		value = strtol(msgbuffer, NULL, 10);
 		if (value == 0 && msgbuffer[0] != '0')
 			value = -1;
@@ -465,7 +465,7 @@ bool ccb_snd_volume(GUI_MENU_ENTRY *ptr)
 	WORD value = ((ptr) ? ptr->action : Settings->Sound->volume);
 
 	sprintf(msgbuffer, "%d", value);
-	if (GUI->editBox("CHANGE VOLUME:", msgbuffer, 3, true) == 1) {
+	if (GUI->EditBox("CHANGE VOLUME:", msgbuffer, 3, true) == 1) {
 		value = strtol(msgbuffer, NULL, 10);
 		if (value > 1 && value <= 127) {
 			Settings->Sound->volume = (BYTE) value;
@@ -508,7 +508,7 @@ bool ccb_emu_speed(GUI_MENU_ENTRY *ptr)
 	WORD value = ((ptr) ? ptr->action : (Settings->emulationSpeed * 100.0f));
 
 	sprintf(msgbuffer, "%d", value);
-	if (GUI->editBox("EMULATION SPEED:", msgbuffer, 4, true) == 1) {
+	if (GUI->EditBox("EMULATION SPEED:", msgbuffer, 4, true) == 1) {
 		value = strtol(msgbuffer, NULL, 10);
 		if (value == 0 && msgbuffer[0] != '0')
 			value = 100;
@@ -646,7 +646,7 @@ bool ccb_blk_strt(GUI_MENU_ENTRY *ptr)
 	int value = ((ptr) ? ptr->action : Settings->MemoryBlock->start);
 
 	sprintf(msgbuffer, Settings->MemoryBlock->hex ? "#%04X" : "%d", value);
-	if (GUI->editBox("CHANGE START ADDRESS:", msgbuffer, 5, false) == 1) {
+	if (GUI->EditBox("CHANGE START ADDRESS:", msgbuffer, 5, false) == 1) {
 		if (msgbuffer[0] == '#') {
 			value = strtol(msgbuffer + 1, NULL, 16);
 			if (value == 0 && msgbuffer[1] != '0')
@@ -670,7 +670,7 @@ bool ccb_blk_leng(GUI_MENU_ENTRY *ptr)
 	int value = ((ptr) ? ptr->action : Settings->MemoryBlock->length);
 
 	sprintf(msgbuffer, Settings->MemoryBlock->hex ? "#%04X" : "%d", value);
-	if (GUI->editBox("CHANGE LENGTH:", msgbuffer, 5, false) == 1) {
+	if (GUI->EditBox("CHANGE LENGTH:", msgbuffer, 5, false) == 1) {
 		if (msgbuffer[0] == '#') {
 			value = strtol(msgbuffer + 1, NULL, 16);
 			if (value == 0 && msgbuffer[1] != '0')
@@ -713,7 +713,7 @@ bool ccb_blk_exec(GUI_MENU_ENTRY *ptr)
 	if (result)
 		GUI->uiSetChanges |= PS_CLOSEALL;
 	else
-		GUI->messageBox("FATAL ERROR!\nINVALID LENGTH OR CAN'T OPEN FILE!");
+		GUI->MessageBox("FATAL ERROR!\nINVALID LENGTH OR CAN'T OPEN FILE!");
 
 	return result;
 }

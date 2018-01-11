@@ -18,13 +18,15 @@
 #include "UserInterface.h"
 #include "GPMD85main.h"
 //-----------------------------------------------------------------------------
-BYTE UserInterface::editBox(const char *title, char *buffer, BYTE maxLength, bool decimal)
+BYTE UserInterface::EditBox(const char *title, char *buffer, BYTE maxLength, bool decimal)
 {
 	if (maxLength <= 0 || maxLength > (maxCharsOnScreen - 2))
 		maxLength = maxCharsOnScreen - 2;
 
+	GUI_SURFACE *defaultSurface = LockSurface(defaultTexture);
+
 	BYTE *bkm_frameSave = new BYTE[frameLength];
-	memcpy(bkm_frameSave, defaultSurface->pixels, frameLength);
+//	memcpy(bkm_frameSave, defaultSurface->pixels, frameLength); // TODO FIXME!
 
 	menuStackLevel++;
 
@@ -39,8 +41,8 @@ BYTE UserInterface::editBox(const char *title, char *buffer, BYTE maxLength, boo
 	x = (frameWidth  - w) / 2;
 	y = (frameHeight - h) / 2;
 
-	drawDialogWithBorder(defaultSurface, x, y, w, h);
-	printTitle(defaultSurface, x, y + 1, w, GUI_COLOR_BACKGROUND, title);
+	DrawDialogWithBorder(defaultSurface, x, y, w, h);
+	PrintTitle(defaultSurface, x, y + 1, w, GUI_COLOR_BACKGROUND, title);
 
 	x += GUI_CONST_BORDER;
 	y += (2 * GUI_CONST_BORDER);
@@ -58,7 +60,7 @@ BYTE UserInterface::editBox(const char *title, char *buffer, BYTE maxLength, boo
 		while (SDL_PollEvent(&event)) {
 			switch (event.type) {
 				case SDL_KEYDOWN:
-					switch (event.key.keysym.sym) {
+					switch (event.key.keysym.scancode) {
 						case SDL_SCANCODE_ESCAPE:
 							result = 0;
 							break;
@@ -161,7 +163,7 @@ BYTE UserInterface::editBox(const char *title, char *buffer, BYTE maxLength, boo
 					break;
 
 				case SDL_WINDOWEVENT:
-					if (event.window.windowID == gvi.windowID &&
+					if (event.window.windowID == gdc.windowID &&
 						event.window.event == SDL_WINDOWEVENT_EXPOSED) {
 
 						Emulator->RefreshDisplay();
@@ -173,11 +175,11 @@ BYTE UserInterface::editBox(const char *title, char *buffer, BYTE maxLength, boo
 			}
 
 			if (change) {
-				drawRectangle(defaultSurface, x, y - 1, w, fontHeight + 1,
+				DrawRectangle(defaultSurface, x, y - 1, w, fontHeight + 1,
 					GUI_COLOR_BACKGROUND);
-				drawRectangle(defaultSurface, x + (cursor * fontWidth), y - 1,
+				DrawRectangle(defaultSurface, x + (cursor * fontWidth), y - 1,
 					fontWidth, fontHeight + 1, GUI_COLOR_HIGHLIGHT);
-				printText(defaultSurface, x, y, GUI_COLOR_FOREGROUND, buffer);
+				PrintText(defaultSurface, x, y, GUI_COLOR_FOREGROUND, buffer);
 
 				len = strlen(buffer);
 				atTheEnd = (cursor == len);
@@ -188,15 +190,16 @@ BYTE UserInterface::editBox(const char *title, char *buffer, BYTE maxLength, boo
 			}
 		}
 
-		// have a break, have a tick-tock...
 		while (SDL_GetTicks() < nextTick)
 			SDL_Delay(1);
 	}
 
-	memcpy(defaultSurface->pixels, bkm_frameSave, frameLength);
+//	memcpy(defaultSurface->pixels, bkm_frameSave, frameLength); // TODO FIXME!
 	delete [] bkm_frameSave;
 
 	SDL_Delay(GPU_TIMER_INTERVAL);
+
+	UnlockSurface(defaultTexture, defaultSurface);
 	needRelease = true;
 	needRedraw = true;
 
