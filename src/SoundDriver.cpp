@@ -27,10 +27,11 @@ SoundDriver::SoundDriver(int numChn, char totalAmpl)
 	channels = NULL;
 	hFile = NULL;
 
+	soundBuff = new BYTE[FRAME_SIZE];
+	memset(soundBuff, 0, FRAME_SIZE);
+
 	numChannels = numChn;
 	channels = new CHANNEL[numChn];
-	soundBuff = new BYTE[FRAME_SIZE];
-
 	for (int ii = 0; ii < numChn; ii++) {
 		memset(&channels[ii], 0, sizeof(CHANNEL));
 		channels[ii].sampleBuff = new char[FRAME_SIZE];
@@ -88,8 +89,6 @@ SoundDriver::~SoundDriver()
 	soundBuff = NULL;
 }
 //---------------------------------------------------------------------------
-// public metody
-//---------------------------------------------------------------------------
 void SoundDriver::SetVolume(char vol)
 {
 	totalVolume = (char) (vol & 0x7F);
@@ -132,7 +131,7 @@ void SoundDriver::PrepareSample(int chn, bool state, int ticks)
 
 	curPos = (ticks * FRAME_SIZE) / TCYCLES_PER_FRAME;
 
-	// vyplnenie medzery od poslednej pozicie
+	// filling a gap from the last position
 	ptr = channels[chn].sampleBuff + channels[chn].fillPos;
 	for (int ii = channels[chn].fillPos; ii < curPos && ii < FRAME_SIZE; ii++) {
 #if FADEOUT_ON
@@ -142,7 +141,7 @@ void SoundDriver::PrepareSample(int chn, bool state, int ticks)
 #endif
 	}
 
-	// zapis na novu poziciu
+	// writting to the new position
 	if (curPos < FRAME_SIZE)
 		channels[chn].sampleBuff[curPos] = val;
 
@@ -159,7 +158,7 @@ void SoundDriver::PrepareBuffer()
 	if (!initOK || !playOK)
 		return;
 
-	// stisovanie od aktualnej pozicie do konca buffra
+	// fadeout from actual position to the end of buffer
 	for (ii = 0; ii < numChannels; ii++) {
 		ptr = channels[ii].sampleBuff + channels[ii].fillPos;
 		for (jj = channels[ii].fillPos; jj < FRAME_SIZE; jj++) {
@@ -175,7 +174,7 @@ void SoundDriver::PrepareBuffer()
 
 	SDL_LockAudio();
 
-	// mixovanie kanalov
+	// channel mixing
 	BYTE *data = soundBuff;
 	for (jj = 0; jj < FRAME_SIZE; jj++) {
 		val = 0;
@@ -187,7 +186,7 @@ void SoundDriver::PrepareBuffer()
 
 	writePos = 0;
 
-	// zaznam do suboru
+	// file writer
 	if (hFile != NULL)
 		fwrite(soundBuff, FRAME_SIZE, 1, hFile);
 
@@ -196,8 +195,10 @@ void SoundDriver::PrepareBuffer()
 //---------------------------------------------------------------------------
 void SoundDriver::FillSoundBuffer(BYTE *data, DWORD len)
 {
-	if (writePos < 0)
+	if (writePos < 0) {
+		memset(data, 0, len);
 		return;
+	}
 
 	if ((writePos + len) > FRAME_SIZE)
 		len = FRAME_SIZE - writePos;
