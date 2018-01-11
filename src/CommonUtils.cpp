@@ -19,7 +19,7 @@
 //-----------------------------------------------------------------------------
 char CommonUtils::buffer[MAX_PATH] = "";
 struct stat CommonUtils::filestat;
-struct CommonUtils::TGlobalVideoInfo CommonUtils::globalVideoInfo;
+struct CommonUtils::TGraphicsDeviceContext CommonUtils::graphicsDeviceContext;
 //-----------------------------------------------------------------------------
 char *CommonUtils::pathApplicationConfig = NULL;
 char *CommonUtils::pathApplication = NULL;

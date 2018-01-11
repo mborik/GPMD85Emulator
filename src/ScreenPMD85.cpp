@@ -21,261 +21,177 @@
 //-----------------------------------------------------------------------------
 ScreenPMD85::ScreenPMD85(TDisplayMode dispMode, int border)
 {
-	Renderer = NULL;
-	ScreenBuffer = NULL;
-	BlitRectDest = NULL;
+	screenTexture = NULL;
+	screenRect = NULL;
+	palette = NULL;
 
-	DisplayModeChanging = true;
-	BlinkState = false;
-	BlinkingEnabled = false;
-	LCDmode = false;
-	computerModel[0] = '\0';
-	ledState = 0;
-	iconState = 0;
-	statusFPS = 0;
-	statusPercentage = 0;
+	displayModeChanging = true;
+	blinkState = false;
+	blinkingEnabled = false;
+	lcdMode = false;
 	borderSize = (border * BORDER_MULTIPLIER);
 
 	InitPalette();
 	InitScreenSize(dispMode, false);
 
 	PrepareVideoMode();
-	SDL_ShowWindow(gvi.window);
-
 	SetColorProfile(CP_STANDARD);
 	SetHalfPassMode(HP_OFF);
 
-	DisplayModeChanging = false;
+	displayModeChanging = false;
 }
 //-----------------------------------------------------------------------------
 ScreenPMD85::~ScreenPMD85()
 {
-	DisplayModeChanging = true;
-	SDL_RenderClear(Renderer);
-	SDL_RenderPresent(Renderer);
+	displayModeChanging = true;
+
+	SDL_RenderClear(gdc.renderer);
+	SDL_RenderPresent(gdc.renderer);
 
 	ReleaseVideoMode();
-
-	if (BlitRectDest)
-		delete BlitRectDest;
-	BlitRectDest = NULL;
 }
 //-----------------------------------------------------------------------------
-void ScreenPMD85::SetDisplayMode(TDisplayMode dispMode, int border)
+void ScreenPMD85::SetDisplayMode(TDisplayMode dm, int border)
 {
 	border *= BORDER_MULTIPLIER;
 	if (borderSize != border) {
-		if (DispMode != DM_FULLSCREEN) {
-			DispMode = (TDisplayMode) -1;
+		if (dispMode != DM_FULLSCREEN) {
+			dispMode = (TDisplayMode) -1;
 			borderSize = border;
 		}
 	}
 
-	if (DispMode == dispMode)
+	if (dispMode == dm)
 		return;
 
-	DisplayModeChanging = true;
-
+	displayModeChanging = true;
 	SDL_Delay(WEAK_REFRESH_TIME);
-	InitScreenSize(dispMode, Width384mode);
+
 	ReleaseVideoMode();
+	InitScreenSize(dm, width384mode);
 	PrepareVideoMode();
 
-	DisplayModeChanging = false;
+	displayModeChanging = false;
 }
 //---------------------------------------------------------------------------
 void ScreenPMD85::SetWidth384(bool mode384)
 {
-	if (Width384mode == mode384)
+	if (width384mode == mode384)
 		return;
 
-	DisplayModeChanging = true;
+	displayModeChanging = true;
 
 	SDL_Delay(WEAK_REFRESH_TIME);
-	InitScreenSize(DispMode, mode384);
 
 	ReleaseVideoMode();
+	InitScreenSize(dispMode, mode384);
 	PrepareVideoMode();
 
-	DisplayModeChanging = false;
+	displayModeChanging = false;
 }
 //---------------------------------------------------------------------------
-void ScreenPMD85::SetHalfPassMode(THalfPassMode halfPass)
+void ScreenPMD85::SetHalfPassMode(THalfPassMode hp)
 {
-	HalfPass = halfPass;
+	halfPass = hp;
 }
 //---------------------------------------------------------------------------
-void ScreenPMD85::SetLcdMode(bool lcdMode)
+void ScreenPMD85::SetLcdMode(bool state)
 {
-	LCDmode = lcdMode;
+	lcdMode = state;
 }
 //---------------------------------------------------------------------------
-void ScreenPMD85::SetColorProfile(TColorProfile ColProf)
+void ScreenPMD85::SetColorProfile(TColorProfile cp)
 {
-	ColorProfile = ColProf;
-	switch (ColProf) {
+	colorProfile = cp;
+	switch (cp) {
 		case CP_MONO:
-			PAttr[0] = WHITE;
-			PAttr[1] = WHITE;
-			PAttr[2] = WHITE;
-			PAttr[3] = WHITE;
-			BlinkingEnabled = false;
+			pAttr[0] = WHITE;
+			pAttr[1] = WHITE;
+			pAttr[2] = WHITE;
+			pAttr[3] = WHITE;
+			blinkingEnabled = false;
 			break;
 
 		case CP_STANDARD:
-			PAttr[0] = WHITE;
-			PAttr[1] = SILVER;
-			PAttr[2] = WHITE;
-			PAttr[3] = SILVER;
-			BlinkingEnabled = true;
+			pAttr[0] = WHITE;
+			pAttr[1] = SILVER;
+			pAttr[2] = WHITE;
+			pAttr[3] = SILVER;
+			blinkingEnabled = true;
 			break;
 
 		case CP_COLOR:
-			PAttr[0] = CAttr[0];
-			PAttr[1] = CAttr[1];
-			PAttr[2] = CAttr[2];
-			PAttr[3] = CAttr[3];
-			BlinkingEnabled = false;
+			pAttr[0] = cAttr[0];
+			pAttr[1] = cAttr[1];
+			pAttr[2] = cAttr[2];
+			pAttr[3] = cAttr[3];
+			blinkingEnabled = false;
 			break;
 
 		case CP_COLORACE:
-			PAttr[0] = BLACK;
-			PAttr[1] = RED;
-			PAttr[2] = BLUE;
-			PAttr[3] = FUCHSIA;
-			PAttr[4] = LIME;
-			PAttr[5] = YELLOW;
-			PAttr[6] = AQUA;
-			PAttr[7] = WHITE;
-			BlinkingEnabled = false;
+			pAttr[0] = BLACK;
+			pAttr[1] = RED;
+			pAttr[2] = BLUE;
+			pAttr[3] = FUCHSIA;
+			pAttr[4] = LIME;
+			pAttr[5] = YELLOW;
+			pAttr[6] = AQUA;
+			pAttr[7] = WHITE;
+			blinkingEnabled = false;
 			break;
 	}
 }
 //---------------------------------------------------------------------------
-void ScreenPMD85::SetColorAttr(int Index, TColor Attr)
+void ScreenPMD85::SetColorAttr(int idx, TColor attr)
 {
-	if (Index >= 0 && Index <= 3) {
-		CAttr[Index] = Attr;
-		if (ColorProfile == CP_COLOR) {
-			PAttr[Index] = Attr;
-			PAttr[Index + 4] = Attr;
+	if (idx >= 0 && idx <= 3) {
+		cAttr[idx] = attr;
+		if (colorProfile == CP_COLOR) {
+			pAttr[idx] = attr;
+			pAttr[idx + 4] = attr;
 		}
 	}
 }
 //---------------------------------------------------------------------------
-TColor ScreenPMD85::GetColorAttr(int Index)
+TColor ScreenPMD85::GetColorAttr(int idx)
 {
-	if (Index >= 0 && Index <= 3)
-		return CAttr[Index];
+	if (idx >= 0 && idx <= 3)
+		return cAttr[idx];
 	else
 		return BLACK;
 }
 //---------------------------------------------------------------------------
-void ScreenPMD85::SetLedState(int led)
-{
-	static int pullUpConstant = (TCYCLES_PER_FRAME / 16);
-	static int pullUpYellow = 0;
-	static int pullUpRed = 0;
-
-	if (pullUpYellow > 0) {
-		led |= LED_YELLOW;
-		pullUpYellow--;
-	}
-	else
-		pullUpYellow = (led & LED_YELLOW) ? pullUpConstant : 0;
-
-	if (pullUpRed > 0) {
-		led |= LED_RED;
-		pullUpRed--;
-	}
-	else
-		pullUpRed = (led & LED_RED) ? pullUpConstant : 0;
-
-	ledState = led;
-}
-//---------------------------------------------------------------------------
-void ScreenPMD85::SetIconState(int icon)
-{
-	static int pullUpIcon = 0;
-
-	if (iconState != icon) {
-		if (iconState > 0 && iconState < 9 && icon == 0) {
-			if (pullUpIcon == 0)
-				pullUpIcon = 50;
-			else
-				pullUpIcon--;
-		}
-
-		if (pullUpIcon == 0 || icon > 0)
-			iconState = icon;
-	}
-}
-//---------------------------------------------------------------------------
-void ScreenPMD85::SetComputerModel(TComputerModel model)
-{
-	const char *modelName = NULL;
-
-	switch (model) {
-		case CM_V1:
-			modelName = "M1"; break;
-		case CM_V2:
-			modelName = "M2"; break;
-		case CM_V2A:
-			modelName = "M2A"; break;
-		case CM_V3:
-			modelName = "M3"; break;
-		case CM_ALFA:
-			modelName = "\2141"; break;
-		case CM_ALFA2:
-			modelName = "\2142"; break;
-		case CM_C2717:
-			modelName = "C\215\216\217"; break;
-		case CM_MATO:
-			modelName = "Ma\213o"; break;
-		default:
-			break;
-	}
-
-	if (modelName)
-		sprintf(computerModel, "%s: ", modelName);
-	else
-		computerModel[0] = '\0';
-}
-//---------------------------------------------------------------------------
 void ScreenPMD85::RefreshDisplay()
 {
-	if (DisplayModeChanging)
+	if (displayModeChanging)
 		return;
 
-	PrepareStatusBar();
+	PrepareScreen();
+	GUI->RedrawStatusBar();
+	SDL_RenderCopy(gdc.renderer, screenTexture, NULL, screenRect);
 
-	SDL_RenderCopy(Renderer, ScreenBuffer, NULL, BlitRectDest);
-
-	if (GUI->isInMenu() && GUI->needRedraw) {
-		// TODO SDL_RenderCopy GUI screen
-		GUI->needRedraw = false;
+	if (GUI->InMenu()) {
+		SDL_RenderCopy(gdc.renderer, GUI->defaultTexture, NULL, screenRect);
 	}
 
-	RedrawStatusBar();
-
-	SDL_RenderPresent(Renderer);
+	SDL_RenderPresent(gdc.renderer);
 }
 //---------------------------------------------------------------------------
 void ScreenPMD85::FillBuffer(BYTE *videoRam)
 {
-	if (DisplayModeChanging || videoRam == NULL)
+	if (displayModeChanging || videoRam == NULL)
 		return;
 
-	bool colorace = (ColorProfile == CP_COLORACE);
-	int i, w, h = bufferHeight, c2717 = (Width384mode ? 0 : 0x40);
-	BYTE a[4] = { PAttr[0], PAttr[1], PAttr[2], PAttr[3] }, b, c, d, e;
+	bool colorace = (colorProfile == CP_COLORACE);
+	int i, w, h = bufferHeight, c2717 = (width384mode ? 0 : 0x40);
+	BYTE a[4] = { pAttr[0], pAttr[1], pAttr[2], pAttr[3] }, b, c, d, e;
 
-	if (BlinkingEnabled && BlinkState)
+	if (blinkingEnabled && blinkState)
 		a[2] = a[3] = 0;
 
 	DWORD *ptr;
 	BYTE *dst;
-	SDL_LockTexture(ScreenBuffer, NULL, (void **) &dst, &w);
+	SDL_LockTexture(screenTexture, NULL, (void **) &dst, &w);
 
 	while (h--) {
 		ptr = (DWORD *) dst;
@@ -286,7 +202,7 @@ void ScreenPMD85::FillBuffer(BYTE *videoRam)
 			if (colorace) {
 				e = videoRam[i + ((h & 1) ? 64 : -64)];
 				c = (e & 0xC0) >> 6;
-				c = PAttr[d | c | ((d & c) ? 0 : 4)];
+				c = pAttr[d | c | ((d & c) ? 0 : 4)];
 			}
 			else if (c2717)
 				c = a[d];
@@ -294,51 +210,50 @@ void ScreenPMD85::FillBuffer(BYTE *videoRam)
 				c = *a;
 
 			for (d = 0x01; d != c2717; d <<= 1)
-				*ptr++ = Palette[((b & d) ? c : 0)];
+				*ptr++ = palette[((b & d) ? c : 0)];
 		}
 
 		dst += w;
 		videoRam += 64;
 	}
 
-	SDL_UnlockTexture(ScreenBuffer);
+	SDL_UnlockTexture(screenTexture);
 }
 //---------------------------------------------------------------------------
 void ScreenPMD85::InitScreenSize(TDisplayMode reqDispMode, bool reqWidth384)
 {
-	DispMode = reqDispMode;
-	Width384mode = reqWidth384;
-	FullScreenScaleMode = (TDisplayMode) -1;
+	dispMode = reqDispMode;
+	width384mode = reqWidth384;
 
-	if (DispMode == DM_FULLSCREEN)
+	if (dispMode == DM_FULLSCREEN)
 		reqDispMode = DM_QUADRUPLESIZE;
 
 	while (true) {
 		switch (reqDispMode) {
 			default:
 			case DM_NORMAL:
-				Width = (reqWidth384) ? 384 : 288;
-				Height = 256;
+				screenWidth  = (reqWidth384) ? 384 : 288;
+				screenHeight = 256;
 				break;
 
 			case DM_DOUBLESIZE:
-				Width = (reqWidth384) ? 768 : 576;
-				Height = 512;
+				screenWidth  = (reqWidth384) ? 768 : 576;
+				screenHeight = 512;
 				break;
 
 			case DM_TRIPLESIZE:
-				Width = (reqWidth384) ? 1152 : 864;
-				Height = 768;
+				screenWidth  = (reqWidth384) ? 1152 : 864;
+				screenHeight = 768;
 				break;
 
 			case DM_QUADRUPLESIZE:
-				Width = (reqWidth384) ? 1536 : 1152;
-				Height = 1024;
+				screenWidth  = (reqWidth384) ? 1536 : 1152;
+				screenHeight = 1024;
 				break;
 		}
 
-		if (DispMode == DM_FULLSCREEN) {
-			if (Width > gvi.w || Height + STATUSBAR_HEIGHT > gvi.h) {
+		if (dispMode == DM_FULLSCREEN) {
+			if (screenWidth > gdc.w || screenHeight + STATUSBAR_HEIGHT > gdc.h) {
 				if (reqDispMode == DM_QUADRUPLESIZE)
 					reqDispMode = DM_TRIPLESIZE;
 				else if (reqDispMode == DM_TRIPLESIZE)
@@ -346,202 +261,134 @@ void ScreenPMD85::InitScreenSize(TDisplayMode reqDispMode, bool reqWidth384)
 				else if (reqDispMode == DM_DOUBLESIZE)
 					reqDispMode = DM_NORMAL;
 				else {
-					DispMode = DM_NORMAL;
+					dispMode = DM_NORMAL;
 					break;
 				}
 
 				continue;
 			}
-			else {
-				FullScreenScaleMode = reqDispMode;
-				break;
-			}
 		}
-		else break;
+
+		break;
 	}
 
-	bufferWidth = (reqWidth384) ? 384 : 288;
+	bufferWidth  = (reqWidth384) ? 384 : 288;
 	bufferHeight = 256;
 
-	if (BlitRectDest)
-		delete BlitRectDest;
-	BlitRectDest = new SDL_Rect;
+	screenRect = new SDL_Rect;
 
-	if (DispMode == DM_FULLSCREEN) {
-		BlitRectDest->w = Width;
-		BlitRectDest->h = Height;
+	if (dispMode == DM_FULLSCREEN) {
+		screenRect->w = screenWidth;
+		screenRect->h = screenHeight;
 
-		Height += STATUSBAR_HEIGHT;
-		BlitRectDest->x = (gvi.w - Width) / 2;
-		BlitRectDest->y = (gvi.h - Height) / 2;
+		screenHeight += STATUSBAR_HEIGHT;
+		screenRect->x = (gdc.w - screenWidth) / 2;
+		screenRect->y = (gdc.h - screenHeight) / 2;
+
+		screenWidth   = gdc.w;
+		screenHeight  = gdc.h;
 	}
 	else {
-		BlitRectDest->x = borderSize;
-		BlitRectDest->y = borderSize;
-		BlitRectDest->w = Width;
-		BlitRectDest->h = Height;
+		screenRect->x = borderSize;
+		screenRect->y = borderSize;
+		screenRect->w = screenWidth;
+		screenRect->h = screenHeight;
 
-		Width  += (borderSize * 2);
-		Height += (borderSize * 2) + STATUSBAR_HEIGHT;
+		screenWidth  += (borderSize * 2);
+		screenHeight += (borderSize * 2) + STATUSBAR_HEIGHT;
 	}
+
+	GUI->statusRect = new SDL_Rect(*screenRect);
+
+	GUI->statusRect->x += STATUSBAR_SPACING;
+	GUI->statusRect->y += screenRect->h + (borderSize - STATUSBAR_HEIGHT / 2);
+	GUI->statusRect->w -= (2 * STATUSBAR_SPACING);
+	GUI->statusRect->h  = STATUSBAR_HEIGHT;
 }
 //-----------------------------------------------------------------------------
 void ScreenPMD85::PrepareVideoMode()
 {
-	if (DispMode == DM_FULLSCREEN) {
-		debug("Screen", "Full-screen mode: %dx%d", gvi.w, gvi.h);
-		SDL_SetWindowFullscreen(gvi.window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+	if (dispMode == DM_FULLSCREEN) {
+		debug("Screen", "Full-screen mode: %dx%d", gdc.w, gdc.h);
+		SDL_SetWindowFullscreen(gdc.window, SDL_WINDOW_FULLSCREEN_DESKTOP);
 	}
 	else {
-		debug("Screen", "Windowed mode: %dx%d", Width, Height);
-		SDL_SetWindowSize(gvi.window, Width, Height);
+		debug("Screen", "Windowed mode: %dx%d", screenWidth, screenHeight);
+
+		SDL_SetWindowFullscreen(gdc.window, 0);
+		SDL_SetWindowSize(gdc.window, screenWidth, screenHeight);
 	}
 
-	Renderer = SDL_CreateRenderer(gvi.window, -1,
-			SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+	if (SDL_RenderSetLogicalSize(gdc.renderer, screenWidth, screenHeight) != 0)
+		error("Screen", "Unable to change screen resolution\n%s", SDL_GetError());
 
-	if (!Renderer)
-		error("Screen", "Unable to create screen buffer\n%s", SDL_GetError());
-
-	ScreenBuffer = SDL_CreateTexture(Renderer, SDL_PIXELFORMAT_RGBA8888,
+	screenTexture = SDL_CreateTexture(gdc.renderer, SDL_PIXELFORMAT_DEFAULT,
 			SDL_TEXTUREACCESS_STREAMING, bufferWidth, bufferHeight);
+	if (!screenTexture)
+		error("Screen", "Unable to create screenTexture\n%s", SDL_GetError());
 
-	if (!ScreenBuffer)
-		error("Screen", "Unable to create ScreenBuffer texture\n%s", SDL_GetError());
+	GUI->InitStatusBarTexture();
+	GUI->InitDefaultTexture(bufferWidth, bufferHeight);
 
-//	GUI->prepareDefaultSurface(bufferWidth, bufferHeight, Palette);
-
-	PrepareStatusBar(true);
-	SDL_RenderPresent(Renderer);
+	PrepareScreen(true);
+	SDL_RenderPresent(gdc.renderer);
 }
 //-----------------------------------------------------------------------------
 void ScreenPMD85::ReleaseVideoMode()
 {
-/*
-	if (GUI->defaultSurface) {
-		SDL_FreeSurface(GUI->defaultSurface);
-		GUI->defaultSurface = NULL;
+	if (GUI->statusRect) {
+		delete GUI->statusRect;
+		GUI->statusTexture = NULL;
 	}
-*/
-	if (ScreenBuffer) {
-		SDL_DestroyTexture(ScreenBuffer);
-		ScreenBuffer = NULL;
+	if (GUI->statusTexture) {
+		SDL_DestroyTexture(GUI->statusTexture);
+		GUI->statusTexture = NULL;
 	}
-	if (Renderer) {
-		SDL_DestroyRenderer(Renderer);
-		Renderer = NULL;
+	if (GUI->defaultTexture) {
+		SDL_DestroyTexture(GUI->defaultTexture);
+		GUI->defaultTexture = NULL;
+	}
+	if (screenRect) {
+		delete screenRect;
+		screenTexture = NULL;
+	}
+	if (screenTexture) {
+		SDL_DestroyTexture(screenTexture);
+		screenTexture = NULL;
 	}
 }
 //-----------------------------------------------------------------------------
-void ScreenPMD85::PrepareStatusBar(bool clear)
+void ScreenPMD85::PrepareScreen(bool clear)
 {
 	if (clear) {
-		SDL_SetRenderDrawColor(Renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
-		SDL_RenderClear(Renderer);
+		SDL_SetRenderDrawColor(gdc.renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
+		SDL_RenderClear(gdc.renderer);
 	}
 
-	SDL_Rect *r = new SDL_Rect(*BlitRectDest);
-	SDL_SetRenderDrawColor(Renderer, 16, 16, 16, SDL_ALPHA_OPAQUE);
+	SDL_Rect *r = new SDL_Rect(*screenRect);
+	SDL_SetRenderDrawColor(gdc.renderer, 16, 16, 16, SDL_ALPHA_OPAQUE);
 
 	int i = 0;
 	if (borderSize > 0) {
-		i = (BlitRectDest->h / 256) * 2;
+		i = GetMultiplier() * 2;
 		r->x -= i;
 		r->y -= i;
 		r->w += i * 2;
 		r->h += i * 2;
 
-		SDL_RenderDrawRect(Renderer, r);
+		SDL_RenderDrawRect(gdc.renderer, r);
 	}
 	else {
-		int y = Height - STATUSBAR_HEIGHT;
-		SDL_RenderDrawLine(Renderer, r->x, y, r->x + r->w, y);
+		int y = screenHeight - STATUSBAR_HEIGHT;
+		SDL_RenderDrawLine(gdc.renderer, r->x, y, r->x + r->w, y);
 	}
 
 	delete r;
-}
-//-----------------------------------------------------------------------------
-void ScreenPMD85::RedrawStatusBar()
-{
-/*
-	SDL_Rect *r = new SDL_Rect(*BlitRectDest), *s = new SDL_Rect;
-
-	r->x += r->w - (4 * STATUSBAR_SPACING);
-	r->y += r->h + ((STATUSBAR_HEIGHT - STATUSBAR_ICON) / 2)
-	             + (r->y / BORDER_MULTIPLIER)
-	             + (BlitRectDest->h / 256);
-
-	r->w = r->h = s->w = s->h = STATUSBAR_ICON;
-
-//	control LEDs on right side...
-	s->y = 0;
-	s->x = (ledState & 1) ? STATUSBAR_ICON : 0;
-	SDL_LowerBlit(GUI->icons, s, Screen, r);
-
-	r->x += STATUSBAR_SPACING;
-	s->x = (ledState & 2) ? (2 * STATUSBAR_ICON) : 0;
-	SDL_LowerBlit(GUI->icons, s, Screen, r);
-
-	r->x += STATUSBAR_SPACING;
-	s->x = (ledState & 4) ? (3 * STATUSBAR_ICON) : 0;
-	SDL_LowerBlit(GUI->icons, s, Screen, r);
-
-//	tape/disk icon...
-	r->x -= (4 * STATUSBAR_SPACING);
-	if (iconState) {
-		s->x = (iconState * STATUSBAR_ICON) + (3 * STATUSBAR_ICON);
-		SDL_LowerBlit(GUI->icons, s, Screen, r);
-	}
-	else
-		SDL_FillRect(Screen, r, 0);
-
-	delete s;
-
-	if (SDL_LockSurface(Screen) != 0) {
-		delete r;
-		return;
-	}
-
-	int tapProgressWidth = r->x - STATUSBAR_SPACING;
-	static char status[24] = "";
-	static BYTE pauseBlinker = 0;
-
-//	status text, cpu meter and blinking pause...
-	r->x = BlitRectDest->x + STATUSBAR_SPACING;
-	r->y += 2;
-
-	GUI->printText(Screen, r->x, r->y, 0, status);
-	if (statusPercentage < 0) {
-		sprintf(status, "PAUSED");
-		GUI->printText(Screen, r->x, r->y, (pauseBlinker < 10) ? 111 : 0, status);
-		if (pauseBlinker++ >= 16)
-			pauseBlinker = 0;
-	}
-	else if (statusPercentage > 0) {
-		sprintf(status, "%sFPS:%d CPU:%d%%", computerModel, statusFPS, statusPercentage);
-		GUI->printText(Screen, r->x, r->y, 55, status);
-	}
-
-//	tape progress bar...
-	r->x = (r->x + (20 * 6) + STATUSBAR_SPACING);
-	r->y += 3;
-	r->w = tapProgressWidth - r->x;
-	r->h = 2;
-
-	SDL_FillRect(Screen, r, *(TapeBrowser->ProgressBar->Active) ? SDL_MapRGB(Screen->format, 16, 24, 16) : 0);
-	if (*(TapeBrowser->ProgressBar->Active)) {
-		r->w = ((double) r->w / TapeBrowser->ProgressBar->Max) * TapeBrowser->ProgressBar->Position;
-		SDL_FillRect(Screen, r, SDL_MapRGB(Screen->format, 40, 100, 50));
-	}
-
-	SDL_UnlockSurface(Screen);
-	delete r;
-*/
 }
 //-----------------------------------------------------------------------------
 void ScreenPMD85::InitPalette()
 {
-	static DWORD stdpal[64] = {
+	static DWORD stdpal[36] = {
 		DWORD_COLOR_ENTRY(   0,   0,   0 ),  // 0 - black (dimmed dot)
 		DWORD_COLOR_ENTRY( 160,   0,   0 ),  // 1 - maroon
 		DWORD_COLOR_ENTRY(   0, 160,   0 ),  // 2 - green
@@ -559,60 +406,7 @@ void ScreenPMD85::InitPalette()
 		DWORD_COLOR_ENTRY(  80, 255, 255 ),  // 14 - aqua
 		DWORD_COLOR_ENTRY( 255, 255, 255 ),  // 15 - white (full bright)
 
-		DWORD_COLOR_ENTRY(   0,   0,   0 ),  // }
-		DWORD_COLOR_ENTRY( 114,   6,   6 ),  //  |
-		DWORD_COLOR_ENTRY(   6, 114,   6 ),  //  |
-		DWORD_COLOR_ENTRY( 114, 114,   6 ),  //  |
-		DWORD_COLOR_ENTRY(   6,   6, 114 ),  //  |
-		DWORD_COLOR_ENTRY( 114,   6, 114 ),  //  |
-		DWORD_COLOR_ENTRY(   6, 114, 114 ),  //  |
-		DWORD_COLOR_ENTRY( 120, 120, 120 ),  //   } - 75% of bright
-		DWORD_COLOR_ENTRY( 144, 144, 144 ),  //  |
-		DWORD_COLOR_ENTRY( 185,  66,  66 ),  //  |
-		DWORD_COLOR_ENTRY(  66, 185,  66 ),  //  |
-		DWORD_COLOR_ENTRY( 185, 185,  66 ),  //  |
-		DWORD_COLOR_ENTRY(  66,  66, 185 ),  //  |
-		DWORD_COLOR_ENTRY( 185,  66, 185 ),  //  |
-		DWORD_COLOR_ENTRY(  80, 185, 185 ),  //  |
-		DWORD_COLOR_ENTRY( 191, 191, 191 ),  // }
-
-		DWORD_COLOR_ENTRY(   0,   0,   0 ),  // }
-		DWORD_COLOR_ENTRY(  82,   9,   9 ),  //  |
-		DWORD_COLOR_ENTRY(   9,  82,   9 ),  //  |
-		DWORD_COLOR_ENTRY(  82,  82,   9 ),  //  |
-		DWORD_COLOR_ENTRY(   9,   9,  82 ),  //  |
-		DWORD_COLOR_ENTRY(  82,   9,  82 ),  //  |
-		DWORD_COLOR_ENTRY(   9,  82,  82 ),  //  |
-		DWORD_COLOR_ENTRY(  90,  90,  90 ),  //   } - 50% of bright
-		DWORD_COLOR_ENTRY( 108, 108, 108 ),  //  |
-		DWORD_COLOR_ENTRY( 134,  54,  54 ),  //  |
-		DWORD_COLOR_ENTRY(  54, 134,  54 ),  //  |
-		DWORD_COLOR_ENTRY( 134, 134,  54 ),  //  |
-		DWORD_COLOR_ENTRY(  54,  54, 134 ),  //  |
-		DWORD_COLOR_ENTRY( 134,  54, 134 ),  //  |
-		DWORD_COLOR_ENTRY(  54, 134, 134 ),  //  |
-		DWORD_COLOR_ENTRY( 144, 144, 144 ),  // }
-
-		DWORD_COLOR_ENTRY(   0,   0,   0 ),  // }
-		DWORD_COLOR_ENTRY(  60,   8,   8 ),  //  |
-		DWORD_COLOR_ENTRY(   8,  60,   8 ),  //  |
-		DWORD_COLOR_ENTRY(  60,  60,   8 ),  //  |
-		DWORD_COLOR_ENTRY(   8,   8,  60 ),  //  |
-		DWORD_COLOR_ENTRY(  60,   8,  60 ),  //  |
-		DWORD_COLOR_ENTRY(   8,  60,  60 ),  //  |
-		DWORD_COLOR_ENTRY(  68,  68,  68 ),  //   } - 25% of bright
-		DWORD_COLOR_ENTRY(  81,  81,  81 ),  //  |
-		DWORD_COLOR_ENTRY(  98,  44,  44 ),  //  |
-		DWORD_COLOR_ENTRY(  44,  98,  44 ),  //  |
-		DWORD_COLOR_ENTRY(  98,  98,  44 ),  //  |
-		DWORD_COLOR_ENTRY(  44,  44,  98 ),  //  |
-		DWORD_COLOR_ENTRY(  98,  44,  98 ),  //  |
-		DWORD_COLOR_ENTRY(  44,  98,  98 ),  //  |
-		DWORD_COLOR_ENTRY( 108, 108, 108 )   // }
-	};
-
 	// UserInterface colors:
-	static DWORD guipal[16] = {
 		DWORD_COLOR_ENTRY(   0,   0,   0 ),  // window shadow
 		DWORD_COLOR_ENTRY( 160,  24,  12 ),  // window border a title background
 		DWORD_COLOR_ENTRY( 242, 238, 233 ),  // window background
@@ -627,13 +421,16 @@ void ScreenPMD85::InitPalette()
 		DWORD_COLOR_ENTRY( 233, 238, 242 ),  // debugger foreground
 		DWORD_COLOR_ENTRY(  32,  64, 128 ),  // debugger highlight cursor
 		DWORD_COLOR_ENTRY(  96, 112, 128 ),  // debugger border
-		DWORD_COLOR_ENTRY(   0,   0,   0 ),  //
-		DWORD_COLOR_ENTRY( 224,  27,  76 )   //
+		DWORD_COLOR_ENTRY(   0,   0,   0 ),  // (reserved)
+		DWORD_COLOR_ENTRY(   0,   0,   0 ),  // (reserved)
+		DWORD_COLOR_ENTRY(  68,  68,  68 ),  // statusbar standard text
+		DWORD_COLOR_ENTRY( 224,  27,  76 ),  // statusbar paused blinking text
+		DWORD_COLOR_ENTRY(  16,  24,  16 ),  // statusbar tape background
+		DWORD_COLOR_ENTRY(  40, 100,  50 ),  // statusbar tape foreground
 	};
 
-	memset(Palette, 0, sizeof(DWORD) * 256);
-	memcpy(Palette, stdpal, sizeof(DWORD) * 64);
-	for (int i = 80; i < 160; i += 16)
-		memcpy(Palette + i, guipal, sizeof(guipal));
+	palette = GUI->globalPalette;
+	SDL_memset4(palette, 0, 256);
+	memcpy(palette, stdpal, sizeof(stdpal));
 }
 //-----------------------------------------------------------------------------

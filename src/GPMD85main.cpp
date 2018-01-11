@@ -42,7 +42,7 @@ TEmulator::TEmulator()
 	exposeEvent.type = SDL_WINDOWEVENT;
 	exposeEvent.window.type = SDL_WINDOWEVENT;
 	exposeEvent.window.event = SDL_WINDOWEVENT_EXPOSED;
-	exposeEvent.window.windowID = gvi.windowID;
+	exposeEvent.window.windowID = gdc.windowID;
 
 	model = CM_UNKNOWN;
 	romChanged = false;
@@ -263,23 +263,23 @@ void TEmulator::BaseTimerCallback()
 		BYTE icon = (ifTape) ? ifTape->GetTapeIcon() : 0;
 		if (!icon && pmd32 && pmd32->diskIcon)
 			icon = pmd32->diskIcon;
+		GUI->SetIconState(icon);
 
-		video->SetIconState(icon);
 		video->FillBuffer(videoRam);
 	}
 
 	// status bar FPS and CPU indicators
 	if (thisTime >= nextTick) {
 		int perc = 0;
-		if (!GUI->isInMenu()) {
+		if (!GUI->InMenu()) {
 			if (Settings->isPaused)
 				perc--;
 			else
 				perc = (cpuUsage * 100.0f) / (float)(thisTime - (nextTick - MEASURE_PERIOD));
 		}
 
-		video->SetStatusPercentage(perc);
-		video->SetStatusFPS(frames);
+		GUI->SetStatusPercentage(perc);
+		GUI->SetStatusFPS(frames);
 
 		nextTick = thisTime + MEASURE_PERIOD;
 		cpuUsage = 0;
@@ -347,7 +347,7 @@ void TEmulator::CpuTimerCallback()
 			// status bar LED's state
 			// (with pull-up delay simulation)
 			if (systemPIO)
-				video->SetLedState(systemPIO->ledState);
+				GUI->SetLedState(systemPIO->ledState);
 		}
 	} while (cpu->GetTCycles() < tcpf);
 
@@ -410,15 +410,15 @@ bool TEmulator::TestHotkeys()
 
 	// menu keyboard handling and interaction of result
 	// GUI->uiSetChanges is bit-map of setting changes for ProcessSettings()
-	if (GUI->isInMenu()) {
-		GUI->menuHandleKey(key);
+	if (GUI->InMenu()) {
+		GUI->MenuHandleKey(key);
 
 		// special flag that close all menu windows
 		if (GUI->uiSetChanges & PS_CLOSEALL)
 			key = SDL_SCANCODE_ESCAPE;
 
 		// if we leave menu and uiSetChanges is set, apply settings change
-		if (!GUI->isInMenu() && key == SDL_SCANCODE_ESCAPE) {
+		if (!GUI->InMenu() && key == SDL_SCANCODE_ESCAPE) {
 			if (GUI->uiSetChanges) {
 				ProcessSettings(GUI->uiSetChanges);
 				GUI->uiSetChanges = 0;
@@ -433,7 +433,7 @@ bool TEmulator::TestHotkeys()
 			// callback can popup new window,
 			// so we test again if we are in menu;
 			// if not, we run emulation back to previous state
-			if (!GUI->isInMenu()) {
+			if (!GUI->InMenu()) {
 				ActionPlayPause(!Settings->isPaused, false);
 				return true;
 			}
@@ -548,7 +548,7 @@ bool TEmulator::TestHotkeys()
 
 			case SDL_SCANCODE_F1:	// MAIN MENU
 				ActionPlayPause(false, false);
-				GUI->menuOpen(UserInterface::GUI_TYPE_MENU);
+				GUI->MenuOpen(UserInterface::GUI_TYPE_MENU);
 				break;
 
 			case SDL_SCANCODE_F2:	// LOAD/SAVE TAPE
@@ -578,7 +578,7 @@ bool TEmulator::TestHotkeys()
 
 			case SDL_SCANCODE_F6:	// DISK IMAGES
 				ActionPlayPause(false, false);
-				GUI->menuOpen(UserInterface::GUI_TYPE_MENU, gui_p32_images_menu);
+				GUI->MenuOpen(UserInterface::GUI_TYPE_MENU, gui_p32_images_menu);
 				break;
 
 			case SDL_SCANCODE_F7:	// LOAD/SAVE SNAPSHOT
@@ -595,22 +595,22 @@ bool TEmulator::TestHotkeys()
 			case SDL_SCANCODE_F9:	// MODEL SELECT/MEMORY MENU
 				ActionPlayPause(false, false);
 				if (key & KM_SHIFT)
-					GUI->menuOpen(UserInterface::GUI_TYPE_MENU, gui_mem_menu);
+					GUI->MenuOpen(UserInterface::GUI_TYPE_MENU, gui_mem_menu);
 				else
-					GUI->menuOpen(UserInterface::GUI_TYPE_MENU, gui_machine_menu);
+					GUI->MenuOpen(UserInterface::GUI_TYPE_MENU, gui_machine_menu);
 				break;
 
 			case SDL_SCANCODE_F10:	// PERIPHERALS
 				ActionPlayPause(false, false);
-				GUI->menuOpen(UserInterface::GUI_TYPE_MENU, gui_pers_menu);
+				GUI->MenuOpen(UserInterface::GUI_TYPE_MENU, gui_pers_menu);
 				break;
 
 			case SDL_SCANCODE_F11:	// MEMORY BLOCK READ/WRITE
 				ActionPlayPause(false, false);
 				if (key & KM_SHIFT)
-					GUI->menuOpen(UserInterface::GUI_TYPE_MENU, gui_memblock_write_menu);
+					GUI->MenuOpen(UserInterface::GUI_TYPE_MENU, gui_memblock_write_menu);
 				else
-					GUI->menuOpen(UserInterface::GUI_TYPE_MENU, gui_memblock_read_menu);
+					GUI->MenuOpen(UserInterface::GUI_TYPE_MENU, gui_memblock_read_menu);
 				break;
 
 			case SDL_SCANCODE_F12:	// DEBUGGER
@@ -627,19 +627,19 @@ void TEmulator::ActionExit()
 	ActionPlayPause(false, false);
 
 	if (TapeBrowser->tapeChanged) {
-		BYTE result = GUI->queryDialog("SAVE TAPE CHANGES?", true);
+		BYTE result = GUI->QueryDialog("SAVE TAPE CHANGES?", true);
 		if (result == GUI_QUERY_SAVE) {
 			ActionTapeSave();
 			return;
 		}
 		else if (result != GUI_QUERY_DONTSAVE) {
-			GUI->menuCloseAll();
+			GUI->MenuCloseAll();
 			ActionPlayPause(!Settings->isPaused, false);
 			return;
 		}
 	}
 
-	if (GUI->queryDialog("REALLY EXIT?", false) == GUI_QUERY_YES)
+	if (GUI->QueryDialog("REALLY EXIT?", false) == GUI_QUERY_YES)
 		isActive = false;
 
 	ActionPlayPause(!Settings->isPaused, false);
@@ -648,13 +648,13 @@ void TEmulator::ActionExit()
 void TEmulator::ActionDebugger()
 {
 	ActionPlayPause(false, false);
-	GUI->menuOpen(UserInterface::GUI_TYPE_DEBUGGER);
+	GUI->MenuOpen(UserInterface::GUI_TYPE_DEBUGGER);
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionTapeBrowser()
 {
 	ActionPlayPause(false, false);
-	GUI->menuOpen(UserInterface::GUI_TYPE_TAPEBROWSER);
+	GUI->MenuOpen(UserInterface::GUI_TYPE_TAPEBROWSER);
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionTapePlayStop()
@@ -673,9 +673,9 @@ void TEmulator::ActionTapeNew()
 
 	BYTE result = GUI_QUERY_DONTSAVE;
 	if (TapeBrowser->tapeChanged) {
-		result = GUI->queryDialog("SAVE TAPE CHANGES?", true);
+		result = GUI->QueryDialog("SAVE TAPE CHANGES?", true);
 		if (result == GUI_QUERY_SAVE) {
-			GUI->menuCloseAll();
+			GUI->MenuCloseAll();
 			ActionTapeSave();
 			return;
 		}
@@ -685,7 +685,7 @@ void TEmulator::ActionTapeNew()
 		TapeBrowser->SetNewTape();
 		delete [] Settings->TapeBrowser->fileName;
 		Settings->TapeBrowser->fileName = NULL;
-		GUI->menuCloseAll();
+		GUI->MenuCloseAll();
 	}
 
 	ActionPlayPause(!Settings->isPaused, false);
@@ -699,13 +699,13 @@ void TEmulator::ActionTapeLoad(bool import)
 	ActionPlayPause(false, false);
 
 	if (!import && TapeBrowser->tapeChanged) {
-		BYTE result = GUI->queryDialog("SAVE TAPE CHANGES?", true);
+		BYTE result = GUI->QueryDialog("SAVE TAPE CHANGES?", true);
 		if (result == GUI_QUERY_SAVE) {
 			ActionTapeSave();
 			return;
 		}
 		else if (result != GUI_QUERY_DONTSAVE) {
-			GUI->menuCloseAll();
+			GUI->MenuCloseAll();
 			ActionPlayPause(!Settings->isPaused, false);
 			return;
 		}
@@ -731,7 +731,7 @@ void TEmulator::ActionTapeLoad(bool import)
 	else
 		strcpy(GUI->fileSelector->path, PathApplication);
 
-	GUI->menuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
+	GUI->MenuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionTapeSave()
@@ -756,7 +756,7 @@ void TEmulator::ActionTapeSave()
 	else
 		strcpy(GUI->fileSelector->path, PathApplication);
 
-	GUI->menuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
+	GUI->MenuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionPMD32LoadDisk(int drive)
@@ -800,7 +800,7 @@ void TEmulator::ActionPMD32LoadDisk(int drive)
 	else
 		strcpy(GUI->fileSelector->path, PathApplication);
 
-	GUI->menuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
+	GUI->MenuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionSnapLoad()
@@ -825,7 +825,7 @@ void TEmulator::ActionSnapLoad()
 	else
 		strcpy(GUI->fileSelector->path, PathApplication);
 
-	GUI->menuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
+	GUI->MenuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionSnapSave()
@@ -850,7 +850,7 @@ void TEmulator::ActionSnapSave()
 	else
 		strcpy(GUI->fileSelector->path, PathApplication);
 
-	GUI->menuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
+	GUI->MenuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionROMLoad(BYTE type)
@@ -889,7 +889,7 @@ void TEmulator::ActionROMLoad(BYTE type)
 			strcpy(GUI->fileSelector->path, PathApplication);
 	}
 
-	GUI->menuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
+	GUI->MenuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionRawFile(bool save)
@@ -913,7 +913,7 @@ void TEmulator::ActionRawFile(bool save)
 	else
 		strcpy(GUI->fileSelector->path, PathApplication);
 
-	GUI->menuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
+	GUI->MenuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionReset()
@@ -1047,7 +1047,7 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 	romAdrKB = 32;
 
 	// set status bar short model descriptor
-	video->SetComputerModel(model);
+	GUI->SetComputerModel(model);
 
 	switch (model) {
 		case CM_UNKNOWN :
@@ -1334,7 +1334,7 @@ void TEmulator::ConnectPMD32(bool init)
 				ifGpio->OnCpuWriteCH.disconnect(pmd32);
 			}
 
-			video->SetIconState(0);
+			GUI->SetIconState(0);
 
 			delete pmd32;
 			pmd32 = NULL;
@@ -1523,9 +1523,9 @@ void TEmulator::ProcessSnapshot(char *fileName, BYTE *flag)
 	} while (false);
 
 	if (*flag == 0xFF)
-		GUI->messageBox("INVALID SNAPHOT FORMAT!");
+		GUI->MessageBox("INVALID SNAPHOT FORMAT!");
 	else if (*flag == 2) {
-		GUI->messageBox("CORRUPTED SNAPSHOT!");
+		GUI->MessageBox("CORRUPTED SNAPSHOT!");
 
 		for (int i = 0; i < Settings->modelsCount; i++) {
 			if (Settings->AllModels[i]->type == oldModel) {
@@ -1688,9 +1688,9 @@ void TEmulator::PrepareSnapshot(char *fileName, BYTE *flag)
 	} while (false);
 
 	if (*flag == 0xFF)
-		GUI->messageBox("CAN'T OPEN FILE FOR WRITING!");
+		GUI->MessageBox("CAN'T OPEN FILE FOR WRITING!");
 	else if (*flag == 1) {
-		GUI->messageBox("ERROR WRITING FILE...\nSNAPSHOT WILL BE CORRUPTED!");
+		GUI->MessageBox("ERROR WRITING FILE...\nSNAPSHOT WILL BE CORRUPTED!");
 		*flag = 0;
 	}
 	else {
@@ -1715,9 +1715,9 @@ void TEmulator::InsertTape(char *fileName, BYTE *flag)
 		*flag = TapeBrowser->SetTapeFileName(fileName);
 
 	if (*flag == 0xFF)
-		GUI->messageBox("FATAL ERROR!\nOR CAN'T OPEN FILE!");
+		GUI->MessageBox("FATAL ERROR!\nOR CAN'T OPEN FILE!");
 	else if (*flag == 1) {
-		GUI->messageBox("CORRUPTED TAPE FORMAT!");
+		GUI->MessageBox("CORRUPTED TAPE FORMAT!");
 		*flag = 0;
 	}
 
@@ -1742,9 +1742,9 @@ void TEmulator::SaveTape(char *fileName, BYTE *flag)
 	*flag = TapeBrowser->SaveTape(fileName, NULL, true);
 
 	if (*flag == 0xFF)
-		GUI->messageBox("FATAL ERROR!\nINVALID NAME OR EXTENSION,\nOR CAN'T OPEN FILE FOR WRITING!");
+		GUI->MessageBox("FATAL ERROR!\nINVALID NAME OR EXTENSION,\nOR CAN'T OPEN FILE FOR WRITING!");
 	else if (*flag == 1) {
-		GUI->messageBox("ERROR WRITING FILE...\nTAPE WILL BE CORRUPTED!");
+		GUI->MessageBox("ERROR WRITING FILE...\nTAPE WILL BE CORRUPTED!");
 		*flag = 0;
 	}
 	else {
@@ -1845,7 +1845,7 @@ void TEmulator::SelectRawFile(char *fileName, BYTE *flag)
 	}
 
 	if (*flag == 0xFF)
-		GUI->messageBox("FATAL ERROR!\nINVALID LENGTH OR CAN'T OPEN FILE!");
+		GUI->MessageBox("FATAL ERROR!\nINVALID LENGTH OR CAN'T OPEN FILE!");
 	else {
 		if (Settings->MemoryBlock->fileName)
 			delete [] Settings->MemoryBlock->fileName;

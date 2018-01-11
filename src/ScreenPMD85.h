@@ -23,9 +23,6 @@
 #include "TapeBrowser.h"
 //-----------------------------------------------------------------------------
 #define BORDER_MULTIPLIER 12
-#define STATUSBAR_ICON    10
-#define STATUSBAR_SPACING 14
-#define STATUSBAR_HEIGHT  20
 #define WEAK_REFRESH_TIME 200
 //-----------------------------------------------------------------------------
 class ScreenPMD85
@@ -34,79 +31,63 @@ public:
 	ScreenPMD85(TDisplayMode dispMode, int border);
 	virtual ~ScreenPMD85();
 
+	inline TDisplayMode GetDisplayMode() { return dispMode; }
 	void SetDisplayMode(TDisplayMode dispMode, int border);
-	inline void SetDisplayMode(TDisplayMode dispMode) { SetDisplayMode(dispMode, borderSize / BORDER_MULTIPLIER); }
-	inline TDisplayMode GetDisplayMode() { return DispMode; }
+	inline void SetDisplayMode(TDisplayMode dispMode) {
+		SetDisplayMode(dispMode, borderSize / BORDER_MULTIPLIER);
+	}
 
 	void SetWidth384(bool mode384);
-	inline bool IsWidth384() { return Width384mode; }
+	inline bool IsWidth384() { return width384mode; }
 
 	void SetHalfPassMode(THalfPassMode halfPass);
-	inline THalfPassMode GetHalfPassMode() { return HalfPass; }
+	inline THalfPassMode GetHalfPassMode() { return halfPass; }
 
 	void SetLcdMode(bool lcdMode);
-	inline bool IsLcdMode() { return LCDmode; }
+	inline bool IsLcdMode() { return lcdMode; }
 
-	inline void SetBlinkStatus(bool dotsDisplayed) { BlinkState = dotsDisplayed; }
-	inline void ToggleBlinkStatus() { BlinkState = !BlinkState;}
-	inline bool GetBlinkStatus() { return BlinkState; }
+	inline void SetBlinkStatus(bool dotsDisplayed) { blinkState = dotsDisplayed; }
+	inline void ToggleBlinkStatus() { blinkState = !blinkState;}
+	inline bool GetBlinkStatus() { return blinkState; }
 
-	inline int GetMultiplier() { return BlitRectDest->w / bufferWidth; }
+	inline int GetMultiplier() { return screenRect->w / bufferWidth; }
 
 	void SetColorProfile(TColorProfile ColProf);
-	inline TColorProfile GetColorProfile() { return ColorProfile; }
+	inline TColorProfile GetColorProfile() { return colorProfile; }
 
-	void SetColorAttr(int Index, TColor Attr);
-	TColor GetColorAttr(int Index);
-
-	void SetLedState(int led);
-	void SetIconState(int icon);
-	void SetComputerModel(TComputerModel model);
-
-	inline void SetStatusPercentage(int val) { statusPercentage = val; }
-	inline void SetStatusFPS(int val) { statusFPS = val; }
+	void SetColorAttr(int idx, TColor attr);
+	TColor GetColorAttr(int idx);
 
 	void RefreshDisplay();
 	void FillBuffer(BYTE *videoRam);
 
 private:
-	SDL_Renderer *Renderer;
-	SDL_Texture *ScreenBuffer;
-	SDL_Rect *BlitRectDest;
-
-	int bufferWidth;
-	int bufferHeight;
-	int Width;
-	int Height;
+	SDL_Texture *screenTexture;
+	SDL_Rect *screenRect;
 
 	int borderSize;
-	int ledState;
-	int iconState;
-	int statusPercentage;
-	int statusFPS;
-	char computerModel[8];
+	int bufferWidth;
+	int bufferHeight;
+	int screenWidth;
+	int screenHeight;
 
-	TDisplayMode DispMode;
-	TDisplayMode FullScreenScaleMode;
-	TColorProfile ColorProfile;
-	TColor CAttr[4];
-	TColor PAttr[8];
-	THalfPassMode HalfPass;
+	TDisplayMode dispMode;
+	TColorProfile colorProfile;
+	THalfPassMode halfPass;
+	TColor cAttr[4];
+	TColor pAttr[8];
+	DWORD *palette;
 
-	bool BlinkState;
-	bool BlinkingEnabled;
-	bool LCDmode;
-	bool Width384mode;
-	bool DisplayModeChanging;
+	bool blinkState;
+	bool blinkingEnabled;
+	bool lcdMode;
+	bool width384mode;
+	bool displayModeChanging;
 
 	void InitScreenSize(TDisplayMode reqDispMode, bool reqWidth384);
 	void PrepareVideoMode();
 	void ReleaseVideoMode();
-
-	void PrepareStatusBar(bool clear = false);
-	void RedrawStatusBar();
-
-	DWORD Palette[256];
+	void PrepareScreen(bool clear = false);
 	void InitPalette();
 };
 //-----------------------------------------------------------------------------

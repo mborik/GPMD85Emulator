@@ -96,13 +96,15 @@ UserInterface::UserInterface()
 		error("GUI", "Can't load font resource file");
 	debug("GUI", "Font resource loaded");
 
-	icons = loadIcons(LocateResource("statusbar.bmp", false));
-	if (icons == NULL)
+	iconsTexture = LoadImgToTexture(LocateResource("statusbar.bmp", false));
+	if (iconsTexture == NULL)
 		error("GUI", "Can't load status bar icons resource file");
 	debug("GUI", "Status bar icons resource loaded");
 
+	defaultTexture = NULL;
+	statusTexture = NULL;
+	statusRect = NULL;
 	frameSave = NULL;
-	globalPalette = NULL;
 
 	cMenu_data = NULL;
 	cMenu_rect = new SDL_Rect;
@@ -120,6 +122,12 @@ UserInterface::UserInterface()
 	tapeDialog->count = 0;
 	tapeDialog->popup.frame = NULL;
 	tapeDialog->popup.rect = NULL;
+
+	ledState = 0;
+	iconState = 0;
+	statusFPS = 0;
+	statusPercentage = 0;
+	computerModel[0] = '\0';
 
 	uiSetChanges = 0;
 	uiQueryState = GUI_QUERY_CANCEL;
@@ -141,9 +149,9 @@ UserInterface::~UserInterface()
 		delete [] fontData;
 	fontData = NULL;
 
-	if (icons)
-		SDL_FreeSurface(icons);
-	icons = NULL;
+	if (iconsTexture)
+		SDL_DestroyTexture(iconsTexture);
+	iconsTexture = NULL;
 
 	if (cMenu_rect)
 		delete cMenu_rect;
@@ -162,123 +170,96 @@ UserInterface::~UserInterface()
 	}
 }
 //-----------------------------------------------------------------------------
-SDL_Surface *UserInterface::loadIcons(const char *file)
+SDL_Texture *UserInterface::LoadImgToTexture(const char *file)
 {
 	SDL_Surface *src = SDL_LoadBMP(file);
 	if (!src)
 		return NULL;
 
-	if (src->format->BitsPerPixel >= 24) {
-		SDL_SetColorKey(src, SDL_TRUE, SDL_MapRGB(src->format, 255, 0, 255));
-		return src;
-	}
-	else if (src->format->BitsPerPixel != 8 || !src->format->palette) {
-		SDL_FreeSurface(src);
-		debug("GUI", "Status bar icons resource has invalid color depth (%d)!", src->format->BitsPerPixel);
+	SDL_Texture *texture = SDL_CreateTexture(gdc.renderer,
+			SDL_PIXELFORMAT_DEFAULT, SDL_TEXTUREACCESS_STREAMING,
+			src->w, src->h);
+
+	if (!texture)
 		return NULL;
-	}
 
-	int x, y;
-	BYTE *b = NULL, mask;
+	SDL_Surface *cpy = SDL_CreateRGBSurface(0, src->w, src->h, 32, 0, 0, 0, 0);
+	SDL_SetColorKey(src, SDL_TRUE, SDL_MapRGB(cpy->format, 255, 0, 255));
+	SDL_BlitSurface(src, NULL, cpy, NULL);
+	SDL_FreeSurface(src);
 
-	globalPalette = src->format->palette->colors;
-	for (mask = 0; mask < src->format->palette->ncolors; mask++) {
-		// masking of fuchsia color
-		if (globalPalette[mask].r == 0xff ||
-		    globalPalette[mask].b == 0xff ||
-		    globalPalette[mask].g == 0x00)
-				break;
-	}
+	void *pixels;
+	int pitch;
 
-	SDL_Surface *dst = SDL_CreateRGBSurface(SDL_SWSURFACE,
-		src->w, src->h, 32, SDL_DEFAULT_MASK_QUAD);
-	SDL_FillRect(dst, NULL, 0);
+	SDL_LockTexture(texture, NULL, &pixels, &pitch);
+	SDL_ConvertPixels(cpy->w, cpy->h,
+			cpy->format->format, cpy->pixels, cpy->pitch,
+			SDL_PIXELFORMAT_DEFAULT,
+			pixels, pitch);
+	SDL_UnlockTexture(texture);
 
-	for (y = 0; y < src->h; y++) {
-		b = ((BYTE *) src->pixels) + (y * src->pitch);
-		for (x = 0; x < src->w; x++) {
-			if (b[x] != mask)
-				putPixel(dst, x, y, b[x], true);
-		}
-	}
-
-	return dst;
+	SDL_FreeSurface(cpy);
+	return texture;
 }
 //-----------------------------------------------------------------------------
-void UserInterface::prepareDefaultSurface(int width, int height, SDL_Color *palette)
+void UserInterface::InitDefaultTexture(int width, int height)
 {
-	frameLength = defaultSurface->pitch * defaultSurface->h;
-	frameSave = (BYTE *) realloc(frameSave, sizeof(BYTE) * frameLength);
+	defaultTexture = SDL_CreateTexture(gdc.renderer, SDL_PIXELFORMAT_DEFAULT,
+			SDL_TEXTUREACCESS_STREAMING, width, height);
+	if (!defaultTexture)
+		error("GUI", "Unable to create defaultTexture\n%s", SDL_GetError());
 
-	defaultSurface->locked = 1;
-	defaultSurface->clip_rect.x = defaultSurface->clip_rect.y = 0;
-	defaultSurface->clip_rect.w = frameWidth  = width;
-	defaultSurface->clip_rect.h = frameHeight = height;
+	void *pixels;
+	int pitch;
 
-	globalPalette = (palette) ? palette : defaultSurface->format->palette->colors;
+	SDL_LockTexture(defaultTexture, NULL, &pixels, &pitch);
+
+	frameWidth  = width;
+	frameHeight = height;
+	frameLength = pitch * height;
+	frameSave   = (BYTE *) realloc(frameSave, sizeof(BYTE) * frameLength);
 	maxCharsOnScreen = (frameWidth - (2 * GUI_CONST_BORDER)) / fontWidth;
+
+	memset(pixels, 0, frameLength);
+	SDL_UnlockTexture(defaultTexture);
+
+	SDL_SetTextureBlendMode(defaultTexture, SDL_BLENDMODE_BLEND);
+	SDL_SetTextureAlphaMod(defaultTexture, 242);
 }
 //-----------------------------------------------------------------------------
-void UserInterface::putPixel(SDL_Surface *s, int x, int y, BYTE col, bool setAlpha)
+UserInterface::GUI_SURFACE *UserInterface::LockSurface(SDL_Texture *texture)
 {
-	SDL_PixelFormat *f = s->format;
-	SDL_Color c = globalPalette[col];
-	BYTE *d = ((BYTE *) s->pixels)
-			+ (x * f->BytesPerPixel)
-			+ (y * s->pitch);
+	GUI_SURFACE *result = new GUI_SURFACE;
 
-	if (f->BytesPerPixel == 1)
-		*d = col;
-	else {
-		DWORD b = SDL_MapRGB(f, c.r, c.g, c.b);
-		if (f->BytesPerPixel == 2) {
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-			*(d++) = (b >> 8) & 0xFF;
-			*d = b & 0xFF;
-#else
-			*(d++) = b & 0xFF;
-			*d = (b >> 8) & 0xFF;
-#endif
-		}
-		else {
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-			if (setAlpha && f->BytesPerPixel == 4)
-				*d = (b >> 24) & 0xFF;
+	SDL_QueryTexture(texture, &result->format, NULL, &result->w, &result->h);
+	SDL_LockTexture(texture, NULL, (void **) &result->pixels, &result->pitch);
 
-			*(++d) = (b >> 16) & 0xFF;
-			*(++d) = (b >> 8) & 0xFF;
-			*(++d) = b & 0xFF;
-#else
-			*(d++) = b & 0xFF;
-			*(d++) = (b >> 8) & 0xFF;
-			*(d++) = (b >> 16) & 0xFF;
-
-			if (setAlpha && f->BytesPerPixel == 4)
-				*d = (b >> 24) & 0xFF;
-#endif
-		}
-	}
+	return result;
 }
 //-----------------------------------------------------------------------------
-void UserInterface::printChar(SDL_Surface *s, int x, int y, BYTE col, BYTE ch)
+void UserInterface::UnlockSurface(SDL_Texture *texture, GUI_SURFACE *surface)
+{
+	SDL_UnlockTexture(texture);
+	delete surface;
+}
+//-----------------------------------------------------------------------------
+void UserInterface::PutPixel(GUI_SURFACE *s, int x, int y, BYTE col)
+{
+	if (s && s->format == SDL_PIXELFORMAT_DEFAULT)
+		*(((DWORD *) (s->pixels + y * s->pitch)) + x) = globalPalette[col];
+}
+//-----------------------------------------------------------------------------
+void UserInterface::PrintChar(GUI_SURFACE *s, int x, int y, BYTE col, BYTE ch)
 {
 	BYTE *b = fontData + ((ch - 32) * fontHeight);
-
-	if (s == NULL)
-		s = defaultSurface;
-
-	if (!s->locked) {
-		needRedraw = true;
-		return;
-	}
 
 	for (int mx, my = 0; my < fontHeight; my++)
 		for (mx = 0; mx < fontWidth; mx++)
 			if (b[my] & (0x80 >> mx))
-				putPixel(s, x + mx, y + my, col);
+				PutPixel(s, x + mx, y + my, col);
 }
 //-----------------------------------------------------------------------------
-void UserInterface::printText(SDL_Surface *s, int x, int y, BYTE col, const char *msg)
+void UserInterface::PrintText(GUI_SURFACE *s, int x, int y, BYTE col, const char *msg)
 {
 	BYTE ch;
 	BYTE c = col;
@@ -328,7 +309,7 @@ void UserInterface::printText(SDL_Surface *s, int x, int y, BYTE col, const char
 		else if (ch < 0x20 && ch > SCHR_LAST)
 			ch = SCHR_ERROR;
 
-		printChar(s, mx, y, c, ch);
+		PrintChar(s, mx, y, c, ch);
 
 		mx += fontWidth;
 		if (ch == SCHR_HOTKEY || ch == SCHR_SHIFT)
@@ -338,17 +319,17 @@ void UserInterface::printText(SDL_Surface *s, int x, int y, BYTE col, const char
 	}
 }
 //-----------------------------------------------------------------------------
-void UserInterface::printFormatted(SDL_Surface *s, int x, int y, BYTE col, const char *msg, ...)
+void UserInterface::PrintFormatted(GUI_SURFACE *s, int x, int y, BYTE col, const char *msg, ...)
 {
 	va_list va;
 	va_start(va, msg);
 	vsprintf(msgbuffer, msg, va);
 	va_end(va);
 
-	printText(s, x, y, col, msgbuffer);
+	PrintText(s, x, y, col, msgbuffer);
 }
 //-----------------------------------------------------------------------------
-void UserInterface::printRightAlign(SDL_Surface *s, int x, int y, BYTE col, const char *msg, ...)
+void UserInterface::PrintRightAlign(GUI_SURFACE *s, int x, int y, BYTE col, const char *msg, ...)
 {
 	va_list va;
 	va_start(va, msg);
@@ -357,126 +338,95 @@ void UserInterface::printRightAlign(SDL_Surface *s, int x, int y, BYTE col, cons
 
 	char *token = strtok(msgbuffer, "\n");
 	while (token != NULL) {
-		printText(s, x - (strlen(token) * fontWidth), y, col, token);
+		PrintText(s, x - (strlen(token) * fontWidth), y, col, token);
 		y += fontLineHeight;
 
 		token = strtok(NULL, "\n");
 	}
 }
 //-----------------------------------------------------------------------------
-void UserInterface::printTitle(SDL_Surface *s, int x, int y, int w, BYTE col, const char *msg)
+void UserInterface::PrintTitle(GUI_SURFACE *s, int x, int y, int w, BYTE col, const char *msg)
 {
 	int i, len = (signed) strlen(msg),
 		mx = x + ((w - (len * fontWidth)) / 2);
 
 	for (i = 0; i < len; i++, mx += fontWidth)
 		if ((BYTE) msg[i] > 0x20 && (BYTE) msg[i] < 0x80)
-			printChar(s, mx, y, col, msg[i]);
+			PrintChar(s, mx, y, col, msg[i]);
 }
 //-----------------------------------------------------------------------------
-void UserInterface::drawRectangle(SDL_Surface *s, int x, int y, int w, int h, BYTE col)
+void UserInterface::DrawLineH(GUI_SURFACE *s, int x, int y, int len, BYTE col)
 {
-	if (s == NULL)
-		s = defaultSurface;
-
-	if (!s->locked) {
-		needRedraw = true;
-		return;
+	if (s && s->format == SDL_PIXELFORMAT_DEFAULT) {
+		void *ptr = ((DWORD *) (s->pixels + y * s->pitch)) + x;
+		SDL_memset4(ptr, globalPalette[col], len);
 	}
-
-	for (int mx, my = 0; my < h; my++)
-		for (mx = 0; mx < w; mx++)
-			putPixel(s, x + mx, y + my, col);
 }
 //-----------------------------------------------------------------------------
-void UserInterface::drawLineH(SDL_Surface *s, int x, int y, int len, BYTE col)
+void UserInterface::DrawLineV(GUI_SURFACE *s, int x, int y, int len, BYTE col)
 {
-	if (s == NULL)
-		s = defaultSurface;
-
-	if (!s->locked) {
-		needRedraw = true;
-		return;
-	}
-
 	for (int i = 0; i < len; i++)
-		putPixel(s, x + i, y, col);
+		PutPixel(s, x, y + i, col);
 }
 //-----------------------------------------------------------------------------
-void UserInterface::drawLineV(SDL_Surface *s, int x, int y, int len, BYTE col)
+void UserInterface::DrawRectangle(GUI_SURFACE *s, int x, int y, int w, int h, BYTE col)
 {
-	if (s == NULL)
-		s = defaultSurface;
-
-	if (!s->locked) {
-		needRedraw = true;
-		return;
-	}
-
-	for (int i = 0; i < len; i++)
-		putPixel(s, x, y + i, col);
+	for (int my = 0; my < h; my++)
+		DrawLineH(s, x, y + my, w, col);
 }
 //-----------------------------------------------------------------------------
-void UserInterface::drawOutline(SDL_Surface *s, int x, int y, int w, int h, BYTE col)
+void UserInterface::DrawOutline(GUI_SURFACE *s, int x, int y, int w, int h, BYTE col)
 {
-	drawLineH(s, x, y, w, col);
-	drawLineH(s, x, y + h - 1, w, col);
-	drawLineV(s, x, y, h, col);
-	drawLineV(s, x + w - 1, y, h, col);
+	DrawLineH(s, x, y, w, col);
+	DrawLineH(s, x, y + h - 1, w, col);
+	DrawLineV(s, x, y, h, col);
+	DrawLineV(s, x + w - 1, y, h, col);
 }
 //-----------------------------------------------------------------------------
-void UserInterface::drawOutlineRounded(SDL_Surface *s, int x, int y, int w, int h, BYTE col)
+void UserInterface::DrawOutlineRounded(GUI_SURFACE *s, int x, int y, int w, int h, BYTE col)
 {
-	if (s == NULL)
-		s = defaultSurface;
+	DrawLineH(s, x + 1, y, w - 2, col);
+	DrawLineH(s, x + 1, y + h - 1, w - 2, col);
+	DrawLineV(s, x, y + 1, h - 2, col);
+	DrawLineV(s, x + w - 1, y + 1, h - 2, col);
 
-	if (!s->locked) {
-		needRedraw = true;
-		return;
-	}
-
-	drawLineH(s, x + 1, y, w - 2, col);
-	drawLineH(s, x + 1, y + h - 1, w - 2, col);
-	drawLineV(s, x, y + 1, h - 2, col);
-	drawLineV(s, x + w - 1, y + 1, h - 2, col);
-
-	putPixel(s, x + 1, y + h - 2, col);
-	putPixel(s, x + 1, y + 1, col);
-	putPixel(s, x + w - 2, y + 1, col);
-	putPixel(s, x + w - 2, y + h - 2, col);
+	PutPixel(s, x + 1, y + h - 2, col);
+	PutPixel(s, x + 1, y + 1, col);
+	PutPixel(s, x + w - 2, y + 1, col);
+	PutPixel(s, x + w - 2, y + h - 2, col);
 }
 //-----------------------------------------------------------------------------
-void UserInterface::drawDialogWithBorder(SDL_Surface *s, int x, int y, int w, int h)
+void UserInterface::DrawDialogWithBorder(GUI_SURFACE *s, int x, int y, int w, int h)
 {
 	if (x > 0 && y > 0)
-		drawOutlineRounded(s, x - 1, y - 1, w + 2, h + 2, GUI_COLOR_SHADOW);
+		DrawOutlineRounded(s, x - 1, y - 1, w + 2, h + 2, GUI_COLOR_SHADOW);
 
-	drawRectangle(s, x + 1, y + 1, w - 2, h - 2, GUI_COLOR_BACKGROUND);
-	drawRectangle(s, x + 1, y + 1, w - 2, 9, GUI_COLOR_BORDER);
-	drawOutlineRounded(s, x, y, w, h, GUI_COLOR_BORDER);
+	DrawRectangle(s, x + 1, y + 1, w - 2, h - 2, GUI_COLOR_BACKGROUND);
+	DrawRectangle(s, x + 1, y + 1, w - 2, 9, GUI_COLOR_BORDER);
+	DrawOutlineRounded(s, x, y, w, h, GUI_COLOR_BORDER);
 }
 //-----------------------------------------------------------------------------
-void UserInterface::drawDebugFrame(SDL_Surface *s, int x, int y, int w, int h)
+void UserInterface::DrawDebugFrame(GUI_SURFACE *s, int x, int y, int w, int h)
 {
-	drawRectangle(s, x, y, w - 1, h - 1, GUI_COLOR_DBG_BACK);
-	drawOutlineRounded(s, x - 1, y - 1, w + 1, h + 1, GUI_COLOR_DBG_BORDER);
+	DrawRectangle(s, x, y, w - 1, h - 1, GUI_COLOR_DBG_BACK);
+	DrawOutlineRounded(s, x - 1, y - 1, w + 1, h + 1, GUI_COLOR_DBG_BORDER);
 }
 //-----------------------------------------------------------------------------
-void UserInterface::printCheck(SDL_Surface *s, int x, int y, BYTE col, BYTE ch, bool state)
+void UserInterface::PrintCheck(GUI_SURFACE *s, int x, int y, BYTE col, BYTE ch, bool state)
 {
 	BYTE col2 = (menuStack[menuStackLevel].type != GUI_TYPE_DEBUGGER) ?
 			GUI_COLOR_SEPARATOR : GUI_COLOR_DBG_BORDER;
 
 	if (ch == SCHR_RADIO)
-		drawOutlineRounded(s, x - 1, y - 1, 8, 8, col2);
+		DrawOutlineRounded(s, x - 1, y - 1, 8, 8, col2);
 	else
-		drawOutline(s, x - 1, y - 1, 8, 8, col2);
+		DrawOutline(s, x - 1, y - 1, 8, 8, col2);
 
 	if (state)
-		printChar(s, x, y - 1, col, ch);
+		PrintChar(s, x, y - 1, col, ch);
 }
 //-----------------------------------------------------------------------------
-void UserInterface::menuOpen(GUI_MENU_TYPE type, void *data)
+void UserInterface::MenuOpen(GUI_MENU_TYPE type, void *data)
 {
 	if (data == NULL) {
 		switch (type) {
@@ -502,14 +452,14 @@ void UserInterface::menuOpen(GUI_MENU_TYPE type, void *data)
 
 	if (menuStackLevel < 0) {
 		uiSetChanges = 0;
-		memcpy(frameSave, defaultSurface->pixels, frameLength);
+//		memcpy(frameSave, defaultSurface->pixels, frameLength); // TODO FIXME!
 	}
 	else if (type == GUI_TYPE_TAPE_POPUP) {
 		if (tapeDialog->popup.frame)
 			delete [] tapeDialog->popup.frame;
 
 		tapeDialog->popup.frame = new BYTE[frameLength];
-		memcpy(tapeDialog->popup.frame, defaultSurface->pixels, frameLength);
+//		memcpy(tapeDialog->popup.frame, defaultSurface->pixels, frameLength); // TODO FIXME!
 
 		if (tapeDialog->popup.rect)
 			delete tapeDialog->popup.rect;
@@ -521,7 +471,7 @@ void UserInterface::menuOpen(GUI_MENU_TYPE type, void *data)
 	}
 	else {
 		menuStack[menuStackLevel].hilite = cMenu_hilite;
-		memcpy(defaultSurface->pixels, frameSave, frameLength);
+//		memcpy(defaultSurface->pixels, frameSave, frameLength); // TODO FIXME!
 	}
 
 	menuStackLevel++;
@@ -532,20 +482,20 @@ void UserInterface::menuOpen(GUI_MENU_TYPE type, void *data)
 	switch (type) {
 		case GUI_TYPE_MENU:
 		case GUI_TYPE_TAPE_POPUP:
-			drawMenu(data);
+			DrawMenu(data);
 			break;
 
 		case GUI_TYPE_FILESELECTOR:
 			fileSelector->search[0] = '\0';
-			drawFileSelector();
+			DrawFileSelector();
 			break;
 
 		case GUI_TYPE_TAPEBROWSER:
-			drawTapeDialog();
+			DrawTapeDialog();
 			break;
 
 		case GUI_TYPE_DEBUGGER:
-			drawDebugWindow();
+			DrawDebugWindow();
 			break;
 
 		default:
@@ -555,14 +505,14 @@ void UserInterface::menuOpen(GUI_MENU_TYPE type, void *data)
 	}
 }
 //-----------------------------------------------------------------------------
-void UserInterface::menuClose()
+void UserInterface::MenuClose()
 {
 	menuStack[menuStackLevel].data = NULL;
 
 	menuStackLevel--;
 	if (menuStackLevel >= 0) {
 		if (menuStack[menuStackLevel + 1].type == GUI_TYPE_TAPE_POPUP) {
-			memcpy(defaultSurface->pixels, tapeDialog->popup.frame, frameLength);
+//			memcpy(defaultSurface->pixels, tapeDialog->popup.frame, frameLength); // TODO FIXME!
 
 			cMenu_rect->x = tapeDialog->popup.rect->x;
 			cMenu_rect->y = tapeDialog->popup.rect->y;
@@ -589,16 +539,16 @@ void UserInterface::menuClose()
 		}
 		else {
 			cMenu_hilite = menuStack[menuStackLevel].hilite;
-			memcpy(defaultSurface->pixels, frameSave, frameLength);
+//			memcpy(defaultSurface->pixels, frameSave, frameLength); // TODO FIXME!
 		}
 
 		switch (menuStack[menuStackLevel].type) {
 			case GUI_TYPE_MENU:
-				drawMenu(menuStack[menuStackLevel].data);
+				DrawMenu(menuStack[menuStackLevel].data);
 				break;
 
 			case GUI_TYPE_TAPEBROWSER:
-				drawTapeDialog();
+				DrawTapeDialog();
 				break;
 
 			default :
@@ -607,7 +557,7 @@ void UserInterface::menuClose()
 	}
 }
 //-----------------------------------------------------------------------------
-void UserInterface::menuCloseAll()
+void UserInterface::MenuCloseAll()
 {
 	for (int i = menuStackLevel; i >= 0; i--) {
 		if (menuStack[i].type == GUI_TYPE_TAPE_POPUP) {
@@ -627,28 +577,28 @@ void UserInterface::menuCloseAll()
 	}
 
 	menuStackLevel = -1;
-	memcpy(defaultSurface->pixels, frameSave, frameLength);
+//	memcpy(defaultSurface->pixels, frameSave, frameLength); // TODO FIXME!
 }
 //-----------------------------------------------------------------------------
-void UserInterface::menuHandleKey(WORD key)
+void UserInterface::MenuHandleKey(WORD key)
 {
 	if (menuStackLevel >= 0) {
 		switch (menuStack[menuStackLevel].type) {
 			case GUI_TYPE_MENU:
 			case GUI_TYPE_TAPE_POPUP:
-				keyhandlerMenu(key);
+				KeyhandlerMenu(key);
 				break;
 
 			case GUI_TYPE_FILESELECTOR:
-				keyhandlerFileSelector(key);
+				KeyhandlerFileSelector(key);
 				break;
 
 			case GUI_TYPE_TAPEBROWSER:
-				keyhandlerTapeDialog(key);
+				KeyhandlerTapeDialog(key);
 				break;
 
 			case GUI_TYPE_DEBUGGER:
-				keyhandlerDebugWindow(key);
+				KeyhandlerDebugWindow(key);
 				break;
 
 			default:

@@ -26,8 +26,8 @@ int main(int argc, char** argv)
 
 	PathUserHome = SDL_getenv("HOME");
 	PathApplication = getcwd(NULL, PATH_MAX);
-	PathResources = new char[(strlen(DIR_RESOURCES) + 1)];
-	PathAppConfig = new char[(strlen(PathUserHome) + 16)];
+	PathResources = (char *) malloc(strlen(DIR_RESOURCES) + 1);
+	PathAppConfig = (char *) malloc(strlen(PathUserHome) + 16);
 	strcpy(PathResources, DIR_RESOURCES);
 	sprintf(PathAppConfig, "%s%c.%s", PathUserHome, DIR_DELIMITER, PACKAGE_TARNAME);
 
@@ -35,62 +35,82 @@ int main(int argc, char** argv)
 	debug(NULL, "Application path: %s", PathApplication);
 	debug(NULL, "Application config path: %s", PathAppConfig);
 
-	struct stat filestat;
-	if (stat(PathAppConfig, &filestat) != 0)
+	if (stat(PathAppConfig, &CommonUtils::filestat) != 0)
 		mkdir(PathAppConfig, 0755);
 
 	// initialization of SDL
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_EVENTS) < 0)
-		error("", "Couldn't initialize SDL: %s\n", SDL_GetError());
+		error("", "Couldn't initialize SDL:\n\t%s", SDL_GetError());
 
-	SDL_DisplayMode vi;
-	if (SDL_GetDesktopDisplayMode(0, &vi) != 0) {
-		debug(NULL, "Actual framebuffer resolution: %d x %d (%d Hz)",
-			vi.w, vi.h, vi.refresh_rate);
+	SDL_DisplayMode desktop;
+	if (SDL_GetDesktopDisplayMode(0, &desktop) != 0)
+		error("", "Couldn't get desktop display mode:\n\t%s", SDL_GetError());
 
-		gvi.w = vi.w;
-		gvi.w = vi.h;
-		gvi.format = vi.format;
+	debug(NULL, "Actual framebuffer resolution: %d x %d (%d Hz, %s)",
+			desktop.w, desktop.h, desktop.refresh_rate,
+			SDL_GetPixelFormatName(desktop.format) + 16);
+
+	SDL_zero(gdc);
+	gdc.w = desktop.w;
+	gdc.h = desktop.h;
+	gdc.freq = desktop.refresh_rate;
+	gdc.format = desktop.format;
+	gdc.window = SDL_CreateWindow(PACKAGE_NAME,
+			SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 256, 256,
+			SDL_WINDOW_HIDDEN);
+
+	if (!gdc.window)
+		error("", "Couldn't initialize window:\n\t%s", SDL_GetError());
+
+	gdc.windowID = SDL_GetWindowID(gdc.window);
+	gdc.renderer = SDL_CreateRenderer(gdc.window, -1, SDL_RENDERER_ACCELERATED);
+
+	if (!gdc.renderer)
+		error("", "Couldn't initialize renderer:\n\t%s", SDL_GetError());
+
+	SDL_RenderSetScale(gdc.renderer, 1, 1);
+	SDL_RenderSetIntegerScale(gdc.renderer, SDL_TRUE);
+	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, 0);
+
+	SDL_Surface *icon = SDL_LoadBMP(LocateResource("icon.bmp", false));
+	if (icon) {
+		SDL_SetColorKey(icon, SDL_TRUE, SDL_MapRGB(icon->format, 255, 0, 255));
+		SDL_SetWindowIcon(gdc.window, icon);
+		SDL_FreeSurface(icon);
 	}
+	else
+		warning("", "Can't load icon resource file");
 
-	gvi.window = SDL_CreateWindow(PACKAGE_NAME, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 288, 256, SDL_WINDOW_HIDDEN);
-	if (gvi.window) {
-		gvi.windowID = SDL_GetWindowID(gvi.window);
-
-		SDL_Surface *icon = SDL_LoadBMP(LocateResource("icon.bmp", false));
-		if (icon) {
-			SDL_SetColorKey(icon, SDL_TRUE, SDL_MapRGB(icon->format, 255, 0, 255));
-			SDL_SetWindowIcon(gvi.window, icon);
-			SDL_FreeSurface(icon);
-		}
-		else
-			warning("", "Can't load icon resource file");
-	}
-
+//---------------------------------------------------------------------------------------
 	debug(NULL, "Initialization process started...");
 
 	Emulator = new TEmulator();
 	Emulator->ProcessSettings(-1);
+	SDL_ShowWindow(gdc.window);
 
 	debug("", "Starting %d FPS refresh timer", GPU_FRAMES_PER_SEC);
 	Emulator->BaseTimer = SDL_AddTimer(GPU_TIMER_INTERVAL, FormMain_BaseTimerCallback, Emulator);
 	Emulator->ActionPlayPause(true);
 
 	DWORD nextTick;
+	SDL_Event event;
 	int i = 0, j, k = 0;
 	BYTE *kb = Emulator->keyBuffer;
-	SDL_Event event;
 	bool waitForRelease = false;
 
 	debug("", "Starting main CPU %dHz loop", CPU_FRAMES_PER_SEC);
+
 	while (Emulator->isActive) {
 		nextTick = SDL_GetTicks() + CPU_TIMER_INTERVAL;
 
 		while (SDL_PollEvent(&event)) {
 			switch (event.type) {
-				case SDL_QUIT:
 				case SDL_KEYUP:
 				case SDL_KEYDOWN:
+					if (event.key.repeat != 0)
+						break;
+					/* no break */
+				case SDL_QUIT:
 					memcpy(kb, SDL_GetKeyboardState(NULL), SDL_NUM_SCANCODES);
 					kb[SDL_SCANCODE_NUMLOCKCLEAR] = kb[SDL_SCANCODE_CAPSLOCK] = kb[SDL_SCANCODE_SCROLLLOCK] = 0;
 					if (event.type == SDL_QUIT)
@@ -109,7 +129,7 @@ int main(int argc, char** argv)
 					break;
 
 				case SDL_WINDOWEVENT:
-					if (event.window.windowID == gvi.windowID) {
+					if (event.window.windowID == gdc.windowID) {
 						if (event.window.event == SDL_WINDOWEVENT_EXPOSED) {
 							Emulator->RefreshDisplay();
 						}
@@ -136,23 +156,24 @@ int main(int argc, char** argv)
 
 		Emulator->CpuTimerCallback();
 
-		// have a break, have a tick-tock...
 		while (SDL_GetTicks() < nextTick)
 			SDL_Delay(1);
 	}
 
-	SDL_FillRect(GUI->defaultSurface, NULL, 0);
-	Emulator->RefreshDisplay();
-
+	SDL_HideWindow(gdc.window);
 	debug("", "Main CPU loop terminated");
+
 	SDL_RemoveTimer(Emulator->BaseTimer);
 	SDL_Delay(WEAK_REFRESH_TIME);
 
 	delete Emulator;
+
+	SDL_DestroyRenderer(gdc.renderer);
+	SDL_DestroyWindow(gdc.window);
 	SDL_Quit();
 
-	delete [] PathResources;
-	delete [] PathAppConfig;
+	free(PathResources);
+	free(PathAppConfig);
 	free(PathApplication);
 
 	return EXIT_SUCCESS;

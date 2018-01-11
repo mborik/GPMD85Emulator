@@ -25,13 +25,15 @@ public:
 	static char buffer[MAX_PATH];
 	static struct stat filestat;
 
-	static struct TGlobalVideoInfo {
+	static struct TGraphicsDeviceContext {
 		SDL_Window *window;
+		SDL_Renderer *renderer;
 		DWORD windowID;
 		DWORD format;
-		unsigned int w;
-		unsigned int h;
-	} globalVideoInfo;
+		int freq;
+		int w;
+		int h;
+	} graphicsDeviceContext;
 
 	static char *pathApplicationConfig;
 	static char *pathApplication;
@@ -80,6 +82,6 @@ public:
 #define TestDir CommonUtils::commonTestDir
 #define ScanDir CommonUtils::commonScanDir
 
-#define gvi CommonUtils::globalVideoInfo
+#define gdc CommonUtils::graphicsDeviceContext
 //-----------------------------------------------------------------------------
 #endif

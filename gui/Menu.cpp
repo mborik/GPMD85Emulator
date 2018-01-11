@@ -18,7 +18,7 @@
 #include "UserInterface.h"
 #include "GPMD85main.h"
 //-----------------------------------------------------------------------------
-void UserInterface::drawMenu(void *data)
+void UserInterface::DrawMenu(void *data)
 {
 	GUI_MENU_ENTRY *ptr;
 	int widthLeft = 0, widthRight = 0, height = 0, i, k;
@@ -82,13 +82,24 @@ void UserInterface::drawMenu(void *data)
 	if (menuStack[menuStackLevel].type == GUI_TYPE_TAPE_POPUP)
 		cMenu_rect->x *= 2;
 
-	drawDialogWithBorder(defaultSurface, cMenu_rect->x, cMenu_rect->y, cMenu_rect->w, cMenu_rect->h);
-	printTitle(defaultSurface, cMenu_rect->x, cMenu_rect->y + 1, cMenu_rect->w, GUI_COLOR_BACKGROUND, cMenu_data->text);
-	drawMenuItems();
+	GUI_SURFACE *defaultSurface = LockSurface(defaultTexture);
+
+	DrawDialogWithBorder(defaultSurface, cMenu_rect->x, cMenu_rect->y, cMenu_rect->w, cMenu_rect->h);
+	PrintTitle(defaultSurface, cMenu_rect->x, cMenu_rect->y + 1, cMenu_rect->w, GUI_COLOR_BACKGROUND, cMenu_data->text);
+	DrawMenuItems(defaultSurface);
+
+	UnlockSurface(defaultTexture, defaultSurface);
+	needRedraw = true;
 }
 //-----------------------------------------------------------------------------
-void UserInterface::drawMenuItems()
+void UserInterface::DrawMenuItems(GUI_SURFACE *s)
 {
+	bool needUnlock = false;
+	if (s == NULL) {
+		s = LockSurface(defaultTexture);
+		needUnlock = true;
+	}
+
 	GUI_MENU_ENTRY *ptr;
 	SDL_Rect *r = new SDL_Rect(*cMenu_rect);
 	const char *wrk;
@@ -102,31 +113,31 @@ void UserInterface::drawMenuItems()
 		my = r->y + 2;
 
 		if (ptr->type == MI_SEPARATOR) {
-			drawLineH(defaultSurface, r->x + 2, my, r->w - 4, GUI_COLOR_SEPARATOR);
+			DrawLineH(s, r->x + 2, my, r->w - 4, GUI_COLOR_SEPARATOR);
 			r->y += GUI_CONST_SEPARATOR;
 		}
 		else {
 			mx = r->x + 7;
 
-			drawRectangle(defaultSurface, r->x, r->y, r->w, GUI_CONST_ITEM_SIZE,
+			DrawRectangle(s, r->x, r->y, r->w, GUI_CONST_ITEM_SIZE,
 				(i == cMenu_hilite) ? GUI_COLOR_HIGHLIGHT : GUI_COLOR_BACKGROUND);
-			printFormatted(defaultSurface, mx + cMenu_leftMargin, my,
+			PrintFormatted(s, mx + cMenu_leftMargin, my,
 				(ptr->enabled) ? GUI_COLOR_FOREGROUND : GUI_COLOR_DISABLED,
 				"%s%s", ptr->text, ((ptr->type == MI_SUBMENU) ? " \200" :
 					((ptr->type == MI_DIALOG) ? "\205" : "")));
 
 			if (ptr->type == MI_CHECKBOX && ptr->action >= 0x8000) {
-				printCheck(defaultSurface, mx, my + 1,
+				PrintCheck(s, mx, my + 1,
 					((ptr->enabled) ? GUI_COLOR_HOTKEY : GUI_COLOR_DISABLED),
 					SCHR_LOCKER, ptr->state);
 			}
 			else if (ptr->type == MI_CHECKBOX) {
-				printCheck(defaultSurface, mx, my + 1,
+				PrintCheck(s, mx, my + 1,
 					((ptr->enabled) ? GUI_COLOR_CHECKED : GUI_COLOR_DISABLED),
 					SCHR_CHECK, ptr->state);
 			}
 			else if (ptr->type == MI_RADIO) {
-				printCheck(defaultSurface, mx, my + 1,
+				PrintCheck(s, mx, my + 1,
 					((ptr->enabled) ? GUI_COLOR_CHECKED : GUI_COLOR_DISABLED),
 					SCHR_RADIO, ptr->state);
 			}
@@ -142,19 +153,19 @@ void UserInterface::drawMenuItems()
 					wrk++;
 					mx += GUI_CONST_HOTKEYCHAR - (GUI_CONST_HOTKEYCHAR - 6);
 
-					printChar(defaultSurface, mx - GUI_CONST_HOTKEYCHAR, my, c, hkchr);
-					printChar(defaultSurface, mx, my, c, SCHR_SHIFT);
+					PrintChar(s, mx - GUI_CONST_HOTKEYCHAR, my, c, hkchr);
+					PrintChar(s, mx, my, c, SCHR_SHIFT);
 				}
 				else
-					printChar(defaultSurface, mx, my, c, hkchr);
+					PrintChar(s, mx, my, c, hkchr);
 
-				printText(defaultSurface, mx + GUI_CONST_HOTKEYCHAR, my, c, wrk);
+				PrintText(s, mx + GUI_CONST_HOTKEYCHAR, my, c, wrk);
 			}
 			else if (ptr->detail) {
 				wrk = ptr->detail(ptr);
 				if (wrk) {
 					mx -= (strlen(wrk) * 6) + 12;
-					printFormatted(defaultSurface, mx, my, GUI_COLOR_DISABLED, "[%s]", wrk);
+					PrintFormatted(s, mx, my, GUI_COLOR_DISABLED, "[%s]", wrk);
 				}
 			}
 
@@ -162,11 +173,15 @@ void UserInterface::drawMenuItems()
 		}
 	}
 
+	if (needUnlock) {
+		UnlockSurface(defaultTexture, s);
+		needRedraw = true;
+	}
+
 	delete r;
-	needRedraw = true;
 }
 //-----------------------------------------------------------------------------
-void UserInterface::keyhandlerMenu(WORD key)
+void UserInterface::KeyhandlerMenu(WORD key)
 {
 	GUI_MENU_ENTRY *ptr = &cMenu_data[cMenu_hilite + 1];
 	bool change = false;
@@ -174,12 +189,12 @@ void UserInterface::keyhandlerMenu(WORD key)
 	switch (key) {
 		case SDL_SCANCODE_F4 | KM_ALT:
 			Emulator->ActionExit();
-			menuCloseAll();
+			MenuCloseAll();
 			needRelease = true;
 			return;
 
 		case SDL_SCANCODE_ESCAPE:
-			menuClose();
+			MenuClose();
 			needRelease = true;
 			return;
 
@@ -196,18 +211,18 @@ void UserInterface::keyhandlerMenu(WORD key)
 				needRelease = true;
 
 				if (ptr->type == MI_SUBMENU && ptr->submenu)
-					menuOpen(GUI_TYPE_MENU, ptr->submenu);
+					MenuOpen(GUI_TYPE_MENU, ptr->submenu);
 				else if (ptr->callback) {
 					if (ptr->callback(ptr)) {
 						if (uiSetChanges & PS_CLOSEALL)
-							menuCloseAll();
+							MenuCloseAll();
 						else
-							menuClose();
+							MenuClose();
 						return;
 					}
 					else if (menuStack[menuStackLevel].type == GUI_TYPE_TAPE_POPUP) {
-						menuClose();
-						keyhandlerTapeDialog(ptr->action);
+						MenuClose();
+						KeyhandlerTapeDialog(ptr->action);
 						return;
 					}
 					else if (cMenu_data)
@@ -221,14 +236,14 @@ void UserInterface::keyhandlerMenu(WORD key)
 		case SDL_SCANCODE_BACKSPACE:
 		case SDL_SCANCODE_LEFT:
 			if (menuStackLevel > 0)
-				menuClose();
+				MenuClose();
 
 			needRelease = true;
 			return;
 
 		case SDL_SCANCODE_RIGHT:
 			if (ptr->enabled && ptr->type == MI_SUBMENU && ptr->submenu)
-				menuOpen(GUI_TYPE_MENU, ptr->submenu);
+				MenuOpen(GUI_TYPE_MENU, ptr->submenu);
 
 			needRelease = true;
 			return;
@@ -280,28 +295,28 @@ void UserInterface::keyhandlerMenu(WORD key)
 	}
 
 	if (change) {
-		drawMenuItems();
+		DrawMenuItems();
 		return;
 	}
 
 	for (ptr = &cMenu_data[1]; ptr->type != MENU_END; ptr++) {
 		if (ptr->enabled && key == ptr->key) {
 			if (ptr->type == MI_SUBMENU && ptr->submenu)
-				menuOpen(GUI_TYPE_MENU, ptr->submenu);
+				MenuOpen(GUI_TYPE_MENU, ptr->submenu);
 			else if (ptr->callback) {
 				if (ptr->callback(ptr)) {
 					if (uiSetChanges & PS_CLOSEALL)
-						menuCloseAll();
+						MenuCloseAll();
 					else
-						menuClose();
+						MenuClose();
 				}
 				else if (menuStack[menuStackLevel].type == GUI_TYPE_TAPE_POPUP) {
-					menuClose();
-					keyhandlerTapeDialog(ptr->action);
+					MenuClose();
+					KeyhandlerTapeDialog(ptr->action);
 					return;
 				}
 				else if (cMenu_data)
-					drawMenuItems();
+					DrawMenuItems();
 			}
 
 			break;
