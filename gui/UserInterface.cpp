@@ -96,8 +96,8 @@ UserInterface::UserInterface()
 		error("GUI", "Can't load font resource file");
 	debug("GUI", "Font resource loaded");
 
-	iconsTexture = LoadImgToTexture(LocateResource("statusbar.bmp", false));
-	if (iconsTexture == NULL)
+	icons = LoadImgToSurface(LocateResource("statusbar.bmp", false));
+	if (icons == NULL)
 		error("GUI", "Can't load status bar icons resource file");
 	debug("GUI", "Status bar icons resource loaded");
 
@@ -149,9 +149,11 @@ UserInterface::~UserInterface()
 		delete [] fontData;
 	fontData = NULL;
 
-	if (iconsTexture)
-		SDL_DestroyTexture(iconsTexture);
-	iconsTexture = NULL;
+	if (icons) {
+		free(icons->pixels);
+		delete icons;
+	}
+	icons = NULL;
 
 	if (cMenu_rect)
 		delete cMenu_rect;
@@ -170,36 +172,52 @@ UserInterface::~UserInterface()
 	}
 }
 //-----------------------------------------------------------------------------
-SDL_Texture *UserInterface::LoadImgToTexture(const char *file)
+UserInterface::GUI_SURFACE *UserInterface::LoadImgToSurface(const char *file)
 {
 	SDL_Surface *src = SDL_LoadBMP(file);
 	if (!src)
 		return NULL;
 
-	SDL_Texture *texture = SDL_CreateTexture(gdc.renderer,
-			SDL_PIXELFORMAT_DEFAULT, SDL_TEXTUREACCESS_STREAMING,
-			src->w, src->h);
+	SDL_Surface *cpy = SDL_ConvertSurfaceFormat(
+			SDL_CreateRGBSurface(0, src->w, src->h, 32, 0, 0, 0, 0),
+			SDL_PIXELFORMAT_DEFAULT, 0);
 
-	if (!texture)
-		return NULL;
-
-	SDL_Surface *cpy = SDL_CreateRGBSurface(0, src->w, src->h, 32, 0, 0, 0, 0);
-	SDL_SetColorKey(src, SDL_TRUE, SDL_MapRGB(cpy->format, 255, 0, 255));
+	SDL_SetColorKey(src, SDL_TRUE, SDL_MapRGB(src->format, 255, 0, 255));
 	SDL_BlitSurface(src, NULL, cpy, NULL);
 	SDL_FreeSurface(src);
+	SDL_LockSurface(cpy);
 
-	void *pixels;
-	int pitch;
+	GUI_SURFACE *result = new GUI_SURFACE;
 
-	SDL_LockTexture(texture, NULL, &pixels, &pitch);
-	SDL_ConvertPixels(cpy->w, cpy->h,
-			cpy->format->format, cpy->pixels, cpy->pitch,
-			SDL_PIXELFORMAT_DEFAULT,
-			pixels, pitch);
-	SDL_UnlockTexture(texture);
+	result->format = cpy->format->format;
+	result->w = cpy->w;
+	result->h = cpy->h;
+	result->pitch = cpy->pitch;
 
+	DWORD length = cpy->pitch * cpy->h;
+	result->pixels = (BYTE *) malloc(length);
+	memcpy(result->pixels, cpy->pixels, length);
+
+	SDL_UnlockSurface(cpy);
 	SDL_FreeSurface(cpy);
-	return texture;
+
+	return result;
+}
+//-----------------------------------------------------------------------------
+void UserInterface::BlitToSurface(GUI_SURFACE *src, const SDL_Rect *srcRect, GUI_SURFACE *dst, const SDL_Rect *dstRect)
+{
+	if (dst->format != src->format)
+		return;
+
+	int bpp = dst->pitch / dst->w;
+	int w = SDL_min(srcRect->w, dstRect->w) * bpp;
+	int h = SDL_min(srcRect->h, dstRect->h);
+
+	BYTE *ptr1 = dst->pixels + (dstRect->y * dst->pitch) + (dstRect->x * bpp);
+	BYTE *ptr2 = src->pixels + (srcRect->y * src->pitch) + (srcRect->x * bpp);
+
+	for (; h > 0; --h, ptr1 += dst->pitch, ptr2 += src->pitch)
+		memcpy(ptr1, ptr2, w);
 }
 //-----------------------------------------------------------------------------
 void UserInterface::InitDefaultTexture(int width, int height)

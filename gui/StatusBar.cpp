@@ -35,34 +35,35 @@ void UserInterface::InitStatusBarTexture()
 //-----------------------------------------------------------------------------
 void UserInterface::RedrawStatusBar()
 {
-	GUI_SURFACE *statusSurface = LockSurface(statusTexture);
 	SDL_Rect *r = new SDL_Rect, *s = new SDL_Rect;
 
-	r->x = statusSurface->w - (3 * STATUSBAR_SPACING);
+	r->x = statusRect->w - (3 * STATUSBAR_SPACING);
 	r->y = ((STATUSBAR_HEIGHT - STATUSBAR_ICON) / 2);
 	r->w = r->h = s->w = s->h = STATUSBAR_ICON;
+
+	GUI_SURFACE *statusSurface = LockSurface(statusTexture);
 
 //	control LEDs on right side...
 	s->y = 0;
 	s->x = (ledState & 1) ? STATUSBAR_ICON : 0;
-//	SDL_LowerBlit(GUI->icons, s, Screen, r); // TODO FIXME!
+	BlitToSurface(icons, s, statusSurface, r);
 
 	r->x += STATUSBAR_SPACING;
 	s->x = (ledState & 2) ? (2 * STATUSBAR_ICON) : 0;
-//	SDL_LowerBlit(GUI->icons, s, Screen, r); // TODO FIXME!
+	BlitToSurface(icons, s, statusSurface, r);
 
 	r->x += STATUSBAR_SPACING;
 	s->x = (ledState & 4) ? (3 * STATUSBAR_ICON) : 0;
-//	SDL_LowerBlit(GUI->icons, s, Screen, r); // TODO FIXME!
+	BlitToSurface(icons, s, statusSurface, r);
 
 //	tape/disk icon...
 	r->x -= (4 * STATUSBAR_SPACING);
 	if (iconState) {
 		s->x = (iconState * STATUSBAR_ICON) + (3 * STATUSBAR_ICON);
-//		SDL_LowerBlit(GUI->icons, s, Screen, r); // TODO FIXME!
+		BlitToSurface(icons, s, statusSurface, r);
 	}
 	else
-//		SDL_FillRect(Screen, r, 0); // TODO FIXME!
+		DrawRectangle(statusSurface, r->x, r->y, r->w, r->h, 0);
 
 	delete s;
 
@@ -77,7 +78,9 @@ void UserInterface::RedrawStatusBar()
 	PrintText(statusSurface, r->x, r->y, 0, status);
 	if (statusPercentage < 0) {
 		sprintf(status, "PAUSED");
-		PrintText(statusSurface, r->x, r->y, (pauseBlinker < 10) ? GUI_COLOR_STAT_PAUSE : 0, status);
+		PrintText(statusSurface, r->x, r->y,
+				(pauseBlinker < 10) ? GUI_COLOR_STAT_PAUSE : 0, status);
+
 		if (pauseBlinker++ >= 16)
 			pauseBlinker = 0;
 	}

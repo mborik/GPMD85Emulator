@@ -130,7 +130,6 @@ class UserInterface : public sigslot::has_slots<>
 		sigslot::signal0<> uiCallback;
 
 		DWORD globalPalette[256];
-		SDL_Texture *iconsTexture;
 		SDL_Texture *defaultTexture;
 		SDL_Texture *statusTexture;
 		SDL_Rect *statusRect;
@@ -184,6 +183,16 @@ class UserInterface : public sigslot::has_slots<>
 		WORD  frameWidth;
 		WORD  frameHeight;
 
+		// based on SDL_Surface
+		typedef struct GUI_SURFACE {
+			DWORD format;
+			int   w, h;
+			int   pitch;
+			BYTE *pixels;
+		} GUI_SURFACE;
+
+		GUI_SURFACE *icons;
+
 		short menuStackLevel;
 		struct GUI_MENU_STACK {
 			GUI_MENU_TYPE type;
@@ -195,15 +204,9 @@ class UserInterface : public sigslot::has_slots<>
 		SDL_Rect *cMenu_rect;
 		int cMenu_leftMargin, cMenu_count, cMenu_hilite;
 
-		// based on SDL_Surface
-		typedef struct GUI_SURFACE {
-			DWORD format;
-			int   w, h;
-			int   pitch;
-			BYTE *pixels;
-		} GUI_SURFACE;
+		GUI_SURFACE *LoadImgToSurface(const char *file);
+		void BlitToSurface(GUI_SURFACE *src, const SDL_Rect *srcRect, GUI_SURFACE *dst, const SDL_Rect *dstRect);
 
-		SDL_Texture *LoadImgToTexture(const char *file);
 		GUI_SURFACE *LockSurface(SDL_Texture *texture);
 		void UnlockSurface(SDL_Texture *texture, GUI_SURFACE *surface);
 
