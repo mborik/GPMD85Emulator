@@ -16,7 +16,7 @@
 */
 //-----------------------------------------------------------------------------
 #include "UserInterfaceData.h"
-#include "GPMD85main.h"
+#include "Emulator.h"
 //-----------------------------------------------------------------------------
 const char *dcb_tape_save_state(GUI_MENU_ENTRY *ptr)
 {

@@ -195,6 +195,8 @@ inline void error(const char *ns, const char *msg, ...)
 	vsprintf(msgbuffer, msg, va);
 	va_end(va);
 	fprintf(stderr, "ERR: %s%s!\n", msgbuffer + 1000, msgbuffer);
+
+	SDL_Quit();
 	exit(EXIT_FAILURE);
 }
 //-----------------------------------------------------------------------------

@@ -18,7 +18,7 @@
 #include "CommonUtils.h"
 #include "UserInterface.h"
 #include "UserInterfaceData.h"
-#include "GPMD85main.h"
+#include "Emulator.h"
 //-----------------------------------------------------------------------------
 UserInterface *GUI;
 //-----------------------------------------------------------------------------
@@ -104,7 +104,6 @@ UserInterface::UserInterface()
 	defaultTexture = NULL;
 	statusTexture = NULL;
 	statusRect = NULL;
-	frameSave = NULL;
 
 	cMenu_data = NULL;
 	cMenu_rect = new SDL_Rect;
@@ -120,7 +119,6 @@ UserInterface::UserInterface()
 	tapeDialog = new GUI_TAPEDIALOG_DATA;
 	tapeDialog->entries = NULL;
 	tapeDialog->count = 0;
-	tapeDialog->popup.frame = NULL;
 	tapeDialog->popup.rect = NULL;
 
 	ledState = 0;
@@ -133,17 +131,14 @@ UserInterface::UserInterface()
 	uiQueryState = GUI_QUERY_CANCEL;
 
 	menuStackLevel = -1;
+	SDL_zero(menuStack);
+
 	needRelease = false;
-	needRedraw = false;
 }
 //-----------------------------------------------------------------------------
 UserInterface::~UserInterface()
 {
 	debug("GUI", "Uninitializing, freeing...");
-
-	if (frameSave)
-		free(frameSave);
-	frameSave = NULL;
 
 	if (fontData)
 		delete [] fontData;
@@ -235,7 +230,6 @@ void UserInterface::InitDefaultTexture(int width, int height)
 	frameWidth  = width;
 	frameHeight = height;
 	frameLength = pitch * height;
-	frameSave   = (BYTE *) realloc(frameSave, sizeof(BYTE) * frameLength);
 	maxCharsOnScreen = (frameWidth - (2 * GUI_CONST_BORDER)) / fontWidth;
 
 	memset(pixels, 0, frameLength);
@@ -263,7 +257,7 @@ void UserInterface::UnlockSurface(SDL_Texture *texture, GUI_SURFACE *surface)
 //-----------------------------------------------------------------------------
 void UserInterface::PutPixel(GUI_SURFACE *s, int x, int y, BYTE col)
 {
-	if (s && s->format == SDL_PIXELFORMAT_DEFAULT)
+	if (s && s->format == SDL_PIXELFORMAT_DEFAULT && x < s->w && y < s->h)
 		*(((DWORD *) (s->pixels + y * s->pitch)) + x) = globalPalette[col];
 }
 //-----------------------------------------------------------------------------
@@ -375,7 +369,7 @@ void UserInterface::PrintTitle(GUI_SURFACE *s, int x, int y, int w, BYTE col, co
 //-----------------------------------------------------------------------------
 void UserInterface::DrawLineH(GUI_SURFACE *s, int x, int y, int len, BYTE col)
 {
-	if (s && s->format == SDL_PIXELFORMAT_DEFAULT) {
+	if (s && s->format == SDL_PIXELFORMAT_DEFAULT && y < s->h) {
 		void *ptr = ((DWORD *) (s->pixels + y * s->pitch)) + x;
 		SDL_memset4(ptr, globalPalette[col], len);
 	}
@@ -468,34 +462,39 @@ void UserInterface::MenuOpen(GUI_MENU_TYPE type, void *data)
 		}
 	}
 
+	needRelease = true;
+	SDL_Delay(GUI_CONST_KEY_REPEAT);
+
+	GUI_SURFACE *defaultSurface = LockSurface(defaultTexture);
+
 	if (menuStackLevel < 0) {
 		uiSetChanges = 0;
-//		memcpy(frameSave, defaultSurface->pixels, frameLength); // TODO FIXME!
-	}
-	else if (type == GUI_TYPE_TAPE_POPUP) {
-		if (tapeDialog->popup.frame)
-			delete [] tapeDialog->popup.frame;
-
-		tapeDialog->popup.frame = new BYTE[frameLength];
-//		memcpy(tapeDialog->popup.frame, defaultSurface->pixels, frameLength); // TODO FIXME!
-
-		if (tapeDialog->popup.rect)
-			delete tapeDialog->popup.rect;
-
-		tapeDialog->popup.rect = new SDL_Rect(*cMenu_rect);
-		tapeDialog->popup.count = cMenu_count;
-		tapeDialog->popup.hilite = cMenu_hilite;
-		tapeDialog->popup.leftMargin = cMenu_leftMargin;
+		memset(defaultSurface->pixels, 0, frameLength);
 	}
 	else {
-		menuStack[menuStackLevel].hilite = cMenu_hilite;
-//		memcpy(defaultSurface->pixels, frameSave, frameLength); // TODO FIXME!
+		menuStack[menuStackLevel].frame = new BYTE[frameLength];
+		memcpy(menuStack[menuStackLevel].frame, defaultSurface->pixels, frameLength);
+
+		if (type == GUI_TYPE_TAPE_POPUP) {
+			if (tapeDialog->popup.rect)
+				delete tapeDialog->popup.rect;
+
+			tapeDialog->popup.rect = new SDL_Rect(*cMenu_rect);
+			tapeDialog->popup.count = cMenu_count;
+			tapeDialog->popup.hilite = cMenu_hilite;
+			tapeDialog->popup.leftMargin = cMenu_leftMargin;
+		}
+		else
+			menuStack[menuStackLevel].hilite = cMenu_hilite;
 	}
+
+	UnlockSurface(defaultTexture, defaultSurface);
 
 	menuStackLevel++;
 	menuStack[menuStackLevel].type = type;
 	menuStack[menuStackLevel].data = data;
 	menuStack[menuStackLevel].hilite = cMenu_hilite = 0;
+	menuStack[menuStackLevel].frame = NULL;
 
 	switch (type) {
 		case GUI_TYPE_MENU:
@@ -525,13 +524,21 @@ void UserInterface::MenuOpen(GUI_MENU_TYPE type, void *data)
 //-----------------------------------------------------------------------------
 void UserInterface::MenuClose()
 {
-	menuStack[menuStackLevel].data = NULL;
+	needRelease = true;
+	SDL_Delay(GUI_CONST_KEY_REPEAT);
 
+	GUI_SURFACE *defaultSurface = LockSurface(defaultTexture);
+
+	menuStack[menuStackLevel].data = NULL;
 	menuStackLevel--;
 	if (menuStackLevel >= 0) {
-		if (menuStack[menuStackLevel + 1].type == GUI_TYPE_TAPE_POPUP) {
-//			memcpy(defaultSurface->pixels, tapeDialog->popup.frame, frameLength); // TODO FIXME!
+		memcpy(defaultSurface->pixels, menuStack[menuStackLevel].frame, frameLength);
+		UnlockSurface(defaultTexture, defaultSurface);
 
+		delete [] menuStack[menuStackLevel].frame;
+		menuStack[menuStackLevel].frame = NULL;
+
+		if (menuStack[menuStackLevel + 1].type == GUI_TYPE_TAPE_POPUP) {
 			cMenu_rect->x = tapeDialog->popup.rect->x;
 			cMenu_rect->y = tapeDialog->popup.rect->y;
 			cMenu_rect->w = tapeDialog->popup.rect->w;
@@ -542,23 +549,17 @@ void UserInterface::MenuClose()
 
 			if (tapeDialog->popup.rect)
 				delete tapeDialog->popup.rect;
-			if (tapeDialog->popup.frame)
-				delete [] tapeDialog->popup.frame;
 
-			tapeDialog->popup.frame = NULL;
 			tapeDialog->popup.rect = NULL;
 			tapeDialog->popup.count = -1;
 			tapeDialog->popup.hilite = -1;
 			tapeDialog->popup.leftMargin = -1;
 
 			needRelease = true;
-			needRedraw = true;
 			return;
 		}
-		else {
+		else
 			cMenu_hilite = menuStack[menuStackLevel].hilite;
-//			memcpy(defaultSurface->pixels, frameSave, frameLength); // TODO FIXME!
-		}
 
 		switch (menuStack[menuStackLevel].type) {
 			case GUI_TYPE_MENU:
@@ -573,29 +574,39 @@ void UserInterface::MenuClose()
 				break;
 		}
 	}
+	else {
+		memset(defaultSurface->pixels, 0, frameLength);
+		UnlockSurface(defaultTexture, defaultSurface);
+	}
 }
 //-----------------------------------------------------------------------------
 void UserInterface::MenuCloseAll()
 {
+	needRelease = true;
+	SDL_Delay(GUI_CONST_KEY_REPEAT);
+
 	for (int i = menuStackLevel; i >= 0; i--) {
 		if (menuStack[i].type == GUI_TYPE_TAPE_POPUP) {
 			if (tapeDialog->popup.rect)
 				delete tapeDialog->popup.rect;
-			if (tapeDialog->popup.frame)
-				delete [] tapeDialog->popup.frame;
 
-			tapeDialog->popup.frame = NULL;
 			tapeDialog->popup.rect = NULL;
 			tapeDialog->popup.count = -1;
 			tapeDialog->popup.hilite = -1;
 			tapeDialog->popup.leftMargin = -1;
 		}
 
+		if (menuStack[i].frame)
+			delete [] menuStack[i].frame;
+		menuStack[i].frame = NULL;
 		menuStack[i].data = NULL;
 	}
 
+	GUI_SURFACE *defaultSurface = LockSurface(defaultTexture);
+	memset(defaultSurface->pixels, 0, frameLength);
+	UnlockSurface(defaultTexture, defaultSurface);
+
 	menuStackLevel = -1;
-//	memcpy(defaultSurface->pixels, frameSave, frameLength); // TODO FIXME!
 }
 //-----------------------------------------------------------------------------
 void UserInterface::MenuHandleKey(WORD key)

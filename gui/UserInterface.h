@@ -119,12 +119,12 @@ class UserInterface : public sigslot::has_slots<>
 			int  count;
 			char **entries;
 			struct {
-				BYTE *frame;
 				SDL_Rect *rect;
 				int leftMargin, count, hilite;
 			} popup;
 		} GUI_TAPEBROWSER_DATA;
 
+		bool needRelease;
 		BYTE uiSetChanges;
 		BYTE uiQueryState;
 		sigslot::signal0<> uiCallback;
@@ -137,9 +137,6 @@ class UserInterface : public sigslot::has_slots<>
 		GUI_FILESELECTOR_DATA *fileSelector;
 		GUI_TAPEDIALOG_DATA *tapeDialog;
 		sigslot::signal2<char *, BYTE *> editBoxValidator;
-
-		bool needRedraw;
-		bool needRelease;
 
 		UserInterface();
 		virtual ~UserInterface();
@@ -178,7 +175,6 @@ class UserInterface : public sigslot::has_slots<>
 		BYTE  fontLineHeight;
 		BYTE  maxCharsOnScreen;
 
-		BYTE *frameSave;
 		DWORD frameLength;
 		WORD  frameWidth;
 		WORD  frameHeight;
@@ -198,6 +194,7 @@ class UserInterface : public sigslot::has_slots<>
 			GUI_MENU_TYPE type;
 			void *data;
 			int hilite;
+			BYTE *frame;
 		} menuStack[8];
 
 		GUI_MENU_ENTRY *cMenu_data;

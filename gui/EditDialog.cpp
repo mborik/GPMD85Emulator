@@ -16,7 +16,7 @@
 */
 //-----------------------------------------------------------------------------
 #include "UserInterface.h"
-#include "GPMD85main.h"
+#include "Emulator.h"
 //-----------------------------------------------------------------------------
 BYTE UserInterface::EditBox(const char *title, char *buffer, BYTE maxLength, bool decimal)
 {
@@ -25,10 +25,18 @@ BYTE UserInterface::EditBox(const char *title, char *buffer, BYTE maxLength, boo
 
 	GUI_SURFACE *defaultSurface = LockSurface(defaultTexture);
 
-	BYTE *bkm_frameSave = new BYTE[frameLength];
-//	memcpy(bkm_frameSave, defaultSurface->pixels, frameLength); // TODO FIXME!
+	if (menuStackLevel < 0)
+		memset(defaultSurface->pixels, 0, frameLength);
+	else {
+		menuStack[menuStackLevel].frame = new BYTE[frameLength];
+		memcpy(menuStack[menuStackLevel].frame, defaultSurface->pixels, frameLength);
+	}
 
 	menuStackLevel++;
+	menuStack[menuStackLevel].type = GUI_TYPE_MENU;
+	menuStack[menuStackLevel].hilite = 0;
+	menuStack[menuStackLevel].data = NULL;
+	menuStack[menuStackLevel].frame = NULL;
 
 	WORD i, len = strlen(buffer), cursor = len,
 		w = (strlen(title) + 4) * fontWidth, h, x, y;
@@ -43,6 +51,8 @@ BYTE UserInterface::EditBox(const char *title, char *buffer, BYTE maxLength, boo
 
 	DrawDialogWithBorder(defaultSurface, x, y, w, h);
 	PrintTitle(defaultSurface, x, y + 1, w, GUI_COLOR_BACKGROUND, title);
+
+	UnlockSurface(defaultTexture, defaultSurface);
 
 	x += GUI_CONST_BORDER;
 	y += (2 * GUI_CONST_BORDER);
@@ -175,6 +185,8 @@ BYTE UserInterface::EditBox(const char *title, char *buffer, BYTE maxLength, boo
 			}
 
 			if (change) {
+				defaultSurface = LockSurface(defaultTexture);
+
 				DrawRectangle(defaultSurface, x, y - 1, w, fontHeight + 1,
 					GUI_COLOR_BACKGROUND);
 				DrawRectangle(defaultSurface, x + (cursor * fontWidth), y - 1,
@@ -184,7 +196,7 @@ BYTE UserInterface::EditBox(const char *title, char *buffer, BYTE maxLength, boo
 				len = strlen(buffer);
 				atTheEnd = (cursor == len);
 
-				needRedraw = true;
+				UnlockSurface(defaultTexture, defaultSurface);
 				change = false;
 				break;
 			}
@@ -194,16 +206,21 @@ BYTE UserInterface::EditBox(const char *title, char *buffer, BYTE maxLength, boo
 			SDL_Delay(1);
 	}
 
-//	memcpy(defaultSurface->pixels, bkm_frameSave, frameLength); // TODO FIXME!
-	delete [] bkm_frameSave;
-
-	SDL_Delay(GPU_TIMER_INTERVAL);
-
-	UnlockSurface(defaultTexture, defaultSurface);
-	needRelease = true;
-	needRedraw = true;
+	defaultSurface = LockSurface(defaultTexture);
 
 	menuStackLevel--;
+	if (menuStackLevel >= 0) {
+		memcpy(defaultSurface->pixels, menuStack[menuStackLevel].frame, frameLength);
+		delete [] menuStack[menuStackLevel].frame;
+		menuStack[menuStackLevel].frame = NULL;
+	}
+	else
+		memset(defaultSurface->pixels, 0, frameLength);
+
+	UnlockSurface(defaultTexture, defaultSurface);
+	SDL_Delay(GPU_TIMER_INTERVAL);
+
+	needRelease = true;
 	return result;
 }
 //-----------------------------------------------------------------------------

@@ -17,7 +17,7 @@
 //-----------------------------------------------------------------------------
 #include "UserInterface.h"
 #include "UserInterfaceData.h"
-#include "GPMD85main.h"
+#include "Emulator.h"
 //-----------------------------------------------------------------------------
 BYTE UserInterface::QueryDialog(const char *title, bool save)
 {
@@ -28,19 +28,25 @@ BYTE UserInterface::QueryDialog(const char *title, bool save)
 	((GUI_MENU_ENTRY *) data)->text = (const char *) dialogTitle;
 
 	GUI_SURFACE *defaultSurface = LockSurface(defaultTexture);
-
-	BYTE *bkm_frameSave = new BYTE[frameLength];
-//	memcpy(bkm_frameSave, defaultSurface->pixels, frameLength); // TODO FIXME!
+	if (menuStackLevel < 0)
+		memset(defaultSurface->pixels, 0, frameLength);
+	else {
+		menuStack[menuStackLevel].frame = new BYTE[frameLength];
+		memcpy(menuStack[menuStackLevel].frame, defaultSurface->pixels, frameLength);
+	}
+	UnlockSurface(defaultTexture, defaultSurface);
 
 	GUI_MENU_ENTRY *bkm_data = cMenu_data;
 	SDL_Rect *bkm_rect = new SDL_Rect(*cMenu_rect);
-	int bkm_leftMargin = cMenu_leftMargin, bkm_count = cMenu_count,
-	    bkm_hilite = cMenu_hilite;
+	int bkm_leftMargin = cMenu_leftMargin,
+		bkm_hilite = cMenu_hilite,
+		bkm_count = cMenu_count;
 
 	menuStackLevel++;
 	menuStack[menuStackLevel].type = GUI_TYPE_MENU;
 	menuStack[menuStackLevel].data = data;
 	menuStack[menuStackLevel].hilite = cMenu_hilite = (save) ? 2 : 1;
+	menuStack[menuStackLevel].frame = NULL;
 
 	DrawMenu(data);
 
@@ -118,16 +124,22 @@ BYTE UserInterface::QueryDialog(const char *title, bool save)
 			SDL_Delay(1);
 	}
 
-//	memcpy(defaultSurface->pixels, bkm_frameSave, frameLength); // TODO FIXME!
+	defaultSurface = LockSurface(defaultTexture);
+
+	menuStackLevel--;
+	if (menuStackLevel >= 0) {
+		memcpy(defaultSurface->pixels, menuStack[menuStackLevel].frame, frameLength);
+		delete [] menuStack[menuStackLevel].frame;
+		menuStack[menuStackLevel].frame = NULL;
+	}
+	else
+		memset(defaultSurface->pixels, 0, frameLength);
 
 	UnlockSurface(defaultTexture, defaultSurface);
-	needRelease = true;
-	needRedraw = true;
 
-	SDL_Delay(GPU_TIMER_INTERVAL);
+	needRelease = true;
 
 	((GUI_MENU_ENTRY *) data)->text = NULL;
-	delete [] bkm_frameSave;
 	delete [] dialogTitle;
 
 	cMenu_rect->x = bkm_rect->x;
@@ -140,8 +152,8 @@ BYTE UserInterface::QueryDialog(const char *title, bool save)
 	cMenu_leftMargin = bkm_leftMargin;
 	cMenu_hilite = bkm_hilite;
 	cMenu_count = bkm_count;
-	menuStackLevel--;
 
+	SDL_Delay(GPU_TIMER_INTERVAL);
 	return uiQueryState;
 }
 //-----------------------------------------------------------------------------
@@ -154,8 +166,12 @@ void UserInterface::MessageBox(const char *text, ...)
 
 	GUI_SURFACE *defaultSurface = LockSurface(defaultTexture);
 
-	BYTE *bkm_frameSave = new BYTE[frameLength];
-//	memcpy(bkm_frameSave, defaultSurface->pixels, frameLength); // TODO FIXME!
+	if (menuStackLevel < 0)
+		memset(defaultSurface->pixels, 0, frameLength);
+	else {
+		menuStack[menuStackLevel].frame = new BYTE[frameLength];
+		memcpy(menuStack[menuStackLevel].frame, defaultSurface->pixels, frameLength);
+	}
 
 	menuStackLevel++;
 
@@ -196,7 +212,7 @@ void UserInterface::MessageBox(const char *text, ...)
 	PrintText(defaultSurface, x + (2 * GUI_CONST_BORDER),
 			y + GUI_CONST_BORDER + 1, GUI_COLOR_FOREGROUND, msgbuffer);
 
-	needRedraw = true;
+	UnlockSurface(defaultTexture, defaultSurface);
 	SDL_Delay(GPU_TIMER_INTERVAL);
 
 	i = 1;
@@ -239,14 +255,20 @@ void UserInterface::MessageBox(const char *text, ...)
 			SDL_Delay(1);
 	}
 
-//	memcpy(defaultSurface->pixels, bkm_frameSave, frameLength); // TODO FIXME!
-	delete [] bkm_frameSave;
+	defaultSurface = LockSurface(defaultTexture);
 
-	SDL_Delay(GPU_TIMER_INTERVAL);
+	menuStackLevel--;
+	if (menuStackLevel >= 0) {
+		memcpy(defaultSurface->pixels, menuStack[menuStackLevel].frame, frameLength);
+		delete [] menuStack[menuStackLevel].frame;
+		menuStack[menuStackLevel].frame = NULL;
+	}
+	else
+		memset(defaultSurface->pixels, 0, frameLength);
 
 	UnlockSurface(defaultTexture, defaultSurface);
+
+	SDL_Delay(GPU_TIMER_INTERVAL);
 	needRelease = true;
-	needRedraw = true;
-	menuStackLevel--;
 }
 //-----------------------------------------------------------------------------

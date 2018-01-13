@@ -16,7 +16,7 @@
 */
 //-----------------------------------------------------------------------------
 #include "UserInterface.h"
-#include "GPMD85main.h"
+#include "Emulator.h"
 //-----------------------------------------------------------------------------
 void UserInterface::DrawTapeDialog(bool update)
 {
@@ -121,7 +121,6 @@ void UserInterface::DrawTapeDialog(bool update)
 	DrawTapeDialogItems(defaultSurface);
 
 	UnlockSurface(defaultTexture, defaultSurface);
-	needRedraw = true;
 }
 //-----------------------------------------------------------------------------
 void UserInterface::DrawTapeDialogItems(GUI_SURFACE *s)
@@ -178,10 +177,8 @@ void UserInterface::DrawTapeDialogItems(GUI_SURFACE *s)
 	DrawLineV(s, r->x + GUI_CONST_HOTKEYCHAR + (21 * fontWidth),
 		r->y, r->h, GUI_COLOR_SEPARATOR);
 
-	if (needUnlock) {
+	if (needUnlock)
 		UnlockSurface(defaultTexture, s);
-		needRedraw = true;
-	}
 
 	delete r;
 }
@@ -193,7 +190,7 @@ void UserInterface::KeyhandlerTapeDialog(WORD key)
 
 	switch (key) {
 		case SDL_SCANCODE_F1 | KM_ALT:
-			key = SDL_SCANCODE_MENU;
+			key = SDL_SCANCODE_APPLICATION;
 			break;
 		case SDL_SCANCODE_F4 | KM_ALT:
 			key = SDL_SCANCODE_POWER;
@@ -207,12 +204,10 @@ void UserInterface::KeyhandlerTapeDialog(WORD key)
 		case SDL_SCANCODE_POWER:
 			Emulator->ActionExit();
 			MenuCloseAll();
-			needRelease = true;
 			return;
 
 		case SDL_SCANCODE_ESCAPE:
 			MenuClose();
-			needRelease = true;
 			return;
 
 		case SDL_SCANCODE_F:
@@ -319,7 +314,7 @@ void UserInterface::KeyhandlerTapeDialog(WORD key)
 			change = true;
 			break;
 
-		case SDL_SCANCODE_MENU:
+		case SDL_SCANCODE_APPLICATION:
 		case SDL_SCANCODE_RETURN:
 		case SDL_SCANCODE_KP_ENTER:
 			needRelease = true;

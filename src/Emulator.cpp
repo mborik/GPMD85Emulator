@@ -1,4 +1,4 @@
-/*	GPMD85main.cpp: Core of emulation and interface.
+/*	Emulator.cpp: Core of emulation and interface.
 	Copyright (c) 2006-2010 Roman Borik <pmd85emu@gmail.com>
 	Copyright (c) 2011-2018 Martin Borik <mborik@users.sourceforge.net>
 
@@ -17,7 +17,7 @@
 */
 //-----------------------------------------------------------------------------
 #include "CommonUtils.h"
-#include "GPMD85main.h"
+#include "Emulator.h"
 #include "UserInterfaceData.h"
 //-----------------------------------------------------------------------------
 TEmulator *Emulator;
@@ -38,6 +38,7 @@ TEmulator::TEmulator()
 	sound = NULL;
 	cpuUsage = 0;
 
+	SDL_zero(keyBuffer);
 	SDL_zero(exposeEvent);
 	exposeEvent.type = SDL_WINDOWEVENT;
 	exposeEvent.window.type = SDL_WINDOWEVENT;
@@ -395,7 +396,7 @@ bool TEmulator::TestHotkeys()
 			key = SDL_SCANCODE_ESCAPE;
 			break;
 
-		case SDL_SCANCODE_MENU:
+		case SDL_SCANCODE_APPLICATION:
 			key = KM_ALT | SDL_SCANCODE_F1;
 			break;
 
