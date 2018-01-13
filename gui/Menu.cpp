@@ -16,7 +16,7 @@
 */
 //-----------------------------------------------------------------------------
 #include "UserInterface.h"
-#include "GPMD85main.h"
+#include "Emulator.h"
 //-----------------------------------------------------------------------------
 void UserInterface::DrawMenu(void *data)
 {
@@ -80,7 +80,7 @@ void UserInterface::DrawMenu(void *data)
 	cMenu_rect->y = (frameHeight - cMenu_rect->h) / 2;
 
 	if (menuStack[menuStackLevel].type == GUI_TYPE_TAPE_POPUP)
-		cMenu_rect->x *= 2;
+		cMenu_rect->x = (cMenu_rect->x * 2) - 1;
 
 	GUI_SURFACE *defaultSurface = LockSurface(defaultTexture);
 
@@ -89,7 +89,6 @@ void UserInterface::DrawMenu(void *data)
 	DrawMenuItems(defaultSurface);
 
 	UnlockSurface(defaultTexture, defaultSurface);
-	needRedraw = true;
 }
 //-----------------------------------------------------------------------------
 void UserInterface::DrawMenuItems(GUI_SURFACE *s)
@@ -173,10 +172,8 @@ void UserInterface::DrawMenuItems(GUI_SURFACE *s)
 		}
 	}
 
-	if (needUnlock) {
+	if (needUnlock)
 		UnlockSurface(defaultTexture, s);
-		needRedraw = true;
-	}
 
 	delete r;
 }
@@ -190,12 +187,10 @@ void UserInterface::KeyhandlerMenu(WORD key)
 		case SDL_SCANCODE_F4 | KM_ALT:
 			Emulator->ActionExit();
 			MenuCloseAll();
-			needRelease = true;
 			return;
 
 		case SDL_SCANCODE_ESCAPE:
 			MenuClose();
-			needRelease = true;
 			return;
 
 		case SDL_SCANCODE_SPACE:

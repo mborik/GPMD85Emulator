@@ -17,7 +17,7 @@
 //---------------------------------------------------------------------------
 #include "CommonUtils.h"
 #include "ScreenPMD85.h"
-#include "GPMD85main.h"
+#include "Emulator.h"
 //-----------------------------------------------------------------------------
 ScreenPMD85::ScreenPMD85(TDisplayMode dispMode, int border)
 {
@@ -80,7 +80,6 @@ void ScreenPMD85::SetWidth384(bool mode384)
 		return;
 
 	displayModeChanging = true;
-
 	SDL_Delay(WEAK_REFRESH_TIME);
 
 	ReleaseVideoMode();
@@ -167,12 +166,11 @@ void ScreenPMD85::RefreshDisplay()
 		return;
 
 	PrepareScreen();
-	GUI->RedrawStatusBar();
 	SDL_RenderCopy(gdc.renderer, screenTexture, NULL, screenRect);
 
-	if (GUI->InMenu()) {
+	GUI->RedrawStatusBar();
+	if (GUI->InMenu())
 		SDL_RenderCopy(gdc.renderer, GUI->defaultTexture, NULL, screenRect);
-	}
 
 	SDL_RenderPresent(gdc.renderer);
 }

@@ -345,7 +345,7 @@ void SystemPIO::ScanKeyboard(BYTE *KeyBuffer)
 		return;
 
 	// pressing of ALT/META resets whole matrix because it's used for hotkeys
-	if (KeyBuffer[SDL_SCANCODE_MENU] || KeyBuffer[SDL_SCANCODE_LALT] || KeyBuffer[SDL_SCANCODE_RALT]
+	if (KeyBuffer[SDL_SCANCODE_APPLICATION] || KeyBuffer[SDL_SCANCODE_LALT] || KeyBuffer[SDL_SCANCODE_RALT]
 	 || KeyBuffer[SDL_SCANCODE_LGUI] || KeyBuffer[SDL_SCANCODE_RGUI]) {
 		for (int ii = 0; ii < (int)sizeof(KeyColumns); ii++)
 			KeyColumns[ii] = 0;

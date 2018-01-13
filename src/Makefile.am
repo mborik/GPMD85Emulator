@@ -1,5 +1,5 @@
 # GPMD85emu automake
-# mborik, 10/2011, 02/2012
+# mborik, 10/2011, 02/2012, 01/2018
 
 AUTOMAKE_OPTIONS = foreign
 AM_CPPFLAGS = \
@@ -10,8 +10,8 @@ AM_CPPFLAGS = \
 noinst_LIBRARIES = libGPMD85emu_core.a
 
 libGPMD85emu_core_a_SOURCES = \
+	Emulator.cpp \
 	CommonUtils.cpp \
-	GPMD85main.cpp \
 	ChipCpu8080.cpp \
 	ChipMemory.cpp \
 	ChipPIO8255.cpp \
@@ -32,8 +32,8 @@ libGPMD85emu_core_a_SOURCES = \
 
 noinst_HEADERS = \
 	macros8080.h \
+	Emulator.h \
 	CommonUtils.h \
-	GPMD85main.h \
 	ChipCpu8080.h \
 	ChipMemory.h \
 	ChipPIO8255.h \

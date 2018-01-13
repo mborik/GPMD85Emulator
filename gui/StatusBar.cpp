@@ -16,7 +16,7 @@
 */
 //-----------------------------------------------------------------------------
 #include "UserInterface.h"
-#include "GPMD85main.h"
+#include "Emulator.h"
 //-----------------------------------------------------------------------------
 void UserInterface::InitStatusBarTexture()
 {

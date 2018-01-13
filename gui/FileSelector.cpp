@@ -16,7 +16,7 @@
 */
 //-----------------------------------------------------------------------------
 #include "UserInterface.h"
-#include "GPMD85main.h"
+#include "Emulator.h"
 //-----------------------------------------------------------------------------
 void UserInterface::DrawFileSelector(bool update)
 {
@@ -108,7 +108,6 @@ void UserInterface::DrawFileSelector(bool update)
 	DrawFileSelectorItems(defaultSurface);
 
 	UnlockSurface(defaultTexture, defaultSurface);
-	needRedraw = true;
 }
 //-----------------------------------------------------------------------------
 void UserInterface::DrawFileSelectorItems(GUI_SURFACE *s)
@@ -186,10 +185,8 @@ void UserInterface::DrawFileSelectorItems(GUI_SURFACE *s)
 		r->y + ((halfpage - 1) * GUI_CONST_ITEM_SIZE) + 2, (i < cMenu_count)
 			? GUI_COLOR_BORDER : GUI_COLOR_BACKGROUND, SCHR_SCROLL_DW);
 
-	if (needUnlock) {
+	if (needUnlock)
 		UnlockSurface(defaultTexture, s);
-		needRedraw = true;
-	}
 
 	delete r;
 }
@@ -206,7 +203,6 @@ void UserInterface::KeyhandlerFileSelector(WORD key)
 		case SDL_SCANCODE_F4 | KM_ALT:
 			Emulator->ActionExit();
 			MenuCloseAll();
-			needRelease = true;
 			return;
 
 		case SDL_SCANCODE_ESCAPE:
@@ -216,7 +212,6 @@ void UserInterface::KeyhandlerFileSelector(WORD key)
 			}
 			else {
 				MenuClose();
-				needRelease = true;
 				return;
 			}
 			break;
@@ -531,13 +526,10 @@ void UserInterface::KeyhandlerFileSelectorCallback(char *fileName)
 	fileSelector->callback(fileSelector->path, &ret);
 	if (ret == 0) {
 		MenuCloseAll();
-		needRelease = true;
 		uiSetChanges = PS_CLOSEALL;
 	}
-	else if (ret == 1) {
+	else if (ret == 1)
 		MenuClose();
-		needRelease = true;
-	}
 	else
 		*ptr = '\0';
 }

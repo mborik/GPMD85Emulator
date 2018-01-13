@@ -1,4 +1,4 @@
-/*	GPMD85main.h: Core of emulation and interface.
+/*	Emulator.h: Core of emulation and interface.
 	Copyright (c) 2006-2010 Roman Borik <pmd85emu@gmail.com>
 	Copyright (c) 2011-2018 Martin Borik <mborik@users.sourceforge.net>
 
@@ -16,8 +16,8 @@
 	along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 //-----------------------------------------------------------------------------
-#ifndef GPMD85MAIN_H_
-#define GPMD85MAIN_H_
+#ifndef EMULATOR_H_
+#define EMULATOR_H_
 //-----------------------------------------------------------------------------
 #include "ChipCpu8080.h"
 #include "ChipMemory.h"

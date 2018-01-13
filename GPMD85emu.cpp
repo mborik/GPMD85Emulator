@@ -16,7 +16,7 @@
 */
 //-----------------------------------------------------------------------------
 #include "CommonUtils.h"
-#include "GPMD85main.h"
+#include "Emulator.h"
 //-----------------------------------------------------------------------------
 int main(int argc, char** argv)
 {
@@ -86,7 +86,9 @@ int main(int argc, char** argv)
 
 	Emulator = new TEmulator();
 	Emulator->ProcessSettings(-1);
+
 	SDL_ShowWindow(gdc.window);
+	SDL_Delay(WEAK_REFRESH_TIME);
 
 	debug("", "Starting %d FPS refresh timer", GPU_FRAMES_PER_SEC);
 	Emulator->BaseTimer = SDL_AddTimer(GPU_TIMER_INTERVAL, FormMain_BaseTimerCallback, Emulator);
@@ -107,7 +109,7 @@ int main(int argc, char** argv)
 			switch (event.type) {
 				case SDL_KEYUP:
 				case SDL_KEYDOWN:
-					if (event.key.repeat != 0)
+					if (!GUI->InMenu() && event.key.repeat != 0)
 						break;
 					/* no break */
 				case SDL_QUIT:

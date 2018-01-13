@@ -16,7 +16,7 @@
 */
 //-----------------------------------------------------------------------------
 #include "UserInterface.h"
-#include "GPMD85main.h"
+#include "Emulator.h"
 //-----------------------------------------------------------------------------
 void UserInterface::DrawDebugWidgetDisass(GUI_SURFACE *s, SDL_Rect *r, bool full)
 {
@@ -141,7 +141,6 @@ void UserInterface::DrawDebugWindow()
 	delete r;
 
 	UnlockSurface(defaultTexture, defaultSurface);
-	needRedraw = true;
 }
 //-----------------------------------------------------------------------------
 void UserInterface::KeyhandlerDebugWindow(WORD key)
@@ -150,7 +149,7 @@ void UserInterface::KeyhandlerDebugWindow(WORD key)
 
 	switch (key) {
 		case SDL_SCANCODE_F1 | KM_ALT:
-			key = SDL_SCANCODE_MENU;
+			key = SDL_SCANCODE_APPLICATION;
 			break;
 		case SDL_SCANCODE_F4 | KM_ALT:
 			key = SDL_SCANCODE_POWER;
@@ -164,12 +163,10 @@ void UserInterface::KeyhandlerDebugWindow(WORD key)
 		case SDL_SCANCODE_POWER:
 			Emulator->ActionExit();
 			MenuCloseAll();
-			needRelease = true;
 			return;
 
 		case SDL_SCANCODE_ESCAPE:
 			MenuClose();
-			needRelease = true;
 			return;
 
 		case SDL_SCANCODE_TAB:
@@ -220,7 +217,6 @@ void UserInterface::KeyhandlerDebugWindow(WORD key)
 		if (Debugger->flag == 8)
 			Debugger->flag = 0;
 		MenuClose();
-		needRelease = true;
 		uiSetChanges |= PS_CLOSEALL;
 	}
 }
