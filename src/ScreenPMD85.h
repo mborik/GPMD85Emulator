@@ -25,6 +25,19 @@
 #define BORDER_MULTIPLIER 12
 #define WEAK_REFRESH_TIME 200
 //-----------------------------------------------------------------------------
+typedef struct SCANLINER_DEF {
+	DWORD x2[6 * 4];
+	DWORD x3[6 * 9];
+	DWORD x4[6 * 16];
+} SCANLINER_DEF;
+//-----------------------------------------------------------------------------
+#define scanlinerMethodPrototype(function) void function(DWORD *dst, int pitch, DWORD *scl, int w, int h)
+typedef void (*scanlinerMethod)(DWORD *dst, int pitch, DWORD *scl, int w, int h);
+//-----------------------------------------------------------------------------
+scanlinerMethodPrototype(point2x);
+scanlinerMethodPrototype(point3x);
+scanlinerMethodPrototype(point4x);
+//-----------------------------------------------------------------------------
 class ScreenPMD85
 {
 public:
@@ -50,7 +63,7 @@ public:
 	inline void ToggleBlinkStatus() { blinkState = !blinkState;}
 	inline bool GetBlinkStatus() { return blinkState; }
 
-	inline int GetMultiplier() { return screenRect->w / bufferWidth; }
+	inline int GetMultiplier() { return screenHeight / bufferHeight; }
 
 	void SetColorProfile(TColorProfile ColProf);
 	inline TColorProfile GetColorProfile() { return colorProfile; }
@@ -62,6 +75,7 @@ public:
 	void FillBuffer(BYTE *videoRam);
 
 private:
+	SDL_Texture *scanlinerTexture;
 	SDL_Texture *screenTexture;
 	SDL_Rect *screenRect;
 
@@ -71,6 +85,12 @@ private:
 	int screenWidth;
 	int screenHeight;
 
+	bool blinkState;
+	bool blinkingEnabled;
+	bool lcdMode;
+	bool width384mode;
+	bool displayModeChanging;
+
 	TDisplayMode dispMode;
 	TColorProfile colorProfile;
 	THalfPassMode halfPass;
@@ -78,16 +98,15 @@ private:
 	TColor pAttr[8];
 	DWORD *palette;
 
-	bool blinkState;
-	bool blinkingEnabled;
-	bool lcdMode;
-	bool width384mode;
-	bool displayModeChanging;
+	const SCANLINER_DEF *scanliner;
+	int scanlinerMode;
 
 	void InitScreenSize(TDisplayMode reqDispMode, bool reqWidth384);
 	void PrepareVideoMode();
 	void ReleaseVideoMode();
 	void PrepareScreen(bool clear = false);
+	void PrepareScanliner();
+	void InitScanliners();
 	void InitPalette();
 };
 //-----------------------------------------------------------------------------

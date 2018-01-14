@@ -218,8 +218,8 @@ static GUI_MENU_ENTRY gui_view_colors_menu[] = {
 	{ MI_DIALOG, "ATTRIBUTE 10", NULL, SDL_SCANCODE_4, NULL, NULL, NULL, true },
 	{ MENU_END }
 };
-static GUI_MENU_ENTRY gui_view_scaler_menu[] = {
-	{ MI_TITLE, "SCALER" },
+static GUI_MENU_ENTRY gui_view_scanliner_menu[] = {
+	{ MI_TITLE, "SCANLINER" },
 	{ MI_RADIO, "\aLCD EMULATION\220", "5", SDL_SCANCODE_L, NULL, ccb_view_sclr, dcb_view_sclr_state, true, false, (WORD) -1 },
 	{ MI_RADIO, "HALFPASS \a0%", "6", SDL_SCANCODE_0, NULL, ccb_view_sclr, dcb_view_sclr_state, true, false, HP_0 },
 	{ MI_RADIO, "HALFPASS \a25%", "7", SDL_SCANCODE_2, NULL, ccb_view_sclr, dcb_view_sclr_state, true, false, HP_25 },
@@ -236,7 +236,7 @@ static GUI_MENU_ENTRY gui_view_menu[] = {
 	{ MI_SUBMENU, "COLOR \aMODE", NULL, SDL_SCANCODE_M, gui_view_cmode_menu, NULL, NULL, true },
 	{ MI_SUBMENU, "COLOR \aPALETTE", NULL, SDL_SCANCODE_P, gui_view_cpal_menu, NULL, NULL, true },
 	{ MI_SUBMENU, "\aCUSTOM COLORS", NULL, SDL_SCANCODE_C, gui_view_colors_menu, NULL, dcb_view_ccol_state },
-	{ MI_SUBMENU, "SC\aALER", NULL, SDL_SCANCODE_A, gui_view_scaler_menu, NULL, NULL, true },
+	{ MI_SUBMENU, "SC\aANLINER", NULL, SDL_SCANCODE_A, gui_view_scanliner_menu, NULL, NULL, true },
 	{ MENU_END }
 };
 static GUI_MENU_ENTRY gui_emu_sound_menu[] = {

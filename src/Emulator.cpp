@@ -467,42 +467,42 @@ bool TEmulator::TestHotkeys()
 				ActionSizeChange(4);
 				break;
 
-			case SDL_SCANCODE_5:	// SCALER: LCD EMULATION
+			case SDL_SCANCODE_5:	// SCANLINER: LCD EMULATION
 				video->SetLcdMode(true);
 				video->SetHalfPassMode(HP_OFF);
 				Settings->Screen->lcdMode = true;
 				Settings->Screen->halfPass = HP_OFF;
 				break;
 
-			case SDL_SCANCODE_6:	// SCALER: HALFPASS 0%
+			case SDL_SCANCODE_6:	// SCANLINER: HALFPASS 0%
 				video->SetLcdMode(false);
 				video->SetHalfPassMode(HP_0);
 				Settings->Screen->lcdMode = false;
 				Settings->Screen->halfPass = HP_0;
 				break;
 
-			case SDL_SCANCODE_7:	// SCALER: HALFPASS 25%
+			case SDL_SCANCODE_7:	// SCANLINER: HALFPASS 25%
 				video->SetLcdMode(false);
 				video->SetHalfPassMode(HP_25);
 				Settings->Screen->lcdMode = false;
 				Settings->Screen->halfPass = HP_25;
 				break;
 
-			case SDL_SCANCODE_8:	// SCALER: HALFPASS 50%
+			case SDL_SCANCODE_8:	// SCANLINER: HALFPASS 50%
 				video->SetLcdMode(false);
 				video->SetHalfPassMode(HP_50);
 				Settings->Screen->lcdMode = false;
 				Settings->Screen->halfPass = HP_50;
 				break;
 
-			case SDL_SCANCODE_9:	// SCALER: HALFPASS 75%
+			case SDL_SCANCODE_9:	// SCANLINER: HALFPASS 75%
 				video->SetLcdMode(false);
 				video->SetHalfPassMode(HP_75);
 				Settings->Screen->lcdMode = false;
 				Settings->Screen->halfPass = HP_75;
 				break;
 
-			case SDL_SCANCODE_0:	// SCALER: PIXEL PRECISE
+			case SDL_SCANCODE_0:	// SCANLINER: PIXEL PRECISE
 				video->SetLcdMode(false);
 				video->SetHalfPassMode(HP_OFF);
 				Settings->Screen->lcdMode = false;
