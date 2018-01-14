@@ -21,6 +21,7 @@
 //-----------------------------------------------------------------------------
 ScreenPMD85::ScreenPMD85(TDisplayMode dispMode, int border)
 {
+	scanlinerTexture = NULL;
 	screenTexture = NULL;
 	screenRect = NULL;
 	palette = NULL;
@@ -28,15 +29,18 @@ ScreenPMD85::ScreenPMD85(TDisplayMode dispMode, int border)
 	displayModeChanging = true;
 	blinkState = false;
 	blinkingEnabled = false;
+	halfPass = HP_OFF;
 	lcdMode = false;
+
+	scanlinerMode = 0;
 	borderSize = (border * BORDER_MULTIPLIER);
 
 	InitPalette();
+	InitScanliners();
 	InitScreenSize(dispMode, false);
 
 	PrepareVideoMode();
 	SetColorProfile(CP_STANDARD);
-	SetHalfPassMode(HP_OFF);
 
 	displayModeChanging = false;
 }
@@ -49,6 +53,11 @@ ScreenPMD85::~ScreenPMD85()
 	SDL_RenderPresent(gdc.renderer);
 
 	ReleaseVideoMode();
+
+	if (scanlinerTexture) {
+		SDL_DestroyTexture(scanlinerTexture);
+		scanlinerTexture = NULL;
+	}
 }
 //-----------------------------------------------------------------------------
 void ScreenPMD85::SetDisplayMode(TDisplayMode dm, int border)
@@ -91,12 +100,18 @@ void ScreenPMD85::SetWidth384(bool mode384)
 //---------------------------------------------------------------------------
 void ScreenPMD85::SetHalfPassMode(THalfPassMode hp)
 {
-	halfPass = hp;
+	if (halfPass != hp) {
+		halfPass = hp;
+		PrepareScanliner();
+	}
 }
 //---------------------------------------------------------------------------
 void ScreenPMD85::SetLcdMode(bool state)
 {
-	lcdMode = state;
+	if (lcdMode != state) {
+		lcdMode = state;
+		PrepareScanliner();
+	}
 }
 //---------------------------------------------------------------------------
 void ScreenPMD85::SetColorProfile(TColorProfile cp)
@@ -167,6 +182,9 @@ void ScreenPMD85::RefreshDisplay()
 
 	PrepareScreen();
 	SDL_RenderCopy(gdc.renderer, screenTexture, NULL, screenRect);
+
+	if (scanlinerMode)
+		SDL_RenderCopy(gdc.renderer, scanlinerTexture, NULL, screenRect);
 
 	GUI->RedrawStatusBar();
 	if (GUI->InMenu())
@@ -323,11 +341,12 @@ void ScreenPMD85::PrepareVideoMode()
 	screenTexture = SDL_CreateTexture(gdc.renderer, SDL_PIXELFORMAT_DEFAULT,
 			SDL_TEXTUREACCESS_STREAMING, bufferWidth, bufferHeight);
 	if (!screenTexture)
-		error("Screen", "Unable to create screenTexture\n%s", SDL_GetError());
+		error("Screen", "Unable to create screen texture\n%s", SDL_GetError());
 
 	GUI->InitStatusBarTexture();
 	GUI->InitDefaultTexture(bufferWidth, bufferHeight);
 
+	PrepareScanliner();
 	PrepareScreen(true);
 	SDL_RenderPresent(gdc.renderer);
 }
@@ -382,6 +401,208 @@ void ScreenPMD85::PrepareScreen(bool clear)
 	}
 
 	delete r;
+}
+//-----------------------------------------------------------------------------
+void ScreenPMD85::PrepareScanliner()
+{
+	int reqDispMode = (int) dispMode;
+	if (!reqDispMode) // DM_FULLSCREEN
+		reqDispMode = GetMultiplier();
+
+	--reqDispMode;
+	if (reqDispMode != scanlinerMode) {
+		scanlinerMode = reqDispMode;
+
+		if (scanlinerTexture)
+			SDL_DestroyTexture(scanlinerTexture);
+		scanlinerTexture = NULL;
+
+		if (!scanlinerMode || (halfPass == HP_OFF && !lcdMode)) {
+			scanlinerMode = 0;
+			return;
+		}
+		else {
+			scanlinerTexture = SDL_CreateTexture(gdc.renderer,
+					SDL_PIXELFORMAT_DEFAULT, SDL_TEXTUREACCESS_STREAMING,
+					screenRect->w, screenRect->h);
+			if (!scanlinerTexture)
+				warning("Screen", "Unable to create scanliner texture\n%s", SDL_GetError());
+
+			SDL_SetTextureBlendMode(scanlinerTexture, SDL_BLENDMODE_BLEND);
+		}
+	}
+
+	int pitch, q = (lcdMode ? 5 : (int) halfPass);
+	DWORD *pixels, *sclGrading;
+	scanlinerMethod scanlinerFn;
+
+	switch (reqDispMode) {
+		case 1:
+			scanlinerFn = &point2x;
+			sclGrading = ((DWORD *) &scanliner->x2) + q * 4;
+			break;
+		case 2:
+			scanlinerFn = &point3x;
+			sclGrading = ((DWORD *) &scanliner->x3) + q * 9;
+			break;
+		case 3:
+			scanlinerFn = &point4x;
+			sclGrading = ((DWORD *) &scanliner->x4) + q * 16;
+			break;
+		default:
+			warning("Screen", "Invalid size for scanline blitter");
+			return;
+	}
+
+	SDL_LockTexture(scanlinerTexture, NULL, (void **) &pixels, &pitch);
+	(*scanlinerFn) (pixels, pitch >> 2, sclGrading, bufferWidth, bufferHeight);
+	SDL_UnlockTexture(scanlinerTexture);
+}
+//-----------------------------------------------------------------------------
+scanlinerMethodPrototype(point2x)
+{
+	int i;
+	DWORD *c, *p;
+
+	while (h--) {
+		p = dst;
+		for (i = 0; i < w; ++i) {
+			c = scl;
+			*p++ = *c++;
+			*p = *c++;
+			p += pitch - 1;
+
+			*p++ = *c++;
+			*p = *c;
+			p -= pitch - 1;
+		}
+		dst += pitch * 2;
+	}
+}
+//-----------------------------------------------------------------------------
+scanlinerMethodPrototype(point3x)
+{
+	int i;
+	DWORD *c, *p;
+
+	while (h--) {
+		p = dst;
+		for (i = 0; i < w; ++i) {
+			c = scl;
+			*p++ = *c++;
+			*p++ = *c++;
+			*p = *c++;
+			p += pitch - 2;
+
+			*p++ = *c++;
+			*p++ = *c++;
+			*p = *c++;
+			p += pitch - 2;
+
+			*p++ = *c++;
+			*p++ = *c++;
+			*p = *c;
+			p -= pitch + pitch - 1;
+		}
+		dst += pitch * 3;
+	}
+}
+//-----------------------------------------------------------------------------
+scanlinerMethodPrototype(point4x)
+{
+	int i;
+	DWORD *c, *p;
+
+	while (h--) {
+		p = dst;
+		for (i = 0; i < w; ++i) {
+			c = scl;
+			*p++ = *c++;
+			*p++ = *c++;
+			*p++ = *c++;
+			*p = *c++;
+			p += pitch - 3;
+
+			*p++ = *c++;
+			*p++ = *c++;
+			*p++ = *c++;
+			*p = *c++;
+			p += pitch - 3;
+
+			*p++ = *c++;
+			*p++ = *c++;
+			*p++ = *c++;
+			*p = *c;
+			p -= (pitch * 3) - 1;
+		}
+		dst += pitch * 4;
+	}
+}
+//-----------------------------------------------------------------------------
+void ScreenPMD85::InitScanliners()
+{
+	SDL_PixelFormat *fmt = SDL_AllocFormat(SDL_PIXELFORMAT_DEFAULT);
+
+	// create a opacity grading palette entries for scanliners...
+	DWORD _E = SDL_MapRGBA(fmt, 0, 0, 0,   0); // transparent
+	DWORD _D = SDL_MapRGBA(fmt, 0, 0, 0,  64); // 75%
+	DWORD _C = SDL_MapRGBA(fmt, 0, 0, 0, 128); // 50%
+	DWORD _B = SDL_MapRGBA(fmt, 0, 0, 0, 192); // 25%
+	DWORD _A = SDL_MapRGBA(fmt, 0, 0, 0, 255); // opaque
+
+	SDL_FreeFormat(fmt);
+
+	static const SCANLINER_DEF sc = {
+// one point is overlaid with four-dot square with HalfPass or LCD emulation
+// E = hilited dot, D = 75%, C = 50%, B = 25%, A = 0% of bright
+//     75%          50%          25%          0%           LCD
+//  | E | E |    | E | E |    | E | E |    | E | E |    | E | D |
+//  | D | D |    | C | C |    | B | B |    | A | A |    | B | C |
+		{
+			_E, _E, _E, _E, // off
+			_E, _E, _D, _D, // hp75
+			_E, _E, _C, _C, // hp50
+			_E, _E, _B, _B, // hp25
+			_E, _E, _A, _A, // hp0
+			_E, _D, _B, _C  // lcd
+		},
+// one point is overlaid with nine-dot square with HalfPass or LCD emulation
+// E = hilited dot, D = 75%, C = 50%, B = 25%, A = 0% of bright
+//       75%             50%             25%             0%              LCD
+//  | E | E | E |   | E | E | E |   | E | E | E |   | E | E | E |   | E | E | D |
+//  | E | E | E |   | D | D | D |   | C | C | C |   | B | B | B |   | E | D | E |
+//  | D | D | D |   | C | C | C |   | B | B | B |   | A | A | A |   | A | B | A |
+		{
+			_E, _E, _E, _E, _E, _E, _E, _E, _E, // off
+			_E, _E, _E, _E, _E, _E, _D, _D, _D, // hp75
+			_E, _E, _E, _D, _D, _D, _C, _C, _C, // hp50
+			_E, _E, _E, _C, _C, _C, _B, _B, _B, // hp25
+			_E, _E, _E, _B, _B, _B, _A, _A, _A, // hp0
+			_E, _E, _D, _E, _D, _E, _A, _B, _A  // lcd
+		},
+// one point is overlaid with 16-dot square with HalfPass or LCD emulation
+// E = hilited dot, D = 75%, C = 50%, B = 25%, A = 0% of bright
+//         75%                 50%                 25%                  0%
+//  | E | E | E | E |   | E | E | E | E |   | E | E | E | E |   | E | E | E | E |
+//  | E | E | E | E |   | E | E | E | E |   | D | D | D | D |   | C | C | C | C |
+//  | E | E | E | E |   | D | D | D | D |   | C | C | C | C |   | B | B | B | B |
+//  | D | D | D | D |   | C | C | C | C |   | B | B | B | B |   | A | A | A | A |
+//         LCD
+//  | E | E | E | D |
+//  | E | D | D | E |
+//  | E | D | D | E |
+//  | A | B | B | A |
+		{
+			_E, _E, _E, _E, _E, _E, _E, _E, _E, _E, _E, _E, _E, _E, _E, _E, // off
+			_E, _E, _E, _E, _E, _E, _E, _E, _E, _E, _E, _E, _D, _D, _D, _D, // hp75
+			_E, _E, _E, _E, _E, _E, _E, _E, _D, _D, _D, _D, _C, _C, _C, _C, // hp50
+			_E, _E, _E, _E, _D, _D, _D, _D, _C, _C, _C, _C, _B, _B, _B, _B, // hp25
+			_E, _E, _E, _E, _C, _C, _C, _C, _B, _B, _B, _B, _A, _A, _A, _A, // hp0
+			_E, _E, _E, _D, _E, _D, _D, _E, _E, _D, _D, _E, _A, _B, _B, _A  // lcd
+		}
+	};
+
+	scanliner = &sc;
 }
 //-----------------------------------------------------------------------------
 void ScreenPMD85::InitPalette()
