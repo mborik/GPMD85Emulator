@@ -63,7 +63,7 @@ public:
 	inline void ToggleBlinkStatus() { blinkState = !blinkState;}
 	inline bool GetBlinkStatus() { return blinkState; }
 
-	inline int GetMultiplier() { return screenHeight / bufferHeight; }
+	inline int GetMultiplier() { return screenRect->h / bufferHeight; }
 
 	void SetColorProfile(TColorProfile ColProf);
 	inline TColorProfile GetColorProfile() { return colorProfile; }
@@ -78,6 +78,7 @@ private:
 	SDL_Texture *scanlinerTexture;
 	SDL_Texture *screenTexture;
 	SDL_Rect *screenRect;
+	SDL_mutex *displayModeMutex;
 
 	int borderSize;
 	int bufferWidth;
@@ -89,7 +90,6 @@ private:
 	bool blinkingEnabled;
 	bool lcdMode;
 	bool width384mode;
-	bool displayModeChanging;
 
 	TDisplayMode dispMode;
 	TColorProfile colorProfile;
@@ -101,8 +101,7 @@ private:
 	const SCANLINER_DEF *scanliner;
 	int scanlinerMode;
 
-	void InitScreenSize(TDisplayMode reqDispMode, bool reqWidth384);
-	void PrepareVideoMode();
+	void InitVideoMode(TDisplayMode reqDispMode, bool reqWidth384);
 	void ReleaseVideoMode();
 	void PrepareScreen(bool clear = false);
 	void PrepareScanliner();
