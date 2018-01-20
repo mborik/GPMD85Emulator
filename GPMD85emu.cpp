@@ -69,7 +69,6 @@ int main(int argc, char** argv)
 		error("", "Couldn't initialize renderer:\n\t%s", SDL_GetError());
 
 	SDL_RenderSetScale(gdc.renderer, 1, 1);
-	SDL_RenderSetIntegerScale(gdc.renderer, SDL_TRUE);
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, 0);
 
 	SDL_Surface *icon = SDL_LoadBMP(LocateResource("icon.bmp", false));

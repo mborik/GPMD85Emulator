@@ -26,7 +26,6 @@ ScreenPMD85::ScreenPMD85(TDisplayMode dispMode, int border)
 	screenRect = NULL;
 	palette = NULL;
 
-	displayModeChanging = true;
 	blinkState = false;
 	blinkingEnabled = false;
 	halfPass = HP_OFF;
@@ -37,26 +36,47 @@ ScreenPMD85::ScreenPMD85(TDisplayMode dispMode, int border)
 
 	InitPalette();
 	InitScanliners();
-	InitScreenSize(dispMode, false);
-
-	PrepareVideoMode();
 	SetColorProfile(CP_STANDARD);
 
-	displayModeChanging = false;
+	displayModeMutex = SDL_CreateMutex();
+	InitVideoMode(dispMode, false);
 }
 //-----------------------------------------------------------------------------
 ScreenPMD85::~ScreenPMD85()
 {
-	displayModeChanging = true;
-
-	SDL_RenderClear(gdc.renderer);
-	SDL_RenderPresent(gdc.renderer);
-
+	SDL_LockMutex(displayModeMutex);
 	ReleaseVideoMode();
 
 	if (scanlinerTexture) {
 		SDL_DestroyTexture(scanlinerTexture);
 		scanlinerTexture = NULL;
+	}
+
+	SDL_UnlockMutex(displayModeMutex);
+	SDL_DestroyMutex(displayModeMutex);
+}
+//-----------------------------------------------------------------------------
+void ScreenPMD85::ReleaseVideoMode()
+{
+	if (GUI->statusRect) {
+		delete GUI->statusRect;
+		GUI->statusTexture = NULL;
+	}
+	if (GUI->statusTexture) {
+		SDL_DestroyTexture(GUI->statusTexture);
+		GUI->statusTexture = NULL;
+	}
+	if (GUI->defaultTexture) {
+		SDL_DestroyTexture(GUI->defaultTexture);
+		GUI->defaultTexture = NULL;
+	}
+	if (screenRect) {
+		delete screenRect;
+		screenTexture = NULL;
+	}
+	if (screenTexture) {
+		SDL_DestroyTexture(screenTexture);
+		screenTexture = NULL;
 	}
 }
 //-----------------------------------------------------------------------------
@@ -73,14 +93,7 @@ void ScreenPMD85::SetDisplayMode(TDisplayMode dm, int border)
 	if (dispMode == dm)
 		return;
 
-	displayModeChanging = true;
-	SDL_Delay(WEAK_REFRESH_TIME);
-
-	ReleaseVideoMode();
-	InitScreenSize(dm, width384mode);
-	PrepareVideoMode();
-
-	displayModeChanging = false;
+	InitVideoMode(dm, width384mode);
 }
 //---------------------------------------------------------------------------
 void ScreenPMD85::SetWidth384(bool mode384)
@@ -88,14 +101,7 @@ void ScreenPMD85::SetWidth384(bool mode384)
 	if (width384mode == mode384)
 		return;
 
-	displayModeChanging = true;
-	SDL_Delay(WEAK_REFRESH_TIME);
-
-	ReleaseVideoMode();
-	InitScreenSize(dispMode, mode384);
-	PrepareVideoMode();
-
-	displayModeChanging = false;
+	InitVideoMode(dispMode, mode384);
 }
 //---------------------------------------------------------------------------
 void ScreenPMD85::SetHalfPassMode(THalfPassMode hp)
@@ -177,7 +183,7 @@ TColor ScreenPMD85::GetColorAttr(int idx)
 //---------------------------------------------------------------------------
 void ScreenPMD85::RefreshDisplay()
 {
-	if (displayModeChanging)
+	if (SDL_TryLockMutex(displayModeMutex) != 0)
 		return;
 
 	PrepareScreen();
@@ -191,11 +197,12 @@ void ScreenPMD85::RefreshDisplay()
 		SDL_RenderCopy(gdc.renderer, GUI->defaultTexture, NULL, screenRect);
 
 	SDL_RenderPresent(gdc.renderer);
+	SDL_UnlockMutex(displayModeMutex);
 }
 //---------------------------------------------------------------------------
 void ScreenPMD85::FillBuffer(BYTE *videoRam)
 {
-	if (displayModeChanging || videoRam == NULL)
+	if (SDL_TryLockMutex(displayModeMutex) != 0 || videoRam == NULL)
 		return;
 
 	bool colorace = (colorProfile == CP_COLORACE);
@@ -234,10 +241,14 @@ void ScreenPMD85::FillBuffer(BYTE *videoRam)
 	}
 
 	SDL_UnlockTexture(screenTexture);
+	SDL_UnlockMutex(displayModeMutex);
 }
 //---------------------------------------------------------------------------
-void ScreenPMD85::InitScreenSize(TDisplayMode reqDispMode, bool reqWidth384)
+void ScreenPMD85::InitVideoMode(TDisplayMode reqDispMode, bool reqWidth384)
 {
+	SDL_LockMutex(displayModeMutex);
+	ReleaseVideoMode();
+
 	dispMode = reqDispMode;
 	width384mode = reqWidth384;
 
@@ -303,6 +314,11 @@ void ScreenPMD85::InitScreenSize(TDisplayMode reqDispMode, bool reqWidth384)
 
 		screenWidth   = gdc.w;
 		screenHeight  = gdc.h;
+
+		debug("Screen", "Full-screen mode: %dx%d -> viewport: %dx%d",
+				screenWidth, screenHeight, screenRect->w, screenRect->h);
+
+		SDL_SetWindowFullscreen(gdc.window, SDL_WINDOW_FULLSCREEN_DESKTOP);
 	}
 	else {
 		screenRect->x = borderSize;
@@ -312,74 +328,56 @@ void ScreenPMD85::InitScreenSize(TDisplayMode reqDispMode, bool reqWidth384)
 
 		screenWidth  += (borderSize * 2);
 		screenHeight += (borderSize * 2) + STATUSBAR_HEIGHT;
-	}
 
-	GUI->statusRect = new SDL_Rect(*screenRect);
-
-	GUI->statusRect->x += STATUSBAR_SPACING;
-	GUI->statusRect->y += screenRect->h + (borderSize - STATUSBAR_HEIGHT / 2);
-	GUI->statusRect->w -= (2 * STATUSBAR_SPACING);
-	GUI->statusRect->h  = STATUSBAR_HEIGHT;
-}
-//-----------------------------------------------------------------------------
-void ScreenPMD85::PrepareVideoMode()
-{
-	if (dispMode == DM_FULLSCREEN) {
-		debug("Screen", "Full-screen mode: %dx%d", gdc.w, gdc.h);
-		SDL_SetWindowFullscreen(gdc.window, SDL_WINDOW_FULLSCREEN_DESKTOP);
-	}
-	else {
-		debug("Screen", "Windowed mode: %dx%d", screenWidth, screenHeight);
+		debug("Screen", "Windowed mode: %dx%d -> viewport: %dx%d",
+				screenWidth, screenHeight, screenRect->w, screenRect->h);
 
 		SDL_SetWindowFullscreen(gdc.window, 0);
 		SDL_SetWindowSize(gdc.window, screenWidth, screenHeight);
 	}
 
+	SDL_Event event;
+	int waitForResize = WEAK_REFRESH_TIME;
+	while (--waitForResize > 0) {
+		if (SDL_PollEvent(&event) &&
+			event.type == SDL_WINDOWEVENT &&
+			event.window.windowID == gdc.windowID &&
+			event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
+				break;
+
+		SDL_Delay(1);
+	}
+
 	if (SDL_RenderSetLogicalSize(gdc.renderer, screenWidth, screenHeight) != 0)
 		error("Screen", "Unable to change screen resolution\n%s", SDL_GetError());
+	SDL_RenderSetViewport(gdc.renderer, NULL);
 
 	screenTexture = SDL_CreateTexture(gdc.renderer, SDL_PIXELFORMAT_DEFAULT,
 			SDL_TEXTUREACCESS_STREAMING, bufferWidth, bufferHeight);
 	if (!screenTexture)
 		error("Screen", "Unable to create screen texture\n%s", SDL_GetError());
 
+	GUI->statusRect = new SDL_Rect(*screenRect);
+	GUI->statusRect->x += STATUSBAR_SPACING;
+	GUI->statusRect->y += screenRect->h + (borderSize - STATUSBAR_HEIGHT / 2);
+	GUI->statusRect->w -= (2 * STATUSBAR_SPACING);
+	GUI->statusRect->h  = STATUSBAR_HEIGHT;
+
 	GUI->InitStatusBarTexture();
 	GUI->InitDefaultTexture(bufferWidth, bufferHeight);
 
 	PrepareScanliner();
 	PrepareScreen(true);
+
 	SDL_RenderPresent(gdc.renderer);
-}
-//-----------------------------------------------------------------------------
-void ScreenPMD85::ReleaseVideoMode()
-{
-	if (GUI->statusRect) {
-		delete GUI->statusRect;
-		GUI->statusTexture = NULL;
-	}
-	if (GUI->statusTexture) {
-		SDL_DestroyTexture(GUI->statusTexture);
-		GUI->statusTexture = NULL;
-	}
-	if (GUI->defaultTexture) {
-		SDL_DestroyTexture(GUI->defaultTexture);
-		GUI->defaultTexture = NULL;
-	}
-	if (screenRect) {
-		delete screenRect;
-		screenTexture = NULL;
-	}
-	if (screenTexture) {
-		SDL_DestroyTexture(screenTexture);
-		screenTexture = NULL;
-	}
+	SDL_UnlockMutex(displayModeMutex);
 }
 //-----------------------------------------------------------------------------
 void ScreenPMD85::PrepareScreen(bool clear)
 {
 	if (clear) {
 		SDL_SetRenderDrawColor(gdc.renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
-		SDL_RenderClear(gdc.renderer);
+		SDL_RenderFillRect(gdc.renderer, NULL);
 	}
 
 	SDL_Rect *r = new SDL_Rect(*screenRect);
