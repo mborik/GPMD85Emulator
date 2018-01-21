@@ -1,3 +1,10 @@
+2018-01-21 [mborik] fixed illegal memory access bug in x4 scale function
+2018-01-20 [mborik] fixed critical issues with window/renderer/screen (re)initialization
+2018-01-14 [mborik] scalers replaced with scanliner texture overlay
+2018-01-13 [mborik] fixed all menu and keyhandling issues after SDL2 migration
+2018-01-11 [mborik] drop of OpenGL hacks, fixed init crack in sound driver, implemented surface blitter to fix icons in statusbar
+2018-01-10 [mborik] massive refactoring of screen and user interface processing and rendering
+2018-01-08 [mborik] upgraded SDL to 2.x, simplified screen rendering (unstable, missing menu overlay & scanliners)
 2017-12-21 [mborik] refactoring of ScreenPMD85::FillBuffer and keyword multicolor to proper ColorAce
 2017-12-20 [mikezt] fixed disk image saving problems
 2017-09-18 [mborik] warnings suppression (phase 2), project update, repo cleanup and fixing the build for MacOS

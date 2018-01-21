@@ -467,13 +467,14 @@ scanlinerMethodPrototype(point2x)
 		for (i = 0; i < w; ++i) {
 			c = scl;
 			*p++ = *c++;
-			*p = *c++;
-			p += pitch - 1;
+			*p-- = *c++;
+			p += pitch;
 
 			*p++ = *c++;
-			*p = *c;
-			p -= pitch - 1;
+			*p++ = *c;
+			p -= pitch;
 		}
+
 		dst += pitch * 2;
 	}
 }
@@ -499,9 +500,10 @@ scanlinerMethodPrototype(point3x)
 
 			*p++ = *c++;
 			*p++ = *c++;
-			*p = *c;
-			p -= pitch + pitch - 1;
+			*p++ = *c;
+			p -= (pitch * 2);
 		}
+
 		dst += pitch * 3;
 	}
 }
@@ -530,9 +532,16 @@ scanlinerMethodPrototype(point4x)
 			*p++ = *c++;
 			*p++ = *c++;
 			*p++ = *c++;
-			*p = *c;
-			p -= (pitch * 3) - 1;
+			*p = *c++;
+			p += pitch - 3;
+
+			*p++ = *c++;
+			*p++ = *c++;
+			*p++ = *c++;
+			*p++ = *c;
+			p -= (pitch * 3);
 		}
+
 		dst += pitch * 4;
 	}
 }
