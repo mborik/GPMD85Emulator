@@ -110,9 +110,19 @@ typedef bool _Bool;
 #endif
 //-----------------------------------------------------------------------------
 #define SIGSLOT_DEFAULT_MT_POLICY single_threaded
+#include <sigslot.h>
 //-----------------------------------------------------------------------------
 #include <SDL.h>
-#include <sigslot.h>
+#ifdef SDL_MAX_SINT32
+#  define MAX_SIGNED_INT SDL_MAX_SINT32
+#  define MIN_SIGNED_INT SDL_MIN_SINT32
+#elif INT_MAX
+#  define MAX_SIGNED_INT INT_MAX
+#  define MIN_SIGNED_INT (-INT_MAX-1)
+#else
+#  define MAX_SIGNED_INT (0x7FFFFFFF)
+#  define MIN_SIGNED_INT (0x80000000)
+#endif
 //-----------------------------------------------------------------------------
 #define BYTE  uint8_t
 #define WORD  uint16_t

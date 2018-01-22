@@ -1404,7 +1404,7 @@ int ChipCpu8080::DoInstruction()
 	countTCycles += lastInstrTCycles;
 	totalTCycles += lastInstrTCycles;
 	if (totalTCycles < 0) // overflow happen!
-		totalTCycles += SDL_MAX_SINT32;
+		totalTCycles += MAX_SIGNED_INT;
 
 	return lastInstrTCycles;
 }
@@ -1493,18 +1493,17 @@ void ChipCpu8080::InitCountIntCycles()
 {
 	intSP = -1;
 	intCyclesCur = 0;
-	intCyclesMin = SDL_MAX_SINT32;
-	intCyclesMax = SDL_MIN_SINT32;
+	intCyclesMin = MAX_SIGNED_INT;
+	intCyclesMax = MIN_SIGNED_INT;
 	intCyclesAvg = 0;
 }
 //---------------------------------------------------------------------------
 void ChipCpu8080::CountIntCycles()
 {
-	if (intSP != -1 && intSP == SP)
-	{
+	if (intSP != -1 && intSP == SP) {
 		intCyclesCur = totalTCycles - intCyclesCur;
 		if (intCyclesCur < 0)
-			intCyclesCur += SDL_MAX_SINT32;
+			intCyclesCur += MAX_SIGNED_INT;
 		if (intCyclesMin > intCyclesCur)
 			intCyclesMin = intCyclesCur;
 		if (intCyclesMax < intCyclesCur)
