@@ -1,5 +1,5 @@
 /*	ChipCpu8080.cpp: Class for emulation of i8080 microprocessor
-	Copyright (c) 2006-2010 Roman Borik <pmd85emu@gmail.com>
+	Copyright (c) 2006-2015 Roman Borik <pmd85emu@gmail.com>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -20,46 +20,63 @@
 // instructions T-cycles:
 // conditional Cc functions calls and Rc returns is solved separately,
 //   this tick values are only if condition isn't met,
-//   if some condition is met, we add 6 ticks
+//   if some condition is met, we will add TR5R3R3W3W3 or TR5R3R3 ticks
 int ChipCpu8080::duration[256] = {
-	//       x0  x1  x2  x3  x4  x5  x6  x7  x8  x9  xA  xB  xC  xD  xE  xF
-	/* 0x */  4, 10,  7,  5,  5,  5,  7,  4,  4, 10,  7,  5,  5,  5,  7,  4,
-	/* 1x */  4, 10,  7,  5,  5,  5,  7,  4,  4, 10,  7,  5,  5,  5,  7,  4,
-	/* 2x */  4, 10, 16,  5,  5,  5,  7,  4,  4, 10, 16,  5,  5,  5,  7,  4,
-	/* 3x */  4, 10, 13,  5, 10, 10, 10,  4,  4, 10, 13,  5,  5,  5,  7,  4,
-	/* 4x */  5,  5,  5,  5,  5,  5,  7,  5,  5,  5,  5,  5,  5,  5,  7,  5,
-	/* 5x */  5,  5,  5,  5,  5,  5,  7,  5,  5,  5,  5,  5,  5,  5,  7,  5,
-	/* 6x */  5,  5,  5,  5,  5,  5,  7,  5,  5,  5,  5,  5,  5,  5,  7,  5,
-	/* 7x */  7,  7,  7,  7,  7,  7,  7,  7,  5,  5,  5,  5,  5,  5,  7,  5,
-	/* 8x */  4,  4,  4,  4,  4,  4,  7,  4,  4,  4,  4,  4,  4,  4,  7,  4,
-	/* 9x */  4,  4,  4,  4,  4,  4,  7,  4,  4,  4,  4,  4,  4,  4,  7,  4,
-	/* Ax */  4,  4,  4,  4,  4,  4,  7,  4,  4,  4,  4,  4,  4,  4,  7,  4,
-	/* Bx */  4,  4,  4,  4,  4,  4,  7,  4,  4,  4,  4,  4,  4,  4,  7,  4,
-	/* Cx */  5, 10, 10, 10, 11, 11,  7, 11,  5, 10, 10, 10, 11, 17,  7, 11,
-	/* Dx */  5, 10, 10, 10, 11, 11,  7, 11,  5, 10, 10, 10, 11, 17,  7, 11,
-	/* Ex */  5, 10, 10, 18, 11, 11,  7, 11,  5,  5, 10,  4, 11, 17,  7, 11,
-	/* Fx */  5, 10, 10,  4, 11, 11,  7, 11,  5,  5, 10,  4, 11, 17,  7, 11
+//          x0       x1           x2           x3           x4           x5       x6       x7
+//          x8       x9           xA           xB           xC           xD       xE       xF
+/* 0x */   TR4, TR4R3R3,       TR4W3,         TR5,         TR5,         TR5,   TR4R3,     TR4,
+           TR4, TR4N3N3,       TR4R3,         TR5,         TR5,         TR5,   TR4R3,     TR4,
+/* 1x */   TR4, TR4R3R3,       TR4W3,         TR5,         TR5,         TR5,   TR4R3,     TR4,
+           TR4, TR4N3N3,       TR4R3,         TR5,         TR5,         TR5,   TR4R3,     TR4,
+/* 2x */   TR4, TR4R3R3, TR4R3R3W3W3,         TR5,         TR5,         TR5,   TR4R3,     TR4,
+           TR4, TR4N3N3, TR4R3R3R3R3,         TR5,         TR5,         TR5,   TR4R3,     TR4,
+/* 3x */   TR4, TR4R3R3,   TR4R3R3W3,         TR5,     TR4R3W3,     TR4R3W3, TR4R3W3,     TR4,
+           TR4, TR4N3N3,   TR4R3R3R3,         TR5,         TR5,         TR5,   TR4R3,     TR4,
+/* 4x */   TR5,     TR5,         TR5,         TR5,         TR5,         TR5,   TR4R3,     TR5,
+           TR5,     TR5,         TR5,         TR5,         TR5,         TR5,   TR4R3,     TR5,
+/* 5x */   TR5,     TR5,         TR5,         TR5,         TR5,         TR5,   TR4R3,     TR5,
+           TR5,     TR5,         TR5,         TR5,         TR5,         TR5,   TR4R3,     TR5,
+/* 6x */   TR5,     TR5,         TR5,         TR5,         TR5,         TR5,   TR4R3,     TR5,
+           TR5,     TR5,         TR5,         TR5,         TR5,         TR5,   TR4R3,     TR5,
+/* 7x */ TR4W3,   TR4W3,       TR4W3,       TR4W3,       TR4W3,       TR4W3,   TR4N1,   TR4W3,
+           TR5,     TR5,         TR5,         TR5,         TR5,         TR5,   TR4R3,     TR5,
+/* 8x */   TR4,     TR4,         TR4,         TR4,         TR4,         TR4,   TR4R3,     TR4,
+           TR4,     TR4,         TR4,         TR4,         TR4,         TR4,   TR4R3,     TR4,
+/* 9x */   TR4,     TR4,         TR4,         TR4,         TR4,         TR4,   TR4R3,     TR4,
+           TR4,     TR4,         TR4,         TR4,         TR4,         TR4,   TR4R3,     TR4,
+/* Ax */   TR4,     TR4,         TR4,         TR4,         TR4,         TR4,   TR4R3,     TR4,
+           TR4,     TR4,         TR4,         TR4,         TR4,         TR4,   TR4R3,     TR4,
+/* Bx */   TR4,     TR4,         TR4,         TR4,         TR4,         TR4,   TR4R3,     TR4,
+           TR4,     TR4,         TR4,         TR4,         TR4,         TR4,   TR4R3,     TR4,
+/* Cx */   TR5, TR4R3R3,     TR4R3R3,     TR4R3R3,     TR5R3R3,     TR5W3W3,   TR4R3, TR5W3W3,
+           TR5, TR4R3R3,     TR4R3R3,     TR4R3R3,     TR5R3R3, TR5R3R3W3W3,   TR4R3, TR5W3W3,
+/* Dx */   TR5, TR4R3R3,     TR4R3R3,     TR4R3W3,     TR5R3R3,     TR5W3W3,   TR4R3, TR5W3W3,
+           TR5, TR4R3R3,     TR4R3R3,     TR4R3R3,     TR5R3R3, TR5R3R3W3W3,   TR4R3, TR5W3W3,
+/* Ex */   TR5, TR4R3R3,     TR4R3R3, TR4R3R3W3W5,     TR5R3R3,     TR5W3W3,   TR4R3, TR5W3W3,
+           TR5,     TR5,     TR4R3R3,         TR4,     TR5R3R3, TR5R3R3W3W3,   TR4R3, TR5W3W3,
+/* Fx */   TR5, TR4R3R3,     TR4R3R3,         TR4,     TR5R3R3,     TR5W3W3,   TR4R3, TR5W3W3,
+           TR5,     TR5,     TR4R3R3,         TR4,     TR5R3R3, TR5R3R3W3W3,   TR4R3, TR5W3W3
 };
 //-----------------------------------------------------------------------------
 // length of instructions in bytes
 int ChipCpu8080::length[256] = {
-	//       x0  x1  x2  x3  x4  x5  x6  x7  x8  x9  xA  xB  xC  xD  xE  xF
-	/* 0x */  1,  3,  1,  1,  1,  1,  2,  1,  1,  1,  1,  1,  1,  1,  2,  1,
-	/* 1x */  1,  3,  1,  1,  1,  1,  2,  1,  1,  1,  1,  1,  1,  1,  2,  1,
-	/* 2x */  1,  3,  3,  1,  1,  1,  2,  1,  1,  1,  3,  1,  1,  1,  2,  1,
-	/* 3x */  1,  3,  3,  1,  1,  1,  2,  1,  1,  1,  3,  1,  1,  1,  2,  1,
-	/* 4x */  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
-	/* 5x */  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
-	/* 6x */  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
-	/* 7x */  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
-	/* 8x */  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
-	/* 9x */  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
-	/* Ax */  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
-	/* Bx */  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
-	/* Cx */  1,  1,  3,  3,  3,  1,  2,  1,  1,  1,  3,  3,  3,  3,  2,  1,
-	/* Dx */  1,  1,  3,  2,  3,  1,  2,  1,  1,  1,  3,  2,  3,  3,  2,  1,
-	/* Ex */  1,  1,  3,  1,  3,  1,  2,  1,  1,  1,  3,  1,  3,  3,  2,  1,
-	/* Fx */  1,  1,  3,  1,  3,  1,  2,  1,  1,  1,  3,  1,  3,  3,  2,  1
+//       x0  x1  x2  x3  x4  x5  x6  x7  x8  x9  xA  xB  xC  xD  xE  xF
+/* 0x */  1,  3,  1,  1,  1,  1,  2,  1,  1,  1,  1,  1,  1,  1,  2,  1,
+/* 1x */  1,  3,  1,  1,  1,  1,  2,  1,  1,  1,  1,  1,  1,  1,  2,  1,
+/* 2x */  1,  3,  3,  1,  1,  1,  2,  1,  1,  1,  3,  1,  1,  1,  2,  1,
+/* 3x */  1,  3,  3,  1,  1,  1,  2,  1,  1,  1,  3,  1,  1,  1,  2,  1,
+/* 4x */  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
+/* 5x */  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
+/* 6x */  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
+/* 7x */  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
+/* 8x */  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
+/* 9x */  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
+/* Ax */  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
+/* Bx */  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
+/* Cx */  1,  1,  3,  3,  3,  1,  2,  1,  1,  1,  3,  3,  3,  3,  2,  1,
+/* Dx */  1,  1,  3,  2,  3,  1,  2,  1,  1,  1,  3,  2,  3,  3,  2,  1,
+/* Ex */  1,  1,  3,  1,  3,  1,  2,  1,  1,  1,  3,  1,  3,  3,  2,  1,
+/* Fx */  1,  1,  3,  1,  3,  1,  2,  1,  1,  1,  3,  1,  3,  3,  2,  1
 };
 //-----------------------------------------------------------------------------
 // Table of AC (Auxiliary Carry) results after ADD and SUB instructions.
@@ -78,38 +95,38 @@ ChipCpu8080::ChipCpu8080(ChipMemory *mem)
 	memory = mem;
 	af.w = bc.w = de.w = hl.w = sp.w = pc.w = 0;
 
-	Ports = NULL;
-	LastPort = NULL;
-	intContr = NULL;
+	ports = NULL;
+	lastPort = NULL;
+	intCtrl = NULL;
 
-	TCycles = 0;
-	TCyclesTotal = 0;
+	slowCpu = false;
+	countTCycles = 0;
+	totalTCycles = 0;
 	lastInstrTCycles = 0;
+	fetchCounter = 0;
 
 	PrepareFlagsTables();
-
-	isexe = false;
+	Reset();
 }
 //-----------------------------------------------------------------------------
 ChipCpu8080::~ChipCpu8080()
 {
 	PORT_HANDLER *port, *nextp;
 
-	port = Ports;
+	port = ports;
 	while (port) {
 		nextp = port->next;
 		delete port;
 		port = nextp;
 	}
+	ports = NULL;
+	lastPort = NULL;
 
 	TCyclesListeners.disconnect_all();
 }
 //-----------------------------------------------------------------------------
 void ChipCpu8080::PrepareFlagsTables()
 {
-	if (sz53p1Table[0] != (BYTE) -1 && daaTable[0] != (WORD) -1)
-		return;
-
 	int i, j, k;
 	WORD a;
 	BYTE f;
@@ -150,9 +167,7 @@ void ChipCpu8080::PrepareFlagsTables()
 //-----------------------------------------------------------------------------
 void ChipCpu8080::Reset()
 {
-	while (isexe)
-		SDL_Delay(1);
-
+	resetPending = false;
 	iff = false;
 	ei1 = false;
 	ei2 = false;
@@ -160,7 +175,9 @@ void ChipCpu8080::Reset()
 	inta = false;
 	PC = 0;
 
-	PORT_HANDLER *ph = Ports;
+	InitCountIntCycles();
+
+	PORT_HANDLER *ph = ports;
 	while (ph) {
 		if (ph->needReset)
 			ph->device->resetDevice(0);
@@ -228,46 +245,52 @@ bool ChipCpu8080::DoInterrupt()
 //-----------------------------------------------------------------------------
 int ChipCpu8080::DoInstruction()
 {
-	BYTE opcode;        // instruction code
-	BYTE bytetemp = 0;  // 1-byte operand
-	WORD wordtemp = 0;  // 2-byte operand
-	DWORD dwordtemp;
+	BYTE opcode;        // instruction opcode
+	BYTE bytetemp = 0;  // 1-byte operand, temporal byte
+	WORD wordtemp = 0;  // 2-byte operand, temporal word
+	DWORD dwordtemp;    // 4-byte temporal dword
 	int lookup;
 	bool jump = false;
 
-	if (isexe)
+	if (resetPending) {
+		Reset();
 		return 0;
-	isexe = true;
+	}
 
-	if (inta) { // interupt processing
+	if (inta) { // interrupt processing
 		if (halt) { // handling of HLT instruction
 			halt = false;
 			PC++;
 		}
 
-		if (intContr == NULL) // if interupt controller not defined,
+		if (intCtrl == NULL) // if interrupt controller not defined,
 			opcode = 0xFF; // then only RST 7 instruction has been handled,
 		else { // else interrupt controller must provide instruction to handle.
-			opcode = intContr->getInterruptVector(IV_OPCODE);
+			opcode = intCtrl->getInterruptVector(IV_OPCODE);
 			if (length[opcode] > 1)
-				bytetemp = intContr->getInterruptVector(IV_OPERAND_L);
+				bytetemp = intCtrl->getInterruptVector(IV_OPERAND_L);
 			if (length[opcode] > 2)
-				wordtemp = (WORD)(bytetemp | (intContr->getInterruptVector(IV_OPERAND_H) << 8));
+				wordtemp = (WORD)(bytetemp | (intCtrl->getInterruptVector(IV_OPERAND_H) << 8));
 		}
+
+		intSP = SP;
+		intCyclesCur = totalTCycles;
 
 		inta = false;
 	}
-	else { // fetch of instruction from memory
+	else { // fetch of the instruction from memory
 		opcode = memory->ReadByte(PC++);
 		if (length[opcode] == 2)
 			bytetemp = memory->ReadByte(PC++);
 		else if (length[opcode] == 3) {
 			wordtemp = memory->ReadWord(PC);
-			PC += (WORD)2;
+			PC += (WORD) 2;
 		}
+
+		fetchCounter++;
 	}
 
-	TCyclesListeners(TCycles, lastInstrTCycles);
+	TCyclesListeners(countTCycles, lastInstrTCycles);
 
 	switch (opcode) {
 		case 0x00: // NOP
@@ -731,7 +754,12 @@ int ChipCpu8080::DoInstruction()
 
 		case 0x76: // HLT
 			PC--;
-			halt = true;
+			if (!halt) {
+				halt = true;
+				lastInstrTCycles = GetDuration(opcode, false);
+			}
+			else
+				lastInstrTCycles = 1;
 			break;
 
 		case 0x77: // MOV M,A
@@ -1037,6 +1065,7 @@ int ChipCpu8080::DoInstruction()
 			if (!(F & FLAG_Z)) {
 				RET();
 				jump = true;
+				CountIntCycles();
 			}
 			break;
 
@@ -1077,12 +1106,14 @@ int ChipCpu8080::DoInstruction()
 			if (F & FLAG_Z) {
 				RET();
 				jump = true;
+				CountIntCycles();
 			}
 			break;
 
 		case 0xc9: // RET
 		case 0xd9: // RET - undocumented
 			RET();
+			CountIntCycles();
 			break;
 
 		case 0xca: // JZ adr
@@ -1116,6 +1147,7 @@ int ChipCpu8080::DoInstruction()
 			if (!(F & FLAG_CY)) {
 				RET();
 				jump = true;
+				CountIntCycles();
 			}
 			break;
 
@@ -1132,7 +1164,7 @@ int ChipCpu8080::DoInstruction()
 			{
 				PeripheralDevice *dev = FindDevice(bytetemp);
 				if (dev)
-					dev->writeToDevice(bytetemp, A, TCycles);
+					dev->writeToDevice(bytetemp, A, countTCycles);
 			}
 			break;
 
@@ -1159,6 +1191,7 @@ int ChipCpu8080::DoInstruction()
 			if (F & FLAG_CY) {
 				RET();
 				jump = true;
+				CountIntCycles();
 			}
 			break;
 
@@ -1171,8 +1204,8 @@ int ChipCpu8080::DoInstruction()
 			{
 				PeripheralDevice *dev = FindDevice(bytetemp);
 				if (dev)
-					A = dev->readFromDevice(bytetemp, TCycles);
-					else
+					A = dev->readFromDevice(bytetemp, countTCycles);
+				else
 					A = 0xFF;
 			}
 			break;
@@ -1196,6 +1229,7 @@ int ChipCpu8080::DoInstruction()
 			if (!(F & FLAG_PE)) {
 				RET();
 				jump = true;
+				CountIntCycles();
 			}
 			break;
 
@@ -1237,11 +1271,13 @@ int ChipCpu8080::DoInstruction()
 			if (F & FLAG_PE) {
 				RET();
 				jump = true;
+				CountIntCycles();
 			}
 			break;
 
 		case 0xe9: // PCHL
 			PC = HL;
+			CountIntCycles();
 			break;
 
 		case 0xea: // JPE adr
@@ -1274,6 +1310,7 @@ int ChipCpu8080::DoInstruction()
 			if (!(F & FLAG_S)) {
 				RET();
 				jump = true;
+				CountIntCycles();
 			}
 			break;
 
@@ -1317,6 +1354,7 @@ int ChipCpu8080::DoInstruction()
 			if (F & FLAG_S) {
 				RET();
 				jump = true;
+				CountIntCycles();
 			}
 			break;
 
@@ -1360,15 +1398,27 @@ int ChipCpu8080::DoInstruction()
 		ei2 = true;
 	}
 
-	lastInstrTCycles = duration[opcode] + (jump ? 6 : 0);
-	TCycles += lastInstrTCycles;
-	TCyclesTotal += lastInstrTCycles;
+	if (!halt)
+		lastInstrTCycles = GetDuration(opcode, jump);
 
-	isexe = false;
+	countTCycles += lastInstrTCycles;
+	totalTCycles += lastInstrTCycles;
+	if (totalTCycles < 0) // overflow happen!
+		totalTCycles += SDL_MAX_SINT32;
 
 	return lastInstrTCycles;
 }
 //-----------------------------------------------------------------------------
+int ChipCpu8080::GetDuration(BYTE opcode, bool jmp)
+{
+	if (!jmp)
+		return duration[opcode];
+	if ((opcode & 0xC7) == 0xC0) // Rx
+		return TR5R3R3;
+//	if ((opcode & 0xC7) == 0xC4) // Cx
+		return TR5R3R3W3W3;
+}
+//---------------------------------------------------------------------------
 void ChipCpu8080::AddDevice(BYTE portAddr, BYTE portMask, PeripheralDevice* device, bool needReset)
 {
 	if (device == NULL || portMask == 0)
@@ -1376,20 +1426,20 @@ void ChipCpu8080::AddDevice(BYTE portAddr, BYTE portMask, PeripheralDevice* devi
 
 	RemoveDevice(portAddr);
 
-	if (Ports == NULL) {
-		Ports = new PORT_HANDLER;
-		LastPort = Ports;
+	if (ports == NULL) {
+		ports = new PORT_HANDLER;
+		lastPort = ports;
 	}
 	else {
-		LastPort->next = new PORT_HANDLER;
-		LastPort = LastPort->next;
+		lastPort->next = new PORT_HANDLER;
+		lastPort = lastPort->next;
 	}
 
-	LastPort->portAddr = portAddr;
-	LastPort->portMask = portMask;
-	LastPort->device = device;
-	LastPort->needReset = needReset;
-	LastPort->next = NULL;
+	lastPort->portAddr = portAddr;
+	lastPort->portMask = portMask;
+	lastPort->device = device;
+	lastPort->needReset = needReset;
+	lastPort->next = NULL;
 }
 //-----------------------------------------------------------------------------
 void ChipCpu8080::RemoveDevice(BYTE portAddr)
@@ -1398,18 +1448,18 @@ void ChipCpu8080::RemoveDevice(BYTE portAddr)
 	PORT_HANDLER *prev;
 
 	prev = NULL;
-	ph = Ports;
+	ph = ports;
 
 	while (ph) {
 		if (portAddr == ph->portAddr) {
 			if (prev == NULL)
-				Ports = ph->next;
+				ports = ph->next;
 			else
 				prev->next = ph->next;
 			delete ph;
 
 			if (prev && prev->next == NULL)
-				LastPort = prev;
+				lastPort = prev;
 			return;
 		}
 		prev = ph;
@@ -1421,7 +1471,7 @@ PeripheralDevice* ChipCpu8080::FindDevice(BYTE port)
 {
 	PORT_HANDLER *ph;
 
-	ph = Ports;
+	ph = ports;
 
 	while (ph) {
 		if ((port & ph->portMask) == ph->portAddr)
@@ -1432,10 +1482,35 @@ PeripheralDevice* ChipCpu8080::FindDevice(BYTE port)
 	return NULL;
 }
 //-----------------------------------------------------------------------------
-void ChipCpu8080::SetInterruptController(InterruptController *intContr)
+void ChipCpu8080::SetInterruptController(InterruptController *intCtrl)
 {
-	this->intContr = intContr;
-	if (intContr != NULL)
-		intContr->cpu = this;
+	this->intCtrl = intCtrl;
+	if (intCtrl != NULL)
+		intCtrl->cpu = this;
 }
 //-----------------------------------------------------------------------------
+void ChipCpu8080::InitCountIntCycles()
+{
+	intSP = -1;
+	intCyclesCur = 0;
+	intCyclesMin = SDL_MAX_SINT32;
+	intCyclesMax = SDL_MIN_SINT32;
+	intCyclesAvg = 0;
+}
+//---------------------------------------------------------------------------
+void ChipCpu8080::CountIntCycles()
+{
+	if (intSP != -1 && intSP == SP)
+	{
+		intCyclesCur = totalTCycles - intCyclesCur;
+		if (intCyclesCur < 0)
+			intCyclesCur += SDL_MAX_SINT32;
+		if (intCyclesMin > intCyclesCur)
+			intCyclesMin = intCyclesCur;
+		if (intCyclesMax < intCyclesCur)
+			intCyclesMax = intCyclesCur;
+		intCyclesAvg = (intCyclesMin + intCyclesMax) / 2;
+		intSP = -1;
+	}
+}
+//---------------------------------------------------------------------------

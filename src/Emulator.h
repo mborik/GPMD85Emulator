@@ -19,7 +19,7 @@
 #ifndef EMULATOR_H_
 #define EMULATOR_H_
 //-----------------------------------------------------------------------------
-#include "ChipCpu8080.h"
+#include "ChipCpu8080P.h"
 #include "ChipMemory.h"
 #include "SystemPIO.h"
 #include "IifTimer.h"

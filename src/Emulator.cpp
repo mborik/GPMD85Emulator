@@ -300,7 +300,7 @@ void TEmulator::CpuTimerCallback()
 
 	DWORD beg = SDL_GetTicks();
 	WORD pc, loader = (0x8B6C | ((model == CM_V3) ? 6000 : 0));
-	int tci, tc = 0, tcpf = (TCYCLES_PER_FRAME * Settings->emulationSpeed);
+	int tci, tcpf = (TCYCLES_PER_FRAME * Settings->emulationSpeed);
 
 	if (sound)
 		sound->PrepareBuffer();
@@ -328,7 +328,6 @@ void TEmulator::CpuTimerCallback()
 
 			cpu->SetAF((byte << 8) | (cy ? FLAG_CY : 0));
 			cpu->SetPC(loader + 0x2F);
-			cpu->SetTCycles(cpu->GetTCycles() + 200);
 		}
 
 		// back to debugger after RET, Rx instructions
@@ -340,16 +339,11 @@ void TEmulator::CpuTimerCallback()
 		else
 			tci = cpu->DoInstruction();
 
-		tc += tci;
-		while (tc > TCYCLES_VIDEO_SLOW) {
-			tc -= TCYCLES_VIDEO_SLOW;
-			cpu->IncTCycles();
+		// status bar LED's state
+		// (with pull-up delay simulation)
+		if (systemPIO)
+			GUI->SetLedState(systemPIO->ledState);
 
-			// status bar LED's state
-			// (with pull-up delay simulation)
-			if (systemPIO)
-				GUI->SetLedState(systemPIO->ledState);
-		}
 	} while (cpu->GetTCycles() < tcpf);
 
 	cpu->SetTCycles(cpu->GetTCycles() - tcpf);
@@ -919,7 +913,7 @@ void TEmulator::ActionRawFile(bool save)
 //---------------------------------------------------------------------------
 void TEmulator::ActionReset()
 {
-	cpu->Reset();
+	cpu->DoReset();
 	if (model != CM_V3)
 		memory->Page = 2;
 }
@@ -1203,7 +1197,7 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 	videoRam = memory->GetMemPointer(0xC000, (model == CM_V3) ? 0 : -1, OP_READ);
 
 	// CPU
-	cpu = new ChipCpu8080(memory);
+	cpu = new ChipCpu8080P(memory);
 
 	// System PIO
 	systemPIO = new SystemPIO(model, memory);

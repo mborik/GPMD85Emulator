@@ -13,6 +13,7 @@ libGPMD85emu_core_a_SOURCES = \
 	Emulator.cpp \
 	CommonUtils.cpp \
 	ChipCpu8080.cpp \
+	ChipCpu8080P.cpp \
 	ChipMemory.cpp \
 	ChipPIO8255.cpp \
 	ChipPIT8253.cpp \
@@ -35,6 +36,7 @@ noinst_HEADERS = \
 	Emulator.h \
 	CommonUtils.h \
 	ChipCpu8080.h \
+	ChipCpu8080P.h \
 	ChipMemory.h \
 	ChipPIO8255.h \
 	ChipPIT8253.h \
