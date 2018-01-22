@@ -58,8 +58,8 @@
 #define GUI_COLOR_DBG_BORDER 29
 #define GUI_COLOR_STAT_TEXT  32
 #define GUI_COLOR_STAT_PAUSE 33
-#define GUI_COLOR_STATTAP_FG 34
-#define GUI_COLOR_STATTAP_BG 35
+#define GUI_COLOR_STATTAP_BG 34
+#define GUI_COLOR_STATTAP_FG 35
 //-----------------------------------------------------------------------------
 #define STATUSBAR_ICON    10
 #define STATUSBAR_SPACING 14

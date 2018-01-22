@@ -73,7 +73,7 @@ void UserInterface::RedrawStatusBar()
 
 //	status text, cpu meter and blinking pause...
 	r->x = 0;
-	r->y += 2;
+	r->y++;
 
 	PrintText(statusSurface, r->x, r->y, 0, status);
 	if (statusPercentage < 0) {
@@ -97,8 +97,8 @@ void UserInterface::RedrawStatusBar()
 	TTapeBrowser::TProgressBar *progress = TapeBrowser->ProgressBar;
 	DrawRectangle(statusSurface, r->x, r->y, r->w, 2, *progress->Active ? GUI_COLOR_STATTAP_BG : 0);
 	if (*progress->Active) {
-		DrawRectangle(statusSurface, r->x, r->y, r->w,
-				((double) r->w / progress->Max) * progress->Position, GUI_COLOR_STATTAP_FG);
+		DrawRectangle(statusSurface, r->x, r->y,
+				((double) r->w / progress->Max) * progress->Position, 2, GUI_COLOR_STATTAP_FG);
 	}
 
 	delete r;

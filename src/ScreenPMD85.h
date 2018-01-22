@@ -103,7 +103,7 @@ private:
 
 	void InitVideoMode(TDisplayMode reqDispMode, bool reqWidth384);
 	void ReleaseVideoMode();
-	void PrepareScreen(bool clear = false);
+	void PrepareScreen();
 	void PrepareScanliner();
 	void InitScanliners();
 	void InitPalette();

@@ -94,6 +94,7 @@ const char *dcb_view_brdr_state(GUI_MENU_ENTRY *ptr)
 		return NULL;
 	}
 	else {
+		ptr->enabled = true;
 		ptr->action = Settings->Screen->border;
 		sprintf((char *) uicch, "%dx", ptr->action);
 		return uicch;

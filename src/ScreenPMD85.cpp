@@ -357,9 +357,12 @@ void ScreenPMD85::InitVideoMode(TDisplayMode reqDispMode, bool reqWidth384)
 	if (!screenTexture)
 		error("Screen", "Unable to create screen texture\n%s", SDL_GetError());
 
+	int midOfStatus = SDL_max(1,
+			(screenHeight - screenRect->h - screenRect->y - STATUSBAR_HEIGHT) / 2);
+
 	GUI->statusRect = new SDL_Rect(*screenRect);
 	GUI->statusRect->x += STATUSBAR_SPACING;
-	GUI->statusRect->y += screenRect->h + (borderSize - STATUSBAR_HEIGHT / 2);
+	GUI->statusRect->y += screenRect->h + midOfStatus;
 	GUI->statusRect->w -= (2 * STATUSBAR_SPACING);
 	GUI->statusRect->h  = STATUSBAR_HEIGHT;
 
@@ -367,25 +370,22 @@ void ScreenPMD85::InitVideoMode(TDisplayMode reqDispMode, bool reqWidth384)
 	GUI->InitDefaultTexture(bufferWidth, bufferHeight);
 
 	PrepareScanliner();
-	PrepareScreen(true);
+	PrepareScreen();
 
 	SDL_RenderPresent(gdc.renderer);
 	SDL_UnlockMutex(displayModeMutex);
 }
 //-----------------------------------------------------------------------------
-void ScreenPMD85::PrepareScreen(bool clear)
+void ScreenPMD85::PrepareScreen()
 {
-	if (clear) {
-		SDL_SetRenderDrawColor(gdc.renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
-		SDL_RenderFillRect(gdc.renderer, NULL);
-	}
+	SDL_SetRenderDrawColor(gdc.renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
+	SDL_RenderClear(gdc.renderer);
 
 	SDL_Rect *r = new SDL_Rect(*screenRect);
 	SDL_SetRenderDrawColor(gdc.renderer, 16, 16, 16, SDL_ALPHA_OPAQUE);
 
-	int i = 0;
-	if (borderSize > 0) {
-		i = GetMultiplier() * 2;
+	if (dispMode == DM_FULLSCREEN || borderSize > 0) {
+		int i = GetMultiplier() * 2;
 		r->x -= i;
 		r->y -= i;
 		r->w += i * 2;
@@ -428,6 +428,10 @@ void ScreenPMD85::PrepareScanliner()
 
 			SDL_SetTextureBlendMode(scanlinerTexture, SDL_BLENDMODE_BLEND);
 		}
+	}
+	else if (!reqDispMode) {
+		scanlinerMode = 0;
+		return;
 	}
 
 	int pitch, q = (lcdMode ? 5 : (int) halfPass);
