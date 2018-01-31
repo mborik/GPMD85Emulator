@@ -73,8 +73,8 @@
 #define WAIT_WP                 22
 
 #define SECTOR_SIZE             128
-#define SECTORS_PER_PHYSICS     4
-#define PHYSICS_SECTOR_SIZE     (SECTORS_PER_PHYSICS * SECTOR_SIZE)
+#define PHYSICAL_SECTOR_SIZE    (4 * SECTOR_SIZE)
+#define INTERNAL_RAM_SIZE       (8 * SECTOR_SIZE)
 
 #define MAX_SECTORS_PER_TRACKS  64
 #define MAX_TRACKS              256
@@ -90,7 +90,7 @@
 class Pmd32 : public sigslot::has_slots<>
 {
 	public:
-		Pmd32(IifGPIO *pio, char *romFileName);
+		Pmd32(IifGPIO *pio);
 		virtual ~Pmd32();
 
 		void SetExtraCommands(bool extraCommands, char *sdPath);
@@ -117,7 +117,6 @@ class Pmd32 : public sigslot::has_slots<>
 		} DRIVES;
 
 		IifGPIO *pio;
-		ChipMemory *memory;
 		DRIVES drives[NUM_DRIVES];
 
 		BYTE  drvnum;
@@ -128,6 +127,7 @@ class Pmd32 : public sigslot::has_slots<>
 		BYTE  findType;
 		BYTE  wp;
 
+		BYTE  memory[INTERNAL_RAM_SIZE];
 		BYTE  buffer[MAX_SECTORS_PER_TRACKS * SECTOR_SIZE];
 		BYTE *point;
 		DWORD dwRW;

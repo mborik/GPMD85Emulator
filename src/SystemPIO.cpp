@@ -69,8 +69,8 @@ void SystemPIO::writeToDevice(BYTE port, BYTE value, int ticks)
 {
 	currentTicks = ticks;
 
-	if (memory->Page == 2 && model != CM_C2717)
-		memory->Page = 1;
+	if (model != CM_C2717)
+		memory->ResetOff();
 
 	switch (port & SYSTEM_REG_MASK) {
 		case SYSTEM_REG_A:
@@ -98,8 +98,8 @@ BYTE SystemPIO::readFromDevice(BYTE port, int ticks)
 {
 	BYTE retval;
 
-	if (memory->Page == 2 && model == CM_C2717)
-		memory->Page = 1;
+	if (model == CM_C2717)
+		memory->ResetOff();
 
 	switch (port & SYSTEM_REG_MASK) {
 		case SYSTEM_REG_A:
@@ -511,23 +511,23 @@ void SystemPIO::WritePaging()
 	BYTE pg = PeripheralReadByte(PP_PortC);
 
 	if (model == CM_C2717) {
-		width384 = ((pg & 32) + 1);         // 48/64 chars per line mode
-		memory->Page = ((pg & 64) ? 0 : 1); // AllRAM
-		memory->C2717Remapped = (pg & 128); // re-adressing to C000h
+		width384 = ((pg & 32) + 1);       // 48/64 chars per line mode
+		memory->SetAllRAM(pg & 64);       // AllRAM
+		memory->SetRemapped(pg & 128);    // re-adressing to C000h
 	}
 	else {
 		if (model == CM_V2A || model == CM_V3) {
 			if (model == CM_V3 && (pg & 32))
-				memory->Page = 2; // ROM only
+				memory->ResetOn();        // ROM only
 			else if (pg & 16)
-				memory->Page = 1; // ROM/RAM
+				memory->SetAllRAM(false); // ROM/RAM
 			else
-				memory->Page = 0; // AllRAM
+				memory->SetAllRAM(true);  // AllRAM
 		}
 	}
 
 	// AllRAM
-	if (memory->Page == 0)
+	if (memory->IsAllRAM())
 		ledState |= LED_BLUE;
 	else
 		ledState &= ~LED_BLUE;

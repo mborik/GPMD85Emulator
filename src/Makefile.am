@@ -15,6 +15,10 @@ libGPMD85emu_core_a_SOURCES = \
 	ChipCpu8080.cpp \
 	ChipCpu8080P.cpp \
 	ChipMemory.cpp \
+	ChipMemory12.cpp \
+	ChipMemory2A.cpp \
+	ChipMemory3.cpp \
+	ChipMemoryC2717.cpp \
 	ChipPIO8255.cpp \
 	ChipPIT8253.cpp \
 	ChipUSART8251.cpp \
@@ -38,6 +42,10 @@ noinst_HEADERS = \
 	ChipCpu8080.h \
 	ChipCpu8080P.h \
 	ChipMemory.h \
+	ChipMemory12.h \
+	ChipMemory2A.h \
+	ChipMemory3.h \
+	ChipMemoryC2717.h \
 	ChipPIO8255.h \
 	ChipPIT8253.h \
 	ChipUSART8251.h \

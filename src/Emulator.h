@@ -21,6 +21,10 @@
 //-----------------------------------------------------------------------------
 #include "ChipCpu8080P.h"
 #include "ChipMemory.h"
+#include "ChipMemory12.h"
+#include "ChipMemory2A.h"
+#include "ChipMemory3.h"
+#include "ChipMemoryC2717.h"
 #include "SystemPIO.h"
 #include "IifTimer.h"
 #include "IifTape.h"
@@ -65,7 +69,7 @@ class TEmulator : public sigslot::has_slots<>
 		void ActionPMD32LoadDisk(int drive);
 		void ActionSnapLoad();
 		void ActionSnapSave();
-		void ActionROMLoad(BYTE type);
+		void ActionROMLoad();
 		void ActionRawFile(bool save);
 
 		void ActionReset();
@@ -93,7 +97,6 @@ class TEmulator : public sigslot::has_slots<>
 		RomModule *romModule;
 		RaomModule *raomModule;
 
-		BYTE *videoRam;
 		TComputerModel model;
 		SDL_Event exposeEvent;
 		bool compatible32;

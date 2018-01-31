@@ -250,12 +250,6 @@ const char *dcb_p32_conn_state(GUI_MENU_ENTRY *ptr)
 	return NULL;
 }
 //-----------------------------------------------------------------------------
-const char *dcb_p32_file_state(GUI_MENU_ENTRY *ptr)
-{
-	ptr->enabled = Settings->PMD32->connected;
-	return ExtractFileName(Settings->PMD32->romFile);
-}
-//-----------------------------------------------------------------------------
 const char *dcb_p32_imgs_state(GUI_MENU_ENTRY *ptr)
 {
 	ptr->enabled = Settings->PMD32->connected;
@@ -374,11 +368,7 @@ bool ccb_fileselector(GUI_MENU_ENTRY *ptr)
 			break;
 
 		case 5:
-			Emulator->ActionROMLoad(0);
-			break;
-
-		case 6:
-			Emulator->ActionROMLoad(32);
+			Emulator->ActionROMLoad();
 			break;
 
 		case 7:

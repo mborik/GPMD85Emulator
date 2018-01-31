@@ -27,7 +27,6 @@ TEmulator::TEmulator()
 	cpu = NULL;
 	memory = NULL;
 	video = NULL;
-	videoRam = NULL;
 	systemPIO = NULL;
 	ifTimer = NULL;
 	ifTape = NULL;
@@ -70,7 +69,6 @@ TEmulator::~TEmulator()
 		delete cpu;
 	cpu = NULL;
 
-	videoRam = NULL;
 	if (video)
 		delete video;
 	video = NULL;
@@ -266,7 +264,7 @@ void TEmulator::BaseTimerCallback()
 			icon = pmd32->diskIcon;
 		GUI->SetIconState(icon);
 
-		video->FillBuffer(videoRam);
+		video->FillBuffer(memory->GetVramPointer());
 	}
 
 	// status bar FPS and CPU indicators
@@ -419,7 +417,7 @@ bool TEmulator::TestHotkeys()
 				GUI->uiSetChanges = 0;
 			}
 
-			video->FillBuffer(videoRam);
+			video->FillBuffer(memory->GetVramPointer());
 
 			// menu leaving callback was executed
 			GUI->uiCallback();
@@ -848,19 +846,16 @@ void TEmulator::ActionSnapSave()
 	GUI->MenuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
 }
 //---------------------------------------------------------------------------
-void TEmulator::ActionROMLoad(BYTE type)
+void TEmulator::ActionROMLoad()
 {
 	static const char *rom_filter[] = { "rom", NULL };
 	char *fileName;
 
 	ActionPlayPause(false, false);
 
-	if (type == 32)
-		fileName = Settings->PMD32->romFile;
-	else
-		fileName = Settings->CurrentModel->romFile;
+	fileName = Settings->CurrentModel->romFile;
 
-	GUI->fileSelector->tag = type;
+	GUI->fileSelector->tag = 0;
 	GUI->fileSelector->type = GUI_FS_BASELOAD;
 	GUI->fileSelector->title = "SELECT ROM FILE (*.rom)";
 	GUI->fileSelector->extFilter = (char **) rom_filter;
@@ -914,8 +909,6 @@ void TEmulator::ActionRawFile(bool save)
 void TEmulator::ActionReset()
 {
 	cpu->DoReset();
-	if (model != CM_V3)
-		memory->Page = 2;
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionHardReset()
@@ -995,13 +988,12 @@ void TEmulator::ActionSpeedChange()
 //---------------------------------------------------------------------------
 void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 {
-	int romAdrKB, fileSize;
+	int fileSize;
 	BYTE romSize;
 
 	if (cpu)
 		delete cpu;
 	cpu = NULL;
-	videoRam = NULL;
 	if (memory)
 		delete memory;
 	memory = NULL;
@@ -1038,11 +1030,8 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 	romSize = (BYTE) (fileSize / KB);
 	if (romSize < 4)
 		romSize = 4;
-	monitorLength = romSize * KB;
-	romAdrKB = 32;
-
-	// set status bar short model descriptor
-	GUI->SetComputerModel(model);
+	if (romSize > 16)
+		romSize = 16;
 
 	switch (model) {
 		case CM_UNKNOWN :
@@ -1053,148 +1042,29 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 		case CM_ALFA :  // Didaktik Alfa
 		case CM_ALFA2 : // Didaktik Alfa 2
 		case CM_V2 :    // PMD 85-2
-			memory = new ChipMemory((WORD)(48 + romSize)); // 48 kB RAM, x kB ROM
-
-			// not-paged memory - always accessible
-			memory->AddBlock(4, 28, 4096, NO_PAGED, MA_RW); // RAM 1000h - 7FFFh
-
-			if (romSize > 8) {
-				// not mirrored
-				memory->AddBlock(32, romSize, 49152, NO_PAGED, MA_RO); // ROM from 8000h
-				if (romSize < 16) // void up to BFFFh
-					memory->AddBlock((BYTE)(32 + romSize), (BYTE)((WORD)(16 - romSize)), 0, NO_PAGED, MA_NA);
-			}
-			else {
-				memory->AddBlock(32, romSize, 49152, NO_PAGED, MA_RO); // ROM from 8000h
-				if (romSize < 8) // void up to 9FFFh
-					memory->AddBlock((BYTE)(32 + romSize), (BYTE)((WORD)(8 - romSize)), 0, NO_PAGED, MA_NA);
-
-				// mirrored ROM from A000h
-				memory->AddBlock(40,  romSize, 49152, NO_PAGED, MA_RO);
-				if (romSize < 8) // void up to BFFFh
-					memory->AddBlock((BYTE)(40 + romSize), (BYTE)((WORD)(8 - romSize)), 0, NO_PAGED, MA_NA);
-			}
-
-			memory->AddBlock(48, 16, 32768, NO_PAGED, MA_RW); // RAM C000h - FFFFh
-
-			// PAGE 1 - normal
-			memory->AddBlock(0, 4, 0, 1, MA_RW); // RAM 0000h - 0FFFh
-
-			// PAGE 2 - after reset
-			memory->AddBlock( 0, romSize, 49152, 2, MA_RO); // ROM from 0000h
-			memory->AddBlock(32, romSize, 49152, 2, MA_RO); // ROM from 8000h
+			memory = new ChipMemory12(romSize);    // 48 kB RAM, x kB ROM
 			break;
 
 		case CM_V2A : // PMD 85-2A
-			memory = new ChipMemory((WORD)(64 + romSize)); // 64 kB RAM, x kB ROM
-
-			// not-paged memory - always accessible
-			memory->AddBlock( 4, 28,  4096, NO_PAGED, MA_RW); // RAM 1000h - 7FFFh
-			memory->AddBlock(48, 16, 49152, NO_PAGED, MA_RW); // RAM C000h - FFFFh
-
-			// PAGE 0 - AllRAM
-			memory->AddBlock( 0,  4,     0, 0, MA_RW); // RAM 0000h - 0FFFh
-			memory->AddBlock(32, 16, 32768, 0, MA_RW); // RAM 8000h - BFFFh
-
-			// PAGE 1 - reading from ROM, writing to RAM
-			memory->AddBlock(0, 4, 0, 1, MA_RW); // RAM 0000h - 0FFFh
-
-			if (romSize > 8) {
-				// not mirrored
-				memory->AddBlock(32, romSize, 65536, 1, MA_RO); // ROM from 8000h
-				memory->AddBlock(32, romSize, 32768, 1, MA_WO); // RAM from 8000h
-				if (romSize < 16) // free RAM up to 0xBFFF
-					memory->AddBlock((BYTE)(32 + romSize), (BYTE)((WORD)(16 - romSize)), 32768 + romSize * KB, 1, MA_RW);
-			}
-			else {
-				memory->AddBlock(32, romSize, 65536, 1, MA_RO); // ROM from 8000h
-				memory->AddBlock(32, romSize, 32768, 1, MA_WO); // RAM from 8000h
-				if (romSize < 8) // free RAM up to 0x9FFF
-					memory->AddBlock((BYTE)(32 + romSize), (BYTE)((WORD)(8 - romSize)), 32768 + romSize * KB, 1, MA_RW);
-
-				// mirrored ROM from A000h
-				memory->AddBlock(40, romSize, 65536, 1, MA_RO); // ROM from A000h
-				memory->AddBlock(40, romSize, 40960, 1, MA_WO); // RAM from A000h
-				if (romSize < 8) // free RAM up to 0xBFFF
-					memory->AddBlock((BYTE)(40 + romSize), (BYTE)((WORD)(8 - romSize)), 40960L + romSize * KB, 1, MA_RW);
-			}
-
-			// PAGE 2 - after reset
-			memory->AddBlock( 0, romSize, 65536, 2, MA_RO); // ROM from 0000h
-			memory->AddBlock(32, romSize, 65536, 2, MA_RO); // ROM from 8000h
+			memory = new ChipMemory2A(romSize);    // 64 kB RAM, x kB ROM
 			break;
 
 		case CM_V3 :  // PMD 85-3
-			memory = new ChipMemory(64 + 8); // 64 kB RAM, 8kB ROM
-
-			// PAGE 0 - AllRAM
-			memory->AddBlock( 0, 64,     0, 0, MA_RW); // RAM 0000h - FFFFh
-
-			// PAGE 1 - reading from ROM, writing to RAM
-			memory->AddBlock( 0, 56,     0, 1, MA_RW); // RAM 0000h - DFFFh
-			memory->AddBlock(56,  8, 65536, 1, MA_RO); // ROM E000h - FFFFh
-			memory->AddBlock(56,  8, 57344, 1, MA_WO); // RAM E000h - FFFFh
-
-			// PAGE 2 - if SystemPIO.PC5 == 1
-			memory->AddBlock( 0, 64,     0, 2, MA_WO); // RAM 0000h - FFFFh
-			memory->AddBlock( 0,  8, 65536, 2, MA_RO); // ROM 0000h - 1FFFh
-			memory->AddBlock( 8,  8, 65536, 2, MA_RO); // ROM 2000h - 3FFFh
-			memory->AddBlock(16,  8, 65536, 2, MA_RO); // ROM 4000h - 5FFFh
-			memory->AddBlock(24,  8, 65536, 2, MA_RO); // ROM 6000h - 7FFFh
-			memory->AddBlock(32,  8, 65536, 2, MA_RO); // ROM 8000h - 9FFFh
-			memory->AddBlock(40,  8, 65536, 2, MA_RO); // ROM A000h - BFFFh
-			memory->AddBlock(48,  8, 65536, 2, MA_RO); // ROM C000h - DFFFh
-			memory->AddBlock(56,  8, 65536, 2, MA_RO); // ROM E000h - FFFFh
-
-			if (romSize > 8)
-				monitorLength = 8 * KB;
-			romAdrKB = 56;
+			romSize = 8;
+			memory = new ChipMemory3(romSize);     // 64 kB RAM, 8 kB ROM
 			break;
 
 		case CM_MATO :  // Mato
-			memory = new ChipMemory(48 + 16); // 48 kB RAM, 16kB ROM
-
-			// not-paged memory
-			memory->AddBlock( 4, 28,  4096, NO_PAGED, MA_RW); // RAM 1000h - 7FFFh
-			memory->AddBlock(32, 16, 49152, NO_PAGED, MA_RO); // ROM 8000h - BFFFh
-			memory->AddBlock(48, 16, 32768, NO_PAGED, MA_RW); // RAM C000h - FFFFh
-
-			// PAGE 1 - normal
-			memory->AddBlock(0, 4, 0, 1, MA_RW); // RAM 0000h - 0FFFh
-
-			// PAGE 2 - after reset
-			memory->AddBlock( 0, 16, 49152, 2, MA_RO); // ROM 0000h - 3FFFh
-			memory->AddBlock(32, 16, 49152, 2, MA_RO); // ROM 8000h - BFFFh
-
-			monitorLength = 16 * KB;
+			romSize = 16;
+			memory = new ChipMemory12(romSize);    // 48 kB RAM, 16kB ROM
 			break;
 
 		case CM_C2717 :  // CONSUL 2717
-			memory = new ChipMemory(64 + 16); // 64 kB RAM, 16 kB ROM
-
-			// not-paged memory - always accessible
-			memory->AddBlock( 4, 28,  4096, NO_PAGED, MA_RW); // RAM 1000h - 7FFFh
-			memory->AddBlock(48, 16, 49152, NO_PAGED, MA_RW); // RAM C000h - FFFFh
-
-			// PAGE 0 - AllRAM
-			memory->AddBlock( 0,  4,     0, 0, MA_RW); // RAM 0000h - 0FFFh
-			memory->AddBlock(32, 16, 32768, 0, MA_RW); // RAM 8000h - BFFFh
-
-			// PAGE 1 - reading from ROM, writing to RAM
-			memory->AddBlock( 0,  4,     0, 1, MA_RW); // RAM 0000h - 0FFFh
-			memory->AddBlock(32, 16, 65536, 1, MA_RO); // ROM 8000h - BFFFh
-
-			// PAGE 2 - after reset
-			memory->AddBlock( 0,  4, 65536, 2, MA_RO); // ROM 0000h - 0FFFh
-			memory->AddBlock(32, 16, 65536, 2, MA_RO); // ROM 8000h - BFFFh
-
-			// enable Consul 2717 memory remapping feature accessible
-			memory->C2717Remapped = true;
+			romSize = 16;
+			memory = new ChipMemoryC2717(romSize); // 64 kB RAM, 16 kB ROM
+			memory->SetRemapped(true);
 			break;
 	}
-
-	// VideoRAM
-	videoRam = memory->GetMemPointer(0xC000, (model == CM_V3) ? 0 : -1, OP_READ);
 
 	// CPU
 	cpu = new ChipCpu8080P(memory);
@@ -1242,10 +1112,13 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 	if (model != CM_C2717)
 		systemPIO->width384 = 1;
 
+	monitorLength = romSize * KB;
 	if (fileSize > 0)
-		memory->PutRom((BYTE) romAdrKB, 2, romBuff, monitorLength);
-
+		memory->PutRom(romBuff, monitorLength);
 	delete[] romBuff;
+
+	// set status bar short model descriptor
+	GUI->SetComputerModel(model);
 }
 //---------------------------------------------------------------------------
 void TEmulator::InsertRomModul(bool inserted, bool toRaom)
@@ -1336,7 +1209,7 @@ void TEmulator::ConnectPMD32(bool init)
 		}
 
 		if (cpu && ifGpio && Settings->PMD32->connected) {
-			pmd32 = new Pmd32(ifGpio, Settings->PMD32->romFile);
+			pmd32 = new Pmd32(ifGpio);
 			cpu->TCyclesListeners.connect(pmd32, &Pmd32::Disk32Service);
 		}
 
@@ -1411,7 +1284,7 @@ void TEmulator::ProcessSnapshot(char *fileName, BYTE *flag)
 		// ROM - Monitor
 		int lenX = (int) *((WORD *) (buf + 20));
 		if (lenX > 0) {
-			len = lenX & 0x7FFF; // bit 15 of lenX15 is set, if ROM is in pure format
+			len = lenX & 0x7FFF; // bit 15 of lenX is set, if ROM is in pure format
 			if (ReadFromFile(fileName, offset, len, src) != len)
 				break;
 
@@ -1436,7 +1309,7 @@ void TEmulator::ProcessSnapshot(char *fileName, BYTE *flag)
 			cpu->SetChipState(buf + 7);
 
 		if (model != CM_V3)
-			memory->Page = 2;
+			memory->ResetOn();
 
 		Debugger->SetParams(cpu, memory, model);
 
@@ -1468,7 +1341,7 @@ void TEmulator::ProcessSnapshot(char *fileName, BYTE *flag)
 			if (len < 0 || len != SNAP_BLOCK_LEN)
 				break;
 
-			memory->PutMem(0, PAGE_ANY, dest, SNAP_BLOCK_LEN);
+			memory->PutMem(0x0000, dest, SNAP_BLOCK_LEN);
 		}
 
 		// block 4000h - 7FFFh
@@ -1482,7 +1355,7 @@ void TEmulator::ProcessSnapshot(char *fileName, BYTE *flag)
 			if (len < 0 || len != SNAP_BLOCK_LEN)
 				break;
 
-			memory->PutMem(0x4000, PAGE_ANY, dest, SNAP_BLOCK_LEN);
+			memory->PutMem(0x4000, dest, SNAP_BLOCK_LEN);
 		}
 
 		// block 8000h - BFFFh
@@ -1497,7 +1370,7 @@ void TEmulator::ProcessSnapshot(char *fileName, BYTE *flag)
 				if (len < 0 || len != SNAP_BLOCK_LEN)
 					break;
 
-				memory->PutMem(0x8000, PAGE_ANY, dest, SNAP_BLOCK_LEN);
+				memory->PutMem(0x8000, dest, SNAP_BLOCK_LEN);
 			}
 		}
 
@@ -1511,7 +1384,7 @@ void TEmulator::ProcessSnapshot(char *fileName, BYTE *flag)
 			if (len < 0 || len != SNAP_BLOCK_LEN)
 				break;
 
-			memory->PutMem(0xC000, PAGE_ANY, dest, SNAP_BLOCK_LEN);
+			memory->PutMem(0xC000, dest, SNAP_BLOCK_LEN);
 		}
 
 		*flag = 0;
@@ -1589,14 +1462,14 @@ void TEmulator::PrepareSnapshot(char *fileName, BYTE *flag)
 				case CM_ALFA:
 				case CM_ALFA2:
 				case CM_MATO:
-					memory->GetMem(src, 0x8000, -1, monitorLength);
+					memory->GetMem(src, 0x8000, monitorLength);
 					break;
 				case CM_V2A:
 				case CM_C2717:
-					memory->GetMem(src, 0x8000, 1, monitorLength);
+					memory->GetMem(src, 0x8000, monitorLength);
 					break;
 				case CM_V3:
-					memory->GetMem(src, 0xE000, 1, monitorLength);
+					memory->GetMem(src, 0xE000, monitorLength);
 					break;
 				default:
 					break;
@@ -1617,7 +1490,7 @@ void TEmulator::PrepareSnapshot(char *fileName, BYTE *flag)
 		}
 
 		// block 0000h - 3FFFh
-		memory->GetMem(src, 0, PAGE_ANY, SNAP_BLOCK_LEN);
+		memory->GetMem(src, 0, SNAP_BLOCK_LEN);
 		if (Settings->Snapshot->saveCompressed)
 			len = PackBlock(dest, src, SNAP_BLOCK_LEN);
 		else {
@@ -1632,7 +1505,7 @@ void TEmulator::PrepareSnapshot(char *fileName, BYTE *flag)
 		offset += len;
 
 		// block 4000h - 7FFFh
-		memory->GetMem(src, 16384, PAGE_ANY, SNAP_BLOCK_LEN);
+		memory->GetMem(src, 16384, SNAP_BLOCK_LEN);
 		if (Settings->Snapshot->saveCompressed)
 			len = PackBlock(dest, src, SNAP_BLOCK_LEN);
 		else {
@@ -1648,7 +1521,7 @@ void TEmulator::PrepareSnapshot(char *fileName, BYTE *flag)
 
 		// block 8000h - 0BFFFh
 		if (model == CM_V2A || model == CM_V3 || model == CM_C2717) {
-			memory->GetMem(src, 32768, PAGE_ANY, SNAP_BLOCK_LEN);
+			memory->GetMem(src, 32768, SNAP_BLOCK_LEN);
 			if (Settings->Snapshot->saveCompressed)
 				len = PackBlock(dest, src, SNAP_BLOCK_LEN);
 			else {
@@ -1664,7 +1537,7 @@ void TEmulator::PrepareSnapshot(char *fileName, BYTE *flag)
 		}
 
 		// block 0C000h - 0FFFFh
-		memory->GetMem(src, 49152, PAGE_ANY, SNAP_BLOCK_LEN);
+		memory->GetMem(src, 49152, SNAP_BLOCK_LEN);
 		if (Settings->Snapshot->saveCompressed)
 			len = PackBlock(dest, src, SNAP_BLOCK_LEN);
 		else {
@@ -1800,20 +1673,10 @@ void TEmulator::ChangeROMFile(char *fileName, BYTE *flag)
 		}
 	}
 
-	// if flag returned from menu item handler is 32,
-	// we will change PMD 32 ROM file instead of current model ROM file.
-	if (*flag == 32) {
-		delete [] Settings->PMD32->romFile;
-		Settings->PMD32->romFile = new char[strlen(ptr) + 1];
-		strcpy(Settings->PMD32->romFile, ptr);
-		GUI->uiSetChanges |= PS_PERIPHERALS;
-	}
-	else {
-		delete [] Settings->CurrentModel->romFile;
-		Settings->CurrentModel->romFile = new char[strlen(ptr) + 1];
-		strcpy(Settings->CurrentModel->romFile, ptr);
-		GUI->uiSetChanges |= PS_MACHINE;
-	}
+	delete [] Settings->CurrentModel->romFile;
+	Settings->CurrentModel->romFile = new char[strlen(ptr) + 1];
+	strcpy(Settings->CurrentModel->romFile, ptr);
+	GUI->uiSetChanges |= PS_MACHINE;
 
 	romChanged = true;
 	*flag = 1;
@@ -1879,15 +1742,15 @@ bool TEmulator::ProcessRawFile(bool save)
 			bool oldRemap = false;
 
 			if (model == CM_C2717) {
-				oldRemap = memory->C2717Remapped;
-				memory->C2717Remapped = Settings->MemoryBlock->remapping;
+				oldRemap = memory->IsRemapped();
+				memory->SetRemapped(Settings->MemoryBlock->remapping);
 			}
 
 			for (int i = 0; i < length; i++)
 				memory->WriteByte(start + i, *(buff + i));
 
 			if (model == CM_C2717)
-				memory->C2717Remapped = oldRemap;
+				memory->SetRemapped(oldRemap);
 		}
 		else
 			ret = false;
@@ -1898,12 +1761,12 @@ bool TEmulator::ProcessRawFile(bool save)
 		buff = new BYTE[length];
 
 		if (model == CM_V2A || model == CM_V3 || model == CM_C2717) {
-			oldPage = memory->Page;
-			memory->Page = (int) Settings->MemoryBlock->rom;
+			oldPage = memory->GetPage();
+			memory->SetPage((BYTE) Settings->MemoryBlock->rom);
 
 			if (model == CM_C2717) {
-				oldRemap = memory->C2717Remapped;
-				memory->C2717Remapped = Settings->MemoryBlock->remapping;
+				oldRemap = memory->IsRemapped();
+				memory->SetRemapped(Settings->MemoryBlock->remapping);
 			}
 		}
 
@@ -1911,10 +1774,10 @@ bool TEmulator::ProcessRawFile(bool save)
 			*(buff + i) = memory->ReadByte(start + i);
 
 		if (model == CM_V2A || model == CM_V3 || model == CM_C2717) {
-			memory->Page = oldPage;
+			memory->SetPage(oldPage);
 
 			if (model == CM_C2717)
-				memory->C2717Remapped = oldRemap;
+				memory->SetRemapped(oldRemap);
 		}
 
 		if (WriteToFile(fn, 0, length, buff, true) < 0)

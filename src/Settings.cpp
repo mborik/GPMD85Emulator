@@ -488,7 +488,6 @@ TSettings::TSettings()
 	PMD32 = new SetStoragePMD32;
 	PMD32->connected = cfgGetBoolValue(n, "connected", false, &(PMD32->connected));
 	PMD32->extraCommands = cfgGetBoolValue(n, "extra-commands", false, &(PMD32->extraCommands));
-	PMD32->romFile = cfgGetStringValue(n, "rom", &(PMD32->romFile));
 	PMD32->sdRoot = cfgGetStringValue(n, "sd-root", &(PMD32->sdRoot));
 	PMD32->driveA.image = cfgGetStringValue(n, "drive-a-file", &(PMD32->driveA.image));
 	PMD32->driveA.writeProtect = cfgGetBoolValue(n, "drive-a-wp", false, &(PMD32->driveA.writeProtect));
@@ -655,10 +654,6 @@ TSettings::~TSettings()
 	Mouse = NULL;
 
 	if (PMD32) {
-		if (PMD32->romFile)
-			delete [] PMD32->romFile;
-		PMD32->romFile = NULL;
-
 		if (PMD32->sdRoot)
 			delete [] PMD32->sdRoot;
 		PMD32->sdRoot = NULL;

@@ -18,7 +18,7 @@
 //---------------------------------------------------------------------------
 #include "Pmd32.h"
 //---------------------------------------------------------------------------
-Pmd32::Pmd32(IifGPIO *pio, char *romFileName)
+Pmd32::Pmd32(IifGPIO *pio)
 {
 	this->pio = pio;
 	pio->OnBeforeResetA.connect(this, &Pmd32::BeforeReset);
@@ -46,17 +46,7 @@ Pmd32::Pmd32(IifGPIO *pio, char *romFileName)
 	tickCounter = CPU_FREQ;
 	inHandshake = false;
 
-	memory = new ChipMemory(2 + 1);                 // 2 kB ROM, 1kB RAM
-	memory->AddBlock(0, 2, 0L, NO_PAGED, MA_RO);    // ROM 0000h - 07FFh
-	memory->AddBlock(6, 1, 2048L, NO_PAGED, MA_RW); // RAM 1800h - 1BFFh
-	memory->Page = NO_PAGED;
-
-	char *romFile = LocateROM(romFileName);
-	if (romFile == NULL)
-		romFile = romFileName;
-
-	ReadFromFile(romFile, 0, 2048, buffer);
-	memory->PutRom(0, NO_PAGED, buffer, 2048);
+	memset(memory, 0, sizeof(memory));
 }
 //---------------------------------------------------------------------------
 Pmd32::~Pmd32()
@@ -81,10 +71,6 @@ Pmd32::~Pmd32()
 	if (hFind != NULL)
 		closedir(hFind);
 	hFind = NULL;
-
-	if (memory)
-		delete memory;
-	memory = NULL;
 }
 //---------------------------------------------------------------------------
 void Pmd32::SetExtraCommands(bool extraCommands, char *sdRoot)
@@ -238,7 +224,7 @@ void Pmd32::OnHandshake()
 					if (command == 'T' || command == 'W')
 						byteCounter = SECTOR_SIZE;
 					else
-						byteCounter = PHYSICS_SECTOR_SIZE + 1;
+						byteCounter = PHYSICAL_SECTOR_SIZE + 1;
 				}
 				else
 					diskState = WAIT_CRC;
@@ -298,7 +284,8 @@ void Pmd32::OnHandshake()
 				break;
 
 			case WAIT_DATA_MEM:
-				memory->WriteByte(address, val);
+				if (address < INTERNAL_RAM_SIZE)
+					memory[address] = val;
 				address++;
 				CRC ^= val;
 				if (--byteCounter == 0)
@@ -392,7 +379,8 @@ void Pmd32::Disk32ServiceStateCheck()
 			break;
 
 		case SEND_DATA_MEM:
-			toSend = memory->ReadByte(address);
+			if (address < INTERNAL_RAM_SIZE)
+				toSend = memory[address];
 			address++;
 			CRC ^= toSend;
 			if (--byteCounter == 0)
@@ -813,7 +801,7 @@ bool Pmd32::WriteSector()
 
 	if (command == 'S') {
 		sector &= 0x3C;
-		size = PHYSICS_SECTOR_SIZE;
+		size = PHYSICAL_SECTOR_SIZE;
 	}
 	else if (command == 'T' || command == 'W')
 		size = SECTOR_SIZE;

@@ -176,6 +176,7 @@ void ChipCpu8080::Reset()
 	PC = 0;
 
 	InitCountIntCycles();
+	memory->ResetOn();
 
 	PORT_HANDLER *ph = ports;
 	while (ph) {

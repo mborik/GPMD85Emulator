@@ -48,7 +48,6 @@ const char *dcb_mem_rmod_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_mem_rpkg_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_rom_pckg_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_p32_conn_state(GUI_MENU_ENTRY *ptr);
-const char *dcb_p32_file_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_p32_imgs_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_p32_extc_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_p32_sdcd_state(GUI_MENU_ENTRY *ptr);
@@ -297,7 +296,6 @@ static GUI_MENU_ENTRY gui_mem_menu[] = {
 static GUI_MENU_ENTRY gui_p32_menu[] = {
 	{ MI_TITLE, "DISK DRIVE PMD 32" },
 	{ MI_CHECKBOX, "\aCONNECTED", NULL, SDL_SCANCODE_C, NULL, ccb_p32_conn, dcb_p32_conn_state, true },
-	{ MI_DIALOG, "\aROM FILE", NULL, SDL_SCANCODE_R, NULL, ccb_fileselector, dcb_p32_file_state, true, false, 6 },
 	{ MI_SEPARATOR },
 	{ MI_SUBMENU, "\aDISK IMAGES", "F6", SDL_SCANCODE_D, gui_p32_images_menu, NULL, dcb_p32_imgs_state, true },
 	{ MI_SEPARATOR },

@@ -1,5 +1,5 @@
-/*  ChipMemory.h: Class for memory management
-    Copyright (c) 2006 Roman Borik <pmd85emu@gmail.com>
+/*  ChipMemory.h: Base class for memory management
+    Copyright (c) 2006-2016 Roman Borik <pmd85emu@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -42,43 +42,59 @@
 class ChipMemory
 {
 public:
-	ChipMemory(WORD totalSizeKB);
-	~ChipMemory();
+	ChipMemory(WORD initRomSizeKB);
+	virtual ~ChipMemory();
 
-	bool AddBlock(BYTE physAddrKB, BYTE sizeKB, int virtOffset, int page, int memAccess);
-	BYTE *GetMemPointer(int physAddr, int page, int oper);
-	bool PutRom(BYTE physAddrKB, int page, BYTE *src, int size);
-	bool PutMem(int physAddr, int page, BYTE *src, int size);
-	bool GetMem(BYTE *dest, int physAddr, int page, int size);
-	bool FillMem(int destAddr, int page, BYTE value, int size);
+	// set "mapping state" of memory after reset
+	virtual void ResetOn() = 0;
+	// reset "mapping state" of memory after reset
+	virtual void ResetOff() = 0;
+
+	// returns pointer where VRAM was stored in the memory space
+	virtual BYTE* GetVramPointer() = 0;
+
+	// returns memory page number - value stored on paging port
+	virtual BYTE GetPage() { return (BYTE) 0; }
+	// set the memory page number - store the value on paging port
+	virtual void SetPage(BYTE btPage) { return; }
+
+	inline bool IsInReset() { return resetState; }
+	inline bool IsAllRAM() { return allRAM; }
+	inline void SetAllRAM(bool allram) { allRAM = allram; }
+	inline bool IsRemapped() { return remapped; }
+	inline void SetRemapped(bool remap) { remapped = remap; }
+	inline bool IsMem256() { return mem256; }
+	inline bool IsSplit8k() { return split8k; }
+	inline void SetSplit8k(bool split)
+		{ split8k = split8k && (sizeRomKB > 4 && sizeRomKB <= 8); }
+
+	// read/write/fill of memory space
+	bool PutRom(BYTE *src, int size);
+	bool PutMem(int physAddr, BYTE *src, int size);
+	bool GetMem(BYTE *dest, int physAddr, int size);
+	bool FillMem(int destAddr, BYTE value, int size);
 
 	// methods called by CPU
-	BYTE ReadByte(int physAdr);
-	WORD ReadWord(int physAdr);
-	void WriteByte(int physAdr, BYTE value);
-	void WriteWord(int physAdr, WORD value);
+	BYTE ReadByte(int physAddr);
+	WORD ReadWord(int physAddr);
+	void WriteByte(int physAddr, BYTE value);
+	void WriteWord(int physAddr, WORD value);
 
-	int  Page;          // current page number
-	bool C2717Remapped; // turn on/off Consul 2717 re-addressing
+protected:
+	BYTE *memROM;      // pointer to virtual ROM memory area
+	BYTE *memRAM;      // pointer to virtual RAM memory area
+	int  sizeRomKB;    // size of ROM in kilobytes
+	int  sizeROM;      // size of ROM in bytes
+	int  sizeRAM;      // size of ROM in bytes
 
-private:
+	// memory status flags (not all used in all models)
+	bool resetState;   // state of memory addressing after the reset happen
+	bool allRAM;       // enabled RW access in whole memory space
+	bool remapped;     // enabled virtual mapping of addresses to another
+	bool mem256;       // extended memory to 256 kilobytes
+	bool split8k;      // enable spliting of the ROM into 8000h & A000h
 
-	typedef struct Block {
-		int size;      // block size 0400h - 10000h (1kB - 64kB)
-		int address;   // physical address 0000h - FC00h
-		BYTE *pointer; // pointer to virtual memory area
-		int page;      // page number (-1 means non-paged memory block)
-		int access;    // "memory type" and its access type
-		Block *next;   // pointer to next memory block
-	} BLOCK;
-
-	BYTE *Memory;      // pointer to virtual memory area
-	int MemSize;       // size of virtual memory area
-	BLOCK *Blocks;     // pointer to first memory block
-	BLOCK *LastBlock;  // pointer to last memory block
-
-	int C2717Remap(int address);
-	int FindPointer(int physAdr, int len, int page, int oper, BYTE **point);
+	virtual int FindPointer(int physAddr, int len, int oper, BYTE **ptr) = 0;
 };
 //---------------------------------------------------------------------------
 #endif

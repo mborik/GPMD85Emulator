@@ -1,5 +1,5 @@
-/*  ChipMemory.cpp: Class for memory management
-    Copyright (c) 2006 Roman Borik <pmd85emu@gmail.com>
+/*  ChipMemory.cpp: Base class for memory management
+    Copyright (c) 2006-2016 Roman Borik <pmd85emu@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -20,132 +20,58 @@
 /**
  * Constructor will create memory area.
  *
- * @param totalSizeKB total memory size in kB (ROM + RAM)
+ * @param initRomSizeKB size of ROM in kB
  */
-ChipMemory::ChipMemory(WORD totalSizeKB)
+ChipMemory::ChipMemory(WORD initRomSizeKB)
 {
-	MemSize = totalSizeKB * 1024;
-	Memory = new BYTE[MemSize];
-	memset(Memory, 0, MemSize);
-	Blocks = NULL;
-	LastBlock = NULL;
-	Page = NO_PAGED;
-	C2717Remapped = false;
+	sizeRomKB = initRomSizeKB;
+	if (sizeRomKB < 4)
+		sizeRomKB = 4;
+	if (sizeRomKB > 16)
+		sizeRomKB = 16;
+	sizeROM = sizeRomKB * 1024;
+	memROM = new BYTE[sizeROM];
+	memset(memROM, 0xFF, sizeROM);
+
+	memRAM = NULL;
+
+	resetState = false;
+	allRAM = false;
+	remapped = false;
+	mem256 = false;
+	split8k = false;
 }
 //---------------------------------------------------------------------------
 /**
- * Destructor will free up allocated memory space and destroy defined
- * memory blocks.
+ * Destructor will free up allocated memory space.
  */
 ChipMemory::~ChipMemory()
 {
-	BLOCK *block, *next;
-
-	block = Blocks;
-	while (block) {
-		next = block->next;
-		delete block;
-		block = next;
+	if (memROM != NULL) {
+		delete [] memROM;
+		memROM = NULL;
 	}
-
-	delete[] Memory;
-}
-//---------------------------------------------------------------------------
-/*
- * Defines memory block with required size, physical location, location in
- * virtual area, requested page number and access attribute.
- *
- * @param physAddrKB physical memory address in kB - 0 az 63 kB
- * @param sizeKB block size in kB - 1 az 64 kB
- * @param virtOffset offset to virtual area where block is located
- * @param page number of page where block belongs to;
- *        NO_PAGED for non-paged block
- * @param memAccess access type for block - MA_RO, MA_RW, MA_WO, MA_NA
- * @return true, if block defined succefully
- *         false, if some of parameter is incorrect
- */
-bool ChipMemory::AddBlock(BYTE physAddrKB, BYTE sizeKB, int virtOffset, int page, int memAccess)
-{
-	if (sizeKB > 64 || sizeKB < 1 || physAddrKB > 63 || (sizeKB + physAddrKB) > 64
-		|| virtOffset >= MemSize || (virtOffset + sizeKB * 1024) > MemSize)
-		return false;
-
-	if (Blocks == NULL) {
-		Blocks = new BLOCK;
-		LastBlock = Blocks;
+	if (memRAM != NULL) {
+		delete [] memRAM;
+		memRAM = NULL;
 	}
-	else {
-		LastBlock->next = new BLOCK;
-		LastBlock = LastBlock->next;
-	}
-
-	LastBlock->size = sizeKB * 1024;
-	LastBlock->address = physAddrKB * 1024;
-	if (memAccess == MA_NA)
-		LastBlock->pointer = NULL;
-	else
-		LastBlock->pointer = Memory + virtOffset;
-	LastBlock->page = page;
-	LastBlock->access = memAccess;
-	LastBlock->next = NULL;
-
-	return true;
-}
-//---------------------------------------------------------------------------
-/*
- * Returns address to virtual area corresponding to requested physical
- * address in memory, page number and operation.
- *
- * @param physAddr physical address in memory - 0 to FFFFh
- * @param page requested page number
- * @param oper requested type of operation - OP_WRITE or OP_READ
- * @return address to virtual area or NULL, if this block doesn’t exist
- */
-BYTE* ChipMemory::GetMemPointer(int physAddr, int page, int oper)
-{
-	BYTE *mem;
-
-	if (physAddr < 0 || physAddr > 0xFFFF)
-		return NULL;
-
-	if (FindPointer(physAddr, 1, page, oper, &mem) <= 0)
-		return NULL;
-
-	return mem;
 }
 //---------------------------------------------------------------------------
 /*
  * Copies data from source address to physical memory which represents ROM
- * Returns true if succcess; false if parameters are incorrect or memory
- * is not defined.
  *
- * @param physAddrKB physical kilobyte address to memory - 0 az 63
- * @param page number of page which should be paged in
- * @param src pointer to memory from where to copy data to physical memory
+ * @param src pointer to memory from where the date will be copied
  * @param size number of bytes to be copied
  * @return true if success; false otherwise
  */
-bool ChipMemory::PutRom(BYTE physAddrKB, int page, BYTE *src, int size)
+bool ChipMemory::PutRom(BYTE *src, int size)
 {
-	DWORD physAddr;
-	int cnt;
-	BYTE *mem;
-
-	physAddr = physAddrKB * 1024;
-	if (physAddrKB > 63 || size < 1 || size > 0x10000 || (physAddr + size) > 0x10000 || src == NULL)
+	if (size < 1 || size > sizeROM || src == NULL)
 		return false;
 
-	do {
-		cnt = FindPointer(physAddr, size, page, OP_READ, &mem);
-		if (cnt <= 0 || mem == NULL)
-			return false;
-		memcpy(mem, src, cnt);
-
-		src += cnt;
-		physAddr += cnt;
-		size -= cnt;
-	} while (size > 0);
-
+	memcpy(memROM, src, (size > sizeROM) ? sizeROM : size);
+	if (size < sizeROM)
+		memset(memROM + size, 0xFF, sizeROM - size);
 	return true;
 }
 //---------------------------------------------------------------------------
@@ -156,28 +82,29 @@ bool ChipMemory::PutRom(BYTE physAddrKB, int page, BYTE *src, int size)
  *
  * @param physAddr physical memory address - 0 to FFFFh
  * @param page number of page which should be paged in
- * @param src pointer to memory from where to copy data to physical memory
+ * @param src pointer to memory from where the date will be copied
  * @param size number of bytes to be copied
  * @return true if success; false otherwise
  */
-bool ChipMemory::PutMem(int physAddr, int page, BYTE *src, int size)
+bool ChipMemory::PutMem(int physAddr, BYTE *src, int size)
 {
-	int cnt;
-	BYTE *mem;
+	int count;
+	BYTE *ptr;
 
-	if (physAddr < 0 || physAddr > 0xFFFF || size < 1 || size > 0x10000 || (physAddr + size) > 0x10000 || src == NULL)
+	if (physAddr < 0 || physAddr > 0xFFFF || size < 1 ||
+			size > 0x10000 || (physAddr + size) > 0x10000 || src == NULL)
 		return false;
 
 	do {
-		cnt = FindPointer(physAddr, size, page, OP_WRITE, &mem);
-		if (cnt <= 0)
+		count = FindPointer(physAddr, size, OP_WRITE, &ptr);
+		if (count <= 0)
 			return false;
-		if (mem)
-			memcpy(mem, src, cnt);
+		if (ptr)
+			memcpy(ptr, src, count);
 
-		src += cnt;
-		physAddr += cnt;
-		size -= cnt;
+		src += count;
+		physAddr += count;
+		size -= count;
 	} while (size > 0);
 
 	return true;
@@ -185,67 +112,64 @@ bool ChipMemory::PutMem(int physAddr, int page, BYTE *src, int size)
 //---------------------------------------------------------------------------
 /*
  * Copies requested part of physical memory to desired location.
- * Returns true if succcess; false if parameters are incorrect or memory
- * is not defined.
  *
  * @param dest pointer to memory where to store part of physical memory
  * @param physAddr physical memory address - 0 to FFFFh
- * @param page number of page which should be paged in
  * @param size number of bytes to be copied
  * @return true if success; false otherwise
  */
-bool ChipMemory::GetMem(BYTE *dest, int physAddr, int page, int size)
+bool ChipMemory::GetMem(BYTE *dest, int physAddr, int size)
 {
-	int cnt;
-	BYTE *mem;
+	int count;
+	BYTE *ptr;
 
-	if (physAddr < 0 || physAddr > 0xFFFF || size < 1 || size > 0x10000 || (physAddr + size) > 0x10000 || dest == NULL)
+	if (physAddr < 0 || physAddr > 0xFFFF || size < 1 ||
+			size > 0x10000 || (physAddr + size) > 0x10000 || dest == NULL)
 		return false;
 
 	do {
-		cnt = FindPointer(physAddr, size, page, OP_READ, &mem);
-		if (cnt <= 0)
+		count = FindPointer(physAddr, size, OP_READ, &ptr);
+		if (count <= 0)
 			return false;
-		if (mem)
-			memcpy(dest, mem, cnt);
+		if (ptr)
+			memcpy(dest, ptr, count);
 		else
-			memset(dest, NA_BYTE, cnt); // neobsadeny blok pamate
+			memset(dest, NA_BYTE, count); // non-existing block of memory
 
-		dest += cnt;
-		physAddr += cnt;
-		size -= cnt;
+		dest += count;
+		physAddr += count;
+		size -= count;
 	} while (size > 0);
 
 	return true;
 }
 //---------------------------------------------------------------------------
 /*
- * Fills in given memory area by desired value. Returns true if success;
- * false if parameters are incorrect or memory is not defined.
+ * Fills in given memory area with desired value.
  *
  * @param destAddr physical destination address - 0 to FFFFh
- * @param page number of page which should be paged in
  * @param value fill memory with this value
  * @param size memory size to be filled in
  * @return true if success; false otherwise
  */
-bool ChipMemory::FillMem(int destAddr, int page, BYTE value, int size)
+bool ChipMemory::FillMem(int destAddr, BYTE value, int size)
 {
-	int cnt;
-	BYTE *mem;
+	int count;
+	BYTE *ptr;
 
-	if (destAddr < 0 || destAddr > 0xFFFF || size < 1 || size > 0x10000 || (destAddr + size) > 0x10000)
+	if (destAddr < 0 || destAddr > 0xFFFF || size < 1 ||
+			size > 0x10000 || (destAddr + size) > 0x10000)
 		return false;
 
 	do {
-		cnt = FindPointer(destAddr, size, page, OP_WRITE, &mem);
-		if (cnt <= 0)
+		count = FindPointer(destAddr, size, OP_WRITE, &ptr);
+		if (count <= 0)
 			return false;
-		if (mem)
-			memset(mem, value, cnt);
+		if (ptr)
+			memset(ptr, value, count);
 
-		destAddr += cnt;
-		size -= cnt;
+		destAddr += count;
+		size -= count;
 	} while (size > 0);
 
 	return true;
@@ -254,21 +178,18 @@ bool ChipMemory::FillMem(int destAddr, int page, BYTE value, int size)
 /*
  * Reads the byte from given memory address. If type of memory is MA_WO
  * or MA_NA then returns value NA_BYTE. Method is heavily using CPU.
- * Current page and remapping are considered.
+ * Current paging and remapping are considered.
  *
  * @param physAddr physical address to memory - 0 to FFFFh
  * @return byte from memory
  */
-BYTE ChipMemory::ReadByte(int physAdr)
+BYTE ChipMemory::ReadByte(int physAddr)
 {
-	BYTE *mem;
+	BYTE *ptr;
 
-	if (C2717Remapped)
-		physAdr = C2717Remap(physAdr);
-
-	if (physAdr >= 0 && physAdr < 0x10000) {
-		if (FindPointer(physAdr, 1, Page, OP_READ, &mem) > 0 && mem)
-			return *mem;
+	if (physAddr >= 0 && physAddr < 0x10000) {
+		if (FindPointer(physAddr, 1, OP_READ, &ptr) > 0 && ptr)
+			return *ptr;
 	}
 
 	return NA_BYTE;
@@ -277,105 +198,51 @@ BYTE ChipMemory::ReadByte(int physAdr)
 /*
  * Reads 2 consecutive bytes from given memory address. If type of memory
  * is MA_WO or MA_NA then returns value NA_WORD.
- * Method is heavily using CPU. Current page and remapping are considered.
+ * Method is heavily using CPU. Current paging and remapping are considered.
  *
  * @param physAddr physical address to memory - 0 to FFFFh
  * @return 2 bytes from memory
  */
-WORD ChipMemory::ReadWord(int physAdr)
+WORD ChipMemory::ReadWord(int physAddr)
 {
-	WORD val;
+	WORD value;
 
-	val = ReadByte(physAdr);
-	val |= (WORD) (ReadByte((physAdr + 1) & 0xFFFF) << 8);
+	value = ReadByte(physAddr);
+	value |= (WORD) (ReadByte((physAddr + 1) & 0xFFFF) << 8);
 
-	return val;
+	return value;
 }
 //---------------------------------------------------------------------------
 /*
  * Writes requested byte to given memory address. If memory type at given
  * location is MA_WO or MA_NA, nothing will happen.
- * Method is heavily using CPU. Current page is considered.
+ * Method is heavily using CPU. Current paging is considered.
  *
  * @param physAddr physical address to memory - 0 to FFFFh
  * @param value value to be written to memory
  */
-void ChipMemory::WriteByte(int physAdr, BYTE value)
+void ChipMemory::WriteByte(int physAddr, BYTE value)
 {
-	BYTE *mem;
+	BYTE *ptr;
 
-	if (C2717Remapped)
-		physAdr = C2717Remap(physAdr);
-
-	if (physAdr < 0 || physAdr > 0xFFFF)
+	if (physAddr < 0 || physAddr > 0xFFFF)
 		return;
 
-	if (FindPointer(physAdr, 1, Page, OP_WRITE, &mem) > 0 && mem)
-		*mem = value;
+	if (FindPointer(physAddr, 1, OP_WRITE, &ptr) > 0 && ptr)
+		*ptr = value;
 }
 //---------------------------------------------------------------------------
 /*
  * Writes 2 bytes to given memory address. If memory type at given
  * location is MA_WO or MA_NA, nothing will happen.
- * Method is heavily using CPU. Current page is considered.
+ * Method is heavily using CPU. Current paging is considered.
  *
  * @param physAddr physical address to memory - 0 to FFFFh
  * @param value value to be written to memory
  */
-void ChipMemory::WriteWord(int physAdr, WORD value)
+void ChipMemory::WriteWord(int physAddr, WORD value)
 {
-	WriteByte(physAdr, (BYTE) (value & 0xFF));
-	WriteByte((physAdr + 1) & 0xFFFF, (BYTE) ((value >> 8) & 0xFF));
-}
-//---------------------------------------------------------------------------
-int ChipMemory::C2717Remap(int address)
-{
-	if (address < 0xC000)
-		return address;
-
-	return (address & 0xCFCF)
-		| (((address << 8) ^ 0xFF00) & 0x3000)
-		| (((address >> 8) ^ 0xFF) & 0x30);
-}
-//---------------------------------------------------------------------------
-/*
- * Searches for requested block in virtual area, returns its address into
- * address of output parameter 'point' and returns number of bytes that
- * can fit to the block. If requested block has no address defined in virtual
- * area (MA_NA), returns NULL value into address of output parameter 'point'.
- * If requested block doesn't exist or parameters are incorrect, returns
- * value -1 and NULL in 'point' adress.
- *
- * @param physAddr physical address to memory - 0 to FFFFh
- * @param len lenght of requested block
- * @param page requested page number
- * @param oper requested type of operation - OP_WRITE or OP_READ
- * @param point address of variable where to store address to virtual area
- * @return number of bytes that can fit to block found
- */
-int ChipMemory::FindPointer(int physAdr, int len, int page, int oper, BYTE **point)
-{
-	if (physAdr >= 0 && physAdr <= 0xFFFF && len > 0 && len <= 0x10000) {
-		BLOCK *bl = Blocks;
-		while (bl) {
-			if ((page == PAGE_ANY || bl->page == NO_PAGED || bl->page == page) && ((bl->access & oper)
-				|| bl->access == MA_NA) && physAdr >= bl->address && physAdr < (bl->address + bl->size)) {
-
-				if (bl->pointer)
-					*point = (bl->pointer + physAdr - bl->address);
-				else
-					*point = NULL;
-				if ((physAdr + len) <= (bl->address + bl->size))
-					return len;
-				else
-					return bl->size - physAdr + bl->address;
-			}
-
-			bl = bl->next;
-		}
-	}
-
-	*point = NULL;
-	return -1;
+	WriteByte(physAddr, (BYTE) (value & 0xFF));
+	WriteByte((physAddr + 1) & 0xFFFF, (BYTE) ((value >> 8) & 0xFF));
 }
 //---------------------------------------------------------------------------

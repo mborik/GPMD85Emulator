@@ -105,7 +105,6 @@ class TSettings
 		struct SetStoragePMD32 {
 			bool connected;
 			bool extraCommands;
-			char *romFile;
 			SetPMD32Drive driveA;
 			SetPMD32Drive driveB;
 			SetPMD32Drive driveC;
