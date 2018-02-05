@@ -108,12 +108,6 @@
   - velkost 16kB
   - umiestnenie v pamati od adresy 8000h
 -------------------------------------------------------------------------------
-+ mato-lan.rom
-  - zakladny monitor pocitaca MATO s BASIC-G V2.1 a Demo programom v Basic-u
-    s podporou LAN v Monitore
-  - velkost 16kB
-  - umiestnenie v pamati od adresy 8000h
--------------------------------------------------------------------------------
 + mato-gm.rom
   - hry pre pocitac MATO a zakladny monitor
     * hry: AUTO, PAMPUCH, TEHLY, ZABY, KLAVIR a KRESLIC
@@ -154,16 +148,6 @@
   - zakladny monitor pocitaca Didaktik Alfa 2 vratane BASIC alfa 2.1
   - velkost 16kB
   - umiestnenie v pamati od adresy 8000h
--------------------------------------------------------------------------------
-+ pmd30.rom
-  - ovladaci program disketovej jednotky PMD 30
-  - velkost 4kB
-  - umiestnenie v pamati disketovej jednotky od adresy 0000h
--------------------------------------------------------------------------------
-+ pmd32.rom
-  - ovladaci program disketovej jednotky PMD 32
-  - velkost 2kB
-  - umiestnenie v pamati disketovej jednotky od adresy 0000h
 *******************************************************************************
 
 
@@ -184,13 +168,6 @@
   - umiestnenie v ktorejkolvek pozicii ROM modulu za BASIC-om
   - cielove umiestnenie v pamati od adresy 748Ah
 -------------------------------------------------------------------------------
-+ erb1.rmm
-  - rozsirenie BASIC-G V1.0 pre PMD 85-1 o diskove prikazy ku disketovej
-    jednotke PMD 30 (MFD 85)
-  - velkost 2kB
-  - umiestnenie v prvej pozicii ROM modulu za BASIC-om (adresa 2400h)
-  - cielove umiestnenie v pamati od adresy 7600h
--------------------------------------------------------------------------------
 + basic2.rmm
   - BASIC-G V2.0 pre PMD 85-2
   - velkost 9kB
@@ -208,13 +185,6 @@
   - velkost 10kB
   - umiestnenie v ROM module od adresy 0000h
   - cielove umiestnenie v pamati od adresy 0000h (9kB) a 0B800h (1kB)
--------------------------------------------------------------------------------
-+ 3kzd1p32.rmm
-  - prvy kB obsahuje ovladac KZD-1 pre PMD 85-3
-  - druhy kB obsahuje rozsirenie BASIC G V3.0 pre DOS PMD 32
-  - velkost 2kB
-  - umiestnenie v ROM module od adresy 2800h
-  - cielove umiestnenie v pamati od adresy 0A400h, resp. nakoniec 0BF80h
 -------------------------------------------------------------------------------
 + bas20-gz.rmm
   - BASIC-G/20 pre PMD 85-1,2,2A s mon20-4k.rom
@@ -241,7 +211,7 @@
   - cielove umiestnenie v pamati od adresy 0000h (8kB)
   - Autori: Peter Kottas a Jozef Kutej
 -------------------------------------------------------------------------------
-+ pascal2.rmm
++ pascal1.rmm
   - PASCAL V1.02(A) pre PMD 85-2(A)
   - velkost 20kB
   - umiestnenie v ROM module od adresy 0000h
@@ -254,55 +224,6 @@
   - umiestnenie v ROM module od adresy 0000h
   - cielove umiestnenie v pamati od adresy 0000h
   - Autor: RNDr. Peter Tomcsanyi
--------------------------------------------------------------------------------
-+ kzd-1-m2-k3.rmm
-  - ovladac pre Kazetopaskovy zaznamnik dat KZD-1 pre PMD 85-2 na konektor K3
-  - velkost 1kB
-  - umiestnenie v ktorejkolvek pozicii ROM modulu za BASIC-om
-  - cielove umiestnenie v pamati od adresy 7A38h
--------------------------------------------------------------------------------
-+ kzd-1-m2-k4.rmm
-  - ovladac pre Kazetopaskovy zaznamnik dat KZD-1 pre PMD 85-2 na konektor K4
-  - velkost 1kB
-  - umiestnenie v ktorejkolvek pozicii ROM modulu za BASIC-om
-  - cielove umiestnenie v pamati od adresy 7A38h
--------------------------------------------------------------------------------
-+ kzd-1-m3-k4.rmm
-  - ovladac pre Kazetopaskovy zaznamnik dat KZD-1 pre PMD 85-3 na konektor K4
-  - velkost 1kB
-  - umiestnenie v ktorejkolvek pozicii ROM modulu za BASIC-om
-  - cielove umiestnenie v pamati od adresy 0B000h
--------------------------------------------------------------------------------
-+ xy41xx-m1.rmm
-  - ovladac pre suradnicove zapisovace XY 41XX pre PMD 85-1
-  - velkost 5kB
-  - umiestnenie v prvej pozicii ROM modulu za BASIC-om (adresa 2400h)
-  - cielove umiestnenie v nevyuzitej oblasti obrazovkovej pamati a v BASIC-u
--------------------------------------------------------------------------------
-+ xy41xx-m2.rmm
-  - ovladac pre suradnicove zapisovace XY 41XX pre PMD 85-2
-  - velkost 6kB
-  - umiestnenie v prvej pozicii ROM modulu za BASIC-om (adresa 2400h)
-  - cielove umiestnenie v nevyuzitej oblasti obrazovkovej pamati a v BASIC-u
--------------------------------------------------------------------------------
-+ basnet3.rmm
-  - (asi) ovladac siete BASNET pre PMD 85-3
-  - velkost 1kB
-  - umiestnenie v prvej pozicii ROM modulu za BASIC-om (adresa 2800h)
-  - cielove umiestnenie v pamati od adresy 0AA00h
--------------------------------------------------------------------------------
-+ term3.rmm
-  - ovladac "Terminal" pre PMD 85-3
-  - velkost 1kB
-  - umiestnenie v prvej pozicii ROM modulu za BASIC-om
-    (ako druhy kB v 2kB EPROM, adresa 2C00h)
-  - cielove umiestnenie v pamati od adresy 3000h
--------------------------------------------------------------------------------
-+ bm3.rmm
-  - predosle dva subory v jednom (tak ako boli v povodnej 2kB EPROM)
-  - velkost 2kB
-  - umiestnenie v prvej pozicii ROM modulu za BASIC-om (adresa 2800h)
-  - cielove umiestnenie v pamati od adresy 0AA00h a 3000h
 -------------------------------------------------------------------------------
 + kli2.rmm
   - naplnenie klucov K0 az K11 roznymi prikazmi BASIC-u pre PMD 85-2(A)
@@ -322,11 +243,6 @@
   - umiestnenie v ktorejkolvek pozicii ROM modulu za BASIC-om
   - cielove umiestnenie v pamati programu
 -------------------------------------------------------------------------------
-+ pmd40.rmm
-  - ovladaci program PMD 40 - programatora 1kB a 2kB EPROM
-  - velkost 2kB
-  - cielove umiestnenie v pamati od adresy 600Ch
--------------------------------------------------------------------------------
 + sach1.rmm
   - sach pre PMD 85-1
   - velkost 12kB
@@ -341,23 +257,6 @@
   - cielove umiestnenie v pamati od adresy 6000h
   - ak je pri zavadzani MRS2 stlacene STOP, zavedie sa od adresy 0040h
     aj standardna systemova LIB kniznica
--------------------------------------------------------------------------------
-+ bt100.rmm
-  - ovladac tlaciarne BT100
-  - velkost 1kB
-  - umiestnenie v ktorejkolvek pozicii ROM modulu za BASIC-om
-  - cielove umiestnenie v pamati od adresy 7000h
-  - OUTPUT 200;         hardcopy obrazovky
-    OUTPUT 201;vyraz    vypis vyrazu
-    PRINT #201;vyraz    vypis vyrazu
-    LIST #201;          vypis programu v BASIC-u
--------------------------------------------------------------------------------
-+ copy.rmm
-  - hardcopy na tlaciarni Centronics
-  - velkost 1kB
-  - umiestnenie v ktorejkolvek pozicii ROM modulu za BASIC-om
-  - cielove umiestnenie v pamati od adresy 7400h-75FFh
-  - COPY val
 -------------------------------------------------------------------------------
 + booter2-pmd85-pmd32.rmm
   - ovladac PMD 32 pre PMD 85-2(A)

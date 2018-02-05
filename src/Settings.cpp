@@ -39,8 +39,11 @@ TSettings::TSettings()
 	if (strcmp(cfgRoot->value, "GNU/GPL PMD 85 Emulator Configuration File") != 0)
 		warning("Settings", "Invalid header of configuration file!");
 
-	if (!cfgHasKeyValue(cfgRoot->next, "config-version", CONFIGURATION_VERSION))
-		warning("Settings", "Incompatible configuration file version (required %s)!", CONFIGURATION_VERSION);
+	if (!cfgHasKeyValue(cfgRoot->next, "config-version", CONFIGURATION_VERSION)) {
+		warning("Settings", "Incompatible configuration file version (required %s)!\n\t"
+				"Update (diff or just remove) your config file `%s`",
+				CONFIGURATION_VERSION, buf);
+	}
 
 	cfgIniLine *m = NULL, *n = cfgFindSection(cfgRoot, "General");
 
@@ -134,6 +137,13 @@ TSettings::TSettings()
 
 		model->compatibilityMode = cfgGetBoolValue(n, "compmode", false, &(model->compatibilityMode));
 		model->romModuleInserted = cfgGetBoolValue(n, "rmm-inserted", false, &(model->romModuleInserted));
+		model->ramExpansion256k = cfgGetBoolValue(n, "ext-256k-ram", false, &(model->ramExpansion256k));
+		model->romSplit8kMode = cfgGetBoolValue(n, "rom-split-8k", false, &(model->romSplit8kMode));
+
+		if (model->ramExpansion256k && !(model->type == CM_V2A || model->type == CM_V3))
+			model->ramExpansion256k = false;
+		if (model->romSplit8kMode && !(model->type == CM_V1 || model->type == CM_V2 || model->type == CM_V2A))
+			model->romSplit8kMode = false;
 
 		s = cfgGetStringValue(n, "rmm-name");
 		if ((model->romModule = findROMmodule(s))) {
@@ -314,6 +324,9 @@ TSettings::TSettings()
 	Screen = new SetScreen;
 	Screen->border = cfgGetIntValue(n, "border", 0, &(Screen->border));
 
+	Screen->position.x = cfgGetIntValue(n, "pos-x", -1, &(Screen->position.x));
+	Screen->position.y = cfgGetIntValue(n, "pos-y", -1, &(Screen->position.y));
+
 	Screen->size = DM_NORMAL;
 	if ((m = cfgGetLine(n, "size")) != NULL) {
 		if (strcmp(m->value, "double") == 0)
@@ -384,13 +397,15 @@ TSettings::TSettings()
 	Screen->attr10 = cfgGetColorValue(n, "attr10", AQUA, &(Screen->attr10));
 	Screen->attr11 = cfgGetColorValue(n, "attr11", YELLOW, &(Screen->attr11));
 
+	Sound->videoInterrupt = cfgGetBoolValue(n, "video-interrupt", false, &(Sound->videoInterrupt));
+
 //# Sound settings
 	n = cfgFindSection(cfgRoot, "Sound");
 
 	Sound = new SetSound;
 	Sound->mute = cfgGetBoolValue(n, "mute", false, &(Sound->mute));
 	Sound->volume = cfgGetIntValue(n, "volume", 64, &(Sound->volume));
-	Sound->ifMusica = cfgGetBoolValue(n, "if-musica", false, &(Sound->ifMusica));
+	Sound->ifMIF85 = cfgGetBoolValue(n, "mif85", false, &(Sound->ifMIF85));
 
 //# Keyboard settings
 	n = cfgFindSection(cfgRoot, "Keyboard");

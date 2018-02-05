@@ -1,3 +1,4 @@
+2018-02-05 [mborik] settings updated and extended to all new features; slim down of roms - removed obsolete and unusable
 2018-01-22 [mborik] implemented ChipCpu8080P which take into account slowdown of the video-processor
 2018-01-21 [mborik] fixed illegal memory access bug in x4 scale function
 2018-01-20 [mborik] fixed critical issues with window/renderer/screen (re)initialization

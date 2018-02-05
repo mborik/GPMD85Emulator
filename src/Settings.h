@@ -20,7 +20,7 @@
 //-----------------------------------------------------------------------------
 #include "globals.h"
 //-----------------------------------------------------------------------------
-#define CONFIGURATION_VERSION "2"
+#define CONFIGURATION_VERSION "3"
 //-----------------------------------------------------------------------------
 class TSettings
 {
@@ -40,6 +40,8 @@ class TSettings
 			char *romFile;
 			bool compatibilityMode;
 			bool romModuleInserted;
+			bool romSplit8kMode;
+			bool ramExpansion256k;
 			SetRomPackage *romModule;
 		};
 		struct SetSnapshot {
@@ -59,6 +61,7 @@ class TSettings
 			int border;
 			TDisplayMode size;
 			TDisplayMode realsize;
+			SDL_Point position;
 			THalfPassMode halfPass;
 			bool lcdMode;
 			TColorProfile colorProfile;
@@ -67,11 +70,12 @@ class TSettings
 			TColor attr01;
 			TColor attr10;
 			TColor attr11;
+			bool videoInterrupt;
 		};
 		struct SetSound {
 			int  volume;
 			bool mute;
-			bool ifMusica;
+			bool ifMIF85;
 		};
 		struct SetKeyboard {
 			bool changeZY;
