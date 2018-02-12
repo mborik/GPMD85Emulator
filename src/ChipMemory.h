@@ -38,6 +38,10 @@
 // pages
 #define NO_PAGED  -1
 #define PAGE_ANY  -99999
+
+// memory mapper of 256k extension
+#define MM256_REG_MASK        0xFF
+#define MM256_REG_ADR         0x6D
 //---------------------------------------------------------------------------
 class ChipMemory
 {

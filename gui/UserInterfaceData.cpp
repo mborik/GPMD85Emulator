@@ -134,13 +134,6 @@ const char *dcb_kbd_mato_state(GUI_MENU_ENTRY *ptr)
 	return "for Ma\213o";
 }
 //-----------------------------------------------------------------------------
-const char *dcb_emu_m3cmp_state(GUI_MENU_ENTRY *ptr)
-{
-	ptr->enabled = (Settings->CurrentModel->type == CM_V3);
-	ptr->state = Settings->CurrentModel->compatibilityMode;
-	return NULL;
-}
-//-----------------------------------------------------------------------------
 const char *dcb_emu_pause_state(GUI_MENU_ENTRY *ptr)
 {
 	ptr->state = Settings->isPaused;
@@ -242,6 +235,28 @@ const char *dcb_rom_pckg_state(GUI_MENU_ENTRY *ptr)
 {
 	ptr->state = (Settings->CurrentModel->romModule->name == ptr->text);
 	return NULL;
+}
+//-----------------------------------------------------------------------------
+const char *dcb_mem_x256k_state(GUI_MENU_ENTRY *ptr)
+{
+	ptr->state = Settings->CurrentModel->ramExpansion256k;
+	ptr->enabled = (Settings->CurrentModel->type == CM_V2A ||
+	                Settings->CurrentModel->type == CM_V3);
+	return NULL;
+}
+//-----------------------------------------------------------------------------
+const char *dcb_mem_m3cmp_state(GUI_MENU_ENTRY *ptr)
+{
+	ptr->state = Settings->CurrentModel->compatibilityMode;
+	ptr->enabled = (Settings->CurrentModel->type == CM_V3);
+	return "for PMD 85-3";
+}
+//-----------------------------------------------------------------------------
+const char *dcb_mem_spl8k_state(GUI_MENU_ENTRY *ptr)
+{
+	ptr->state = Settings->CurrentModel->romSplit8kMode;
+	ptr->enabled = Settings->CurrentModel->type <= CM_V2A;
+	return "on 8000h|A000h";
 }
 //-----------------------------------------------------------------------------
 const char *dcb_p32_conn_state(GUI_MENU_ENTRY *ptr)
@@ -526,13 +541,6 @@ bool ccb_emu_hardreset(GUI_MENU_ENTRY *ptr)
 	return true;
 }
 //-----------------------------------------------------------------------------
-bool ccb_emu_m3cmp(GUI_MENU_ENTRY *ptr)
-{
-	Settings->CurrentModel->compatibilityMode = (ptr->state = !ptr->state);
-	GUI->uiSetChanges |= PS_MACHINE;
-	return false;
-}
-//-----------------------------------------------------------------------------
 bool ccb_emu_focus(GUI_MENU_ENTRY *ptr)
 {
 	Settings->pauseOnFocusLost = (ptr->state = !ptr->state);
@@ -576,6 +584,27 @@ bool ccb_rom_pckg(GUI_MENU_ENTRY *ptr)
 	Settings->CurrentModel->romModule = Settings->RomPackages[ptr->action];
 	GUI->uiSetChanges |= PS_MACHINE | PS_PERIPHERALS;
 	return true;
+}
+//-----------------------------------------------------------------------------
+bool ccb_mem_x256k(GUI_MENU_ENTRY *ptr)
+{
+	Settings->CurrentModel->ramExpansion256k = (ptr->state = !ptr->state);
+	GUI->uiSetChanges |= PS_MACHINE | PS_PERIPHERALS;
+	return false;
+}
+//-----------------------------------------------------------------------------
+bool ccb_mem_m3cmp(GUI_MENU_ENTRY *ptr)
+{
+	Settings->CurrentModel->compatibilityMode = (ptr->state = !ptr->state);
+	GUI->uiSetChanges |= PS_MACHINE | PS_PERIPHERALS;
+	return false;
+}
+//-----------------------------------------------------------------------------
+bool ccb_mem_spl8k(GUI_MENU_ENTRY *ptr)
+{
+	Settings->CurrentModel->romSplit8kMode = (ptr->state = !ptr->state);
+	GUI->uiSetChanges |= PS_MACHINE | PS_PERIPHERALS;
+	return false;
 }
 //-----------------------------------------------------------------------------
 bool ccb_p32_imgd(GUI_MENU_ENTRY *ptr)

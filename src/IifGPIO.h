@@ -36,9 +36,9 @@ class IifGPIO: public PeripheralDevice, public ChipPIO8255
 public:
 	IifGPIO();
 
-	virtual void resetDevice(int ticks);
-	virtual void writeToDevice(BYTE port, BYTE value, int ticks);
-	virtual BYTE readFromDevice(BYTE port, int ticks);
+	virtual void ResetDevice(int ticks);
+	virtual void WriteToDevice(BYTE port, BYTE value, int ticks);
+	virtual BYTE ReadFromDevice(BYTE port, int ticks);
 
 	sigslot::signal0<> OnBeforeResetA;
 	sigslot::signal0<> OnBeforeResetB;

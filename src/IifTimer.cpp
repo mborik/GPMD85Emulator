@@ -39,7 +39,7 @@ IifTimer::IifTimer(TComputerModel model) : ChipPIT8253()
 		Counters[0].OnOutChange.connect(this, &IifTimer::Timer0OutChange);
 }
 //---------------------------------------------------------------------------
-void IifTimer::writeToDevice(BYTE port, BYTE value, int ticks)
+void IifTimer::WriteToDevice(BYTE port, BYTE value, int ticks)
 {
 //	debug("IfTimer", "ticks=%d, port=%u, value=%u", ticks, port, value);
 
@@ -62,7 +62,7 @@ void IifTimer::writeToDevice(BYTE port, BYTE value, int ticks)
 	}
 }
 	//---------------------------------------------------------------------------
-BYTE IifTimer::readFromDevice(BYTE port, int ticks)
+BYTE IifTimer::ReadFromDevice(BYTE port, int ticks)
 {
 	BYTE retval;
 

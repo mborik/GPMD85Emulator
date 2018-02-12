@@ -39,8 +39,8 @@ class IifTimer : public PeripheralDevice, public ChipPIT8253 {
 public:
 	IifTimer(TComputerModel model);
 
-	virtual void writeToDevice(BYTE port, BYTE value, int ticks);
-	virtual BYTE readFromDevice(BYTE port, int ticks);
+	virtual void WriteToDevice(BYTE port, BYTE value, int ticks);
+	virtual BYTE ReadFromDevice(BYTE port, int ticks);
 
 	void ITimerService(int ticks, int dur);
 	void Timer0OutChange(TPITCounter cnt, bool out);

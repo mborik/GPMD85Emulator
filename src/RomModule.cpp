@@ -35,7 +35,7 @@ RomModule::~RomModule()
 /**
  * Metoda je volana procesorom pri jeho resete.
  */
-void RomModule::resetDevice(int ticks)
+void RomModule::ResetDevice(int ticks)
 {
 	ChipReset(false);
 }
@@ -43,7 +43,7 @@ void RomModule::resetDevice(int ticks)
 /**
  * Metoda je volana procesorom pri zapise na porty PIO RomModulu.
  */
-void RomModule::writeToDevice(BYTE port, BYTE value, int ticks)
+void RomModule::WriteToDevice(BYTE port, BYTE value, int ticks)
 {
 	switch (port & ROM_MODULE_REG_MASK) {
 		case ROM_MODULE_REG_A:
@@ -67,7 +67,7 @@ void RomModule::writeToDevice(BYTE port, BYTE value, int ticks)
 /**
  * Metoda je volana procesorom pri citani z portov PIO RomModulu.
  */
-BYTE RomModule::readFromDevice(BYTE port, int ticks)
+BYTE RomModule::ReadFromDevice(BYTE port, int ticks)
 {
 	BYTE retval;
 

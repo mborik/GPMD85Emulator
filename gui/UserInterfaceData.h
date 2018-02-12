@@ -37,7 +37,6 @@ const char *dcb_snd_volume_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_kbd_xchg_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_kbd_nums_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_kbd_mato_state(GUI_MENU_ENTRY *ptr);
-const char *dcb_emu_m3cmp_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_emu_pause_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_emu_speed_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_emu_focus_state(GUI_MENU_ENTRY *ptr);
@@ -47,6 +46,9 @@ const char *dcb_mem_file_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_mem_rmod_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_mem_rpkg_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_rom_pckg_state(GUI_MENU_ENTRY *ptr);
+const char *dcb_mem_x256k_state(GUI_MENU_ENTRY *ptr);
+const char *dcb_mem_m3cmp_state(GUI_MENU_ENTRY *ptr);
+const char *dcb_mem_spl8k_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_p32_conn_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_p32_imgs_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_p32_extc_state(GUI_MENU_ENTRY *ptr);
@@ -76,11 +78,13 @@ bool ccb_emu_pause(GUI_MENU_ENTRY *ptr);
 bool ccb_emu_speed(GUI_MENU_ENTRY *ptr);
 bool ccb_emu_reset(GUI_MENU_ENTRY *ptr);
 bool ccb_emu_hardreset(GUI_MENU_ENTRY *ptr);
-bool ccb_emu_m3cmp(GUI_MENU_ENTRY *ptr);
 bool ccb_emu_focus(GUI_MENU_ENTRY *ptr);
 bool ccb_emu_asave(GUI_MENU_ENTRY *ptr);
 bool ccb_emu_saves(GUI_MENU_ENTRY *ptr);
 bool ccb_machine(GUI_MENU_ENTRY *ptr);
+bool ccb_mem_x256k(GUI_MENU_ENTRY *ptr);
+bool ccb_mem_m3cmp(GUI_MENU_ENTRY *ptr);
+bool ccb_mem_spl8k(GUI_MENU_ENTRY *ptr);
 bool ccb_mem_rmod(GUI_MENU_ENTRY *ptr);
 bool ccb_rom_pckg(GUI_MENU_ENTRY *ptr);
 bool ccb_p32_imgd(GUI_MENU_ENTRY *ptr);
@@ -259,8 +263,6 @@ static GUI_MENU_ENTRY gui_emu_menu[] = {
 	{ MI_STANDARD, "\aRESET", "F5", SDL_SCANCODE_R, NULL, ccb_emu_reset, NULL, true },
 	{ MI_STANDARD, "\aCOLD RESTART", "^F5", SDL_SCANCODE_C, NULL, ccb_emu_hardreset, NULL, true },
 	{ MI_SEPARATOR },
-	{ MI_CHECKBOX, "PMD 85-\a3 COMPATIBILITY MODE", NULL, SDL_SCANCODE_3, NULL, ccb_emu_m3cmp, dcb_emu_m3cmp_state },
-	{ MI_SEPARATOR },
 	{ MI_SUBMENU, "\aSOUND", NULL, SDL_SCANCODE_S, gui_emu_sound_menu, NULL, NULL, true },
 	{ MI_SUBMENU, "\aKEYBOARD", NULL, SDL_SCANCODE_K, gui_emu_kbd_menu, NULL, NULL, true },
 	{ MI_SEPARATOR },
@@ -291,6 +293,10 @@ static GUI_MENU_ENTRY gui_mem_menu[] = {
 	{ MI_SEPARATOR },
 	{ MI_CHECKBOX, "\aROM MODULE", NULL, SDL_SCANCODE_R, NULL, ccb_mem_rmod, dcb_mem_rmod_state, true },
 	{ MI_SUBMENU, "ROM \aPACKAGE", NULL, SDL_SCANCODE_P, NULL, NULL, dcb_mem_rpkg_state, true },
+	{ MI_SEPARATOR },
+	{ MI_CHECKBOX, "256k MEMORY E\aXPANSION", NULL, SDL_SCANCODE_X, NULL, ccb_mem_x256k, dcb_mem_x256k_state },
+	{ MI_CHECKBOX, "\aCOMPATIBILITY MODE", NULL, SDL_SCANCODE_C, NULL, ccb_mem_m3cmp, dcb_mem_m3cmp_state },
+	{ MI_CHECKBOX, "\aSPLIT 8kB ROM", NULL, SDL_SCANCODE_S, NULL, ccb_mem_spl8k, dcb_mem_spl8k_state },
 	{ MENU_END }
 };
 static GUI_MENU_ENTRY gui_p32_menu[] = {

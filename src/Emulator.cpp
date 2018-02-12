@@ -719,9 +719,10 @@ void TEmulator::ActionTapeLoad(bool import)
 		strcpy(GUI->fileSelector->path, file);
 		delete [] file;
 
-		while (!TestDir(GUI->fileSelector->path, (char *) "..", NULL));
+		if (!TestDir(GUI->fileSelector->path, (char *) "..", NULL))
+			recentFile = NULL;
 	}
-	else
+	if (!recentFile)
 		strcpy(GUI->fileSelector->path, PathApplication);
 
 	GUI->MenuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
@@ -739,14 +740,16 @@ void TEmulator::ActionTapeSave()
 	GUI->fileSelector->callback.disconnect_all();
 	GUI->fileSelector->callback.connect(this, &TEmulator::SaveTape);
 
-	if (Settings->TapeBrowser->fileName) {
-		char *file = ComposeFilePath(Settings->TapeBrowser->fileName);
+	char *recentFile = Settings->TapeBrowser->fileName;
+	if (recentFile) {
+		char *file = ComposeFilePath(recentFile);
 		strcpy(GUI->fileSelector->path, file);
 		delete [] file;
 
-		while (!TestDir(GUI->fileSelector->path, (char *) "..", NULL));
+		if (!TestDir(GUI->fileSelector->path, (char *) "..", NULL))
+			recentFile = NULL;
 	}
-	else
+	if (!recentFile)
 		strcpy(GUI->fileSelector->path, PathApplication);
 
 	GUI->MenuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
@@ -788,9 +791,10 @@ void TEmulator::ActionPMD32LoadDisk(int drive)
 		strcpy(GUI->fileSelector->path, fileName);
 		delete [] fileName;
 
-		while (!TestDir(GUI->fileSelector->path, (char *) "..", NULL));
+		if (!TestDir(GUI->fileSelector->path, (char *) "..", NULL))
+			fileName = NULL;
 	}
-	else
+	if (!fileName)
 		strcpy(GUI->fileSelector->path, PathApplication);
 
 	GUI->MenuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
@@ -808,14 +812,16 @@ void TEmulator::ActionSnapLoad()
 	GUI->fileSelector->callback.disconnect_all();
 	GUI->fileSelector->callback.connect(this, &TEmulator::ProcessSnapshot);
 
-	if (Settings->Snapshot->fileName) {
-		char *file = ComposeFilePath(Settings->Snapshot->fileName);
+	char *recentFile = Settings->Snapshot->fileName;
+	if (recentFile) {
+		char *file = ComposeFilePath(recentFile);
 		strcpy(GUI->fileSelector->path, file);
 		delete [] file;
 
-		while (!TestDir(GUI->fileSelector->path, (char *) "..", NULL));
+		if (!TestDir(GUI->fileSelector->path, (char *) "..", NULL))
+			recentFile = NULL;
 	}
-	else
+	if (!recentFile)
 		strcpy(GUI->fileSelector->path, PathApplication);
 
 	GUI->MenuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
@@ -833,14 +839,16 @@ void TEmulator::ActionSnapSave()
 	GUI->fileSelector->callback.disconnect_all();
 	GUI->fileSelector->callback.connect(this, &TEmulator::PrepareSnapshot);
 
-	if (Settings->Snapshot->fileName) {
-		char *file = ComposeFilePath(Settings->Snapshot->fileName);
+	char *recentFile = Settings->Snapshot->fileName;
+	if (recentFile) {
+		char *file = ComposeFilePath(recentFile);
 		strcpy(GUI->fileSelector->path, file);
 		delete [] file;
 
-		while (!TestDir(GUI->fileSelector->path, (char *) "..", NULL));
+		if (!TestDir(GUI->fileSelector->path, (char *) "..", NULL))
+			recentFile = NULL;
 	}
-	else
+	if (!recentFile)
 		strcpy(GUI->fileSelector->path, PathApplication);
 
 	GUI->MenuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
@@ -868,9 +876,10 @@ void TEmulator::ActionROMLoad()
 			file = fileName;
 
 		strcpy(GUI->fileSelector->path, file);
-		while (!TestDir(GUI->fileSelector->path, (char *) "..", NULL));
+		if (!TestDir(GUI->fileSelector->path, (char *) "..", NULL))
+			fileName = NULL;
 	}
-	else {
+	if (!fileName) {
 		if (stat(PathAppConfig, &CommonUtils::filestat) == 0)
 			strcpy(GUI->fileSelector->path, PathAppConfig);
 		else if (stat(PathResources, &CommonUtils::filestat) == 0)
@@ -893,14 +902,16 @@ void TEmulator::ActionRawFile(bool save)
 	GUI->fileSelector->callback.disconnect_all();
 	GUI->fileSelector->callback.connect(this, &TEmulator::SelectRawFile);
 
-	if (Settings->MemoryBlock->fileName) {
-		char *file = ComposeFilePath(Settings->MemoryBlock->fileName);
+	char *recentFile = Settings->MemoryBlock->fileName;
+	if (recentFile) {
+		char *file = ComposeFilePath(recentFile);
 		strcpy(GUI->fileSelector->path, file);
 		delete [] file;
 
-		while (!TestDir(GUI->fileSelector->path, (char *) "..", NULL));
+		if (!TestDir(GUI->fileSelector->path, (char *) "..", NULL))
+			recentFile = NULL;
 	}
-	else
+	if (!recentFile)
 		strcpy(GUI->fileSelector->path, PathApplication);
 
 	GUI->MenuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
@@ -1046,12 +1057,18 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 			break;
 
 		case CM_V2A : // PMD 85-2A
-			memory = new ChipMemory2A(romSize);    // 64 kB RAM, x kB ROM
+			if (Settings->CurrentModel->ramExpansion256k)
+				memory = new ChipMemory2AEx(romSize); // 256 kB RAM, x kB ROM
+			else
+				memory = new ChipMemory2A(romSize);    // 64 kB RAM, x kB ROM
 			break;
 
 		case CM_V3 :  // PMD 85-3
 			romSize = 8;
-			memory = new ChipMemory3(romSize);     // 64 kB RAM, 8 kB ROM
+			if (Settings->CurrentModel->ramExpansion256k)
+				memory = new ChipMemory3Ex(romSize);  // 256 kB RAM, 8 kB ROM
+			else
+				memory = new ChipMemory3(romSize);     // 64 kB RAM, 8 kB ROM
 			break;
 
 		case CM_MATO :  // Mato
@@ -1106,6 +1123,11 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 
 		// pin tape interface signal to CPU
 		cpu->TCyclesListeners.connect(ifTape, &IifTape::TapeClockService123);
+
+		// registering the extended memory 256k mapper
+		if (Settings->CurrentModel->ramExpansion256k)
+			cpu->AddDevice(MM256_REG_ADR, MM256_REG_MASK,
+					dynamic_cast<PeripheralDevice *>(memory), true);
 	}
 
 	// disable Consul 2717 extended screen mode if was enabled
@@ -1314,11 +1336,11 @@ void TEmulator::ProcessSnapshot(char *fileName, BYTE *flag)
 		Debugger->SetParams(cpu, memory, model);
 
 		if (systemPIO) {
-			systemPIO->resetDevice(0);
-			systemPIO->writeToDevice(SYSTEM_REG_CWR, *(buf + 30), 0);
-			systemPIO->writeToDevice(SYSTEM_REG_C, *(buf + 31), 0);
-			systemPIO->writeToDevice(SYSTEM_REG_A, *(buf + 32), 0);
-			systemPIO->readFromDevice(SYSTEM_REG_B, 0); // set for C2717 repagination
+			systemPIO->ResetDevice(0);
+			systemPIO->WriteToDevice(SYSTEM_REG_CWR, *(buf + 30), 0);
+			systemPIO->WriteToDevice(SYSTEM_REG_C, *(buf + 31), 0);
+			systemPIO->WriteToDevice(SYSTEM_REG_A, *(buf + 32), 0);
+			systemPIO->ReadFromDevice(SYSTEM_REG_B, 0); // set for C2717 repagination
 		}
 
 		if (ifGpio)

@@ -60,13 +60,13 @@ int IifTape::GetTapeIcon()
 /**
  * Metoda je volana procesorom pri jeho resete.
  */
-void IifTape::resetDevice(int ticks)
+void IifTape::ResetDevice(int ticks)
 {
 	ChipReset(false);
 	TapeCommand(CMD_STOP, NULL);
 }
 //---------------------------------------------------------------------------
-void IifTape::writeToDevice(BYTE port, BYTE value, int ticks)
+void IifTape::WriteToDevice(BYTE port, BYTE value, int ticks)
 {
 	if (model == CM_ALFA || model == CM_ALFA2) {
 		switch (port & IIF_TAPE_REG_MASK_A) {
@@ -92,7 +92,7 @@ void IifTape::writeToDevice(BYTE port, BYTE value, int ticks)
 	}
 }
 //---------------------------------------------------------------------------
-BYTE IifTape::readFromDevice(BYTE port, int ticks)
+BYTE IifTape::ReadFromDevice(BYTE port, int ticks)
 {
 	BYTE retval;
 

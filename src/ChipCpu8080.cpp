@@ -181,7 +181,7 @@ void ChipCpu8080::Reset()
 	PORT_HANDLER *ph = ports;
 	while (ph) {
 		if (ph->needReset)
-			ph->device->resetDevice(0);
+			ph->device->ResetDevice(0);
 		ph = ph->next;
 	}
 }
@@ -1165,7 +1165,7 @@ int ChipCpu8080::DoInstruction()
 			{
 				PeripheralDevice *dev = FindDevice(bytetemp);
 				if (dev)
-					dev->writeToDevice(bytetemp, A, countTCycles);
+					dev->WriteToDevice(bytetemp, A, countTCycles);
 			}
 			break;
 
@@ -1205,7 +1205,7 @@ int ChipCpu8080::DoInstruction()
 			{
 				PeripheralDevice *dev = FindDevice(bytetemp);
 				if (dev)
-					A = dev->readFromDevice(bytetemp, countTCycles);
+					A = dev->ReadFromDevice(bytetemp, countTCycles);
 				else
 					A = 0xFF;
 			}

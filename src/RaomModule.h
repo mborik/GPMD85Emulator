@@ -58,9 +58,9 @@ class RaomModule : public PeripheralDevice, public ChipPIO8255 {
 		RaomModule(TRaomType type);
 		virtual ~RaomModule();
 
-		virtual void resetDevice(int ticks);
-		virtual void writeToDevice(BYTE port, BYTE value, int ticks);
-		virtual BYTE readFromDevice(BYTE port, int ticks);
+		virtual void ResetDevice(int ticks);
+		virtual void WriteToDevice(BYTE port, BYTE value, int ticks);
+		virtual BYTE ReadFromDevice(BYTE port, int ticks);
 
 		void InsertDisk(char *file);
 		void RemoveDisk();

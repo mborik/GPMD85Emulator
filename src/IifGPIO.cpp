@@ -31,7 +31,7 @@ IifGPIO::IifGPIO() : ChipPIO8255(true)
 /**
  * Metoda je volana procesorom pri jeho resete.
  */
-void IifGPIO::resetDevice(int ticks)
+void IifGPIO::ResetDevice(int ticks)
 {
 	currentTicks = ticks;
 
@@ -47,7 +47,7 @@ void IifGPIO::resetDevice(int ticks)
 /**
  * Metoda je volana procesorom pri zapise na porty GPIO.
  */
-void IifGPIO::writeToDevice(BYTE port, BYTE value, int ticks)
+void IifGPIO::WriteToDevice(BYTE port, BYTE value, int ticks)
 {
 	currentTicks = ticks;
 
@@ -73,7 +73,7 @@ void IifGPIO::writeToDevice(BYTE port, BYTE value, int ticks)
 /**
  * Metoda je volana procesorom pri citani z portov GPIO.
  */
-BYTE IifGPIO::readFromDevice(BYTE port, int ticks)
+BYTE IifGPIO::ReadFromDevice(BYTE port, int ticks)
 {
 	BYTE retval;
 

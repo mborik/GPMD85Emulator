@@ -1,5 +1,6 @@
-/*	PeripheralDevice.h: Abstract class PeripheralDevice
-	Copyright (c) 2006 Roman Borik <pmd85emu@gmail.com>
+/*  ChipMemory3Ex.h: Derived class for memory management and
+		peripheral device handling of memory expansion for Model 3.
+	Copyright (c) 2015-2016 Roman Borik <pmd85emu@gmail.com>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -15,18 +16,36 @@
 	along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 //---------------------------------------------------------------------------
-#ifndef PeripheralDeviceH
-#define PeripheralDeviceH
+#ifndef ChipMemory3ExH
+#define ChipMemory3ExH
 //---------------------------------------------------------------------------
-#include "globals.h"
+#include "ChipMemory.h"
+#include "PeripheralDevice.h"
 //---------------------------------------------------------------------------
-class PeripheralDevice {
+class ChipMemory3Ex : public ChipMemory, public PeripheralDevice {
 public:
-	// Pure virtual methods:
-	// It should be implemented by interupt controller and called by CPU:
-	virtual void WriteToDevice(BYTE port, BYTE value, int ticks) = 0;
-	virtual BYTE ReadFromDevice(BYTE port, int ticks) = 0;
-	virtual void ResetDevice(int ticks) { return; };
+	ChipMemory3Ex(BYTE initRomSizeKB);
+
+	virtual void ResetOn();
+	virtual void ResetOff();
+
+	virtual BYTE* GetVramPointer();
+	virtual BYTE GetPage();
+	virtual void SetPage(BYTE btPage);
+	virtual int FindPointer(int physAddr, int len, int oper, BYTE **ptr);
+
+	virtual inline void ResetDevice(int ticks) { ResetOn(); }
+	virtual void WriteToDevice(BYTE port, BYTE value, int ticks);
+	virtual BYTE ReadFromDevice(BYTE port, int ticks);
+
+private:
+	void FillPointers(int part, int map, int bank);
+
+	BYTE* pointers[2][8]; // pointers to 8kB memory blocks
+
+	int  bank;   // 16kB memory bank number <0, 15>
+	int  map;    // bank mapping into 16kB memspace <0, 3>
+	bool vram2;  // second VRAM
 };
 //---------------------------------------------------------------------------
 #endif

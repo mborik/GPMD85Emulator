@@ -60,7 +60,7 @@ RaomModule::~RaomModule()
 /**
  * Metoda je volana procesorom pri jeho resete.
  */
-void RaomModule::resetDevice(int ticks)
+void RaomModule::ResetDevice(int ticks)
 {
 	ChipReset(false);
 }
@@ -68,7 +68,7 @@ void RaomModule::resetDevice(int ticks)
 /**
  * Metoda je volana procesorom pri zapise na porty RaomModulu.
  */
-void RaomModule::writeToDevice(BYTE port, BYTE value, int ticks)
+void RaomModule::WriteToDevice(BYTE port, BYTE value, int ticks)
 {
 	switch (port & RAOM_REG_MASK) {
 		case RAOM_REG_DATA_CHTF:
@@ -121,7 +121,7 @@ void RaomModule::writeToDevice(BYTE port, BYTE value, int ticks)
 /**
  * Metoda je volana procesorom pri citani z portov RaomModulu.
  */
-BYTE RaomModule::readFromDevice(BYTE port, int ticks)
+BYTE RaomModule::ReadFromDevice(BYTE port, int ticks)
 {
 	BYTE retval;
 

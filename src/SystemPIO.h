@@ -55,9 +55,9 @@ class SystemPIO : public PeripheralDevice, public ChipPIO8255 {
 public:
 	SystemPIO(TComputerModel model, ChipMemory *mem);
 
-	virtual void resetDevice(int ticks);
-	virtual void writeToDevice(BYTE port, BYTE value, int ticks);
-	virtual BYTE readFromDevice(BYTE port, int ticks);
+	virtual void ResetDevice(int ticks);
+	virtual void WriteToDevice(BYTE port, BYTE value, int ticks);
+	virtual BYTE ReadFromDevice(BYTE port, int ticks);
 
 	void ScanKeyboard(BYTE *keybuf);
 	void SoundService(int ticks, int dur);

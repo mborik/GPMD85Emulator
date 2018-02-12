@@ -142,7 +142,7 @@ TSettings::TSettings()
 
 		if (model->ramExpansion256k && !(model->type == CM_V2A || model->type == CM_V3))
 			model->ramExpansion256k = false;
-		if (model->romSplit8kMode && !(model->type == CM_V1 || model->type == CM_V2 || model->type == CM_V2A))
+		if (model->romSplit8kMode && model->type > CM_V2A)
 			model->romSplit8kMode = false;
 
 		s = cfgGetStringValue(n, "rmm-name");
@@ -397,7 +397,7 @@ TSettings::TSettings()
 	Screen->attr10 = cfgGetColorValue(n, "attr10", AQUA, &(Screen->attr10));
 	Screen->attr11 = cfgGetColorValue(n, "attr11", YELLOW, &(Screen->attr11));
 
-	Sound->videoInterrupt = cfgGetBoolValue(n, "video-interrupt", false, &(Sound->videoInterrupt));
+	Screen->videoInterrupt = cfgGetBoolValue(n, "video-interrupt", false, &(Screen->videoInterrupt));
 
 //# Sound settings
 	n = cfgFindSection(cfgRoot, "Sound");

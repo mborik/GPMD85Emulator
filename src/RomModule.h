@@ -40,9 +40,9 @@ class RomModule: public PeripheralDevice, public ChipPIO8255
 		RomModule();
 		virtual ~RomModule();
 
-		virtual void resetDevice(int ticks);
-		virtual void writeToDevice(BYTE port, BYTE value, int ticks);
-		virtual BYTE readFromDevice(BYTE port, int ticks);
+		virtual void ResetDevice(int ticks);
+		virtual void WriteToDevice(BYTE port, BYTE value, int ticks);
+		virtual BYTE ReadFromDevice(BYTE port, int ticks);
 
 		bool InsertRom(BYTE addressKB, BYTE sizeKB, BYTE *src);
 		void RemoveRom(BYTE addressKB, BYTE sizeKB);

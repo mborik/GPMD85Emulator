@@ -1,5 +1,5 @@
 /*	Menu.cpp: Part of GUI rendering class: Menu drawing and handling
-	Copyright (c) 2011-2012 Martin Borik <mborik@users.sourceforge.net>
+	Copyright (c) 2011-2018 Martin Borik <mborik@users.sourceforge.net>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -40,9 +40,10 @@ void UserInterface::DrawMenu(void *data)
 
 		height += GUI_CONST_ITEM_SIZE;
 
-		k = (strlen(ptr->text) * fontWidth)
-		  + ((ptr->type == MI_SUBMENU) ? (fontWidth + fontWidth) :
-		  + ((ptr->type == MI_DIALOG)  ? fontWidth : 0));
+		k = (strlen(ptr->text) * fontWidth) +
+			((ptr->type == MI_SUBMENU) ?
+				(fontWidth + fontWidth) :
+				((ptr->type == MI_DIALOG) ? fontWidth : 0));
 
 		if (widthLeft < k)
 			widthLeft = k;
@@ -55,13 +56,24 @@ void UserInterface::DrawMenu(void *data)
 			}
 
 			k += (strlen(wrk) * fontWidth) +
-				((menuStack[menuStackLevel].type != GUI_TYPE_TAPE_POPUP) ? GUI_CONST_HOTKEYCHAR : 0);
+				((menuStack[menuStackLevel].type != GUI_TYPE_TAPE_POPUP) ?
+						GUI_CONST_HOTKEYCHAR : 0);
 		}
 
 		if (ptr->detail) {
 			wrk = ptr->detail(ptr);
-			if (wrk)
-				k += ((strlen(wrk) + 2) * fontWidth);
+			if (wrk) {
+				const char *lastDot = NULL;
+				int len = strlen(wrk);
+
+				if (len > 15)
+					lastDot = strrchr(wrk, '.');
+				int max = SDL_min(15, len);
+				if (lastDot)
+					max = SDL_min(max, lastDot - wrk);
+
+				k += ++max * fontWidth;
+			}
 		}
 
 		if (widthRight < k)
@@ -74,8 +86,8 @@ void UserInterface::DrawMenu(void *data)
 	if ((int) (strlen(cMenu_data->text) * fontWidth) > k)
 		k = strlen(cMenu_data->text) * fontWidth;
 
-	cMenu_rect->w = GUI_CONST_BORDER + k + GUI_CONST_BORDER;
-	cMenu_rect->h = (2 * GUI_CONST_BORDER) + height + GUI_CONST_BORDER;
+	cMenu_rect->w = (2 * GUI_CONST_BORDER) + k;
+	cMenu_rect->h = (3 * GUI_CONST_BORDER) + height;
 	cMenu_rect->x = (frameWidth  - cMenu_rect->w) / 2;
 	cMenu_rect->y = (frameHeight - cMenu_rect->h) / 2;
 
@@ -144,8 +156,8 @@ void UserInterface::DrawMenuItems(GUI_SURFACE *s)
 			mx += r->w - 12;
 			if ((wrk = ptr->hotkey) != NULL) {
 				BYTE c = (ptr->enabled) ? GUI_COLOR_HOTKEY : GUI_COLOR_DISABLED;
-				char hkchr = (menuStack[menuStackLevel].type != GUI_TYPE_TAPE_POPUP)
-						? (char) SCHR_HOTKEY : ' ';
+				char hkchr = (menuStack[menuStackLevel].type != GUI_TYPE_TAPE_POPUP) ?
+						(char) SCHR_HOTKEY : ' ';
 
 				mx -= GUI_CONST_HOTKEYCHAR + (strlen(wrk) * 6);
 				if (wrk[0] == '^') {
@@ -163,8 +175,20 @@ void UserInterface::DrawMenuItems(GUI_SURFACE *s)
 			else if (ptr->detail) {
 				wrk = ptr->detail(ptr);
 				if (wrk) {
-					mx -= (strlen(wrk) * 6) + 12;
-					PrintFormatted(s, mx, my, GUI_COLOR_DISABLED, "[%s]", wrk);
+					const char *lastDot = NULL;
+					int len = strlen(wrk);
+
+					if (len > 15)
+						lastDot = strrchr(wrk, '.');
+					int max = SDL_min(15, len);
+					if (lastDot)
+						max = SDL_min(max, lastDot - wrk);
+
+					mx -= (max + 2) * 6;
+					if (len > 15)
+						PrintFormatted(s, (mx -= 6), my, GUI_COLOR_DISABLED, "[%.*s\205]", max, wrk);
+					else
+						PrintFormatted(s, mx, my, GUI_COLOR_DISABLED, "[%s]", wrk);
 				}
 			}
 

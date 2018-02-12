@@ -85,9 +85,9 @@ class IifTape : public PeripheralDevice, public ChipUSART8251 {
 	public:
 		IifTape(TComputerModel model);
 
-		virtual void resetDevice(int ticks);
-		virtual void writeToDevice(BYTE port, BYTE value, int ticks);
-		virtual BYTE readFromDevice(BYTE port, int ticks);
+		virtual void ResetDevice(int ticks);
+		virtual void WriteToDevice(BYTE port, BYTE value, int ticks);
+		virtual BYTE ReadFromDevice(BYTE port, int ticks);
 
 		sigslot::signal2<int, bool *> TapeCommand;
 		sigslot::signal3<int, bool, int> PrepareSample;

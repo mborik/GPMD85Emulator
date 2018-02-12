@@ -56,7 +56,7 @@ SystemPIO::SystemPIO(TComputerModel model, ChipMemory *memory) : ChipPIO8255(fal
 /**
  * Method is executed after CPU reset.
  */
-void SystemPIO::resetDevice(int ticks)
+void SystemPIO::ResetDevice(int ticks)
 {
 	currentTicks = ticks;
 	ChipReset(false);
@@ -65,7 +65,7 @@ void SystemPIO::resetDevice(int ticks)
 /**
  * Method is called by CPU during write to ports of system PIO.
  */
-void SystemPIO::writeToDevice(BYTE port, BYTE value, int ticks)
+void SystemPIO::WriteToDevice(BYTE port, BYTE value, int ticks)
 {
 	currentTicks = ticks;
 
@@ -94,7 +94,7 @@ void SystemPIO::writeToDevice(BYTE port, BYTE value, int ticks)
 /**
  * Method is called by CPU during read from ports of system PIO.
  */
-BYTE SystemPIO::readFromDevice(BYTE port, int ticks)
+BYTE SystemPIO::ReadFromDevice(BYTE port, int ticks)
 {
 	BYTE retval;
 
