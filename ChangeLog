@@ -1,3 +1,4 @@
+2018-02-13 [mborik] fixed long-time persisting issue with changing memory/rom/rmm configuration; fixed bug in ChipMemory2AEx
 2018-02-12 [mborik] implemented 256k memory expansion; fixed updir path related bug; striping of long filenames in menu
 2018-02-05 [mborik] settings updated and extended to all new features; slim down of roms - removed obsolete and unusable
 2018-01-30 [mborik] ChipMemory splitted into separate child classes for each model, method for reset status & currently mapped VRAM pointer

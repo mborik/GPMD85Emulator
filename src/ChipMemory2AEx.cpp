@@ -116,24 +116,24 @@ void ChipMemory2AEx::FillPointers(int part, int map, int bank)
 		// ROM space
 		if (split8k) {
 			for (i = 4; i < 8; i++)
-				pointers[1][32 + i] = memROM + (bank * 16 + i) * 1024;
+				pointers[1][32 + i] = memRAM + (bank * 16 + i) * 1024;
 			for (i = (sizeRomKB - 4) + 8; i < 16; i++)
-				pointers[1][32 + i] = memROM + (bank * 16 + i) * 1024;
+				pointers[1][32 + i] = memRAM + (bank * 16 + i) * 1024;
 		}
 		else if (sizeRomKB <= 8) {
 			for (i = sizeRomKB; i < 8; i++)
-				pointers[1][32 + i] = memROM + (bank * 16 + i) * 1024;
+				pointers[1][32 + i] = memRAM + (bank * 16 + i) * 1024;
 			for (i = sizeRomKB + 8; i < 16; i++)
-				pointers[1][32 + i] = memROM + (bank * 16 + i) * 1024;
+				pointers[1][32 + i] = memRAM + (bank * 16 + i) * 1024;
 		}
 		else {
 			for (i = sizeRomKB; i < 16; i++)
-				pointers[1][32 + i] = memROM + (bank * 16 + i) * 1024;
+				pointers[1][32 + i] = memRAM + (bank * 16 + i) * 1024;
 		}
 	}
 	else {
 		for (i = 0; i < 16; i++)
-			pointers[part][map * 16 + i] = memROM + (bank * 16 + i) * 1024;
+			pointers[part][map * 16 + i] = memRAM + (bank * 16 + i) * 1024;
 	}
 }
 //---------------------------------------------------------------------------

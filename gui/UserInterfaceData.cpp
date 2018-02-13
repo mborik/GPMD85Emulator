@@ -256,7 +256,7 @@ const char *dcb_mem_spl8k_state(GUI_MENU_ENTRY *ptr)
 {
 	ptr->state = Settings->CurrentModel->romSplit8kMode;
 	ptr->enabled = Settings->CurrentModel->type <= CM_V2A;
-	return "on 8000h|A000h";
+	return "on 8000h/A000h";
 }
 //-----------------------------------------------------------------------------
 const char *dcb_p32_conn_state(GUI_MENU_ENTRY *ptr)
@@ -589,21 +589,21 @@ bool ccb_rom_pckg(GUI_MENU_ENTRY *ptr)
 bool ccb_mem_x256k(GUI_MENU_ENTRY *ptr)
 {
 	Settings->CurrentModel->ramExpansion256k = (ptr->state = !ptr->state);
-	GUI->uiSetChanges |= PS_MACHINE | PS_PERIPHERALS;
+	GUI->uiSetChanges |= PS_MACHINE;
 	return false;
 }
 //-----------------------------------------------------------------------------
 bool ccb_mem_m3cmp(GUI_MENU_ENTRY *ptr)
 {
 	Settings->CurrentModel->compatibilityMode = (ptr->state = !ptr->state);
-	GUI->uiSetChanges |= PS_MACHINE | PS_PERIPHERALS;
+	GUI->uiSetChanges |= PS_MACHINE;
 	return false;
 }
 //-----------------------------------------------------------------------------
 bool ccb_mem_spl8k(GUI_MENU_ENTRY *ptr)
 {
 	Settings->CurrentModel->romSplit8kMode = (ptr->state = !ptr->state);
-	GUI->uiSetChanges |= PS_MACHINE | PS_PERIPHERALS;
+	GUI->uiSetChanges |= PS_MACHINE;
 	return false;
 }
 //-----------------------------------------------------------------------------

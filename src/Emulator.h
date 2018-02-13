@@ -84,6 +84,7 @@ class TEmulator : public sigslot::has_slots<>
 
 	private:
 		bool inmenu;
+		SDL_Event exposeEvent;
 
 		int cpuUsage;
 		ChipCpu8080 *cpu;
@@ -100,10 +101,12 @@ class TEmulator : public sigslot::has_slots<>
 		RaomModule *raomModule;
 
 		TComputerModel model;
-		SDL_Event exposeEvent;
-		bool compatible32;
 		int  monitorLength;
+
 		bool romChanged;
+		bool romSplit8kMode;
+		bool compatibilityMode;
+		bool ramExpansion256k;
 
 		int  pmd32workdrive;
 		bool pmd32connected;

@@ -46,7 +46,9 @@ TEmulator::TEmulator()
 
 	model = CM_UNKNOWN;
 	romChanged = false;
-	compatible32 = false;
+	romSplit8kMode = false;
+	compatibilityMode = false;
+	ramExpansion256k = false;
 	pmd32connected = false;
 	romModuleConnected = false;
 	raomModuleConnected = false;
@@ -182,12 +184,31 @@ void TEmulator::ProcessSettings(BYTE filter)
 	}
 
 	if (filter & PS_MACHINE) {
-		if (!romChanged && model == Settings->CurrentModel->type && compatible32 == Settings->CurrentModel->compatibilityMode)
-			filter ^= PS_MACHINE;
-		else {
+		bool machineCfgChanging = false;
+
+		if (model != Settings->CurrentModel->type) {
 			model = Settings->CurrentModel->type;
-			compatible32 = Settings->CurrentModel->compatibilityMode;
+			machineCfgChanging = true;
 		}
+		if (romSplit8kMode != Settings->CurrentModel->romSplit8kMode) {
+			romSplit8kMode = Settings->CurrentModel->romSplit8kMode;
+			machineCfgChanging = true;
+		}
+		if (ramExpansion256k != Settings->CurrentModel->ramExpansion256k) {
+			ramExpansion256k = Settings->CurrentModel->ramExpansion256k;
+			machineCfgChanging = true;
+		}
+		if (compatibilityMode != Settings->CurrentModel->compatibilityMode) {
+			compatibilityMode = Settings->CurrentModel->compatibilityMode;
+			machineCfgChanging = true;
+		}
+		if (romModuleConnected != Settings->CurrentModel->romModuleInserted) {
+			romModuleConnected = Settings->CurrentModel->romModuleInserted;
+			machineCfgChanging = true;
+		}
+
+		if (!romChanged && !machineCfgChanging)
+			filter ^= PS_MACHINE;
 	}
 
 	if (!isActive || (filter & PS_MACHINE)) {
@@ -197,7 +218,7 @@ void TEmulator::ProcessSettings(BYTE filter)
 	}
 
 	if (!isActive || (filter & PS_PERIPHERALS)) {
-		ConnectPMD32((filter & PS_MACHINE) | romChanged);
+		ConnectPMD32((filter & PS_MACHINE) || romChanged);
 
 		if (romModuleConnected != Settings->CurrentModel->romModuleInserted) {
 			romModuleConnected = Settings->CurrentModel->romModuleInserted;
@@ -314,7 +335,7 @@ void TEmulator::CpuTimerCallback()
 		}
 
 		// switch PMD 85-3 to compatibility mode
-		if (pc == 0xE04C && model == CM_V3 && compatible32)
+		if (pc == 0xE04C && model == CM_V3 && compatibilityMode)
 			cpu->SetPC(0xFFF0);
 
 		// tape flash loading - ROM routine entry-point mapping
@@ -925,6 +946,7 @@ void TEmulator::ActionReset()
 void TEmulator::ActionHardReset()
 {
 	ActionPlayPause(false, false);
+	romChanged = true; // force really cold restart
 	ProcessSettings(PS_MACHINE | PS_PERIPHERALS);
 	ActionPlayPause(!Settings->isPaused, false);
 }
@@ -1057,7 +1079,7 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 			break;
 
 		case CM_V2A : // PMD 85-2A
-			if (Settings->CurrentModel->ramExpansion256k)
+			if (ramExpansion256k)
 				memory = new ChipMemory2AEx(romSize); // 256 kB RAM, x kB ROM
 			else
 				memory = new ChipMemory2A(romSize);    // 64 kB RAM, x kB ROM
@@ -1065,7 +1087,7 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 
 		case CM_V3 :  // PMD 85-3
 			romSize = 8;
-			if (Settings->CurrentModel->ramExpansion256k)
+			if (ramExpansion256k)
 				memory = new ChipMemory3Ex(romSize);  // 256 kB RAM, 8 kB ROM
 			else
 				memory = new ChipMemory3(romSize);     // 64 kB RAM, 8 kB ROM
@@ -1082,6 +1104,10 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 			memory->SetRemapped(true);
 			break;
 	}
+
+	// Set split 8kB ROM (on 8000h and A000h)
+	if (model <= CM_V2A)
+		memory->SetSplit8k(romSplit8kMode);
 
 	// CPU
 	cpu = new ChipCpu8080P(memory);
@@ -1125,7 +1151,7 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 		cpu->TCyclesListeners.connect(ifTape, &IifTape::TapeClockService123);
 
 		// registering the extended memory 256k mapper
-		if (Settings->CurrentModel->ramExpansion256k)
+		if (ramExpansion256k)
 			cpu->AddDevice(MM256_REG_ADR, MM256_REG_MASK,
 					dynamic_cast<PeripheralDevice *>(memory), true);
 	}
