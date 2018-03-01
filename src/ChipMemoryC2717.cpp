@@ -22,6 +22,7 @@ ChipMemoryC2717::ChipMemoryC2717(BYTE totalSizeKB) : ChipMemory(totalSizeKB)
 	sizeRAM = 64 * 1024;
 	memRAM = new BYTE[sizeRAM];
 	memset(memRAM, 0, sizeRAM);
+	vramOffset = 0xC000;
 }
 //---------------------------------------------------------------------------
 void ChipMemoryC2717::ResetOn()
@@ -41,7 +42,7 @@ void ChipMemoryC2717::ResetOff()
 //---------------------------------------------------------------------------
 BYTE* ChipMemoryC2717::GetVramPointer()
 {
-	return memRAM + 0xC000;
+	return memRAM + vramOffset;
 }
 //---------------------------------------------------------------------------
 /*

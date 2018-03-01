@@ -187,7 +187,10 @@ enum TMenuQueryType { GUI_QUERY_CANCEL = -1, GUI_QUERY_NONE = 0, GUI_QUERY_YES, 
 enum TFileSelectType { GUI_FS_BASELOAD, GUI_FS_BASESAVE, GUI_FS_SNAPLOAD, GUI_FS_SNAPSAVE };
 enum TDebugListType { DL_DUMP, DL_ASCII, DL_DISASM };
 enum TDebugListSource { MEM, HL, DE, BC, AF, SP, PC };
-//---------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+// screen offsets of top-left -> bottom-right corner
+typedef struct TDrawRegion { WORD tl, br; } TDrawRegion;
+//-----------------------------------------------------------------------------
 static char msgbuffer[1024];
 //-----------------------------------------------------------------------------
 inline void error(const char *ns, const char *msg, ...)

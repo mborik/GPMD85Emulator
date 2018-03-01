@@ -200,9 +200,10 @@ void ScreenPMD85::RefreshDisplay()
 	SDL_UnlockMutex(displayModeMutex);
 }
 //---------------------------------------------------------------------------
-void ScreenPMD85::FillBuffer(BYTE *videoRam)
+void ScreenPMD85::FillBuffer(BYTE *videoRam, bool needRedraw)
 {
-	if (SDL_TryLockMutex(displayModeMutex) != 0 || videoRam == NULL)
+	// test if there is something to draw and we're not locked in another thread...
+	if (!(videoRam && needRedraw && SDL_TryLockMutex(displayModeMutex) == 0))
 		return;
 
 	bool colorace = (colorProfile == CP_COLORACE);

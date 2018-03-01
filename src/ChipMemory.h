@@ -71,6 +71,7 @@ public:
 	inline bool IsSplit8k() { return split8k; }
 	inline void SetSplit8k(bool split)
 		{ split8k = split8k && (sizeRomKB > 4 && sizeRomKB <= 8); }
+	bool WasVramModified();
 
 	// read/write/fill of memory space
 	bool PutRom(BYTE *src, int size);
@@ -89,7 +90,8 @@ protected:
 	BYTE *memRAM;      // pointer to virtual RAM memory area
 	int  sizeRomKB;    // size of ROM in kilobytes
 	int  sizeROM;      // size of ROM in bytes
-	int  sizeRAM;      // size of ROM in bytes
+	int  sizeRAM;      // size of RAM in bytes
+	WORD vramOffset;   // offset in RAM where the current VRAM was mapped
 
 	// memory status flags (not all used in all models)
 	bool resetState;   // state of memory addressing after the reset happen
@@ -97,6 +99,9 @@ protected:
 	bool remapped;     // enabled virtual mapping of addresses to another
 	bool mem256;       // extended memory to 256 kilobytes
 	bool split8k;      // enable spliting of the ROM into 8000h & A000h
+
+	// union rectangle top-left -> bottom-right corner
+	TDrawRegion drawRegion;
 
 	virtual int FindPointer(int physAddr, int len, int oper, BYTE **ptr) = 0;
 };

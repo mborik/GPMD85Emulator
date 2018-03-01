@@ -22,6 +22,7 @@ ChipMemory2A::ChipMemory2A(BYTE totalSizeKB) : ChipMemory(totalSizeKB)
 	sizeRAM = 64 * 1024;
 	memRAM = new BYTE[sizeRAM];
 	memset(memRAM, 0, sizeRAM);
+	vramOffset = 0xC000;
 }
 //---------------------------------------------------------------------------
 void ChipMemory2A::ResetOn()
@@ -77,7 +78,7 @@ void ChipMemory2A::ResetOff()
 //---------------------------------------------------------------------------
 BYTE* ChipMemory2A::GetVramPointer()
 {
-	return memRAM + 0xC000;
+	return memRAM + vramOffset;
 }
 //---------------------------------------------------------------------------
 /*

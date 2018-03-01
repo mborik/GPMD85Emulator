@@ -85,7 +85,7 @@ void ChipMemory2AEx::ResetOff()
 //---------------------------------------------------------------------------
 BYTE* ChipMemory2AEx::GetVramPointer()
 {
-	return memRAM + (vram2 ? 7 : 3) * 16384;
+	return memRAM + (vramOffset = (vram2 ? 7 : 3) * 0x4000);
 }
 //---------------------------------------------------------------------------
 BYTE ChipMemory2AEx::GetPage()
@@ -99,10 +99,17 @@ void ChipMemory2AEx::SetPage(BYTE pg)
 	FillPointers(0, map, map);
 	FillPointers(1, map, map);
 
+	// perform full redraw of the screen when VRAM is switching...
+	bool newVRAM = (pg & 0x40);
+	if (newVRAM != vram2) {
+		drawRegion.tl = 0x0000;
+		drawRegion.br = 0x3FEF;
+	}
+
 	// new mapping set
 	bank = (pg & 0x0F);
 	map = (pg & 0x30) >> 4;
-	vram2 = (pg & 0x40);
+	vram2 = newVRAM;
 
 	// map selected bank onto selected space
 	FillPointers(0, map, bank);

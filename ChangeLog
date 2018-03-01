@@ -1,3 +1,4 @@
+2018-03-01 [mborik] writing into VRAM memspace is projecting into union rectangle and screen is rendered only if rect isn't empty
 2018-03-01 [mborik] bugfix of regression introduced in last commit when ROM modules didn't work (found by Cizo, thanks!)
 2018-02-13 [mborik] fixed long-time persisting issue with changing memory/rom/rmm configuration; fixed bug in ChipMemory2AEx
 2018-02-12 [mborik] implemented 256k memory expansion; fixed updir path related bug; striping of long filenames in menu

@@ -22,6 +22,7 @@ ChipMemory12::ChipMemory12(BYTE totalSizeKB) : ChipMemory(totalSizeKB)
 	sizeRAM = 48 * 1024;
 	memRAM = new BYTE[sizeRAM];
 	memset(memRAM, 0, sizeRAM);
+	vramOffset = 0x8000;
 }
 //---------------------------------------------------------------------------
 void ChipMemory12::ResetOn()
@@ -123,7 +124,7 @@ void ChipMemory12::ResetOff()
 //---------------------------------------------------------------------------
 BYTE* ChipMemory12::GetVramPointer()
 {
-	return memRAM + 0x8000;
+	return memRAM + vramOffset;
 }
 //---------------------------------------------------------------------------
 /*

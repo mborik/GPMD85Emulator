@@ -254,10 +254,12 @@ void TEmulator::BaseTimerCallback()
 		return;
 
 	thisTime = SDL_GetTicks();
+	bool fullRedrawExpected = false;
 
 	// blinking toggle
 	if (blinkCounter >= 500) {
 		blinkCounter = 0;
+		fullRedrawExpected = true;
 		video->ToggleBlinkStatus();
 	}
 	else
@@ -281,18 +283,17 @@ void TEmulator::BaseTimerCallback()
 			icon = pmd32->diskIcon;
 		GUI->SetIconState(icon);
 
-		video->FillBuffer(memory->GetVramPointer());
+		video->FillBuffer(
+			memory->GetVramPointer(),
+			fullRedrawExpected || memory->WasVramModified()
+		);
 	}
 
 	// status bar FPS and CPU indicators
 	if (thisTime >= nextTick) {
-		int perc = 0;
-		if (!GUI->InMenu()) {
-			if (Settings->isPaused)
-				perc--;
-			else
-				perc = (cpuUsage * 100.0f) / (float)(thisTime - (nextTick - MEASURE_PERIOD));
-		}
+		int perc = GUI->InMenu() - 1; // -> false = -1, true = 0 ;)
+		if (!Settings->isPaused)
+			perc = (cpuUsage * 100.0f) / (float) (thisTime - (nextTick - MEASURE_PERIOD));
 
 		GUI->SetStatusPercentage(perc);
 		GUI->SetStatusFPS(frames);
@@ -434,6 +435,7 @@ bool TEmulator::TestHotkeys()
 				GUI->uiSetChanges = 0;
 			}
 
+			// perform full redraw of the screen...
 			video->FillBuffer(memory->GetVramPointer());
 
 			// menu leaving callback was executed
@@ -535,6 +537,8 @@ bool TEmulator::TestHotkeys()
 					video->SetColorProfile(CP_STANDARD);
 					Settings->Screen->colorProfile = CP_STANDARD;
 				}
+				// perform full redraw of the screen...
+				video->FillBuffer(memory->GetVramPointer());
 				break;
 
 			case SDL_SCANCODE_C:	// COLOR MODES
@@ -546,6 +550,8 @@ bool TEmulator::TestHotkeys()
 					video->SetColorProfile(CP_COLOR);
 					Settings->Screen->colorProfile = CP_COLOR;
 				}
+				// perform full redraw of the screen...
+				video->FillBuffer(memory->GetVramPointer());
 				break;
 
 			case SDL_SCANCODE_P:	// PLAY/STOP TAPE

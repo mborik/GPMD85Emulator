@@ -46,9 +46,8 @@ public:
 
 	inline TDisplayMode GetDisplayMode() { return dispMode; }
 	void SetDisplayMode(TDisplayMode dispMode, int border);
-	inline void SetDisplayMode(TDisplayMode dispMode) {
-		SetDisplayMode(dispMode, borderSize / BORDER_MULTIPLIER);
-	}
+	inline void SetDisplayMode(TDisplayMode dispMode)
+		{ SetDisplayMode(dispMode, borderSize / BORDER_MULTIPLIER); }
 
 	void SetWidth384(bool mode384);
 	inline bool IsWidth384() { return width384mode; }
@@ -59,8 +58,8 @@ public:
 	void SetLcdMode(bool lcdMode);
 	inline bool IsLcdMode() { return lcdMode; }
 
-	inline void SetBlinkStatus(bool dotsDisplayed) { blinkState = dotsDisplayed; }
-	inline void ToggleBlinkStatus() { blinkState = !blinkState;}
+	inline void SetBlinkStatus(bool state) { blinkState = state; }
+	inline void ToggleBlinkStatus() { blinkState = !blinkState; }
 	inline bool GetBlinkStatus() { return blinkState; }
 
 	inline int GetMultiplier() { return screenRect->h / bufferHeight; }
@@ -72,7 +71,7 @@ public:
 	TColor GetColorAttr(int idx);
 
 	void RefreshDisplay();
-	void FillBuffer(BYTE *videoRam);
+	void FillBuffer(BYTE *videoRam, bool needRedraw = true);
 
 private:
 	SDL_Texture *scanlinerTexture;

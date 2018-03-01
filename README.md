@@ -19,7 +19,7 @@
   - translation of comments sk>en, testing and support
 - **mikezt/zeroteam**
   - quick-search in file-selector, bugfixing and testing
-- **Cize/SinDiKat**
+- **Cizo/SinDiKat**
   - testing and support
 - **Staon**
   - fixing compatibility bug in file-selector's ScanDir

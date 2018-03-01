@@ -40,6 +40,9 @@ ChipMemory::ChipMemory(WORD initRomSizeKB)
 	remapped = false;
 	mem256 = false;
 	split8k = false;
+
+	drawRegion.tl = 0x3FFF;
+	drawRegion.br = 0x0000;
 }
 //---------------------------------------------------------------------------
 /**
@@ -55,6 +58,17 @@ ChipMemory::~ChipMemory()
 		delete [] memRAM;
 		memRAM = NULL;
 	}
+}
+//---------------------------------------------------------------------------
+bool ChipMemory::WasVramModified()
+{
+	if (drawRegion.br < drawRegion.tl)
+		return false;
+
+	drawRegion.tl = 0x3FFF;
+	drawRegion.br = 0x0000;
+
+	return true;
 }
 //---------------------------------------------------------------------------
 /*
@@ -186,11 +200,8 @@ bool ChipMemory::FillMem(int destAddr, BYTE value, int size)
 BYTE ChipMemory::ReadByte(int physAddr)
 {
 	BYTE *ptr;
-
-	if (physAddr >= 0 && physAddr < 0x10000) {
-		if (FindPointer(physAddr, 1, OP_READ, &ptr) > 0 && ptr)
-			return *ptr;
-	}
+	if (FindPointer(physAddr, 1, OP_READ, &ptr) > 0 && ptr)
+		return *ptr;
 
 	return NA_BYTE;
 }
@@ -224,12 +235,17 @@ WORD ChipMemory::ReadWord(int physAddr)
 void ChipMemory::WriteByte(int physAddr, BYTE value)
 {
 	BYTE *ptr;
-
-	if (physAddr < 0 || physAddr > 0xFFFF)
-		return;
-
-	if (FindPointer(physAddr, 1, OP_WRITE, &ptr) > 0 && ptr)
+	if (FindPointer(physAddr, 1, OP_WRITE, &ptr) > 0 && ptr) {
 		*ptr = value;
+
+		int offset = (ptr - memRAM);
+		if ((offset & 0xFC000) == vramOffset && (offset & 0x3F) < 48) {
+			offset &= 0x3FFF;
+
+			drawRegion.tl = SDL_min(drawRegion.tl, offset);
+			drawRegion.br = SDL_max(drawRegion.br, offset);
+		}
+	}
 }
 //---------------------------------------------------------------------------
 /*

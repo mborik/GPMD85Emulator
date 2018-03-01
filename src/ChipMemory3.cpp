@@ -22,6 +22,7 @@ ChipMemory3::ChipMemory3(BYTE totalSizeKB) : ChipMemory(totalSizeKB)
 	sizeRAM = 64 * 1024;
 	memRAM = new BYTE[sizeRAM];
 	memset(memRAM, 0, sizeRAM);
+	vramOffset = 0xC000;
 }
 //---------------------------------------------------------------------------
 void ChipMemory3::ResetOn()
@@ -53,7 +54,7 @@ void ChipMemory3::ResetOff()
 //---------------------------------------------------------------------------
 BYTE* ChipMemory3::GetVramPointer()
 {
-	return memRAM + 0xC000;
+	return memRAM + vramOffset;
 }
 //---------------------------------------------------------------------------
 /*

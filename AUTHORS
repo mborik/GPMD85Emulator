@@ -11,16 +11,21 @@
     rewrite image and sound rendering to SDL and make a new on-screen GUI.
 
 + ub880d <ub880d@users.sourceforge.net>
-  - support developer, maintainer, test-lead.
+  - support developer, maintainer, tester.
 
 
 ### SPECIAL THANKS FOR THE SUPPORT:
 
 + ikon/SinDiKaT
-  - translation of rombor's comments in classes from slovak language.
+  - translation of rombor's comments in classes from slovak language
+  - testing and support
 
 + mikezt/zeroteam
-  - quick-search in file-selector, bugfixes and beta-testing.
+  - quick-search in file-selector
+  - bugfixes and testing.
+
++ Cizo/SinDiKaT
+  - testing and support
 
 + Staon
   - fixing compatibility bug in file-selector's ScanDir.

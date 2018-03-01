@@ -29,7 +29,7 @@ public:
 	virtual void ResetOn();
 	virtual void ResetOff();
 
-	virtual BYTE* GetVramPointer();
+	virtual inline BYTE* GetVramPointer();
 	virtual BYTE GetPage();
 	virtual void SetPage(BYTE btPage);
 	virtual int FindPointer(int physAddr, int len, int oper, BYTE **ptr);
