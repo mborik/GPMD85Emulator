@@ -205,6 +205,7 @@ void TEmulator::ProcessSettings(BYTE filter)
 		if (romModuleConnected != Settings->CurrentModel->romModuleInserted) {
 			romModuleConnected = Settings->CurrentModel->romModuleInserted;
 			machineCfgChanging = true;
+			filter |= PS_PERIPHERALS;
 		}
 
 		if (!romChanged && !machineCfgChanging)
@@ -220,15 +221,10 @@ void TEmulator::ProcessSettings(BYTE filter)
 	if (!isActive || (filter & PS_PERIPHERALS)) {
 		ConnectPMD32((filter & PS_MACHINE) || romChanged);
 
-		if (romModuleConnected != Settings->CurrentModel->romModuleInserted) {
-			romModuleConnected = Settings->CurrentModel->romModuleInserted;
+		if (romModuleConnected)
 			InsertRomModul(romModuleConnected, false);
-		}
-
-		if (raomModuleConnected != Settings->RaomModule->inserted) {
-			raomModuleConnected = Settings->RaomModule->inserted;
+		if (raomModuleConnected)
 			InsertRomModul(raomModuleConnected, false);
-		}
 	}
 
 	if (!isActive || (filter & (PS_MACHINE | PS_PERIPHERALS)))

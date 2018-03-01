@@ -12,13 +12,15 @@
 - **rombor** _[Roman Bórik]_
   - original Windows code and emulation of CPU and chips
 - **ub880d**
-  - support developer, maintainer, test-lead
+  - support developer, maintainer, tester
 
 ### SPECIAL THANKS FOR THE SUPPORT:
 - **ikon/SinDiKat**
-  - translation of comments in classes from slovak language
+  - translation of comments sk>en, testing and support
 - **mikezt/zeroteam**
-  - quick-search in file-selector, bugfixes and beta-testing
+  - quick-search in file-selector, bugfixing and testing
+- **Cize/SinDiKat**
+  - testing and support
 - **Staon**
   - fixing compatibility bug in file-selector's ScanDir
 
