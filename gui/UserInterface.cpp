@@ -463,8 +463,6 @@ void UserInterface::MenuOpen(GUI_MENU_TYPE type, void *data)
 	}
 
 	needRelease = true;
-	SDL_Delay(GUI_CONST_KEY_REPEAT);
-
 	GUI_SURFACE *defaultSurface = LockSurface(defaultTexture);
 
 	if (menuStackLevel < 0) {
@@ -525,7 +523,6 @@ void UserInterface::MenuOpen(GUI_MENU_TYPE type, void *data)
 void UserInterface::MenuClose()
 {
 	needRelease = true;
-	SDL_Delay(GUI_CONST_KEY_REPEAT);
 
 	GUI_SURFACE *defaultSurface = LockSurface(defaultTexture);
 

@@ -1298,7 +1298,7 @@ void TEmulator::ConnectPMD32(bool init)
 //---------------------------------------------------------------------------
 void TEmulator::ProcessSnapshot(char *fileName, BYTE *flag)
 {
-	BYTE *buf  = new BYTE[SNAP_HEADER_LEN];
+	BYTE *buf  = new BYTE[SNAP_HEADER_LEN + 1];
 	BYTE *src  = new BYTE[SNAP_BLOCK_LEN];
 	BYTE *dest = new BYTE[SNAP_BLOCK_LEN];
 
@@ -1469,7 +1469,7 @@ void TEmulator::ProcessSnapshot(char *fileName, BYTE *flag)
 //---------------------------------------------------------------------------
 void TEmulator::PrepareSnapshot(char *fileName, BYTE *flag)
 {
-	BYTE *buf  = new BYTE[SNAP_HEADER_LEN];
+	BYTE *buf  = new BYTE[SNAP_HEADER_LEN + 1];
 	BYTE *src  = new BYTE[SNAP_BLOCK_LEN];
 	BYTE *dest = new BYTE[SNAP_BLOCK_LEN];
 	int len, offset = SNAP_HEADER_LEN;
