@@ -68,7 +68,7 @@ void UserInterface::RedrawStatusBar()
 	delete s;
 
 	int tapProgressWidth = r->x - STATUSBAR_SPACING;
-	static char status[24] = "";
+	static char status[40] = "";
 	static BYTE pauseBlinker = 0;
 
 //	status text, cpu meter and blinking pause...
