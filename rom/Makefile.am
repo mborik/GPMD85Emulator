@@ -3,9 +3,6 @@
 
 AUTOMAKE_OPTIONS = foreign
 ROM = \
-	bas20.rmm \
-	bas20-fd.rmm \
-	bas20-gz.rmm \
 	basic1.rmm \
 	basic1tx.rmm \
 	basic2.rmm \
@@ -25,12 +22,6 @@ ROM = \
 	mato-gm3.rom \
 	mato-mb.rom \
 	mato-mb-ru.rom \
-	mon19-15k-2A.rom \
-	mon19-16k.rom \
-	mon19-4k.rom \
-	mon20-4k.rom \
-	mon20-fd.rom \
-	mon20-gz.rom \
 	monit1.rom \
 	monit1cs.rom \
 	monit1u.rom \
@@ -47,5 +38,4 @@ ROM = \
 
 pkgdata_DATA = $(ROM)
 
-EXTRA_DIST = $(ROM) rom-list.txt
-
+EXTRA_DIST = $(ROM) README.md
