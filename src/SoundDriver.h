@@ -39,10 +39,8 @@ class SoundDriver : public sigslot::has_slots<>
 		bool CloseWaveFile();
 
 	private:
-#if FADEOUT_ON
 		char FadeoutChannel(int chn);
-		int channelFadeout;
-#endif
+		int  channelFadeout;
 
 		bool initOK;
 		bool playOK;
@@ -75,6 +73,7 @@ class SoundDriver : public sigslot::has_slots<>
 		} CHANNEL;
 
 		BYTE silence;
+		DWORD frameSize;
 		int numChannels;
 		CHANNEL *channels;
 		char totalVolume;

@@ -27,24 +27,13 @@ SoundDriver::SoundDriver(int numChn, char totalAmpl)
 	channels = NULL;
 	hFile = NULL;
 
-	soundBuff = new BYTE[FRAME_SIZE];
-	memset(soundBuff, 0, FRAME_SIZE);
-
-	numChannels = numChn;
-	channels = new CHANNEL[numChn];
-	for (int ii = 0; ii < numChn; ii++) {
-		memset(&channels[ii], 0, sizeof(CHANNEL));
-		channels[ii].sampleBuff = new char[FRAME_SIZE];
-		memset(channels[ii].sampleBuff, 0, FRAME_SIZE);
-	}
-
 	SDL_AudioSpec desired;
 	SDL_zero(desired);
 
 	desired.freq = SAMPLE_RATE;
 	desired.format = AUDIO_U8;
-	desired.channels = 1;
-	desired.samples = AUDIO_BUFF_SIZE;
+	desired.channels = 2;
+	desired.samples = FRAME_SIZE;
 	desired.callback = SoundDriver_MixerCallback;
 	desired.userdata = this;
 
@@ -52,6 +41,18 @@ SoundDriver::SoundDriver(int numChn, char totalAmpl)
 	if (initOK) {
 		debug("Sound", "Initialized device to %dHz/%dbit with %dB buffer",
 				desired.freq, desired.format, desired.samples);
+
+		frameSize = desired.size;
+		soundBuff = new BYTE[frameSize];
+		memset(soundBuff, 0, frameSize);
+
+		numChannels = numChn;
+		channels = new CHANNEL[numChn];
+		for (int ii = 0; ii < numChn; ii++) {
+			memset(&channels[ii], 0, sizeof(CHANNEL));
+			channels[ii].sampleBuff = new char[frameSize];
+			memset(channels[ii].sampleBuff, 0, frameSize);
+		}
 
 		initOK = true;
 		silence = desired.silence;
@@ -95,12 +96,11 @@ void SoundDriver::SetVolume(char vol)
 	channelVolume = (char) (totalVolume / numChannels);
 	if (channelVolume == 0 && totalVolume > 0)
 		channelVolume = 1;
-#if FADEOUT_ON
+
 	if (channelVolume == 0)
 		channelFadeout = FADEOUT_RATE;
 	else
 		channelFadeout = FADEOUT_RATE / channelVolume;
-#endif
 }
 //---------------------------------------------------------------------------
 void SoundDriver::SoundMute()
@@ -119,40 +119,36 @@ void SoundDriver::SoundOn()
 //---------------------------------------------------------------------------
 void SoundDriver::PrepareSample(int chn, bool state, int ticks)
 {
-	char *ptr, val;
-	int curPos;
-
 	if (!initOK || !playOK)
 		return;
 
-	val = (char) ((state == true) ? channelVolume : -channelVolume);
+	char val = (char) ((state == true) ? channelVolume : -channelVolume);
 	if (channels[chn].oldVal == val)
 		return;
 
-	curPos = (ticks * FRAME_SIZE) / TCYCLES_PER_FRAME;
+	int curPos = (ticks * frameSize) / TCYCLES_PER_FRAME;
 
 	// filling a gap from the last position
-	ptr = channels[chn].sampleBuff + channels[chn].fillPos;
-	for (int ii = channels[chn].fillPos; ii < curPos && ii < FRAME_SIZE; ii++) {
-#if FADEOUT_ON
+	char *ptr = channels[chn].sampleBuff + channels[chn].fillPos;
+	for (int ii = channels[chn].fillPos; ii < curPos && ii < frameSize; ii++) {
 		*ptr++ = FadeoutChannel(chn);
-#else
-		*ptr++ = channels[chn].curVal;
-#endif
+		*ptr++ = FadeoutChannel(chn);
 	}
 
 	// writting to the new position
-	if (curPos < FRAME_SIZE)
+	if (curPos < frameSize) {
 		channels[chn].sampleBuff[curPos] = val;
+		channels[chn].sampleBuff[curPos + 1] = val;
+	}
 
-	channels[chn].fillPos = curPos + 1;
+	channels[chn].fillPos = curPos + 2;
 	channels[chn].curVal = val;
 	channels[chn].oldVal = val;
 }
 //---------------------------------------------------------------------------
 void SoundDriver::PrepareBuffer()
 {
-	char *ptr, val;
+	char *ptr, valL, valR;
 	int ii, jj;
 
 	if (!initOK || !playOK)
@@ -161,12 +157,9 @@ void SoundDriver::PrepareBuffer()
 	// fadeout from actual position to the end of buffer
 	for (ii = 0; ii < numChannels; ii++) {
 		ptr = channels[ii].sampleBuff + channels[ii].fillPos;
-		for (jj = channels[ii].fillPos; jj < FRAME_SIZE; jj++) {
-#if FADEOUT_ON
+		for (jj = channels[ii].fillPos; jj < frameSize; jj += 2) {
 			*ptr++ = FadeoutChannel(ii);
-#else
-			*ptr++ = channels[ii].curVal;
-#endif
+			*ptr++ = FadeoutChannel(ii);
 		}
 
 		channels[ii].fillPos = 0;
@@ -176,21 +169,41 @@ void SoundDriver::PrepareBuffer()
 
 	// channel mixing
 	BYTE *data = soundBuff;
-	for (jj = 0; jj < FRAME_SIZE; jj++) {
-		val = 0;
-		for (ii = 0; ii < numChannels; ii++)
-			val += channels[ii].sampleBuff[jj];
+	for (jj = 0; jj < frameSize; jj += 2) {
+		valL = 0;
+		valR = 0;
 
-		*data++ = ((BYTE)val) + silence;
+		for (ii = 0; ii < numChannels; ii++) {
+			valL += channels[ii].sampleBuff[jj];
+			valR += channels[ii].sampleBuff[jj + 1];
+		}
+
+		*data++ = ((BYTE) valL) + silence;
+		*data++ = ((BYTE) valR) + silence;
 	}
 
 	writePos = 0;
 
 	// file writer
 	if (hFile != NULL)
-		fwrite(soundBuff, FRAME_SIZE, 1, hFile);
+		fwrite(soundBuff, frameSize, 1, hFile);
 
 	SDL_UnlockAudio();
+}
+//---------------------------------------------------------------------------
+char SoundDriver::FadeoutChannel(int chn)
+{
+	channels[chn].tick += SAMPLE_TICK_INC;
+	if (channels[chn].tick >= channelFadeout) {
+		channels[chn].tick -= channelFadeout;
+
+		if (channels[chn].curVal > 0)
+			channels[chn].curVal--;
+		else if (channels[chn].curVal < 0)
+			channels[chn].curVal++;
+	}
+
+	return channels[chn].curVal;
 }
 //---------------------------------------------------------------------------
 void SoundDriver::FillSoundBuffer(BYTE *data, DWORD len)
@@ -200,13 +213,13 @@ void SoundDriver::FillSoundBuffer(BYTE *data, DWORD len)
 		return;
 	}
 
-	if ((writePos + len) > FRAME_SIZE)
-		len = FRAME_SIZE - writePos;
+	if ((writePos + len) > frameSize)
+		len = frameSize - writePos;
 
 	memcpy(data, soundBuff + writePos, len);
 
 	writePos += len;
-	if (writePos >= FRAME_SIZE)
+	if (writePos >= frameSize)
 		writePos = -1;
 }
 //---------------------------------------------------------------------------
@@ -224,7 +237,7 @@ bool SoundDriver::CreateWaveFile(const char* fileName)
 	memcpy(head.fmt,  "fmt ", 4);
 	head.hdrLength = 4 * sizeof(WORD) + 2 * sizeof(DWORD);
 	head.wFormatTag = 1;
-	head.nChannels = 1;
+	head.nChannels = 2;
 	head.nSamplesPerSec = SAMPLE_RATE;
 	head.nAvgBytesPerSec = SAMPLE_RATE;
 	head.nBlockAlign = 1;
@@ -260,20 +273,4 @@ bool SoundDriver::CloseWaveFile()
 
 	return (rr == wr);
 }
-//---------------------------------------------------------------------------
-#if FADEOUT_ON
-char SoundDriver::FadeoutChannel(int chn)
-{
-	channels[chn].tick += SAMPLE_TICK_INC;
-	if (channels[chn].tick >= channelFadeout) {
-		channels[chn].tick -= channelFadeout;
-		if (channels[chn].curVal > 0)
-			channels[chn].curVal--;
-		else if (channels[chn].curVal < 0)
-			channels[chn].curVal++;
-	}
-
-	return channels[chn].curVal;
-}
-#endif
 //---------------------------------------------------------------------------

@@ -110,9 +110,9 @@ typedef bool _Bool;
 #endif
 //-----------------------------------------------------------------------------
 #define SIGSLOT_DEFAULT_MT_POLICY single_threaded
-#include <sigslot.h>
+#include "sigslot.h"
 //-----------------------------------------------------------------------------
-#include <SDL.h>
+#include "SDL.h"
 #ifdef SDL_MAX_SINT32
 #  define MAX_SIGNED_INT SDL_MAX_SINT32
 #  define MIN_SIGNED_INT SDL_MIN_SINT32
@@ -143,18 +143,11 @@ typedef bool _Bool;
 #define SAMPLE_RATE         44100
 #define FRAME_SIZE          1024
 #define SAMPLE_TICK_INC     ((1 << 24) / SAMPLE_RATE)
-#define AUDIO_BUFF_SIZE     512
-#define FADEOUT_ON          1
-#if FADEOUT_ON
 #define FADEOUT_RATE        ((1 << 24) / 150)
-#endif
 
 #define CHNL_SPEAKER        0
 #define CHNL_TAPE           1
-#define CHNL_MUSICA_1       2
-#define CHNL_MUSICA_2       3
-#define CHNL_MUSICA_3       4
-#define CHNL_MUSICA_4       5
+#define CHNL_MIF85          2
 
 #define LED_YELLOW          1
 #define LED_RED             2
