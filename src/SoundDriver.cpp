@@ -1,6 +1,6 @@
 /*	SoundDriver.cpp: Sound signal generation and audio output
 	Copyright (c) 2006-2010 Roman Borik <pmd85emu@gmail.com>
-	Copyright (c) 2011-2018 Martin Borik <mborik@users.sourceforge.net>
+	Copyright (c) 2011-2019 Martin Borik <mborik@users.sourceforge.net>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -19,10 +19,11 @@
 #include "CommonUtils.h"
 #include "SoundDriver.h"
 //---------------------------------------------------------------------------
-SoundDriver::SoundDriver(int numChn, char totalAmpl)
+SoundDriver::SoundDriver(char totalAmpl)
 {
 	initOK = false;
 	playOK = true;
+	enabledMIF85 = false;
 	writePos = -1;
 	channels = NULL;
 	hFile = NULL;
@@ -33,7 +34,7 @@ SoundDriver::SoundDriver(int numChn, char totalAmpl)
 	desired.freq = SAMPLE_RATE;
 	desired.format = AUDIO_U8;
 	desired.channels = 2;
-	desired.samples = FRAME_SIZE;
+	desired.samples = AUDIO_BUFF_SIZE;
 	desired.callback = SoundDriver_MixerCallback;
 	desired.userdata = this;
 
@@ -46,9 +47,8 @@ SoundDriver::SoundDriver(int numChn, char totalAmpl)
 		soundBuff = new BYTE[frameSize];
 		memset(soundBuff, 0, frameSize);
 
-		numChannels = numChn;
-		channels = new CHANNEL[numChn];
-		for (int ii = 0; ii < numChn; ii++) {
+		channels = new CHANNEL[AUDIO_MIX_CHANNELS];
+		for (int ii = 0; ii < AUDIO_MIX_CHANNELS; ii++) {
 			memset(&channels[ii], 0, sizeof(CHANNEL));
 			channels[ii].sampleBuff = new char[frameSize];
 			memset(channels[ii].sampleBuff, 0, frameSize);
@@ -77,7 +77,7 @@ SoundDriver::~SoundDriver()
 	SDL_CloseAudio();
 
 	if (channels) {
-		for (int ii = 0; ii < numChannels; ii++) {
+		for (int ii = 0; ii < AUDIO_MIX_CHANNELS; ii++) {
 			if (channels[ii].sampleBuff)
 				delete[] channels[ii].sampleBuff;
 		}
@@ -92,6 +92,7 @@ SoundDriver::~SoundDriver()
 //---------------------------------------------------------------------------
 void SoundDriver::SetVolume(char vol)
 {
+	numChannels = enabledMIF85 ? AUDIO_MIX_CHANNELS : AUDIO_MIX_CHANNELS - 1;
 	totalVolume = (char) (vol & 0x7F);
 	channelVolume = (char) (totalVolume / numChannels);
 	if (channelVolume == 0 && totalVolume > 0)
@@ -101,6 +102,12 @@ void SoundDriver::SetVolume(char vol)
 		channelFadeout = FADEOUT_RATE;
 	else
 		channelFadeout = FADEOUT_RATE / channelVolume;
+}
+//---------------------------------------------------------------------------
+void SoundDriver::EnabledMIF85(bool enabled)
+{
+	enabledMIF85 = enabled;
+	SetVolume(totalVolume);
 }
 //---------------------------------------------------------------------------
 void SoundDriver::SoundMute()

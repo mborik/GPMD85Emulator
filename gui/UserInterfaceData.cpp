@@ -1,5 +1,5 @@
 /*	UserInterfaceData.h
-	Copyright (c) 2011-2012 Martin Borik <mborik@users.sourceforge.net>
+	Copyright (c) 2011-2019 Martin Borik <mborik@users.sourceforge.net>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -310,6 +310,12 @@ const char *dcb_p32_imgd_state(GUI_MENU_ENTRY *ptr)
 	}
 
 	return ret;
+}
+//-----------------------------------------------------------------------------
+const char *dcb_per_mif85_state(GUI_MENU_ENTRY *ptr)
+{
+	ptr->state = Settings->Sound->ifMIF85;
+	return NULL;
 }
 //-----------------------------------------------------------------------------
 const char *dcb_blk_file_state(GUI_MENU_ENTRY *ptr)
@@ -658,6 +664,13 @@ bool ccb_p32_extc(GUI_MENU_ENTRY *ptr)
 
 	ptr++;
 	ptr->enabled = Settings->PMD32->extraCommands;
+	return false;
+}
+//-----------------------------------------------------------------------------
+bool ccb_per_mif85(GUI_MENU_ENTRY *ptr)
+{
+	Settings->Sound->ifMIF85 = (ptr->state = !ptr->state);
+	GUI->uiSetChanges |= PS_SOUND | PS_PERIPHERALS;
 	return false;
 }
 //-----------------------------------------------------------------------------

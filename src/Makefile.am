@@ -5,6 +5,7 @@ AUTOMAKE_OPTIONS = foreign
 AM_CPPFLAGS = \
 	-I$(srcdir)/.. \
 	-I$(srcdir)/../gui \
+	-I$(srcdir)/../saa \
 	@libSDL_CFLAGS@
 
 noinst_LIBRARIES = libGPMD85emu_core.a

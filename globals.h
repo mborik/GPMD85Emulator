@@ -1,5 +1,5 @@
 /*	globals.h: Global includes, constatns, enumerators and functions.
-	Copyright (c) 2011-2012 Martin Borik <mborik@users.sourceforge.net>
+	Copyright (c) 2011-2019 Martin Borik <mborik@users.sourceforge.net>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -141,9 +141,11 @@ typedef bool _Bool;
 #define MEASURE_PERIOD      1000
 
 #define SAMPLE_RATE         44100
-#define FRAME_SIZE          1024
+#define SMPS_PER_CPU_FRAME  (SAMPLE_RATE / CPU_FRAMES_PER_SEC)
 #define SAMPLE_TICK_INC     ((1 << 24) / SAMPLE_RATE)
 #define FADEOUT_RATE        ((1 << 24) / 150)
+#define AUDIO_BUFF_SIZE     1024
+#define AUDIO_MIX_CHANNELS  3
 
 #define CHNL_SPEAKER        0
 #define CHNL_TAPE           1

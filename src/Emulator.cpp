@@ -172,7 +172,7 @@ void TEmulator::ProcessSettings(BYTE filter)
 	}
 
 	if (!isActive)
-		sound = new SoundDriver(2, Settings->Sound->volume);
+		sound = new SoundDriver(Settings->Sound->volume);
 	else if (filter & PS_SOUND)
 		sound->SetVolume(Settings->Sound->volume);
 

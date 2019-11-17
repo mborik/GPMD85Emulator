@@ -1,5 +1,5 @@
 /*	UserInterfaceData.h
-	Copyright (c) 2011-2012 Martin Borik <mborik@users.sourceforge.net>
+	Copyright (c) 2011-2019 Martin Borik <mborik@users.sourceforge.net>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -54,6 +54,7 @@ const char *dcb_p32_imgs_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_p32_extc_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_p32_sdcd_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_p32_imgd_state(GUI_MENU_ENTRY *ptr);
+const char *dcb_per_mif85_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_blk_file_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_blk_strt_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_blk_leng_state(GUI_MENU_ENTRY *ptr);
@@ -90,6 +91,7 @@ bool ccb_rom_pckg(GUI_MENU_ENTRY *ptr);
 bool ccb_p32_imgd(GUI_MENU_ENTRY *ptr);
 bool ccb_p32_conn(GUI_MENU_ENTRY *ptr);
 bool ccb_p32_extc(GUI_MENU_ENTRY *ptr);
+bool ccb_per_mif85(GUI_MENU_ENTRY *ptr);
 bool ccb_blk_strt(GUI_MENU_ENTRY *ptr);
 bool ccb_blk_leng(GUI_MENU_ENTRY *ptr);
 bool ccb_blk_hexa(GUI_MENU_ENTRY *ptr);
@@ -316,7 +318,7 @@ static GUI_MENU_ENTRY gui_pers_menu[] = {
 	{ MI_SEPARATOR },
 	{ MI_SUBMENU, "PMD \a32", NULL, SDL_SCANCODE_3, gui_p32_menu, NULL, NULL, true },
 	{ MI_SEPARATOR },
-	{ MI_CHECKBOX, "M\aIF 85", NULL, SDL_SCANCODE_I, NULL, NULL, NULL, false },
+	{ MI_CHECKBOX, "M\aIF 85", NULL, SDL_SCANCODE_I, NULL, ccb_per_mif85, dcb_per_mif85_state, true },
 	{ MENU_END }
 };
 static GUI_MENU_ENTRY UNUSED_VARIABLE gui_main_menu[] = {

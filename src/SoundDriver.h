@@ -1,6 +1,6 @@
 /*	SoundDriver.h: Sound signal generation and audio output
 	Copyright (c) 2006-2010 Roman Borik <pmd85emu@gmail.com>
-	Copyright (c) 2011-2018 Martin Borik <mborik@users.sourceforge.net>
+	Copyright (c) 2011-2019 Martin Borik <mborik@users.sourceforge.net>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -24,10 +24,11 @@
 class SoundDriver : public sigslot::has_slots<>
 {
 	public:
-		SoundDriver(int numChn, char totalAmpl);
+		SoundDriver(char totalAmpl);
 		virtual ~SoundDriver();
 
 		void SetVolume(char vol);
+		void EnabledMIF85(bool enabled);
 		void SoundMute();
 		void SoundOn();
 
@@ -44,6 +45,7 @@ class SoundDriver : public sigslot::has_slots<>
 
 		bool initOK;
 		bool playOK;
+		bool enabledMIF85;
 		int  writePos;
 
 		#pragma pack(push, 1)

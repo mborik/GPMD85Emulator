@@ -1,10 +1,11 @@
 # GPMD85emu automake
-# mborik, 10/2011, 02/2012, 01/2018
+# mborik, 10/2011-02/2012, 01/2018-11/2019
 
 AUTOMAKE_OPTIONS = foreign
 bin_PROGRAMS = GPMD85emu
 
 SUBDIRS = \
+	saa \
 	src \
 	gui \
 	rom \
@@ -20,10 +21,12 @@ AM_CPPFLAGS = \
 
 GPMD85emu_LDADD = \
 	@libSDL_LIBS@ \
+	saa/libSAASound.a \
 	src/libGPMD85emu_core.a \
 	gui/libGPMD85emu_gui.a
 
 GPMD85emu_DEPENDENCIES = \
+	saa/libSAASound.a \
 	src/libGPMD85emu_core.a \
 	gui/libGPMD85emu_gui.a
 
