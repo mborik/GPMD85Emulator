@@ -670,7 +670,7 @@ bool ccb_p32_extc(GUI_MENU_ENTRY *ptr)
 bool ccb_per_mif85(GUI_MENU_ENTRY *ptr)
 {
 	Settings->Sound->ifMIF85 = (ptr->state = !ptr->state);
-	GUI->uiSetChanges |= PS_SOUND | PS_PERIPHERALS;
+	GUI->uiSetChanges |= PS_PERIPHERALS;
 	return false;
 }
 //-----------------------------------------------------------------------------

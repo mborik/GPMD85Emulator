@@ -28,7 +28,7 @@ class SoundDriver : public sigslot::has_slots<>
 		virtual ~SoundDriver();
 
 		void SetVolume(char vol);
-		void EnabledMIF85(bool enabled);
+		void EnableMIF85(bool enabled);
 		void SoundMute();
 		void SoundOn();
 
@@ -75,7 +75,7 @@ class SoundDriver : public sigslot::has_slots<>
 		} CHANNEL;
 
 		BYTE silence;
-		DWORD frameSize;
+		int frameSize;
 		int numChannels;
 		CHANNEL *channels;
 		char totalVolume;

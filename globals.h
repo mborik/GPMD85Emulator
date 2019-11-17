@@ -145,7 +145,7 @@ typedef bool _Bool;
 #define SAMPLE_TICK_INC     ((1 << 24) / SAMPLE_RATE)
 #define FADEOUT_RATE        ((1 << 24) / 150)
 #define AUDIO_BUFF_SIZE     1024
-#define AUDIO_MIX_CHANNELS  3
+#define AUDIO_MAX_CHANNELS  3
 
 #define CHNL_SPEAKER        0
 #define CHNL_TAPE           1

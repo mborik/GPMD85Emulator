@@ -28,6 +28,7 @@ libGPMD85emu_core_a_SOURCES = \
 	IifGPIO.cpp \
 	IifTape.cpp \
 	IifTimer.cpp \
+	Mif85.cpp \
 	Pmd32.cpp \
 	RaomModule.cpp \
 	RomModule.cpp \
@@ -58,6 +59,7 @@ noinst_HEADERS = \
 	IifTape.h \
 	IifTimer.h \
 	InterruptController.h \
+	Mif85.h \
 	PeripheralDevice.h \
 	Pmd32.h \
 	RaomModule.h \

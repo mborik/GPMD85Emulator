@@ -31,6 +31,7 @@ TEmulator::TEmulator()
 	ifTimer = NULL;
 	ifTape = NULL;
 	ifGpio = NULL;
+	mif85 = NULL;
 	pmd32 = NULL;
 	romModule = NULL;
 	raomModule = NULL;
@@ -49,6 +50,7 @@ TEmulator::TEmulator()
 	romSplit8kMode = false;
 	compatibilityMode = false;
 	ramExpansion256k = false;
+	mif85connected = false;
 	pmd32connected = false;
 	romModuleConnected = false;
 	raomModuleConnected = false;
@@ -106,6 +108,10 @@ TEmulator::~TEmulator()
 	if (raomModule)
 		delete raomModule;
 	raomModule = NULL;
+
+	if (mif85)
+		delete mif85;
+	mif85 = NULL;
 
 	if (sound)
 		delete sound;
@@ -219,7 +225,10 @@ void TEmulator::ProcessSettings(BYTE filter)
 	}
 
 	if (!isActive || (filter & PS_PERIPHERALS)) {
-		ConnectPMD32((filter & PS_MACHINE) || romChanged);
+		bool init = (filter & PS_MACHINE) || romChanged;
+
+		ConnectMIF85(init);
+		ConnectPMD32(init);
 
 		if (romModuleConnected)
 			InsertRomModul(romModuleConnected, false);
@@ -1128,7 +1137,7 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 		cpu->AddDevice(IIF_GPIO_ADR, IIF_GPIO_MASK, ifGpio, true);
 
 		// Timer interface
-		ifTimer = new IifTimer(model);
+		ifTimer = new IifTimer(model, cpu);
 		cpu->AddDevice(IIF_TIMER_ADR, IIF_TIMER_MASK, ifTimer, false);
 		cpu->TCyclesListeners.connect(ifTimer, &IifTimer::ITimerService);
 
@@ -1144,10 +1153,8 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 			cpu->AddDevice(IIF_TAPE_ADR, IIF_TAPE_MASK, ifTape, true);
 
 		// pin tape interface signal to timer
-		if (model != CM_V1 && model != CM_ALFA) {
+		if (model != CM_V1 && model != CM_ALFA)
 			ifTimer->Counters[((model == CM_C2717) ? 0 : 1)].OnOutChange.connect(ifTape, &IifTape::TapeClockService23);
-			ifTimer->EnableUsartClock(true);
-		}
 
 		// pin tape interface signal to CPU
 		cpu->TCyclesListeners.connect(ifTape, &IifTape::TapeClockService123);
@@ -1238,6 +1245,34 @@ void TEmulator::InsertRomModul(bool inserted, bool toRaom)
 	}
 
 	delete[] buff;
+}
+//---------------------------------------------------------------------------
+void TEmulator::ConnectMIF85(bool init)
+{
+	if (init || (mif85connected != Settings->Sound->ifMIF85)) {
+		if (ifTimer)
+			ifTimer->EnableMIF85(false, NULL);
+		if (sound)
+			sound->EnableMIF85(false);
+
+		cpu->RemoveDevice(MIF85_ADR);
+
+		if (mif85) {
+			delete mif85;
+			mif85 = NULL;
+		}
+
+		mif85connected = Settings->Sound->ifMIF85;
+		if (mif85connected) {
+			mif85 = new Mif85();
+			cpu->AddDevice(MIF85_ADR, MIF85_MASK, mif85, true);
+
+			if (sound)
+				sound->EnableMIF85(true);
+			if (ifTimer)
+				ifTimer->EnableMIF85(true, mif85);
+		}
+	}
 }
 //---------------------------------------------------------------------------
 void TEmulator::ConnectPMD32(bool init)

@@ -18,15 +18,15 @@
 #include "IifTimer.h"
 #include "CommonUtils.h"
 //---------------------------------------------------------------------------
-IifTimer::IifTimer(TComputerModel model) : ChipPIT8253()
+IifTimer::IifTimer(TComputerModel model, ChipCpu8080 *_cpu) : ChipPIT8253()
 {
 	this->model = model;
 
 	cntRtc = 0;
 	stateRtc = true;
-	ctUsartOn = false;
 	mouse602 = false;
-	cpu = NULL;
+	ifMIF85 = false;
+	cpu = _cpu;
 
 	PeripheralSetGate(CT_0, true);
 	PeripheralSetClock(CT_0, false);
@@ -35,7 +35,9 @@ IifTimer::IifTimer(TComputerModel model) : ChipPIT8253()
 	PeripheralSetGate(CT_2, true);
 	PeripheralSetClock(CT_2, stateRtc);
 
-	if (model == CM_V1 && model == CM_V2 && model == CM_V2A && model == CM_V3)
+	if (model == CM_C2717)
+    	Counters[1].OnOutChange.connect(this, &IifTimer::CT2Clock);
+	else
 		Counters[0].OnOutChange.connect(this, &IifTimer::Timer0OutChange);
 }
 //---------------------------------------------------------------------------
@@ -44,21 +46,21 @@ void IifTimer::WriteToDevice(BYTE port, BYTE value, int ticks)
 //	debug("IfTimer", "ticks=%d, port=%u, value=%u", ticks, port, value);
 
 	switch (port & IIF_TIMER_REG_MASK) {
-		case IIF_TIMER_REG_T0 :
-		CpuWrite(CT_0, value);
-		break;
+		case IIF_TIMER_REG_T0:
+			CpuWrite(CT_0, value);
+			break;
 
-		case IIF_TIMER_REG_T1 :
-		CpuWrite(CT_1, value);
-		break;
+		case IIF_TIMER_REG_T1:
+			CpuWrite(CT_1, value);
+			break;
 
-		case IIF_TIMER_REG_T2 :
-		CpuWrite(CT_2, value);
-		break;
+		case IIF_TIMER_REG_T2:
+			CpuWrite(CT_2, value);
+			break;
 
-		case IIF_TIMER_REG_CWR :
-		CpuWrite(CT_CWR, value);
-		break;
+		case IIF_TIMER_REG_CWR:
+			CpuWrite(CT_CWR, value);
+			break;
 	}
 }
 	//---------------------------------------------------------------------------
@@ -95,59 +97,86 @@ BYTE IifTimer::ReadFromDevice(BYTE port, int ticks)
 	//---------------------------------------------------------------------------
 void IifTimer::ITimerService(int ticks, int dur)
 {
-	// Timer T2 - RTC
-	cntRtc += dur;
-	while (cntRtc >= HALF_SEC_RTC) {
-		cntRtc -= HALF_SEC_RTC;
-		stateRtc = !stateRtc;
-		PeripheralSetClock(CT_2, stateRtc);
+	if (model == CM_C2717) {
+		for (int ii = 0; ii < dur; ii++) {
+			// Timer T0 - clock for USART
+			PeripheralSetClock(CT_0, true);
+			PeripheralSetClock(CT_0, false);
+			// Timer T1 - user timer chained with T2
+			PeripheralSetClock(CT_1, true);
+			PeripheralSetClock(CT_1, false);
+		}
 	}
+	else {
+		// Timer T2 - RTC
+		cntRtc += dur;
+		while (cntRtc >= HALF_SEC_RTC) {
+			cntRtc -= HALF_SEC_RTC;
+			stateRtc = !stateRtc;
+			PeripheralSetClock(CT_2, stateRtc);
+		}
 
-	// Timer T1 - clock for USART - PMD 85
-	// Timer T0 - clock for USART - C2717
-	if (ctUsartOn == true) {
-		if (model == CM_C2717) {
+		// Timer T1 - clock for USART
+		for (int ii = 0; ii < dur; ii++) {
+			PeripheralSetClock(CT_1, true);
+			PeripheralSetClock(CT_1, false);
+		}
+
+		currentTicks = ticks;
+
+		// Timer T0 - clock for MIF 85 interrupt
+		if (ifMIF85) {
 			for (int ii = 0; ii < dur; ii++) {
 				PeripheralSetClock(CT_0, true);
 				PeripheralSetClock(CT_0, false);
-			}
-		}
-		else {
-			for (int ii = 0; ii < dur; ii++) {
-				PeripheralSetClock(CT_1, true);
-				PeripheralSetClock(CT_1, false);
+				currentTicks++;
 			}
 		}
 	}
-
-	currentTicks = ticks;
 }
 //---------------------------------------------------------------------------
-void IifTimer::Timer0OutChange(TPITCounter cnt, bool out)
+void IifTimer::Timer0OutChange(TPITCounter counter, bool outState)
 {
-	// Mouse 602 (Ing. Vit Libovicky concept)
-	if (mouse602 && cpu != NULL && !out)
-		cpu->DoInterrupt();
-}
-//---------------------------------------------------------------------------
-void IifTimer::EnableMouse602(bool enable, ChipCpu8080 *_cpu)
-{
-	mouse602 = (model == CM_V1) ? enable : false;
+	if ((model == CM_V1 || model == CM_V2 || model == CM_V2A || model == CM_V3) && !outState) {
+		// Mouse 602 (Ing. Vit Libovicky concept)
+		if (mouse602)
+			cpu->DoInterrupt();
 
-	if (mouse602 && _cpu)
-		Counters[1].OnOutChange.connect(this, &IifTimer::Mouse602Clock);
-	else {
-		Counters[1].OnOutChange.disconnect_all();
-		mouse602 = false;
-		_cpu = NULL;
+		// MIF 85 interface
+		else if (ifMIF85 && mif85 != NULL && mif85->InterruptEnabled())
+			cpu->DoInterrupt();
 	}
-
-	ctUsartOn = mouse602;
-	cpu = _cpu;
+}
+//---------------------------------------------------------------------------
+void IifTimer::CT2Clock(TPITCounter counter, bool outState)
+{
+	PeripheralSetClock(CT_2, outState);
 }
 //---------------------------------------------------------------------------
 void IifTimer::Mouse602Clock(TPITCounter counter, bool outState)
 {
 	PeripheralSetClock(CT_0, outState);
+}
+//---------------------------------------------------------------------------
+void IifTimer::EnableMouse602(bool enable)
+{
+	mouse602 = (model == CM_V1) ? enable : false;
+
+	if (mouse602)
+		Counters[1].OnOutChange.connect(this, &IifTimer::Mouse602Clock);
+	else
+		Counters[1].OnOutChange.disconnect_all();
+}
+//---------------------------------------------------------------------------
+void IifTimer::EnableMIF85(bool enable, Mif85 *_mif85)
+{
+	if (model == CM_V1 || model == CM_V2 || model == CM_V2A || model == CM_V3) {
+		ifMIF85 = enable;
+		mif85 = _mif85;
+	}
+	else {
+		ifMIF85 = false;
+		mif85 = NULL;
+	}
 }
 //---------------------------------------------------------------------------

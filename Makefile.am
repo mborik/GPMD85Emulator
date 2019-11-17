@@ -14,6 +14,7 @@ SUBDIRS = \
 DIST_SUBDIRS = $(SUBDIRS)
 
 AM_CPPFLAGS = \
+	-I$(srcdir)/saa \
 	-I$(srcdir)/src \
 	-I$(srcdir)/gui \
 	@libSDL_CFLAGS@ \
@@ -21,14 +22,14 @@ AM_CPPFLAGS = \
 
 GPMD85emu_LDADD = \
 	@libSDL_LIBS@ \
-	saa/libSAASound.a \
 	src/libGPMD85emu_core.a \
-	gui/libGPMD85emu_gui.a
+	gui/libGPMD85emu_gui.a \
+	saa/libSAASound.a
 
 GPMD85emu_DEPENDENCIES = \
-	saa/libSAASound.a \
 	src/libGPMD85emu_core.a \
-	gui/libGPMD85emu_gui.a
+	gui/libGPMD85emu_gui.a \
+	saa/libSAASound.a
 
 GPMD85emu_SOURCES = \
 	GPMD85emu.cpp

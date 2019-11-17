@@ -18,6 +18,7 @@
 //---------------------------------------------------------------------------
 #include "CommonUtils.h"
 #include "SoundDriver.h"
+#include "Mif85.h"
 //---------------------------------------------------------------------------
 SoundDriver::SoundDriver(char totalAmpl)
 {
@@ -47,8 +48,8 @@ SoundDriver::SoundDriver(char totalAmpl)
 		soundBuff = new BYTE[frameSize];
 		memset(soundBuff, 0, frameSize);
 
-		channels = new CHANNEL[AUDIO_MIX_CHANNELS];
-		for (int ii = 0; ii < AUDIO_MIX_CHANNELS; ii++) {
+		channels = new CHANNEL[AUDIO_MAX_CHANNELS];
+		for (int ii = 0; ii < AUDIO_MAX_CHANNELS; ii++) {
 			memset(&channels[ii], 0, sizeof(CHANNEL));
 			channels[ii].sampleBuff = new char[frameSize];
 			memset(channels[ii].sampleBuff, 0, frameSize);
@@ -77,7 +78,7 @@ SoundDriver::~SoundDriver()
 	SDL_CloseAudio();
 
 	if (channels) {
-		for (int ii = 0; ii < AUDIO_MIX_CHANNELS; ii++) {
+		for (int ii = 0; ii < AUDIO_MAX_CHANNELS; ii++) {
 			if (channels[ii].sampleBuff)
 				delete[] channels[ii].sampleBuff;
 		}
@@ -92,7 +93,7 @@ SoundDriver::~SoundDriver()
 //---------------------------------------------------------------------------
 void SoundDriver::SetVolume(char vol)
 {
-	numChannels = enabledMIF85 ? AUDIO_MIX_CHANNELS : AUDIO_MIX_CHANNELS - 1;
+	numChannels = enabledMIF85 ? AUDIO_MAX_CHANNELS : AUDIO_MAX_CHANNELS - 1;
 	totalVolume = (char) (vol & 0x7F);
 	channelVolume = (char) (totalVolume / numChannels);
 	if (channelVolume == 0 && totalVolume > 0)
@@ -104,7 +105,7 @@ void SoundDriver::SetVolume(char vol)
 		channelFadeout = FADEOUT_RATE / channelVolume;
 }
 //---------------------------------------------------------------------------
-void SoundDriver::EnabledMIF85(bool enabled)
+void SoundDriver::EnableMIF85(bool enabled)
 {
 	enabledMIF85 = enabled;
 	SetVolume(totalVolume);
@@ -161,18 +162,32 @@ void SoundDriver::PrepareBuffer()
 	if (!initOK || !playOK)
 		return;
 
+	SDL_LockAudio();
+
 	// fadeout from actual position to the end of buffer
 	for (ii = 0; ii < numChannels; ii++) {
-		ptr = channels[ii].sampleBuff + channels[ii].fillPos;
-		for (jj = channels[ii].fillPos; jj < frameSize; jj += 2) {
-			*ptr++ = FadeoutChannel(ii);
-			*ptr++ = FadeoutChannel(ii);
+		if (ii == CHNL_MIF85 && SAA1099 != NULL) {
+			SAA1099->GenerateMany((BYTE *) channels[ii].sampleBuff, AUDIO_BUFF_SIZE);
+
+			double val;
+			ptr = channels[ii].sampleBuff;
+			for (jj = 0; jj < frameSize; jj += 2) {
+				val = (double) *ptr;
+				*ptr++ = (char) ((val / 128) * channelVolume);
+				val = (double) *ptr;
+				*ptr++ = (char) ((val / 128) * channelVolume);
+			}
+		}
+		else {
+			ptr = channels[ii].sampleBuff + channels[ii].fillPos;
+			for (jj = channels[ii].fillPos; jj < frameSize; jj += 2) {
+				*ptr++ = FadeoutChannel(ii);
+				*ptr++ = FadeoutChannel(ii);
+			}
 		}
 
 		channels[ii].fillPos = 0;
 	}
-
-	SDL_LockAudio();
 
 	// channel mixing
 	BYTE *data = soundBuff;

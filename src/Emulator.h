@@ -96,6 +96,7 @@ class TEmulator : public sigslot::has_slots<>
 		IifTimer *ifTimer;
 		IifTape *ifTape;
 		IifGPIO *ifGpio;
+		Mif85 *mif85;
 		Pmd32 *pmd32;
 		RomModule *romModule;
 		RaomModule *raomModule;
@@ -108,6 +109,7 @@ class TEmulator : public sigslot::has_slots<>
 		bool compatibilityMode;
 		bool ramExpansion256k;
 
+		bool mif85connected;
 		int  pmd32workdrive;
 		bool pmd32connected;
 		bool romModuleConnected;
@@ -115,6 +117,7 @@ class TEmulator : public sigslot::has_slots<>
 
 		void SetComputerModel(bool fromSnap = false, int snapRomLen = 0, BYTE *snapRom = NULL);
 		void InsertRomModul(bool inserted, bool toRaom);
+		void ConnectMIF85(bool init);
 		void ConnectPMD32(bool init);
 		void ProcessSnapshot(char *fileName, BYTE *flag);
 		void PrepareSnapshot(char *fileName, BYTE *flag);

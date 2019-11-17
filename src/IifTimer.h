@@ -22,6 +22,7 @@
 #include "PeripheralDevice.h"
 #include "ChipPIT8253.h"
 #include "ChipCpu8080.h"
+#include "Mif85.h"
 //---------------------------------------------------------------------------
 // Internal timer using these port addresses: 5Ch, 5Dh, 5Eh a 5Fh
 #define IIF_TIMER_MASK      0xFC
@@ -37,28 +38,31 @@
 //---------------------------------------------------------------------------
 class IifTimer : public PeripheralDevice, public ChipPIT8253 {
 public:
-	IifTimer(TComputerModel model);
+	IifTimer(TComputerModel model, ChipCpu8080 *_cpu);
 
 	virtual void WriteToDevice(BYTE port, BYTE value, int ticks);
 	virtual BYTE ReadFromDevice(BYTE port, int ticks);
 
 	void ITimerService(int ticks, int dur);
 	void Timer0OutChange(TPITCounter cnt, bool out);
-	void EnableMouse602(bool enable, ChipCpu8080 *_cpu);
+	void CT2Clock(TPITCounter cnt, bool out);
 	void Mouse602Clock(TPITCounter counter, bool outState);
-	inline void EnableUsartClock(bool enable) { ctUsartOn = enable; }
+	void EnableMouse602(bool enable);
+	void EnableMIF85(bool enable, Mif85 *_mif85);
 
 private:
 	ChipCpu8080 *cpu;
 	TComputerModel model;
+	Mif85 *mif85;
 
 	int  cntRtc;
 	bool stateRtc;
-	bool ctUsartOn;
 	int  currentTicks;
 
 	// Mouse 602 (Ing. Vit Libovicky concept)
 	bool mouse602;
+	// MIF 85 interface
+	bool ifMIF85;
 };
 //---------------------------------------------------------------------------
 #endif
