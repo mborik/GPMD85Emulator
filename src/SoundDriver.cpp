@@ -45,18 +45,17 @@ SoundDriver::SoundDriver(char totalAmpl)
 				desired.freq, desired.format, desired.samples);
 
 		frameSize = desired.size;
-		soundBuff = new BYTE[frameSize];
-		memset(soundBuff, 0, frameSize);
+		silence = desired.silence;
 
+		soundBuff = new BYTE[frameSize];
 		channels = new CHANNEL[AUDIO_MAX_CHANNELS];
 		for (int ii = 0; ii < AUDIO_MAX_CHANNELS; ii++) {
 			memset(&channels[ii], 0, sizeof(CHANNEL));
 			channels[ii].sampleBuff = new char[frameSize];
-			memset(channels[ii].sampleBuff, 0, frameSize);
+			memset(channels[ii].sampleBuff, silence, frameSize);
 		}
 
 		initOK = true;
-		silence = desired.silence;
 		SetVolume(totalAmpl);
 		SDL_PauseAudio(0);
 		playOK = true;
@@ -93,9 +92,10 @@ SoundDriver::~SoundDriver()
 //---------------------------------------------------------------------------
 void SoundDriver::SetVolume(char vol)
 {
-	numChannels = enabledMIF85 ? AUDIO_MAX_CHANNELS : AUDIO_MAX_CHANNELS - 1;
+	numChannels = enabledMIF85 ? AUDIO_MAX_CHANNELS : AUDIO_BEEP_CHANNELS;
+
 	totalVolume = (char) (vol & 0x7F);
-	channelVolume = (char) (totalVolume / numChannels);
+	channelVolume = (char) (totalVolume / AUDIO_BEEP_CHANNELS);
 	if (channelVolume == 0 && totalVolume > 0)
 		channelVolume = 1;
 
@@ -130,7 +130,7 @@ void SoundDriver::PrepareSample(int chn, bool state, int ticks)
 	if (!initOK || !playOK)
 		return;
 
-	char val = (char) ((state == true) ? channelVolume : -channelVolume);
+	char val = (char) (state ? channelVolume : -channelVolume);
 	if (channels[chn].oldVal == val)
 		return;
 
@@ -166,17 +166,11 @@ void SoundDriver::PrepareBuffer()
 
 	// fadeout from actual position to the end of buffer
 	for (ii = 0; ii < numChannels; ii++) {
-		if (ii == CHNL_MIF85 && SAA1099 != NULL) {
-			SAA1099->GenerateMany((BYTE *) channels[ii].sampleBuff, AUDIO_BUFF_SIZE);
-
-			double val;
-			ptr = channels[ii].sampleBuff;
-			for (jj = 0; jj < frameSize; jj += 2) {
-				val = (double) *ptr;
-				*ptr++ = (char) ((val / 128) * channelVolume);
-				val = (double) *ptr;
-				*ptr++ = (char) ((val / 128) * channelVolume);
-			}
+		if (ii == CHNL_MIF85) {
+			if (SAA1099 != NULL)
+				SAA1099->GenerateMany((BYTE *) channels[ii].sampleBuff, AUDIO_BUFF_SIZE);
+			else
+				memset(channels[ii].sampleBuff, silence, frameSize);
 		}
 		else {
 			ptr = channels[ii].sampleBuff + channels[ii].fillPos;
@@ -184,33 +178,33 @@ void SoundDriver::PrepareBuffer()
 				*ptr++ = FadeoutChannel(ii);
 				*ptr++ = FadeoutChannel(ii);
 			}
+
+			channels[ii].fillPos = 0;
 		}
-
-		channels[ii].fillPos = 0;
-	}
-
-	// channel mixing
-	BYTE *data = soundBuff;
-	for (jj = 0; jj < frameSize; jj += 2) {
-		valL = 0;
-		valR = 0;
-
-		for (ii = 0; ii < numChannels; ii++) {
-			valL += channels[ii].sampleBuff[jj];
-			valR += channels[ii].sampleBuff[jj + 1];
-		}
-
-		*data++ = ((BYTE) valL) + silence;
-		*data++ = ((BYTE) valR) + silence;
 	}
 
 	writePos = 0;
-
-	// file writer
-	if (hFile != NULL)
-		fwrite(soundBuff, frameSize, 1, hFile);
-
 	SDL_UnlockAudio();
+
+	// file writer with channel mixing
+	if (hFile != NULL) {
+		BYTE *data = soundBuff;
+
+		for (jj = 0; jj < frameSize; jj += 2) {
+			valL = 0;
+			valR = 0;
+
+			for (ii = 0; ii < numChannels; ii++) {
+				valL += (channels[ii].sampleBuff[jj] / numChannels);
+				valR += (channels[ii].sampleBuff[jj + 1] / numChannels);
+			}
+
+			*data++ = (BYTE) valL;
+			*data++ = (BYTE) valR;
+		}
+
+		fwrite(soundBuff, frameSize, 1, hFile);
+	}
 }
 //---------------------------------------------------------------------------
 char SoundDriver::FadeoutChannel(int chn)
@@ -230,19 +224,22 @@ char SoundDriver::FadeoutChannel(int chn)
 //---------------------------------------------------------------------------
 void SoundDriver::FillSoundBuffer(BYTE *data, DWORD len)
 {
-	if (writePos < 0) {
-		memset(data, 0, len);
-		return;
+	memset(data, silence, len);
+
+	if ((writePos + ((int) len)) > frameSize)
+		len = (DWORD) (frameSize - writePos);
+
+	for (int ii = 0; ii < numChannels; ii++) {
+		SDL_MixAudioFormat(
+			data,
+			(const BYTE *) (channels[ii].sampleBuff + writePos),
+			(ii < AUDIO_BEEP_CHANNELS) ? AUDIO_S8 : AUDIO_U8,
+			len, totalVolume
+		);
 	}
 
-	if ((writePos + len) > frameSize)
-		len = frameSize - writePos;
-
-	memcpy(data, soundBuff + writePos, len);
-
-	writePos += len;
-	if (writePos >= frameSize)
-		writePos = -1;
+	if ((writePos + len) < frameSize)
+		writePos += len;
 }
 //---------------------------------------------------------------------------
 bool SoundDriver::CreateWaveFile(const char* fileName)
