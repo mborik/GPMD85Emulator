@@ -513,33 +513,6 @@ TSettings::TSettings()
 	PMD32->driveD.image = cfgGetStringValue(n, "drive-d-file", &(PMD32->driveD.image));
 	PMD32->driveD.writeProtect = cfgGetBoolValue(n, "drive-d-wp", false, &(PMD32->driveD.writeProtect));
 
-//# RAOM Module
-	n = cfgFindSection(cfgRoot, "RaomModule");
-
-	RaomModule = new SetStorageRAOM;
-	RaomModule->inserted = cfgGetBoolValue(n, "inserted", false, &(RaomModule->inserted));
-	RaomModule->file = cfgGetStringValue(n, "recent-file", &(RaomModule->file));
-	RaomModule->type = RT_CHTF;
-	if ((m = cfgGetLine(n, "hw-version")) != NULL) {
-		if (strcmp(m->value, "chtf") == 0)
-			RaomModule->type = RT_CHTF;
-		else if (strcmp(m->value, "kuvi") == 0)
-			RaomModule->type = RT_KUVI;
-
-		m->type = LT_RAOM;
-		m->ptr = (void *) &(RaomModule->type);
-	}
-	else
-		cfgInsertNewLine(n->next, "hw-version", LT_RAOM, (void *) &(RaomModule->type));
-
-	s = cfgGetStringValue(n, "rmm-name");
-	if ((RaomModule->module = findROMmodule(s))) {
-		char * tmp = cfgGetStringValue(n, "rmm-name", (char **) &(RaomModule->module));
-		delete [] tmp;
-	}
-	else
-		RaomModule->inserted = false;
-
 	if (s)
 		delete [] s;
 	s = NULL;
@@ -692,17 +665,6 @@ TSettings::~TSettings()
 		delete PMD32;
 	}
 	PMD32 = NULL;
-
-	if (RaomModule) {
-		if (RaomModule->file) {
-			delete [] RaomModule->file;
-			RaomModule->file = NULL;
-		}
-
-		RaomModule->module = NULL;
-		delete RaomModule;
-		RaomModule = NULL;
-	}
 
 	cfgIniLine *n = cfgRoot;
 	while (n) {
@@ -1084,19 +1046,6 @@ void TSettings::storeSettings()
 							break;
 						default:
 							buf = (char *) "none";
-							break;
-					}
-					std = true;
-					break;
-
-				case LT_RAOM:
-					i = *((uintptr_t *) entry->ptr);
-					switch ((TRaomType) i) {
-						case RT_CHTF:
-							buf = (char *) "chtf";
-							break;
-						default:
-							buf = (char *) "kuvi";
 							break;
 					}
 					std = true;

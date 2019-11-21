@@ -30,7 +30,6 @@ libGPMD85emu_core_a_SOURCES = \
 	IifTimer.cpp \
 	Mif85.cpp \
 	Pmd32.cpp \
-	RaomModule.cpp \
 	RomModule.cpp \
 	Settings.cpp \
 	ScreenPMD85.cpp \
@@ -62,7 +61,6 @@ noinst_HEADERS = \
 	Mif85.h \
 	PeripheralDevice.h \
 	Pmd32.h \
-	RaomModule.h \
 	RomModule.h \
 	Settings.h \
 	ScreenPMD85.h \

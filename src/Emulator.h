@@ -33,7 +33,6 @@
 #include "IifGPIO.h"
 #include "Pmd32.h"
 #include "RomModule.h"
-#include "RaomModule.h"
 #include "Settings.h"
 #include "Debugger.h"
 #include "TapeBrowser.h"
@@ -99,7 +98,6 @@ class TEmulator : public sigslot::has_slots<>
 		Mif85 *mif85;
 		Pmd32 *pmd32;
 		RomModule *romModule;
-		RaomModule *raomModule;
 
 		TComputerModel model;
 		int  monitorLength;
@@ -113,10 +111,9 @@ class TEmulator : public sigslot::has_slots<>
 		int  pmd32workdrive;
 		bool pmd32connected;
 		bool romModuleConnected;
-		bool raomModuleConnected;
 
 		void SetComputerModel(bool fromSnap = false, int snapRomLen = 0, BYTE *snapRom = NULL);
-		void InsertRomModul(bool inserted, bool toRaom);
+		void InsertRomModul(bool inserted);
 		void ConnectMIF85(bool init);
 		void ConnectPMD32(bool init);
 		void ProcessSnapshot(char *fileName, BYTE *flag);

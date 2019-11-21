@@ -34,7 +34,6 @@ TEmulator::TEmulator()
 	mif85 = NULL;
 	pmd32 = NULL;
 	romModule = NULL;
-	raomModule = NULL;
 	sound = NULL;
 	cpuUsage = 0;
 
@@ -53,7 +52,6 @@ TEmulator::TEmulator()
 	mif85connected = false;
 	pmd32connected = false;
 	romModuleConnected = false;
-	raomModuleConnected = false;
 
 	Settings = new TSettings();
 	Debugger = new TDebugger();
@@ -104,10 +102,6 @@ TEmulator::~TEmulator()
 	if (romModule)
 		delete romModule;
 	romModule = NULL;
-
-	if (raomModule)
-		delete raomModule;
-	raomModule = NULL;
 
 	if (mif85)
 		delete mif85;
@@ -231,9 +225,7 @@ void TEmulator::ProcessSettings(BYTE filter)
 		ConnectPMD32(init);
 
 		if (romModuleConnected)
-			InsertRomModul(romModuleConnected, false);
-		if (raomModuleConnected)
-			InsertRomModul(raomModuleConnected, false);
+			InsertRomModul(romModuleConnected);
 	}
 
 	if (!isActive || (filter & (PS_MACHINE | PS_PERIPHERALS)))
@@ -1178,53 +1170,29 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 	GUI->SetComputerModel(model);
 }
 //---------------------------------------------------------------------------
-void TEmulator::InsertRomModul(bool inserted, bool toRaom)
+void TEmulator::InsertRomModul(bool inserted)
 {
 	int i, count, sizeKB;
 	DWORD romPackSizeKB, kBadr;
 	TSettings::SetRomModuleFile **rl;
 	BYTE *buff;
 
-	if (!toRaom && romModule) {
+	if (romModule) {
 		cpu->RemoveDevice(ROM_MODULE_ADR);
 		delete romModule;
 		romModule = NULL;
 	}
 
-	if (toRaom && raomModule) {
-		if (!romModuleConnected || ROM_MODULE_ADR != RAOM_MODULE_ADR)
-			cpu->RemoveDevice(RAOM_MODULE_ADR);
-
-		delete raomModule;
-		raomModule = NULL;
-	}
-
 	if (!inserted)
 		return;
 
-	if (toRaom) {
-		raomModule = new RaomModule((TRaomType) Settings->RaomModule->type);
-		cpu->AddDevice(RAOM_MODULE_ADR, RAOM_MODULE_MASK, raomModule, true);
-		raomModule->RemoveRomPack();
-		romPackSizeKB = raomModule->GetRomSize() / KB;
+	romModule = new RomModule();
+	cpu->AddDevice(ROM_MODULE_ADR, ROM_MODULE_MASK, romModule, true);
+	romModule->RemoveRomPack();
+	romPackSizeKB = ROM_PACK_SIZE_KB;
 
-		if (FileExists(Settings->RaomModule->file) == true)
-			raomModule->InsertDisk(Settings->RaomModule->file);
-		else
-			raomModule->RemoveDisk();
-
-		rl = Settings->RaomModule->module->files;
-		count = Settings->RaomModule->module->count;
-	}
-	else {
-		romModule = new RomModule();
-		cpu->AddDevice(ROM_MODULE_ADR, ROM_MODULE_MASK, romModule, true);
-		romModule->RemoveRomPack();
-		romPackSizeKB = ROM_PACK_SIZE_KB;
-
-		rl = Settings->CurrentModel->romModule->files;
-		count = Settings->CurrentModel->romModule->count;
-	}
+	rl = Settings->CurrentModel->romModule->files;
+	count = Settings->CurrentModel->romModule->count;
 
 	kBadr = 0;
 	buff = new BYTE[romPackSizeKB * KB];
@@ -1235,10 +1203,7 @@ void TEmulator::InsertRomModul(bool inserted, bool toRaom)
 
 		memset(buff, 0xFF, sizeKB * KB);
 		if (ReadFromFile(LocateROM(rl[i]->rmmFile), 0, sizeKB * KB, buff) > 0) {
-			if (toRaom)
-				raomModule->InsertRom((BYTE) kBadr, (BYTE) sizeKB, buff);
-			else
-				romModule->InsertRom((BYTE) kBadr, (BYTE) sizeKB, buff);
+			romModule->InsertRom((BYTE) kBadr, (BYTE) sizeKB, buff);
 		}
 
 		kBadr += sizeKB;

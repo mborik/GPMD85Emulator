@@ -36,7 +36,7 @@ IifTimer::IifTimer(TComputerModel model, ChipCpu8080 *_cpu) : ChipPIT8253()
 	PeripheralSetClock(CT_2, stateRtc);
 
 	if (model == CM_C2717)
-    	Counters[1].OnOutChange.connect(this, &IifTimer::CT2Clock);
+		Counters[1].OnOutChange.connect(this, &IifTimer::CT2Clock);
 	else
 		Counters[0].OnOutChange.connect(this, &IifTimer::Timer0OutChange);
 }

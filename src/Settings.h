@@ -115,12 +115,6 @@ class TSettings
 			SetPMD32Drive driveD;
 			char *sdRoot;
 		};
-		struct SetStorageRAOM {
-			TRaomType type;
-			bool inserted;
-			SetRomPackage *module;
-			char *file;
-		};
 		struct SetDebugger {
 			bool hex;
 			bool z80;
@@ -141,7 +135,7 @@ class TSettings
 			LT_EMPTY, LT_COMMENT, LT_DELIMITER, LT_SECTION, LT_ITEM, LT_LIST,
 			LT_STRING, LT_QUOTED, LT_NUMBER, LT_BOOL, LT_RADIX, LT_AUTOSTOP,
 			LT_SCR_SIZE, LT_SCR_HP, LT_SCR_COL, LT_SCR_PAL, LT_COLOR, LT_ROM,
-			LT_NOTATION, LT_DEBUGLIST, LT_DEBUGSRC, LT_MOUSE, LT_JOY, LT_RAOM
+			LT_NOTATION, LT_DEBUGLIST, LT_DEBUGSRC, LT_MOUSE, LT_JOY
 		};
 		typedef struct cfgIniLine {
 			cfgIniLineType type;
@@ -187,7 +181,6 @@ class TSettings
 		SetJoystick *Joystick;
 		SetMouse *Mouse;
 		SetStoragePMD32 *PMD32;
-		SetStorageRAOM *RaomModule;
 		SetDebugger *Debugger;
 		SetMemoryBlock *MemoryBlock;
 
