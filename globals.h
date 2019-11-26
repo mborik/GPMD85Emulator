@@ -223,7 +223,7 @@ inline void warning(const char *ns, const char *msg, ...)
 	fprintf(stderr, "WRN: %s%s!\n", msgbuffer + 1000, msgbuffer);
 }
 //-----------------------------------------------------------------------------
-#ifdef DEBUG
+#if !defined NOTRACEMSG || defined DEBUG
 inline void _debug(const char *ns, const char *msg, ...)
 {
 	if (ns) {

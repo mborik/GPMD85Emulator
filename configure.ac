@@ -52,20 +52,19 @@ else
 fi
 AC_MSG_RESULT([${debug}])
 
-# Check if we have enabled trace statements (but not full debug mode):
-AC_MSG_CHECKING([gpmd85emu: Trace statements enabled])
+# Check if we want compile all trace statements (not available in debug mode):
+AC_MSG_CHECKING([gpmd85emu: Check if compile trace statements])
 AC_ARG_ENABLE([trace],
-	AS_HELP_STRING([--enable-trace], [enable tracing statements, default: no]),
-	[case "${enableval}" in
+	AS_HELP_STRING([--disable-trace], [not compile trace statements, default: no]),
+	[case "${disableval}" in
 		yes) trace=yes ;;
-		no)  trace=no  ;;
-		*)   AC_MSG_ERROR([bad value ${enableval} for --enable-trace]) ;;
+		*)   trace=no  ;;
 	esac],
-	[trace=no]
+	[trace=yes]
 )
-if test "x$trace" = "xyes"; then
-	CXXFLAGS+=" -DDEBUG"
-	CFLAGS+=" -DDEBUG"
+if test "x$trace" = "xno" -a "x$debug" = "xno"; then
+	CXXFLAGS+=" -DNOTRACEMSG"
+	CFLAGS+=" -DNOTRACEMSG"
 fi
 AC_MSG_RESULT([${trace}])
 
