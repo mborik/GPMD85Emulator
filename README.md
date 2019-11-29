@@ -41,4 +41,5 @@
 - _(optional)_ install to the system dirs with `sudo make install`
 
 ## CONFIGURATION PARAMETERS:
-- to enable trace informations use `./configure --enable-trace`.
+- to enable debug mode use `./configure --enable-debug`
+- omit all trace messages with `./configure --disable-trace` (size optimization)

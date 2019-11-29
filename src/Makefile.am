@@ -11,7 +11,7 @@ AM_CPPFLAGS = \
 noinst_LIBRARIES = libGPMD85emu_core.a
 
 libGPMD85emu_core_a_SOURCES = \
-	Emulator.cpp \
+	ArgvParser.cpp \
 	CommonUtils.cpp \
 	ChipCpu8080.cpp \
 	ChipCpu8080P.cpp \
@@ -36,11 +36,12 @@ libGPMD85emu_core_a_SOURCES = \
 	SoundDriver.cpp \
 	SystemPIO.cpp \
 	TapeBrowser.cpp \
+	Emulator.cpp \
 	Debugger.cpp
 
 noinst_HEADERS = \
 	macros8080.h \
-	Emulator.h \
+	ArgvParser.h \
 	CommonUtils.h \
 	ChipCpu8080.h \
 	ChipCpu8080P.h \
@@ -67,4 +68,5 @@ noinst_HEADERS = \
 	SoundDriver.h \
 	SystemPIO.h \
 	TapeBrowser.h \
+	Emulator.h \
 	Debugger.h

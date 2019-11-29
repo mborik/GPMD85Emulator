@@ -1,5 +1,5 @@
 /*	CommonUtils.cpp: Class with common static methods and properties.
-	Copyright (c) 2011-2018 Martin Borik <mborik@users.sourceforge.net>
+	Copyright (c) 2011-2019 Martin Borik <mborik@users.sourceforge.net>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -17,22 +17,22 @@
 //-----------------------------------------------------------------------------
 #include "CommonUtils.h"
 //-----------------------------------------------------------------------------
-char CommonUtils::buffer[MAX_PATH] = "";
-struct stat CommonUtils::filestat;
-struct CommonUtils::TGraphicsDeviceContext CommonUtils::graphicsDeviceContext;
+static char buffer[MAX_PATH] = "";
+struct TGraphicsDeviceContext gdc;
+struct stat filestat;
 //-----------------------------------------------------------------------------
-char *CommonUtils::pathApplicationConfig = NULL;
-char *CommonUtils::pathApplication = NULL;
-char *CommonUtils::pathResources = NULL;
-char *CommonUtils::pathUserHome = NULL;
+char *PathAppConfig = NULL;
+char *PathApplication = NULL;
+char *PathResources = NULL;
+char *PathUserHome = NULL;
 //-----------------------------------------------------------------------------
-const char *CommonUtils::commonAdaptFilePath(const char *filePath, char *path)
+const char *AdaptFilePath(const char *filePath, char *path)
 {
 	if (filePath == NULL)
 		return filePath;
 
 	if (path == NULL)
-		path = pathApplication;
+		path = PathApplication;
 
 	const char *tail = strstr(filePath, path);
 	if (tail == NULL)
@@ -41,7 +41,7 @@ const char *CommonUtils::commonAdaptFilePath(const char *filePath, char *path)
 	return tail + (strlen(path) + 1);
 }
 //-----------------------------------------------------------------------------
-const char *CommonUtils::commonExtractFileName(const char *filePath)
+const char *ExtractFileName(const char *filePath)
 {
 	if (filePath == NULL)
 		return filePath;
@@ -53,7 +53,7 @@ const char *CommonUtils::commonExtractFileName(const char *filePath)
 	return ++tail;
 }
 //-----------------------------------------------------------------------------
-char *CommonUtils::commonComposeFilePath(const char *filePath)
+char *ComposeFilePath(const char *filePath)
 {
 	if (filePath == NULL)
 		return NULL;
@@ -75,7 +75,7 @@ char *CommonUtils::commonComposeFilePath(const char *filePath)
 	return buf;
 }
 //-----------------------------------------------------------------------------
-char *CommonUtils::commonLocateResource(const char *fileName, bool copyToHome)
+char *LocateResource(const char *fileName, bool copyToHome)
 {
 	if (fileName == NULL)
 		return NULL;
@@ -116,7 +116,7 @@ char *CommonUtils::commonLocateResource(const char *fileName, bool copyToHome)
 	return buffer;
 }
 //-----------------------------------------------------------------------------
-char *CommonUtils::commonLocateRom(const char *fileName)
+char *LocateROM(const char *fileName)
 {
 	if (fileName == NULL)
 		return (char *) fileName;
@@ -134,7 +134,7 @@ char *CommonUtils::commonLocateRom(const char *fileName)
 	return buffer;
 }
 //-----------------------------------------------------------------------------
-int CommonUtils::commonReadFromFile(const char *fileName, int offset, int size, BYTE *dest)
+int ReadFromFile(const char *fileName, int offset, int size, BYTE *dest)
 {
 	int dwR = -1;
 
@@ -149,7 +149,7 @@ int CommonUtils::commonReadFromFile(const char *fileName, int offset, int size, 
 	return dwR;
 }
 //-----------------------------------------------------------------------------
-int CommonUtils::commonWriteToFile(const char *fileName, int offset, int size, BYTE *src, bool createNew)
+int WriteToFile(const char *fileName, int offset, int size, BYTE *src, bool createNew)
 {
 	int dwW = -1;
 
@@ -163,8 +163,8 @@ int CommonUtils::commonWriteToFile(const char *fileName, int offset, int size, B
 
 	return dwW;
 }
-//---------------------------------------------------------------------------
-bool CommonUtils::commonCreateMedium(const char *fileName, DWORD size, BYTE fill) {
+//-----------------------------------------------------------------------------
+bool CreateMedium(const char *fileName, DWORD size, BYTE fill) {
 	bool result = false;
 	BYTE *buff;
 	DWORD dwW, ii;
@@ -198,19 +198,13 @@ bool CommonUtils::commonCreateMedium(const char *fileName, DWORD size, BYTE fill
 	return result;
 }
 //-----------------------------------------------------------------------------
-// Metoda sa pokusi spakovat blok o dlzke 'len' zo 'src' do 'dest'.
-// 'src' a 'dest' musia byt osobitne alokovane bloky. Oba  musia mat velkost
-// minimalne 'len'.
-// Navratovou hodnotou je dlzka spakovaneho bloku v 'dest'.
-// Ak je tato hodnota = 1, zdrojovy blok bol vyplneny jednou hodnotou, ktora je
-// ulozena v '*dest'. Ak je vratena hodnota = 'len', blok sa nepodarilo spakovat
-// a do 'dest' je skopirovany povodny blok zo 'src'. V ostatnych pripadoch
-// (navratova hodnota < 'len') je blok spakovany jednoduchou RLE kompresiou.
-// Format kompresovanych dat: Flag Data Flag Data Flag Data ...
-// Flag - 0x00 az 0x7F => 1 byte ako Data pre 3 az 130 rovnakych bytov
-// Flag - 0x80 az 0xFF => blok 1 az 128 nepakovatelnych bytov ako Data
-//---------------------------------------------------------------------------
-int CommonUtils::commonPackBlock(BYTE *dest, BYTE *src, int len)
+/*
+ * Method to pack a block from `src` of given length to `dest` in RLE format.
+ * Return value 1 means that all bytes are just single value. If return value
+ * equals to `len`, packing was unsuccessful and `src` was copied do `dest`.
+ * Otherwise returns a new packed block length less than given block length.
+ */
+int PackBlock(BYTE *dest, BYTE *src, int len)
 {
 	BYTE *psrc = src;
 	BYTE *maxsrc = src + len;
@@ -218,32 +212,31 @@ int CommonUtils::commonPackBlock(BYTE *dest, BYTE *src, int len)
 	BYTE *maxdest = dest + len - 1;
 	BYTE x, cnt = 0;
 
-	// zistenie, ci je blok vyplneny iba jednou hodnotou
+	// test block filled with single value
 	x = *src;
 	while (++psrc < maxsrc) {
 		if (x != *psrc)
-		break;
+			break;
 	}
 
 	if (psrc == maxsrc) {
-		*dest = x; // blok je vyplneny iba jednou hodnotou
+		*dest = x;
 		return 1;
 	}
 
-	// kompresia bloku
+	// block compression
 	psrc = src;
 	while (psrc < maxsrc && pdest < maxdest) {
 		x = *psrc++;
 		if (maxsrc - psrc >= 2 && x == *psrc && x == *(psrc + 1)) {
-			// nasli sa rovnake 3 byty za sebou
+			// 3 same bytes sequence found
 			if (cnt > 0) {
-				// ak tomu predchadzal nepakovatelny blok, zaznamenaj to
-				*(pdest - cnt) = (BYTE)((cnt - 1) | 0x80); // pocet - flag
+				*(pdest - cnt) = (BYTE)((cnt - 1) | 0x80); // count - flag
 				pdest++;
 				cnt = 0;
 			}
 
-			// najdenie dalsich opakujucich sa bytov
+			// find another repeating sequence
 			if (pdest < maxdest) {
 				psrc += 2;
 
@@ -253,15 +246,16 @@ int CommonUtils::commonPackBlock(BYTE *dest, BYTE *src, int len)
 					cnt++;
 				}
 
-				*pdest++ = cnt; // pocet - flag
+				*pdest++ = cnt; // count - flag
 				*pdest++ = x; // byte
 				cnt = 0;
 			}
 		}
 		else {
-			*(++pdest) = x; // nepakovatelny byte
+			// uncompressed sequence
+			*(++pdest) = x;
 			if (++cnt == 0x80) { // max 128
-				// pocet 128 - flag ((128 - 1) or 0x80)
+				// count 128 - flag ((128 - 1) or 0x80)
 				*(pdest - cnt) = 0xFF;
 				pdest++;
 				cnt = 0;
@@ -274,28 +268,21 @@ int CommonUtils::commonPackBlock(BYTE *dest, BYTE *src, int len)
 		pdest++;
 	}
 
-	// dlzka spakovaneho bloku
+	// packed block length
 	int packedLen = pdest - dest;
 	if (packedLen < len && psrc == maxsrc)
-		return packedLen; // kompresia uspesna
+		return packedLen; // success
 
-	// neuspesna kompresia - do dest sa ulozi povodny blok
+	// unsuccessful compression - copy src to dest
 	memcpy(dest, src, len);
 	return len;
 }
-//---------------------------------------------------------------------------
-// Metoda sa pokusi rozpakovat blok o dlzke 'srclen' zo 'src' do 'dest'.
-// 'src' a 'dest' musia byt osobitne alokovane bloky.
-// 'destlen' je dlzka cieloveho 'dest' buffra. V pripade, ze 'srclen' = 1
-// alebo 'srclen' = 'destlen', 'destlen' je zaroven pozadovana dlzka cielovych
-// dat. Ak je 'srclen' = 1, tak sa bytom na '*src' vyplni 'dest' o dlzke
-// 'destlen'. Ak je 'srclen' = 'destlen', jedna sa o nespakovany blok a prevedie
-// sa iba prekopirovanie zo 'src' do 'dest'.
-// Navratovou hodnotou je pocet bytov ulozenych v 'dest'.
-// Ak je vratena hodnota -1, su chybne vstupne parametre.
-// Ak je vratena hodnota -2, doslo ku chybe pri rozpakovani, teda 'src' data
-// nezodpovedaju pakovanemu bloku, ktory sa po rozpakovani "vojde" do 'dest'.
-int CommonUtils::commonUnpackBlock(BYTE *dest, int destlen, BYTE *src, int srclen)
+//-----------------------------------------------------------------------------
+/*
+ * Unpack block of RLE packed data or single repeating byte or unpacked data
+ * from `src` to pre-allocated `dest` of given `scrlen`.
+ */
+int UnpackBlock(BYTE *dest, int destlen, BYTE *src, int srclen)
 {
 	BYTE *origDest = dest;
 	BYTE *maxsrc = src + srclen;
@@ -303,13 +290,15 @@ int CommonUtils::commonUnpackBlock(BYTE *dest, int destlen, BYTE *src, int srcle
 	BYTE x, y;
 
 	if (srclen == 0 || destlen == 0 || destlen < srclen)
-	return -1;
+		return -1;
 
+	// single repeating byte
 	if (srclen == 1) {
 		memset(dest, *src, destlen);
 		return destlen;
 	}
 
+	// unpacked data
 	if (srclen == destlen) {
 		memcpy(dest, src, destlen);
 		return destlen;
@@ -318,29 +307,29 @@ int CommonUtils::commonUnpackBlock(BYTE *dest, int destlen, BYTE *src, int srcle
 	while (src < maxsrc && dest < maxdest) {
 		x = *src++;
 
-		// nepakovane data 1 az 128 => 0x80 az 0xFF
+		// unpacked sequence 1 to 128 => 0x80 ~ 0xFF
 		if (x & 0x80) {
 			x &= 0x7F;
 			x++;
 			while (x-- > 0 && dest < maxdest)
-			*dest++ = *src++;
+				*dest++ = *src++;
 		}
-		// pakovane data 3 az 130 => 0x00 az 0x7F
+		// packed data sequence 3 to 130 => 0x00 ~ 0x7F
 		else {
-			x += (BYTE)3;
+			x += (BYTE) 3;
 			y = *src++;
 			while (x-- > 0 && dest < maxdest)
-			*dest++ = y;
+				*dest++ = y;
 		}
 	}
 
 	if (maxsrc - src > 0)
-	return -2;
+		return -2;
 
 	return dest - origDest;
 }
-//---------------------------------------------------------------------------
-bool CommonUtils::commonTestDir(const char *directory, char *add, char **tail)
+//-----------------------------------------------------------------------------
+bool TestDir(const char *directory, char *add, char **tail)
 {
 	static DWORD uid = getuid();
 	static DWORD gid = getgid();
@@ -383,7 +372,10 @@ bool CommonUtils::commonTestDir(const char *directory, char *add, char **tail)
 	return false;
 }
 //-----------------------------------------------------------------------------
-void CommonUtils::commonScanDir(const char *dir, char ***filenames, int *numfiles, bool showHiddenFiles)
+inline int qsortstrcmp(const void *p1, const void *p2)
+	{ return strcmp(*(const char **) p1, *(const char **) p2); }
+//-----------------------------------------------------------------------------
+void ScanDir(const char *dir, char ***filenames, int *numfiles, bool showHiddenFiles)
 {
 	struct dirent *dirent;
 	DIR *directory = NULL;
@@ -484,6 +476,6 @@ void CommonUtils::commonScanDir(const char *dir, char ***filenames, int *numfile
 	}
 
 	closedir(directory);
-	qsort(*filenames, ++*numfiles, sizeof(char *), CommonUtils::qsortstrcmp);
+	qsort(*filenames, ++*numfiles, sizeof(char *), qsortstrcmp);
 }
 //-----------------------------------------------------------------------------

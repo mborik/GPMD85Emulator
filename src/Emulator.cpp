@@ -904,9 +904,9 @@ void TEmulator::ActionROMLoad()
 			fileName = NULL;
 	}
 	if (!fileName) {
-		if (stat(PathAppConfig, &CommonUtils::filestat) == 0)
+		if (stat(PathAppConfig, &filestat) == 0)
 			strcpy(GUI->fileSelector->path, PathAppConfig);
-		else if (stat(PathResources, &CommonUtils::filestat) == 0)
+		else if (stat(PathResources, &filestat) == 0)
 			strcpy(GUI->fileSelector->path, PathResources);
 		else
 			strcpy(GUI->fileSelector->path, PathApplication);

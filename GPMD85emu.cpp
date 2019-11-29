@@ -15,14 +15,20 @@
 	along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 //-----------------------------------------------------------------------------
+#include "ArgvParser.h"
 #include "CommonUtils.h"
 #include "Emulator.h"
 //-----------------------------------------------------------------------------
 int main(int argc, char** argv)
 {
-	printf("\n= %s v%s ~ Copyright (c) %s ~ %s =", PACKAGE_NAME, VERSION, PACKAGE_YEAR, PACKAGE_URL);
-	printf("\n- This program comes with ABSOLUTELY NO WARRANTY. This is free software,");
-	printf("\n- and you are welcome to redistribute it under certain conditions.\n\n");
+	if (!ParseOptions(&argc, &argv))
+		return EXIT_FAILURE;
+	else if (argv_config.version) {
+		printf("v%s\n", VERSION);
+		return EXIT_SUCCESS;
+	}
+
+	IntroMessage();
 
 	PathUserHome = SDL_getenv("HOME");
 	PathApplication = getcwd(NULL, PATH_MAX);
@@ -35,7 +41,7 @@ int main(int argc, char** argv)
 	debug(NULL, "Application path: %s", PathApplication);
 	debug(NULL, "Application config path: %s", PathAppConfig);
 
-	if (stat(PathAppConfig, &CommonUtils::filestat) != 0)
+	if (stat(PathAppConfig, &filestat) != 0)
 		mkdir(PathAppConfig, 0755);
 
 	// initialization of SDL

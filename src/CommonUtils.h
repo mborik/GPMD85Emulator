@@ -1,5 +1,5 @@
 /*	CommonUtils.cpp: Class with common static methods and properties.
-	Copyright (c) 2011-2018 Martin Borik <mborik@users.sourceforge.net>
+	Copyright (c) 2011-2019 Martin Borik <mborik@users.sourceforge.net>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -20,68 +20,39 @@
 //-----------------------------------------------------------------------------
 #include "globals.h"
 //-----------------------------------------------------------------------------
-class CommonUtils {
-public:
-	static char buffer[MAX_PATH];
-	static struct stat filestat;
+extern struct TGraphicsDeviceContext {
+	SDL_Window *window;
+	SDL_Renderer *renderer;
+	DWORD windowID;
+	DWORD format;
+	int freq;
+	int w;
+	int h;
+} gdc;
 
-	static struct TGraphicsDeviceContext {
-		SDL_Window *window;
-		SDL_Renderer *renderer;
-		DWORD windowID;
-		DWORD format;
-		int freq;
-		int w;
-		int h;
-	} graphicsDeviceContext;
+extern struct stat filestat;
 
-	static char *pathApplicationConfig;
-	static char *pathApplication;
-	static char *pathResources;
-	static char *pathUserHome;
+extern char *PathAppConfig;
+extern char *PathApplication;
+extern char *PathResources;
+extern char *PathUserHome;
 
-	static const char *commonAdaptFilePath(const char *filePath, char *path = NULL);
-	static const char *commonExtractFileName(const char *filePath);
-	static char *commonComposeFilePath(const char *filePath);
-	static char *commonLocateResource(const char *fileName, bool copyToHome);
-	static char *commonLocateRom(const char *fileName);
-	static int commonReadFromFile(const char *fileName, int offset, int size, BYTE *dest);
-	static int commonWriteToFile(const char *fileName, int offset, int size, BYTE *src, bool createNew);
-	static bool commonCreateMedium(const char *fileName, DWORD size, BYTE fill);
-	static int commonPackBlock(BYTE *dest, BYTE *src, int len);
-	static int commonUnpackBlock(BYTE *dest, int destlen, BYTE *src, int srclen);
-	static bool commonTestDir(const char *directory, char *add, char **tail);
-	static void commonScanDir(const char *directory, char ***filenames, int *numfiles, bool showHiddenFiles = false);
+const char *AdaptFilePath(const char *filePath, char *path = NULL);
+const char *ExtractFileName(const char *filePath);
+char *ComposeFilePath(const char *filePath);
+char *LocateResource(const char *fileName, bool copyToHome);
+char *LocateROM(const char *fileName);
+int ReadFromFile(const char *fileName, int offset, int size, BYTE *dest);
+int WriteToFile(const char *fileName, int offset, int size, BYTE *src, bool createNew);
+bool CreateMedium(const char *fileName, DWORD size, BYTE fill);
+int PackBlock(BYTE *dest, BYTE *src, int len);
+int UnpackBlock(BYTE *dest, int destlen, BYTE *src, int srclen);
+bool TestDir(const char *directory, char *add, char **tail);
+void ScanDir(const char *directory, char ***filenames, int *numfiles, bool showHiddenFiles = false);
 
-	static inline bool commonFileExists(const char *path)
-		{ return (stat(path, &filestat) == 0 && S_ISREG(filestat.st_mode)); }
-	static inline bool commonDirExists(const char *path)
-		{ return (stat(path, &filestat) == 0 && S_ISDIR(filestat.st_mode)); }
-
-	static inline int qsortstrcmp(const void *p1, const void *p2)
-		{ return strcmp(*(const char **) p1, *(const char **) p2); }
-};
-//-----------------------------------------------------------------------------
-#define PathAppConfig CommonUtils::pathApplicationConfig
-#define PathApplication CommonUtils::pathApplication
-#define PathResources CommonUtils::pathResources
-#define PathUserHome CommonUtils::pathUserHome
-
-#define AdaptFilePath CommonUtils::commonAdaptFilePath
-#define ExtractFileName CommonUtils::commonExtractFileName
-#define ComposeFilePath CommonUtils::commonComposeFilePath
-#define LocateResource CommonUtils::commonLocateResource
-#define LocateROM CommonUtils::commonLocateRom
-#define ReadFromFile CommonUtils::commonReadFromFile
-#define WriteToFile CommonUtils::commonWriteToFile
-#define CreateMedium CommonUtils::commonCreateMedium
-#define FileExists CommonUtils::commonFileExists
-#define DirExists CommonUtils::commonFileExists
-#define PackBlock CommonUtils::commonPackBlock
-#define UnpackBlock CommonUtils::commonUnpackBlock
-#define TestDir CommonUtils::commonTestDir
-#define ScanDir CommonUtils::commonScanDir
-
-#define gdc CommonUtils::graphicsDeviceContext
+inline bool FileExists(const char *path)
+	{ return (stat(path, &filestat) == 0 && S_ISREG(filestat.st_mode)); }
+inline bool DirExists(const char *path)
+	{ return (stat(path, &filestat) == 0 && S_ISDIR(filestat.st_mode)); }
 //-----------------------------------------------------------------------------
 #endif
