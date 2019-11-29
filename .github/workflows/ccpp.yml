@@ -1,17 +1,22 @@
 name: C/C++ CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - master
+  pull_request:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v1
 
     - name: install dependencies
-      run: sudo apt-get install build-essential autoconf autotools-dev pkg-config libsdl2-dev
+      run: |
+        sudo apt update -y
+        sudo apt install -y build-essential autoconf autotools-dev pkg-config libsdl2-dev
 
     - name: autoreconf
       run: autoreconf -vfi
@@ -20,4 +25,4 @@ jobs:
       run: ./configure
 
     - name: make
-      run: make
+      run: make -j6
