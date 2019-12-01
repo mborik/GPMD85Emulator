@@ -271,7 +271,7 @@ static GUI_MENU_ENTRY gui_emu_menu[] = {
 	{ MI_CHECKBOX, "PAUSE ON LOST \aFOCUS", NULL, SDL_SCANCODE_F, NULL, ccb_emu_focus, dcb_emu_focus_state, true },
 	{ MI_CHECKBOX, "\aAUTO-SAVE SETTINGS", NULL, SDL_SCANCODE_A, NULL, ccb_emu_asave, dcb_emu_asave_state, true },
 	{ MI_SEPARATOR },
-	{ MI_STANDARD, "SA\aVE SETTINGS", NULL, SDL_SCANCODE_V, NULL, ccb_emu_saves, NULL, true },
+	{ MI_STANDARD, "SA\aVE SETTINGS", NULL, SDL_SCANCODE_V, NULL, ccb_emu_saves, dcb_emu_asave_state, true },
 	{ MENU_END }
 };
 static GUI_MENU_ENTRY gui_machine_menu[] = {

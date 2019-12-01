@@ -164,6 +164,7 @@ class TSettings
 		bool pauseOnFocusLost;
 		bool showHiddenFiles;
 		bool autosaveSettings;
+		bool fixedSettings;
 
 		double emulationSpeed;
 
@@ -184,7 +185,7 @@ class TSettings
 		SetDebugger *Debugger;
 		SetMemoryBlock *MemoryBlock;
 
-		TSettings();
+		TSettings(bool userCfg);
 		virtual ~TSettings();
 		void storeSettings();
 

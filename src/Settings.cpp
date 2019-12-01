@@ -20,14 +20,14 @@
 //-----------------------------------------------------------------------------
 TSettings *Settings;
 //-----------------------------------------------------------------------------
-TSettings::TSettings()
+TSettings::TSettings(bool userCfg)
 {
 	int i, j, k;
 	char *cmodel, *buf, *s;
 
 	debug("Settings", "Configuration parser initialization...");
 
-	if ((buf = LocateResource("default.conf", true)) == NULL)
+	if ((buf = LocateResource("default.conf", userCfg, userCfg)) == NULL)
 		error("Settings", "Configuration file not found!");
 
 	cfgReadFile(buf);
@@ -49,7 +49,9 @@ TSettings::TSettings()
 
 	pauseOnFocusLost = cfgGetBoolValue(n, "pause-on-focus-lost", false, &pauseOnFocusLost);
 	showHiddenFiles = cfgGetBoolValue(n, "show-hidden-files", false, &showHiddenFiles);
-	autosaveSettings = cfgGetBoolValue(n, "auto-save-settings", false, &autosaveSettings);
+	autosaveSettings = userCfg ? cfgGetBoolValue(n, "auto-save-settings", false, &autosaveSettings) : false;
+	fixedSettings = !userCfg;
+
 	cmodel = cfgGetStringValue(n, "current-model");
 
 	isPaused = false;
@@ -691,10 +693,13 @@ TSettings::~TSettings()
 //-----------------------------------------------------------------------------
 void TSettings::storeSettings()
 {
+	if (fixedSettings)
+		return;
+
 	debug("Settings", "Saving configuration file...");
 
 	char *buf;
-	if ((buf = LocateResource("default.conf", true)) == NULL) {
+	if ((buf = LocateResource("default.conf", true, true)) == NULL) {
 		warning("Settings", "Configuration file not found!");
 		return;
 	}

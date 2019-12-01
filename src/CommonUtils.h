@@ -40,7 +40,7 @@ extern char *PathUserHome;
 const char *AdaptFilePath(const char *filePath, char *path = NULL);
 const char *ExtractFileName(const char *filePath);
 char *ComposeFilePath(const char *filePath);
-char *LocateResource(const char *fileName, bool copyToHome);
+char *LocateResource(const char *fileName, bool locateAtHome = true, bool copyToHome = false);
 char *LocateROM(const char *fileName);
 int ReadFromFile(const char *fileName, int offset, int size, BYTE *dest);
 int WriteToFile(const char *fileName, int offset, int size, BYTE *src, bool createNew);

@@ -16,6 +16,7 @@
 	along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 //-----------------------------------------------------------------------------
+#include "ArgvParser.h"
 #include "CommonUtils.h"
 #include "Emulator.h"
 #include "UserInterfaceData.h"
@@ -53,7 +54,7 @@ TEmulator::TEmulator()
 	pmd32connected = false;
 	romModuleConnected = false;
 
-	Settings = new TSettings();
+	Settings = new TSettings(argv_config.any_related ? argv_config.overcfg : true);
 	Debugger = new TDebugger();
 	TapeBrowser = new TTapeBrowser();
 	GUI = new UserInterface();
@@ -61,6 +62,9 @@ TEmulator::TEmulator()
 	isRunning = false;
 	isActive = false;
 	inmenu = false;
+
+	if (argv_config.any_related)
+		ProcessArgvOptions();
 }
 //-----------------------------------------------------------------------------
 TEmulator::~TEmulator()
@@ -126,6 +130,122 @@ TEmulator::~TEmulator()
 	if (Settings)
 		delete Settings;
 	Settings = NULL;
+}
+//-----------------------------------------------------------------------------
+void TEmulator::ProcessArgvOptions(bool memModifiers)
+{
+	if (!memModifiers) {
+		TComputerModel cm = (TComputerModel) argv_config.model;
+
+		// Machine
+		if (cm != CM_UNKNOWN) {
+			for (int i = 0; i < Settings->modelsCount; i++) {
+				if (Settings->AllModels[i]->type == cm) {
+					Settings->CurrentModel = Settings->AllModels[i];
+					break;
+				}
+			}
+		}
+
+		Settings->CurrentModel->romModuleInserted = argv_config.rmm;
+
+		// Screen
+		if (argv_config.scaler > 0)
+			Settings->Screen->size = (TDisplayMode) argv_config.scaler;
+
+		if (argv_config.halfpass >= 0 && argv_config.halfpass <= 4) {
+			Settings->Screen->lcdMode = false;
+			Settings->Screen->halfPass = (THalfPassMode) argv_config.halfpass;
+		}
+		else if (argv_config.halfpass == 5) {
+			Settings->Screen->lcdMode = true;
+			Settings->Screen->halfPass = HP_OFF;
+		}
+
+		if (argv_config.color >= 0)
+			Settings->Screen->colorProfile = (TColorProfile) argv_config.color;
+
+		// Sound
+		if (argv_config.volume > 0) {
+			Settings->Sound->mute = false;
+			Settings->Sound->volume = argv_config.volume;
+		}
+		else if (argv_config.volume == 0)
+			Settings->Sound->mute = true;
+
+		Settings->Sound->ifMIF85 = argv_config.mif85;
+
+		// PMD 32
+		Settings->PMD32->connected = argv_config.pmd32;
+		if (argv_config.p32_drvA) {
+			if (Settings->PMD32->driveA.image)
+				delete [] Settings->PMD32->driveA.image;
+			Settings->PMD32->driveA.image = ComposeFilePath(argv_config.p32_drvA);
+			Settings->PMD32->driveA.writeProtect = argv_config.p32_drvA_wp;
+		}
+		if (argv_config.p32_drvB) {
+			if (Settings->PMD32->driveD.image)
+				delete [] Settings->PMD32->driveD.image;
+			Settings->PMD32->driveD.image = ComposeFilePath(argv_config.p32_drvB);
+			Settings->PMD32->driveD.writeProtect = argv_config.p32_drvB_wp;
+		}
+		if (argv_config.p32_drvC) {
+			if (Settings->PMD32->driveC.image)
+				delete [] Settings->PMD32->driveC.image;
+			Settings->PMD32->driveC.image = ComposeFilePath(argv_config.p32_drvC);
+			Settings->PMD32->driveC.writeProtect = argv_config.p32_drvC_wp;
+		}
+		if (argv_config.p32_drvD) {
+			if (Settings->PMD32->driveD.image)
+				delete [] Settings->PMD32->driveD.image;
+			Settings->PMD32->driveD.image = ComposeFilePath(argv_config.p32_drvD);
+			Settings->PMD32->driveD.writeProtect = argv_config.p32_drvD_wp;
+		}
+
+		// Tape
+		Settings->TapeBrowser->flash = argv_config.flashload;
+		if (argv_config.tape) {
+			char *fileName = ComposeFilePath(argv_config.tape);
+			if (TapeBrowser->SetTapeFileName(fileName) == 0xFF) {
+				delete [] fileName;
+				fileName = NULL;
+			}
+
+			if (Settings->TapeBrowser->fileName)
+				delete [] Settings->TapeBrowser->fileName;
+			Settings->TapeBrowser->fileName = fileName;
+		}
+	}
+	else {
+		// Snapshot
+		if (argv_config.snap) {
+			BYTE flag;
+			char *fileName = ComposeFilePath(argv_config.snap);
+			ProcessSnapshot(fileName, &flag);
+
+			if (flag != 0) {
+				delete [] fileName;
+				fileName = NULL;
+
+				if (Settings->Snapshot->fileName)
+					delete [] Settings->Snapshot->fileName;
+				Settings->Snapshot->fileName = NULL;
+			}
+		}
+
+		// Memory block
+		if (argv_config.memblock) {
+			Settings->MemoryBlock->start = argv_config.memstart;
+			Settings->MemoryBlock->length = 65535;
+			Settings->MemoryBlock->fileName = ComposeFilePath(argv_config.memblock);
+
+			if (!ProcessRawFile(false)) {
+				if (Settings->MemoryBlock->fileName)
+					delete [] Settings->MemoryBlock->fileName;
+				Settings->MemoryBlock->fileName = NULL;
+			}
+		}
+	}
 }
 //-----------------------------------------------------------------------------
 void TEmulator::ProcessSettings(BYTE filter)
@@ -1059,7 +1179,7 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 			romFile = Settings->CurrentModel->romFile;
 		fileSize = ReadFromFile(romFile, 0, 16 * KB, romBuff);
 		if (fileSize < 0)
-			warning("Error reading ROM file!\n%s", romFile);
+			warning("Emulator", "Error reading ROM file!\n%s", romFile);
 	}
 
 	fileSize = (fileSize + KB - 1) & (~(KB - 1));
@@ -1457,7 +1577,8 @@ void TEmulator::ProcessSnapshot(char *fileName, BYTE *flag)
 		Debugger->SetParams(cpu, memory, model);
 	}
 	else {
-		delete [] Settings->Snapshot->fileName;
+		if (Settings->Snapshot->fileName)
+			delete [] Settings->Snapshot->fileName;
 		Settings->Snapshot->fileName = new char[(strlen(fileName) + 1)];
 		strcpy(Settings->Snapshot->fileName, fileName);
 	}

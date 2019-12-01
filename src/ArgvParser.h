@@ -37,12 +37,16 @@ typedef struct TCmdLineSwitches {
 } TCmdLineSwitches;
 //-----------------------------------------------------------------------------
 extern struct TCmdLineArguments {
+	bool  any_related;
+
 	bool  help;
 	bool  version;
-	bool  usercfg;
+	bool  overcfg;
 	char *machine;
+	int   model;
 	bool  rmm;
 	int   scaler;
+	int   border;
 	int   halfpass;
 	int   color;
 	int   volume;
@@ -57,6 +61,7 @@ extern struct TCmdLineArguments {
 	char *p32_drvD;
 	bool  p32_drvD_wp;
 	char *tape;
+	bool  flashload;
 	char *snap;
 	char *memblock;
 	int   memstart;

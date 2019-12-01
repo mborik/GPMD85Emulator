@@ -67,7 +67,7 @@ UserInterface::UserInterface()
 #pragma pack(pop)
 
 	fontData = NULL;
-	FILE *f = fopen(LocateResource("base.fnt", false), "rb");
+	FILE *f = fopen(LocateResource("base.fnt"), "rb");
 	FNT_HEADER *fnt = new FNT_HEADER;
 
 	if (fread(fnt, sizeof(FNT_HEADER), 1, f) == 1
@@ -96,7 +96,7 @@ UserInterface::UserInterface()
 		error("GUI", "Can't load font resource file");
 	debug("GUI", "Font resource loaded");
 
-	icons = LoadImgToSurface(LocateResource("statusbar.bmp", false));
+	icons = LoadImgToSurface(LocateResource("statusbar.bmp"));
 	if (icons == NULL)
 		error("GUI", "Can't load status bar icons resource file");
 	debug("GUI", "Status bar icons resource loaded");

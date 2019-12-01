@@ -155,7 +155,10 @@ const char *dcb_emu_focus_state(GUI_MENU_ENTRY *ptr)
 //-----------------------------------------------------------------------------
 const char *dcb_emu_asave_state(GUI_MENU_ENTRY *ptr)
 {
-	ptr->state = Settings->autosaveSettings;
+	ptr->enabled = !Settings->fixedSettings;
+	if (ptr->type == MI_CHECKBOX)
+		ptr->state = Settings->autosaveSettings;
+
 	return NULL;
 }
 //-----------------------------------------------------------------------------

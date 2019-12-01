@@ -19,17 +19,24 @@
 #include "globals.h"
 //-----------------------------------------------------------------------------
 #define SWPAR(str) str, false, -1
+#define NOVAL INT32_MIN
+#define TEST_VALUE_RANGE(val, a, b) (val > NOVAL && val < a) || val > b
 //-----------------------------------------------------------------------------
+bool argv_config_related = false;
 struct TCmdLineArguments argv_config = {
+	false, /* any_related - set to true if any related switch was on cmdline input */
+
 	false,  /* --help */
 	false,  /* --version */
-	true,   /* --over-cfg */
+	false,  /* --over-cfg */
 	NULL,   /* --machine */
+	CM_UNKNOWN, /* machine id translated into TComputerModel form */
 	false,  /* --rmm */
-	0,      /* --scaler */
-	-1,     /* --halfpass */
-	-1,     /* --profile */
-	-1,     /* --volume */
+	NOVAL,  /* --scaler */
+	NOVAL,  /* --border */
+	NOVAL,  /* --halfpass */
+	NOVAL,  /* --profile */
+	NOVAL,  /* --volume */
 	false,  /* --mif85 */
 	false,  /* --pmd32 */
 	NULL,   /* --drive-a */
@@ -41,16 +48,17 @@ struct TCmdLineArguments argv_config = {
 	NULL,   /* --drive-d */
 	true,   /* --drive-d-write */
 	NULL,   /* --tape */
+	true,   /* --tape-real */
 	NULL,   /* --snap */
 	NULL,   /* --memblock */
-	0,      /* --memblock-address */
+	NOVAL,  /* --memblock-address */
 };
 TCmdLineSwitch switches[] = {
 	{ "-h",   "--help", VAR_BOOL, (void *) &argv_config.help,
 				"print this help", SWPAR(NULL) },
 	{ "-v",   "--version", VAR_BOOL, (void *) &argv_config.version,
 				"print version number", SWPAR(NULL) },
-	{ "-c",   "--over-cfg", VAR_BOOL_NEG, (void *) &argv_config.usercfg,
+	{ "-c",   "--over-cfg", VAR_BOOL, (void *) &argv_config.overcfg,
 				"override user's configuration", SWPAR(NULL) },
 	{ "-m",   "--machine", VAR_STRING, (void *) &argv_config.machine,
 				"select machine", SWPAR("{1, 2, 2A.. C2717}") },
@@ -58,12 +66,14 @@ TCmdLineSwitch switches[] = {
 				"connect ROM module", SWPAR(NULL) },
 	{ "-sc",  "--scaler", VAR_INT, (void *) &argv_config.scaler,
 				"screen size multiplier", SWPAR("{1..4}") },
+	{ "-bd",  "--border", VAR_INT, (void *) &argv_config.scaler,
+				"screen border width", SWPAR("{0..9}") },
 	{ "-hp",  "--halfpass", VAR_INT, (void *) &argv_config.halfpass,
-				"scanliner (5=LCD)", SWPAR("{0..5}") },
+				"scanliner (0=NONE, 1-4=HALFPASS, 5=LCD)", SWPAR("{0..5}") },
 	{ "-cp",  "--profile", VAR_INT, (void *) &argv_config.color,
 				"color profile (0=MONO, 1=STD, 2=RGB, 3=ColorACE)", SWPAR("{0..3}") },
 	{ "-vol", "--volume", VAR_INT, (void *) &argv_config.volume,
-				"sound volume", SWPAR("{0..127}") },
+				"sound volume (0=MUTE)", SWPAR("{0..127}") },
 	{ "-mif", "--mif85", VAR_BOOL, (void *) &argv_config.mif85,
 				"connect MIF 85 music interface", SWPAR(NULL) },
 	{ "-p",   "--pmd32", VAR_BOOL, (void *) &argv_config.pmd32,
@@ -86,6 +96,8 @@ TCmdLineSwitch switches[] = {
 				"drive D write enabled", SWPAR(NULL) },
 	{ "-t",   "--tape", VAR_STRING, (void *) &argv_config.tape,
 				"tape image", SWPAR("\"filename.ptp\"") },
+	{ "-trs", "--tape-real", VAR_BOOL_NEG, (void *) &argv_config.flashload,
+				"real tape speed", SWPAR(NULL) },
 	{ "-s",   "--snap", VAR_STRING, (void *) &argv_config.snap,
 				"load snapshot", SWPAR("\"filename.psn\"") },
 	{ "-b",   "--memblock", VAR_STRING, (void *) &argv_config.memblock,
@@ -93,7 +105,7 @@ TCmdLineSwitch switches[] = {
 	{ "-ptr", "--memblock-address", VAR_INT, (void *) &argv_config.memstart,
 				"load memory block at given address", SWPAR(NULL) },
 };
-TCmdLineSwitches cmdline = { switches, 23 };
+TCmdLineSwitches cmdline = { switches, 25 };
 //-----------------------------------------------------------------------------
 void IntroMessage()
 {
@@ -133,7 +145,7 @@ bool ParseOptions(int *argc, char *(*argv[]))
 
 					case VAR_STRING:
 						if (i > *argc - 2) {
-							warning("ArgvParser", "Parameter parsing error: %s needs argument %s", args[i],
+							warning("Arguments", "Parameter parsing error: %s needs argument %s", args[i],
 								(cmdline.switches[q].par_descr == NULL ? "" : cmdline.switches[q].par_descr));
 
 							ret = false;
@@ -145,7 +157,7 @@ bool ParseOptions(int *argc, char *(*argv[]))
 
 					case VAR_INT:
 						if (i > *argc - 2) {
-							warning("ArgvParser", "Parameter parsing error: %s needs argument %s", args[i],
+							warning("Arguments", "Parameter parsing error: %s needs argument %s", args[i],
 								(cmdline.switches[q].par_descr == NULL ? "" : cmdline.switches[q].par_descr));
 
 							ret = false;
@@ -158,7 +170,7 @@ bool ParseOptions(int *argc, char *(*argv[]))
 							transcode = strtol(args[i + 1], &ptr, 10);
 
 						if (errnum != 0) {
-							warning("ArgvParser", "Value %s is not correct argument for parameter %s", args[i + 1], args[i]);
+							warning("Arguments", "Value %s is not correct argument for parameter %s", args[i + 1], args[i]);
 							ret = false;
 						}
 
@@ -182,7 +194,7 @@ bool ParseOptions(int *argc, char *(*argv[]))
 								transcode = strtol(args[i + 1], &ptr, 10);
 
 							if (errnum != 0) {
-								warning("ArgvParser", "Value %s is not correct argument!", args[i]);
+								warning("Arguments", "Value %s is not correct argument!", args[i]);
 								ret = false;
 							}
 
@@ -227,6 +239,81 @@ bool ParseOptions(int *argc, char *(*argv[]))
 
 		printf("\n");
 		ret = false;
+	}
+	else {
+		if (argv_config.machine != NULL) {
+			if (strcmp(argv_config.machine, "1") == 0)
+				argv_config.model = (int) CM_V1;
+			else if (strcmp(argv_config.machine, "2") == 0)
+				argv_config.model = (int) CM_V2;
+			else if (strcmp(argv_config.machine, "2A") == 0)
+				argv_config.model = (int) CM_V2A;
+			else if (strcmp(argv_config.machine, "3") == 0)
+				argv_config.model = (int) CM_V3;
+			else if (strcmp(argv_config.machine, "Mato") == 0)
+				argv_config.model = (int) CM_MATO;
+			else if (strcmp(argv_config.machine, "Alfa") == 0)
+				argv_config.model = (int) CM_ALFA;
+			else if (strcmp(argv_config.machine, "Alfa2") == 0)
+				argv_config.model = (int) CM_ALFA2;
+			else if (strcmp(argv_config.machine, "C2717") == 0)
+				argv_config.model = (int) CM_C2717;
+			else {
+				warning("Arguments", "Unknown machine '%s'", argv_config.machine);
+				argv_config.machine = NULL;
+			}
+		}
+		if (TEST_VALUE_RANGE(argv_config.scaler, 1, 4)) {
+			warning("Arguments", "Invalid screen size '%d'", argv_config.scaler);
+			argv_config.scaler = NOVAL;
+		}
+		if (TEST_VALUE_RANGE(argv_config.border, 0, 9)) {
+			warning("Arguments", "Invalid border size '%d'", argv_config.border);
+			argv_config.border = NOVAL;
+		}
+		if (TEST_VALUE_RANGE(argv_config.halfpass, 0, 5)) {
+			warning("Arguments", "Invalid scanliner '%d'", argv_config.halfpass);
+			argv_config.halfpass = NOVAL;
+		}
+		if (TEST_VALUE_RANGE(argv_config.color, 0, 3)) {
+			warning("Arguments", "Invalid color profile '%d'", argv_config.color);
+			argv_config.color = NOVAL;
+		}
+		if (TEST_VALUE_RANGE(argv_config.volume, 0, 127)) {
+			warning("Arguments", "Invalid volume level '%d'", argv_config.volume);
+			argv_config.volume = NOVAL;
+		}
+
+		if (argv_config.memblock == NULL && argv_config.memstart != NOVAL) {
+			warning("Arguments", "Memory block file missing");
+			argv_config.memstart = NOVAL;
+		}
+		if (TEST_VALUE_RANGE(argv_config.memstart, 0, 65535)) {
+			warning("Arguments", "Invalid memory block start address '%d'", argv_config.memstart);
+			argv_config.memstart = 0;
+		}
+		if (argv_config.memstart == NOVAL)
+			argv_config.memstart = 0;
+	}
+
+	if (ret) {
+		argv_config.any_related =
+			argv_config.machine != NULL ||
+			argv_config.rmm ||
+			argv_config.scaler > 0 ||
+			argv_config.halfpass >= 0 ||
+			argv_config.color >= 0 ||
+			argv_config.volume >= 0 ||
+			argv_config.mif85 ||
+			argv_config.pmd32 ||
+			argv_config.p32_drvA != NULL ||
+			argv_config.p32_drvB != NULL ||
+			argv_config.p32_drvC != NULL ||
+			argv_config.p32_drvD != NULL ||
+			argv_config.tape != NULL ||
+			argv_config.flashload ||
+			argv_config.snap != NULL ||
+			argv_config.memblock != NULL;
 	}
 
 	return ret;

@@ -75,13 +75,14 @@ char *ComposeFilePath(const char *filePath)
 	return buf;
 }
 //-----------------------------------------------------------------------------
-char *LocateResource(const char *fileName, bool copyToHome)
+char *LocateResource(const char *fileName, bool locateAtHome, bool copyToHome)
 {
 	if (fileName == NULL)
 		return NULL;
 
-	sprintf(buffer, "%s%c%s", PathAppConfig, DIR_DELIMITER, fileName);
-	if (stat(buffer, &filestat) != 0) {
+	if (locateAtHome)
+		sprintf(buffer, "%s%c%s", PathAppConfig, DIR_DELIMITER, fileName);
+	if (!locateAtHome || stat(buffer, &filestat) != 0) {
 		sprintf(buffer, "%s%c%s", PathResources, DIR_DELIMITER, fileName);
 		if (stat(buffer, &filestat) != 0) {
 			sprintf(buffer, "%s%c%s%c%s", PathApplication, DIR_DELIMITER, "res", DIR_DELIMITER, fileName);
