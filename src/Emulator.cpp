@@ -1910,25 +1910,32 @@ bool TEmulator::ProcessRawFile(bool save)
 		length = ReadFromFile(fn, 0, length, buff);
 
 		if (length > 0) {
-			bool oldRemap = false;
+			bool oldState = false;
 
 			if (model == CM_C2717) {
-				oldRemap = memory->IsRemapped();
+				oldState = memory->IsRemapped();
 				memory->SetRemapped(Settings->MemoryBlock->remapping);
+			}
+			else {
+				oldState = memory->IsInReset();
+				if (oldState)
+					memory->ResetOff();
 			}
 
 			for (int i = 0; i < length; i++)
 				memory->WriteByte(start + i, *(buff + i));
 
 			if (model == CM_C2717)
-				memory->SetRemapped(oldRemap);
+				memory->SetRemapped(oldState);
+			else if (oldState)
+				memory->ResetOn();
 		}
 		else
 			ret = false;
 	}
 	else {
 		int oldPage = -1;
-		bool oldRemap = false;
+		bool oldState = false;
 		buff = new BYTE[length];
 
 		if (model == CM_V2A || model == CM_V3 || model == CM_C2717) {
@@ -1936,7 +1943,7 @@ bool TEmulator::ProcessRawFile(bool save)
 			memory->SetPage((BYTE) Settings->MemoryBlock->rom);
 
 			if (model == CM_C2717) {
-				oldRemap = memory->IsRemapped();
+				oldState = memory->IsRemapped();
 				memory->SetRemapped(Settings->MemoryBlock->remapping);
 			}
 		}
@@ -1948,7 +1955,7 @@ bool TEmulator::ProcessRawFile(bool save)
 			memory->SetPage(oldPage);
 
 			if (model == CM_C2717)
-				memory->SetRemapped(oldRemap);
+				memory->SetRemapped(oldState);
 		}
 
 		if (WriteToFile(fn, 0, length, buff, true) < 0)
