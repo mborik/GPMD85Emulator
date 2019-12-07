@@ -43,3 +43,58 @@
 ## CONFIGURATION PARAMETERS:
 - to enable debug mode use `./configure --enable-debug`
 - omit all trace messages with `./configure --disable-trace` (size optimization)
+- to use software 2D rendering context instead of accelerated use `./configure --with-soft-render`
+
+## COMMAND-LINE ARGUMENTS:
+- `-h`, `--help`
+  --- print this help
+- `-v`, `--version`
+  --- print version number
+- `-c`, `--over-cfg`
+  --- override user's configuration
+- `-m`, `--machine` `{X}`
+  --- select machine (`1`, `2`, `2A`, `3`, `C2717`, `Alfa`, `Alfa2`, `Mato`)
+- `-r`, `--rmm`
+  --- connect ROM module
+- `-sc`, `--scaler` `{1..4}`
+  --- screen size multiplier
+- `-bd`, `--border` `{0..9}`
+  --- screen border width
+- `-hp`, `--halfpass` `{0..5}`
+  --- scanliner (`0`=NONE, `1`-`4`=HALFPASS, `5`=LCD)
+- `-cp`, `--profile` `{0..3}`
+  --- color profile (`0`=MONO, `1`=STD, `2`=RGB, `3`=ColorACE)
+- `-vol`, `--volume` `{0..127}`
+  --- sound volume (`0`=MUTE)
+- `-mif`, `--mif85`
+  --- connect MIF 85 music interface
+- `-p`, `--pmd32`
+  --- connect PMD 32 disk interface
+- `-drA`, `--drive-a` `"filename.p32"`
+  --- drive A disk image
+- `-dwA`, `--drive-a-write`
+  --- drive A write enabled
+- `-drB`, `--drive-b` `"filename.p32"`
+  --- drive B disk image
+- `-dwB`, `--drive-b-write`
+  --- drive B write enabled
+- `-drC`, `--drive-c` `"filename.p32"`
+  --- drive C disk image
+- `-dwC`, `--drive-c-write`
+  --- drive C write enabled
+- `-drD`, `--drive-d` `"filename.p32"`
+  --- drive D disk image
+- `-dwD`, `--drive-d-write`
+  --- drive D write enabled
+- `-t`, `--tape` `"filename.ptp"`
+  --- tape image
+- `-trs`, `--tape-real`
+  --- real tape speed
+- `-s`, `--snap` `"filename.psn"`
+  --- load snapshot
+- `-b`, `--memblock` `"filename.bin"`
+  --- load memory block
+- `-ptr`, `--memblock-address` `{WORD}`
+  --- load memory block at given address
+- `-soft`, `--soft-render`
+  --- use software renderer instead of accelerated

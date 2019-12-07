@@ -69,7 +69,17 @@ int main(int argc, char** argv)
 		error("", "Couldn't initialize window:\n\t%s", SDL_GetError());
 
 	gdc.windowID = SDL_GetWindowID(gdc.window);
-	gdc.renderer = SDL_CreateRenderer(gdc.window, -1, SDL_RENDERER_ACCELERATED);
+
+	DWORD renderFlags = SDL_RENDERER_ACCELERATED;
+#ifndef SOFTRENDER
+	if (argv_config.softrender)
+#endif
+		renderFlags = SDL_RENDERER_SOFTWARE;
+
+	debug(NULL, "Creating %s 2D rendering context...",
+		(renderFlags == SDL_RENDERER_SOFTWARE) ? "software" : "accelerated");
+
+	gdc.renderer = SDL_CreateRenderer(gdc.window, -1, renderFlags);
 
 	if (!gdc.renderer)
 		error("", "Couldn't initialize renderer:\n\t%s", SDL_GetError());

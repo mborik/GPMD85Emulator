@@ -238,8 +238,9 @@ void SoundDriver::FillSoundBuffer(BYTE *data, DWORD len)
 		);
 	}
 
-	if ((writePos + len) < frameSize)
-		writePos += len;
+	int bufLen = (int) len;
+	if ((writePos + bufLen) < frameSize)
+		writePos += bufLen;
 }
 //---------------------------------------------------------------------------
 bool SoundDriver::CreateWaveFile(const char* fileName)

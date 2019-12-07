@@ -65,6 +65,7 @@ extern struct TCmdLineArguments {
 	char *snap;
 	char *memblock;
 	int   memstart;
+	bool  softrender;
 } argv_config;
 //-----------------------------------------------------------------------------
 void IntroMessage();

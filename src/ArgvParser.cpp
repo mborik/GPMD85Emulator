@@ -24,7 +24,8 @@
 //-----------------------------------------------------------------------------
 bool argv_config_related = false;
 struct TCmdLineArguments argv_config = {
-	false, /* any_related - set to true if any related switch was on cmdline input */
+	/* any_related - set to true if any related switch was on cmdline input */
+	false,
 
 	false,  /* --help */
 	false,  /* --version */
@@ -52,6 +53,7 @@ struct TCmdLineArguments argv_config = {
 	NULL,   /* --snap */
 	NULL,   /* --memblock */
 	NOVAL,  /* --memblock-address */
+	false,  /* --soft-render */
 };
 TCmdLineSwitch switches[] = {
 	{ "-h",   "--help", VAR_BOOL, (void *) &argv_config.help,
@@ -103,9 +105,11 @@ TCmdLineSwitch switches[] = {
 	{ "-b",   "--memblock", VAR_STRING, (void *) &argv_config.memblock,
 				"load memory block", SWPAR("\"filename.bin\"") },
 	{ "-ptr", "--memblock-address", VAR_INT, (void *) &argv_config.memstart,
-				"load memory block at given address", SWPAR(NULL) },
+				"load memory block at given address", SWPAR("{WORD}") },
+	{ "-soft", "--soft-render", VAR_BOOL, (void *) &argv_config.softrender,
+				"use software renderer instead of accelerated", SWPAR(NULL) },
 };
-TCmdLineSwitches cmdline = { switches, 25 };
+TCmdLineSwitches cmdline = { switches, 26 };
 //-----------------------------------------------------------------------------
 void IntroMessage()
 {
