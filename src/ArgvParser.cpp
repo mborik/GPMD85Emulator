@@ -315,7 +315,7 @@ bool ParseOptions(int *argc, char *(*argv[]))
 			argv_config.p32_drvC != NULL ||
 			argv_config.p32_drvD != NULL ||
 			argv_config.tape != NULL ||
-			argv_config.flashload ||
+			argv_config.flashload == false ||
 			argv_config.snap != NULL ||
 			argv_config.memblock != NULL;
 	}
