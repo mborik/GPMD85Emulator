@@ -51,8 +51,8 @@ SoundDriver::SoundDriver(char totalAmpl)
 		channels = new CHANNEL[AUDIO_MAX_CHANNELS];
 		for (int ii = 0; ii < AUDIO_MAX_CHANNELS; ii++) {
 			memset(&channels[ii], 0, sizeof(CHANNEL));
-			channels[ii].sampleBuff = new char[frameSize];
-			memset(channels[ii].sampleBuff, silence, frameSize);
+			channels[ii].sampleBuff = new char[frameSize * 2];
+			memset(channels[ii].sampleBuff, silence, frameSize * 2);
 		}
 
 		initOK = true;
@@ -162,8 +162,6 @@ void SoundDriver::PrepareBuffer()
 	if (!initOK || !playOK)
 		return;
 
-	SDL_LockAudio();
-
 	// fadeout from actual position to the end of buffer
 	for (ii = 0; ii < numChannels; ii++) {
 		if (ii == CHNL_MIF85) {
@@ -183,6 +181,7 @@ void SoundDriver::PrepareBuffer()
 		}
 	}
 
+	SDL_LockAudio();
 	writePos = 0;
 	SDL_UnlockAudio();
 

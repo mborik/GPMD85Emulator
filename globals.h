@@ -141,10 +141,9 @@ typedef bool _Bool;
 #define MEASURE_PERIOD      1000
 
 #define SAMPLE_RATE         44100
-#define SMPS_PER_CPU_FRAME  (SAMPLE_RATE / CPU_FRAMES_PER_SEC)
 #define SAMPLE_TICK_INC     ((1 << 24) / SAMPLE_RATE)
 #define FADEOUT_RATE        ((1 << 24) / 150)
-#define AUDIO_BUFF_SIZE     1024
+#define AUDIO_BUFF_SIZE     (SAMPLE_RATE / CPU_FRAMES_PER_SEC)
 #define AUDIO_BEEP_CHANNELS 2
 #define AUDIO_MAX_CHANNELS  3
 
