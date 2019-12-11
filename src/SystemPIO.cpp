@@ -203,7 +203,7 @@ KEYMAP SystemPIO::KeyMap[] = {
 	{ SDL_SCANCODE_LEFTBRACKET,  10,  4 },  // @    ([)
 	{ SDL_SCANCODE_BACKSLASH,    11,  2 },  // { }  (\)
 	{ SDL_SCANCODE_RIGHTBRACKET, 11,  4 },  // \    (])
-	{ SDL_SCANCODE_SEMICOLON,    10,  8 },  // :    (;)
+	{ SDL_SCANCODE_APOSTROPHE,   10,  8 },  // :    (;)
 	{ 0, 0, 0 }
 };
 
@@ -278,7 +278,7 @@ KEYMAP SystemPIO::KeyMapMato[] = {
 	{ SDL_SCANCODE_SLASH,        5,  2 },  // /  (/)
 	{ SDL_SCANCODE_LEFTBRACKET,  6,  8 },  // @  ([)
 	{ SDL_SCANCODE_RIGHTBRACKET, 4,  4 },  // \  (])
-	{ SDL_SCANCODE_SEMICOLON,    6, 64 },  // :  (;)
+	{ SDL_SCANCODE_APOSTROPHE,   6, 64 },  // :  (;)
 	{ 0, 0, 0 }
 };
 
