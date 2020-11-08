@@ -332,9 +332,6 @@ int UnpackBlock(BYTE *dest, int destlen, BYTE *src, int srclen)
 //-----------------------------------------------------------------------------
 bool TestDir(const char *directory, char *add, char **tail)
 {
-	static DWORD uid = getuid();
-	static DWORD gid = getgid();
-
 	if (tail)
 		*tail = NULL;
 
@@ -357,11 +354,7 @@ bool TestDir(const char *directory, char *add, char **tail)
 		sprintf(buffer, "%s%c%s", directory, DIR_DELIMITER, add);
 
 	if (stat(buffer, &filestat) == 0) {
-		if (S_ISDIR(filestat.st_mode) &&
-		   ((filestat.st_uid == uid && (filestat.st_mode & S_IRUSR)) ||
-		    (filestat.st_gid == gid && (filestat.st_mode & S_IRGRP)) ||
-		    (filestat.st_mode & S_IROTH))) {
-
+		if (S_ISDIR(filestat.st_mode)) {
 			strcpy((char *) directory, buffer);
 			return true;
 		}

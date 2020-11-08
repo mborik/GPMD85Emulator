@@ -85,21 +85,41 @@ if test "x$softrender" = "xyes"; then
 fi
 AC_MSG_RESULT([${softrender}])
 
-resDir_CFLAGS=" -DDIR_RESOURCES=\"\\\""$\{pkgdatadir}"\\\"\""
+# When (cross-)compiling for Windows (MinGW) we need to link in iberty
+# for the MinGW derived exception handler.
+if grep -q mingw32 <<<$host; then
+	AC_CHECK_TOOL([WINDRES], [windres], AC_MSG_ERROR([windres not found]))
+	#LDFLAGS="-Wl,-subsystem,windows -L${prefix}/../lib -static -lshfolder -lshell32 -lwinmm -liberty -lstdc++"
+	LDFLAGS="-s"
+	PKG_CONFIG="${PKG_CONFIG} --static"
+	CXXFLAGS="-pipe -m32 -march=i686 -DWIN32 -D__MINGW32__ ${CXXFLAGS}"
+	CFLAGS="-pipe -m32 -march=i686 -DWIN32 -D__MINGW32__ ${CFLAGS}"
+	OBJEXT="obj"
+
+	libSDL_LIBS="-lSDL2"
+	libSDL_CFLAGS="-I${includedir}/SDL2 -D_THREAD_SAFE"
+	AC_SUBST(libSDL_LIBS)
+	AC_SUBST(libSDL_CFLAGS)
+
+	resDir_CFLAGS=" -DDIR_RESOURCES=\"\\\".\\\"\""
+else
+	# Checks for libraries (with classic lib/header solution if pkg-config fail):
+	# (but it completely failing under MinGW environment)
+	PKG_CHECK_MODULES([libSDL], [sdl2],, [
+		AC_CHECK_LIB([SDL2], [SDL_Init], [
+			AC_CHECK_HEADER([SDL2/SDL.h], [
+				libSDL_LIBS="-lSDL2"
+				libSDL_CFLAGS="-I${includedir}/SDL2 -D_THREAD_SAFE"
+				AC_SUBST(libSDL_LIBS)
+				AC_SUBST(libSDL_CFLAGS)
+			], AC_MSG_ERROR([SDL2 header not found]))
+		], AC_MSG_ERROR([SDL2 library not found]))
+	])
+
+	resDir_CFLAGS=" -DDIR_RESOURCES=\"\\\""$\{pkgdatadir}"\\\"\""
+fi
+
 AC_SUBST(resDir_CFLAGS)
-
-# Checks for libraries (with classic lib/header solution if pkg-config fail):
-PKG_CHECK_MODULES([libSDL], [sdl2],, [
-	AC_CHECK_LIB([SDL2], [SDL_Init], [
-		AC_CHECK_HEADER([SDL2/SDL.h], [
-			libSDL_LIBS="-lSDL2"
-			libSDL_CFLAGS="-I${includedir}/SDL2 -D_THREAD_SAFE"
-			AC_SUBST(libSDL_LIBS)
-			AC_SUBST(libSDL_CFLAGS)
-		], AC_MSG_ERROR([SDL2 header not found]))
-	], AC_MSG_ERROR([SDL2 library not found]))
-])
-
 AC_SUBST(CXXFLAGS)
 AC_SUBST(CFLAGS)
 AC_SUBST(DEBUG)

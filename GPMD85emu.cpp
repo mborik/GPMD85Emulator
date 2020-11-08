@@ -30,7 +30,12 @@ int main(int argc, char** argv)
 
 	IntroMessage();
 
+#ifdef WIN32
+	PathUserHome = SDL_getenv("LOCALAPPDATA");
+#else
 	PathUserHome = SDL_getenv("HOME");
+#endif
+
 	PathApplication = getcwd(NULL, PATH_MAX);
 	PathResources = (char *) malloc(strlen(DIR_RESOURCES) + 1);
 	PathAppConfig = (char *) malloc(strlen(PathUserHome) + 16);

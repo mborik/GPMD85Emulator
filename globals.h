@@ -15,6 +15,8 @@
 	along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 //-----------------------------------------------------------------------------
+#define SDL_MAIN_HANDLED
+
 #ifndef GLOBALS_H_
 #define GLOBALS_H_
 //-----------------------------------------------------------------------------
@@ -91,6 +93,8 @@ typedef bool _Bool;
 #if defined(WIN32) || defined(_WIN32) || defined(WIN64) || defined(__BORLANDC__)
 #  define DIR_DELIMITER '\\'
 #  define WIN32 1
+#  define PATH_MAX 512
+#  define mkdir(path, mod) mkdir(path)
 #else
 #  define DIR_DELIMITER '/'
 #endif
@@ -122,6 +126,9 @@ typedef bool _Bool;
 #else
 #  define MAX_SIGNED_INT (0x7FFFFFFF)
 #  define MIN_SIGNED_INT (0x80000000)
+#endif
+#ifdef WIN32
+#  define SDL_MAIN_HANDLED
 #endif
 //-----------------------------------------------------------------------------
 #define BYTE  uint8_t

@@ -668,7 +668,7 @@ void Pmd32::Disk32ServiceSendResultCommand()
 			else {
 				char *file, *input = ((char *) (buffer + 1));
 				for (unsigned i = 0; i < strlen(input); i++)
-					input[i] = tolower(input[i]);
+					input[i] = SDL_tolower(input[i]);
 
 				if (sdPath == NULL || strlen(sdPath) == 0) {
 					file = new char[strlen(input) + 1];
@@ -955,7 +955,7 @@ int Pmd32::CheckImageType(char *fn, BYTE *trk, BYTE *sec, BYTE *phys)
 		}
 
 		for (i = 0; buf[i] > ' ' || ptr[i + 1] > ' '; i++) {
-			if (toupper(buf[i]) != toupper(ptr[i])) {
+			if (SDL_toupper(buf[i]) != SDL_toupper(ptr[i])) {
 				i = 0;
 				break;
 			}

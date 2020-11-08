@@ -19,6 +19,13 @@
   - in addition to that you will need install tools & libs via MacPorts:
     `sudo port install autoconf automake pkgconfig libsdl2`
 
+- **MinGW** on Windows
+  - put all headers from `SDL2/include` into `SDL2` folder in project root.
+  - required dynamic-loading libraries of SDL2 in project root and redistribuion:
+    * `SDL2.dll`
+    * `libstdc++-6.dll`
+    * `libgcc_s_dw2-1.dll`
+
 ## Building:
 - generate configuration scripts with `autoreconf -vfi`
 - run script `./configure`
