@@ -335,7 +335,7 @@ TSettings::TSettings(bool userCfg)
 			Screen->size = DM_DOUBLESIZE;
 		else if (strcmp(m->value, "triple") == 0)
 			Screen->size = DM_TRIPLESIZE;
-		else if (strcmp(m->value, "quadruple") == 0)
+		else if (strcmp(m->value, "quad") == 0)
 			Screen->size = DM_QUADRUPLESIZE;
 
 		Screen->realsize = Screen->size;
