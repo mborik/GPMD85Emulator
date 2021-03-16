@@ -17,7 +17,9 @@
 - **MacOS** (tested on 10.12+)
   - first, "Xcode Command Line Tools" is required (for `clang` & `make`)
   - in addition to that you will need install tools & libs via MacPorts:
-    `sudo port install autoconf automake pkgconfig libsdl2`
+    `sudo port install autoconf automake pkgconfig libsdl2`,
+    or with Brew: `brew install autoconf automake pkg-config sdl2`
+  - tested on Apple Silicon M1 and latest MacOS 11.0+
 
 ## Building:
 - generate configuration scripts with `autoreconf -vfi`
