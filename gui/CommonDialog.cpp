@@ -76,6 +76,18 @@ BYTE UserInterface::QueryDialog(const char *title, bool save)
 							uiQueryState = ptr->action;
 							break;
 
+						case SDL_SCANCODE_Y:
+							if (!save) {
+								uiQueryState = cMenu_data[1].action;
+							}
+							break;
+
+						case SDL_SCANCODE_N:
+							if (!save) {
+								uiQueryState = cMenu_data[2].action;
+							}
+							break;
+
 						case SDL_SCANCODE_UP:
 							if (cMenu_hilite > 0) {
 								cMenu_hilite--;
