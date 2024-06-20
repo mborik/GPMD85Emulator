@@ -56,7 +56,7 @@
   --- select machine (`1`, `2`, `2A`, `3`, `C2717`, `Alfa`, `Alfa2`, `Mato`)
 - `-r`, `--rmm`
   --- connect ROM module
-- `-sc`, `--scaler` `{1..4}`
+- `-sc`, `--scaler` `{1..5}`
   --- screen size multiplier
 - `-bd`, `--border` `{0..9}`
   --- screen border width

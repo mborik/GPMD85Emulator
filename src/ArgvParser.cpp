@@ -67,8 +67,8 @@ TCmdLineSwitch switches[] = {
 	{ "-r",   "--rmm", VAR_BOOL, (void *) &argv_config.rmm,
 				"connect ROM module", SWPAR(NULL) },
 	{ "-sc",  "--scaler", VAR_INT, (void *) &argv_config.scaler,
-				"screen size multiplier", SWPAR("{1..4}") },
-	{ "-bd",  "--border", VAR_INT, (void *) &argv_config.scaler,
+				"screen size multiplier", SWPAR("{1..5}") },
+	{ "-bd",  "--border", VAR_INT, (void *) &argv_config.border,
 				"screen border width", SWPAR("{0..9}") },
 	{ "-hp",  "--halfpass", VAR_INT, (void *) &argv_config.halfpass,
 				"scanliner (0=NONE, 1-4=HALFPASS, 5=LCD)", SWPAR("{0..5}") },
@@ -267,7 +267,7 @@ bool ParseOptions(int *argc, char *(*argv[]))
 				argv_config.machine = NULL;
 			}
 		}
-		if (TEST_VALUE_RANGE(argv_config.scaler, 1, 4)) {
+		if (TEST_VALUE_RANGE(argv_config.scaler, 1, 5)) {
 			warning("Arguments", "Invalid screen size '%d'", argv_config.scaler);
 			argv_config.scaler = NOVAL;
 		}

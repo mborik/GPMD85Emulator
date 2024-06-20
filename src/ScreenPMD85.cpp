@@ -250,11 +250,13 @@ void ScreenPMD85::InitVideoMode(TDisplayMode reqDispMode, bool reqWidth384)
 	SDL_LockMutex(displayModeMutex);
 	ReleaseVideoMode();
 
+	// debug("Screen", "InitVideoMode: %d, %s", reqDispMode, reqWidth384 ? "true" : "false");
+
 	dispMode = reqDispMode;
 	width384mode = reqWidth384;
 
 	if (dispMode == DM_FULLSCREEN)
-		reqDispMode = DM_QUADRUPLESIZE;
+		reqDispMode = DM_QUINTUPLESIZE;
 
 	while (true) {
 		switch (reqDispMode) {
@@ -278,11 +280,19 @@ void ScreenPMD85::InitVideoMode(TDisplayMode reqDispMode, bool reqWidth384)
 				screenWidth  = (reqWidth384) ? 1536 : 1152;
 				screenHeight = 1024;
 				break;
+
+			case DM_QUINTUPLESIZE:
+				screenWidth  = (reqWidth384) ? 1920 : 1440;
+				screenHeight = 1280;
+				break;
+
 		}
 
 		if (dispMode == DM_FULLSCREEN) {
 			if (screenWidth > gdc.w || screenHeight + STATUSBAR_HEIGHT > gdc.h) {
-				if (reqDispMode == DM_QUADRUPLESIZE)
+				if (reqDispMode == DM_QUINTUPLESIZE)
+					reqDispMode = DM_QUADRUPLESIZE;
+				else if (reqDispMode == DM_QUADRUPLESIZE)
 					reqDispMode = DM_TRIPLESIZE;
 				else if (reqDispMode == DM_TRIPLESIZE)
 					reqDispMode = DM_DOUBLESIZE;
@@ -452,6 +462,10 @@ void ScreenPMD85::PrepareScanliner()
 			scanlinerFn = &point4x;
 			sclGrading = ((DWORD *) &scanliner->x4) + q * 16;
 			break;
+		case 4:
+			scanlinerFn = &point5x;
+			sclGrading = ((DWORD *) &scanliner->x5) + q * 25;
+			break;
 		default:
 			warning("Screen", "Invalid size for scanline blitter");
 			return;
@@ -551,6 +565,55 @@ scanlinerMethodPrototype(point4x)
 	}
 }
 //-----------------------------------------------------------------------------
+scanlinerMethodPrototype(point5x)
+{
+	int i;
+	DWORD *c, *p;
+
+	while (h--) {
+		p = dst;
+		for (i = 0; i < w; ++i) {
+			c = scl;
+			*p++ = *c++;
+			*p++ = *c++;
+			*p++ = *c++;
+			*p++ = *c++;
+			*p = *c++;
+			p += pitch - 4;
+
+			*p++ = *c++;
+			*p++ = *c++;
+			*p++ = *c++;
+			*p++ = *c++;
+			*p = *c++;
+			p += pitch - 4;
+
+			*p++ = *c++;
+			*p++ = *c++;
+			*p++ = *c++;
+			*p++ = *c++;
+			*p = *c++;
+			p += pitch - 4;
+
+			*p++ = *c++;
+			*p++ = *c++;
+			*p++ = *c++;
+			*p++ = *c++;
+			*p = *c++;
+			p += pitch - 4;
+
+			*p++ = *c++;
+			*p++ = *c++;
+			*p++ = *c++;
+			*p++ = *c++;
+			*p++ = *c;
+			p -= (pitch * 4);
+		}
+
+		dst += pitch * 5;
+	}
+}
+//-----------------------------------------------------------------------------
 void ScreenPMD85::InitScanliners()
 {
 	SDL_PixelFormat *fmt = SDL_AllocFormat(SDL_PIXELFORMAT_DEFAULT);
@@ -611,6 +674,28 @@ void ScreenPMD85::InitScanliners()
 			_E, _E, _E, _E, _D, _D, _D, _D, _C, _C, _C, _C, _B, _B, _B, _B, // hp25
 			_E, _E, _E, _E, _C, _C, _C, _C, _B, _B, _B, _B, _A, _A, _A, _A, // hp0
 			_E, _E, _E, _D, _E, _D, _D, _E, _E, _D, _D, _E, _A, _B, _B, _A  // lcd
+		},
+// one point is overlaid with 25-dot square with HalfPass or LCD emulation
+// E = hilited dot, D = 75%, C = 50%, B = 25%, A = 0% of bright
+//           75%                     50%                     25%                      0%
+//  | E | E | E | E | E |   | E | E | E | E | E |   | E | E | E | E | E |   | E | E | E | E | E |
+//  | E | E | E | E | E |   | E | E | E | E | E |   | D | D | D | D | D |   | C | C | C | C | C |
+//  | E | E | E | E | E |   | D | D | D | D | D |   | C | C | C | C | C |   | B | B | B | B | B |
+//  | E | E | E | E | E |   | D | D | D | D | D |   | C | C | C | C | C |   | B | B | B | B | B |
+//  | D | D | D | D | D |   | C | C | C | C | C |   | B | B | B | B | B |   | A | A | A | A | A |
+//           LCD
+//  | E | E | E | E | D |
+//  | E | D | D | D | E |
+//  | E | D | D | D | E |
+//  | E | D | D | D | E |
+//  | A | B | B | B | A |
+		{
+			_E, _E, _E, _E, _E, _E, _E, _E, _E, _E, _E, _E, _E, _E, _E, _E, _E, _E, _E, _E, _E, _E, _E, _E, _E, // off
+			_E, _E, _E, _E, _E, _E, _E, _E, _E, _E, _E, _E, _E, _E, _E, _D, _D, _D, _D, _D, _D, _D, _D, _D, _D, // hp75
+			_E, _E, _E, _E, _E, _E, _E, _E, _E, _E, _D, _D, _D, _D, _D, _C, _C, _C, _C, _C, _B, _B, _B, _B, _B, // hp50
+			_E, _E, _E, _E, _E, _D, _D, _D, _D, _D, _C, _C, _C, _C, _C, _B, _B, _B, _B, _B, _A, _A, _A, _A, _A, // hp25
+			_E, _E, _E, _E, _E, _C, _C, _C, _C, _C, _B, _B, _B, _B, _B, _B, _B, _B, _B, _B, _A, _A, _A, _A, _A, // hp0
+			_E, _E, _E, _E, _D, _E, _D, _D, _D, _E, _E, _D, _D, _D, _E, _E, _D, _D, _D, _E, _A, _B, _B, _B, _A  // lcd
 		}
 	};
 

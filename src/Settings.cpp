@@ -337,6 +337,8 @@ TSettings::TSettings(bool userCfg)
 			Screen->size = DM_TRIPLESIZE;
 		else if (strcmp(m->value, "quad") == 0)
 			Screen->size = DM_QUADRUPLESIZE;
+		else if (strcmp(m->value, "quin") == 0)
+			Screen->size = DM_QUINTUPLESIZE;
 
 		Screen->realsize = Screen->size;
 
@@ -840,6 +842,9 @@ void TSettings::storeSettings()
 							break;
 						case DM_QUADRUPLESIZE:
 							buf = (char *) "quad";
+							break;
+						case DM_QUINTUPLESIZE:
+							buf = (char *) "quin";
 							break;
 						default:
 							buf = (char *) "normal";
