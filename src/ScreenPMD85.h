@@ -29,6 +29,7 @@ typedef struct SCANLINER_DEF {
 	DWORD x2[6 * 4];
 	DWORD x3[6 * 9];
 	DWORD x4[6 * 16];
+	DWORD x5[6 * 25];
 } SCANLINER_DEF;
 //-----------------------------------------------------------------------------
 #define scanlinerMethodPrototype(function) void function(DWORD *dst, int pitch, DWORD *scl, int w, int h)
@@ -37,6 +38,7 @@ typedef void (*scanlinerMethod)(DWORD *dst, int pitch, DWORD *scl, int w, int h)
 scanlinerMethodPrototype(point2x);
 scanlinerMethodPrototype(point3x);
 scanlinerMethodPrototype(point4x);
+scanlinerMethodPrototype(point5x);
 //-----------------------------------------------------------------------------
 class ScreenPMD85
 {

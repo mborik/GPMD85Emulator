@@ -153,6 +153,9 @@ void TEmulator::ProcessArgvOptions(bool memModifiers)
 		if (argv_config.scaler > 0)
 			Settings->Screen->size = (TDisplayMode) argv_config.scaler;
 
+		if (argv_config.border > 0)
+			Settings->Screen->border = argv_config.border;
+
 		if (argv_config.halfpass >= 0 && argv_config.halfpass <= 4) {
 			Settings->Screen->lcdMode = false;
 			Settings->Screen->halfPass = (THalfPassMode) argv_config.halfpass;
@@ -599,7 +602,11 @@ bool TEmulator::TestHotkeys()
 				ActionSizeChange(4);
 				break;
 
-			case SDL_SCANCODE_5:	// SCANLINER: LCD EMULATION
+			case SDL_SCANCODE_5:	// SCREEN SIZE 5x5
+				ActionSizeChange(5);
+				break;
+
+			case SDL_SCANCODE_L:	// SCANLINER: LCD EMULATION
 				video->SetLcdMode(true);
 				video->SetHalfPassMode(HP_OFF);
 				Settings->Screen->lcdMode = true;
@@ -1123,7 +1130,7 @@ void TEmulator::ActionSizeChange(int mode)
 	ActionPlayPause(false, false);
 
 	TDisplayMode newMode = (TDisplayMode) mode;
-	if (mode < 0 || mode > 4)
+	if (mode < 0 || mode > 5)
 		newMode = DM_NORMAL;
 
 	if (video->GetDisplayMode() != newMode) {

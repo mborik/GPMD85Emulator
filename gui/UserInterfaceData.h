@@ -197,6 +197,7 @@ static GUI_MENU_ENTRY gui_view_size_menu[] = {
 	{ MI_RADIO, "\a200%", "2", SDL_SCANCODE_2, NULL, ccb_view_size, dcb_view_size_state, true, false, DM_DOUBLESIZE },
 	{ MI_RADIO, "\a300%", "3", SDL_SCANCODE_3, NULL, ccb_view_size, dcb_view_size_state, true, false, DM_TRIPLESIZE },
 	{ MI_RADIO, "\a400%", "4", SDL_SCANCODE_4, NULL, ccb_view_size, dcb_view_size_state, true, false, DM_QUADRUPLESIZE },
+	{ MI_RADIO, "\a500%", "5", SDL_SCANCODE_5, NULL, ccb_view_size, dcb_view_size_state, true, false, DM_QUINTUPLESIZE },
 	{ MI_RADIO, "\aFULLSCREEN", "F", SDL_SCANCODE_F, NULL, ccb_view_size, dcb_view_size_state, true, false, DM_FULLSCREEN },
 	{ MENU_END }
 };
@@ -225,7 +226,7 @@ static GUI_MENU_ENTRY gui_view_colors_menu[] = {
 };
 static GUI_MENU_ENTRY gui_view_scanliner_menu[] = {
 	{ MI_TITLE, "SCANLINER" },
-	{ MI_RADIO, "\aLCD EMULATION\220", "5", SDL_SCANCODE_L, NULL, ccb_view_sclr, dcb_view_sclr_state, true, false, (WORD) -1 },
+	{ MI_RADIO, "\aLCD EMULATION\220", "L", SDL_SCANCODE_L, NULL, ccb_view_sclr, dcb_view_sclr_state, true, false, (WORD) -1 },
 	{ MI_RADIO, "HALFPASS \a0%", "6", SDL_SCANCODE_0, NULL, ccb_view_sclr, dcb_view_sclr_state, true, false, HP_0 },
 	{ MI_RADIO, "HALFPASS \a25%", "7", SDL_SCANCODE_2, NULL, ccb_view_sclr, dcb_view_sclr_state, true, false, HP_25 },
 	{ MI_RADIO, "HALFPASS \a50%", "8", SDL_SCANCODE_5, NULL, ccb_view_sclr, dcb_view_sclr_state, true, false, HP_50 },
