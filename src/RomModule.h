@@ -33,12 +33,6 @@
 
 #define ROM_PACK_SIZE_KB      32
 #define ROM_PACK_SIZE         (ROM_PACK_SIZE_KB * 1024)
-
-#define MEGA_MODULE_MASK      0xFF
-
-#define MEGA_MODULE_ADR       0x6F
-#define MEGA_MODULE_MAX_PAGES 256
-
 //---------------------------------------------------------------------------
 class RomModule: public PeripheralDevice, public ChipPIO8255
 {
@@ -59,25 +53,6 @@ class RomModule: public PeripheralDevice, public ChipPIO8255
 	protected:
 		BYTE *RomPack;
 };
-//---------------------------------------------------------------------------
-class MegaModule: public RomModule
-{
-	public:
-		MegaModule();
-		virtual ~MegaModule();
-
-		virtual void ResetDevice(int ticks);
-		virtual void WriteToDevice(BYTE port, BYTE value, int ticks);
-
-		bool LoadRom(unsigned int size, BYTE *src);
-
-		void ReadFromRom();
-
-	protected:
-		int page;
-		BYTE *RomPages[MEGA_MODULE_MAX_PAGES];
-};
-
 //---------------------------------------------------------------------------
 #endif
 //---------------------------------------------------------------------------

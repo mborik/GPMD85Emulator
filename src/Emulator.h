@@ -33,6 +33,7 @@
 #include "IifGPIO.h"
 #include "Pmd32.h"
 #include "RomModule.h"
+#include "RomMegaModule.h"
 #include "Settings.h"
 #include "Debugger.h"
 #include "TapeBrowser.h"
@@ -116,8 +117,8 @@ class TEmulator : public sigslot::has_slots<>
 		bool megaModuleEnabled;
 
 		void SetComputerModel(bool fromSnap = false, int snapRomLen = 0, BYTE *snapRom = NULL);
-		void InsertRomModul(bool inserted);
-		void InsertMegaRomModul(bool inserted);
+		void InsertRomModule(bool inserted);
+		void InsertRomMegaModule(bool inserted);
 		void ConnectMIF85(bool init);
 		void ConnectPMD32(bool init);
 		void ProcessSnapshot(char *fileName, BYTE *flag);

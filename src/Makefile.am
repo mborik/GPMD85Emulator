@@ -31,6 +31,7 @@ libGPMD85emu_core_a_SOURCES = \
 	Mif85.cpp \
 	Pmd32.cpp \
 	RomModule.cpp \
+	RomMegaModule.cpp \
 	Settings.cpp \
 	ScreenPMD85.cpp \
 	SoundDriver.cpp \
@@ -63,6 +64,7 @@ noinst_HEADERS = \
 	PeripheralDevice.h \
 	Pmd32.h \
 	RomModule.h \
+	RomMegaModule.h \
 	Settings.h \
 	ScreenPMD85.h \
 	SoundDriver.h \
