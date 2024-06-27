@@ -357,9 +357,9 @@ void TEmulator::ProcessSettings(BYTE filter)
 
 		if (romModuleConnected) {
 			if (megaModuleEnabled)
-				InsertMegaRomModul(romModuleConnected);
+				InsertRomMegaModule(romModuleConnected);
 			else
-				InsertRomModul(romModuleConnected);
+				InsertRomModule(romModuleConnected);
 		}
 	}
 
@@ -1346,7 +1346,7 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 	GUI->SetComputerModel(model);
 }
 //---------------------------------------------------------------------------
-void TEmulator::InsertRomModul(bool inserted)
+void TEmulator::InsertRomModule(bool inserted)
 {
 	int i, count, sizeKB;
 	DWORD romPackSizeKB, kBadr;
@@ -1389,7 +1389,7 @@ void TEmulator::InsertRomModul(bool inserted)
 	delete[] buff;
 }
 //---------------------------------------------------------------------------
-void TEmulator::InsertMegaRomModul(bool inserted)
+void TEmulator::InsertRomMegaModule(bool inserted)
 {
 	long size;
 	BYTE *buff;
@@ -1404,7 +1404,7 @@ void TEmulator::InsertMegaRomModul(bool inserted)
 	if (!inserted)
 		return;
 
-	romModule = new MegaModule();
+	romModule = new RomMegaModule();
 	cpu->AddDevice(ROM_MODULE_ADR, ROM_MODULE_MASK, romModule, true);
 	cpu->AddDevice(MEGA_MODULE_ADR, MEGA_MODULE_MASK, romModule, false);
 
@@ -1423,7 +1423,7 @@ void TEmulator::InsertMegaRomModul(bool inserted)
 	buff = new BYTE[size];
 	memset(buff, 0xFF, size);
 	if (ReadFromFile(mrmFile, 0, size, buff) > 0)
-		static_cast<MegaModule *>(romModule)->LoadRom(size, buff);
+		static_cast<RomMegaModule *>(romModule)->LoadRom(size, buff);
 	else
 		warning("Emulator", "Error reading MEGAModule ROM file: \"%s\"", mrmFile ? mrmFile : "");
 
