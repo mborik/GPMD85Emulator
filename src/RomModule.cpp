@@ -172,7 +172,8 @@ void MegaModule::ResetDevice(int ticks)
 void MegaModule::WriteToDevice(BYTE port, BYTE value, int ticks)
 {
 	if ((port & MEGA_MODULE_MASK) == MEGA_MODULE_ADR) {
-		debug("MegaModule", "select rom module %d", value);
+		debug("MegaModule", "Selected ROM module No.%d", value);
+
 		page = value;
 		RomPack = RomPages[page];
 	}
