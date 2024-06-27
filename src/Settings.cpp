@@ -141,6 +141,13 @@ TSettings::TSettings(bool userCfg)
 		model->romModuleInserted = cfgGetBoolValue(n, "rmm-inserted", false, &(model->romModuleInserted));
 		model->ramExpansion256k = cfgGetBoolValue(n, "ext-256k-ram", false, &(model->ramExpansion256k));
 		model->romSplit8kMode = cfgGetBoolValue(n, "rom-split-8k", false, &(model->romSplit8kMode));
+		model->megaModuleEnabled = cfgGetBoolValue(n, "mrm-enabled", false, &(model->megaModuleEnabled));
+
+		model->mrmFile = cfgGetStringValue(n, "mrm-file", &(model->mrmFile));
+		if (model->mrmFile == NULL && model->megaModuleEnabled) {
+			warning("Settings", "MEGAModule is enabled but MRM file not defined for %s!", n->key);
+			model->megaModuleEnabled = false;
+		}
 
 		if (model->ramExpansion256k && !(model->type == CM_V2A || model->type == CM_V3))
 			model->ramExpansion256k = false;
@@ -541,6 +548,11 @@ TSettings::~TSettings()
 			if (AllModels[i]->romFile) {
 				delete [] AllModels[i]->romFile;
 				AllModels[i]->romFile = NULL;
+			}
+
+			if (AllModels[i]->mrmFile) {
+				delete [] AllModels[i]->mrmFile;
+				AllModels[i]->mrmFile = NULL;
 			}
 
 			delete AllModels[i];

@@ -20,7 +20,7 @@
 //-----------------------------------------------------------------------------
 #include "globals.h"
 //-----------------------------------------------------------------------------
-#define CONFIGURATION_VERSION "4"
+#define CONFIGURATION_VERSION "5"
 //-----------------------------------------------------------------------------
 class TSettings
 {
@@ -43,6 +43,8 @@ class TSettings
 			bool romSplit8kMode;
 			bool ramExpansion256k;
 			SetRomPackage *romModule;
+			bool megaModuleEnabled;
+			char *mrmFile;
 		};
 		struct SetSnapshot {
 			bool saveCompressed;

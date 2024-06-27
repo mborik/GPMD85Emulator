@@ -135,6 +135,20 @@ char *LocateROM(const char *fileName)
 	return buffer;
 }
 //-----------------------------------------------------------------------------
+long FileSize(const char *fileName)
+{
+	long size = -1;
+
+	FILE *f = fopen(fileName, "rb");
+	if (f) {
+		if (fseek(f, 0, SEEK_END) == 0)
+			size = ftell(f);
+		fclose(f);
+	}
+
+	return size;
+}
+//-----------------------------------------------------------------------------
 int ReadFromFile(const char *fileName, int offset, int size, BYTE *dest)
 {
 	int dwR = -1;
