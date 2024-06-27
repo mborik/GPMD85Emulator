@@ -95,8 +95,8 @@ private:
 	TDisplayMode dispMode;
 	TColorProfile colorProfile;
 	THalfPassMode halfPass;
-	TColor cAttr[4];
-	TColor pAttr[8];
+	BYTE cAttr[4];
+	BYTE pAttr[8];
 	DWORD *palette;
 
 	const SCANLINER_DEF *scanliner;

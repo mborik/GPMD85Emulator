@@ -176,9 +176,9 @@ void ScreenPMD85::SetColorAttr(int idx, TColor attr)
 TColor ScreenPMD85::GetColorAttr(int idx)
 {
 	if (idx >= 0 && idx <= 3)
-		return cAttr[idx];
+		return static_cast<TColor>(cAttr[idx]);
 	else
-		return BLACK;
+		return TColor::BLACK;
 }
 //---------------------------------------------------------------------------
 void ScreenPMD85::RefreshDisplay()
