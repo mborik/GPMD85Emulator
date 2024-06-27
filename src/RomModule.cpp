@@ -196,7 +196,8 @@ bool MegaModule::LoadRom(unsigned int size, BYTE *src)
 		memset(RomPages[i], 0xFF, ROM_PACK_SIZE);
 		toCopy = remain > ROM_PACK_SIZE ? ROM_PACK_SIZE : remain;
 		memcpy(RomPages[i], src + i * ROM_PACK_SIZE, toCopy);
-		debug("MegaModule", "rom module %d loaded (%d bytes)", i, toCopy);
+		debug("MegaModule", "ROM module %d loaded (%d bytes)", i, toCopy);
+
 		remain -= toCopy;
 		if (remain == 0)
 			break;
