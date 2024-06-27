@@ -615,6 +615,11 @@ bool ccb_mem_rmod(GUI_MENU_ENTRY *ptr)
 {
 	Settings->CurrentModel->romModuleInserted = (ptr->state = !ptr->state);
 	GUI->uiSetChanges |= PS_MACHINE | PS_PERIPHERALS;
+
+	while ((++ptr)->type != MENU_END)
+		if (ptr->detail)
+			ptr->detail(ptr);
+
 	return false;
 }
 //-----------------------------------------------------------------------------
@@ -622,6 +627,14 @@ bool ccb_mem_mrm(GUI_MENU_ENTRY *ptr)
 {
 	Settings->CurrentModel->megaModuleEnabled = (ptr->state = !ptr->state);
 	GUI->uiSetChanges |= PS_MACHINE | PS_PERIPHERALS;
+
+	--ptr;
+	while (ptr->type != MENU_END) {
+		if (ptr->detail)
+			ptr->detail(ptr);
+		ptr++;
+	}
+
 	return false;
 }
 //-----------------------------------------------------------------------------
