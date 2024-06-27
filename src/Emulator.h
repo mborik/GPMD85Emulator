@@ -73,10 +73,10 @@ class TEmulator : public sigslot::has_slots<>
 		void ActionSnapLoad();
 		void ActionSnapSave();
 		void ActionROMLoad();
-        void ActionMegaRomLoad();
-        void ActionRawFile(bool save);
+		void ActionMegaRomLoad();
+		void ActionRawFile(bool save);
 
-        void ActionReset();
+		void ActionReset();
 		void ActionHardReset();
 		void ActionSound(BYTE action);
 		void ActionPlayPause();
@@ -127,8 +127,8 @@ class TEmulator : public sigslot::has_slots<>
 		void SaveTape(char *fileName, BYTE *flag);
 		void InsertPMD32Disk(char *fileName, BYTE *flag);
 		void ChangeROMFile(char *fileName, BYTE *flag);
-        void ChangeMegaRomFile(char *fileName, BYTE *flag);
-        void SelectRawFile(char *fileName, BYTE *flag);
+		void ChangeMegaRomFile(char *fileName, BYTE *flag);
+		void SelectRawFile(char *fileName, BYTE *flag);
 };
 //---------------------------------------------------------------------------
 extern TEmulator *Emulator;
