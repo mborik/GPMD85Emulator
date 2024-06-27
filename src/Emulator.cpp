@@ -53,6 +53,7 @@ TEmulator::TEmulator()
 	mif85connected = false;
 	pmd32connected = false;
 	romModuleConnected = false;
+	megaModuleEnabled = false;
 
 	Settings = new TSettings(argv_config.any_related ? argv_config.overcfg : true);
 	Debugger = new TDebugger();
@@ -330,6 +331,13 @@ void TEmulator::ProcessSettings(BYTE filter)
 			machineCfgChanging = true;
 			filter |= PS_PERIPHERALS;
 		}
+		if (megaModuleEnabled != Settings->CurrentModel->megaModuleEnabled) {
+			megaModuleEnabled = Settings->CurrentModel->megaModuleEnabled;
+			if (romModuleConnected) {
+				machineCfgChanging = true;
+				filter |= PS_PERIPHERALS;
+			}
+		}
 
 		if (!romChanged && !machineCfgChanging)
 			filter ^= PS_MACHINE;
@@ -347,8 +355,12 @@ void TEmulator::ProcessSettings(BYTE filter)
 		ConnectMIF85(init);
 		ConnectPMD32(init);
 
-		if (romModuleConnected)
-			InsertRomModul(romModuleConnected);
+		if (romModuleConnected) {
+			if (megaModuleEnabled)
+				InsertMegaRomModul(romModuleConnected);
+			else
+				InsertRomModul(romModuleConnected);
+		}
 	}
 
 	if (!isActive || (filter & (PS_MACHINE | PS_PERIPHERALS)))
@@ -1042,6 +1054,43 @@ void TEmulator::ActionROMLoad()
 	GUI->MenuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
 }
 //---------------------------------------------------------------------------
+void TEmulator::ActionMegaRomLoad()
+{
+	static const char *mrm_filter[] = { "mrm", "rmm", NULL };
+	char *fileName;
+
+	ActionPlayPause(false, false);
+
+	fileName = Settings->CurrentModel->mrmFile;
+
+	GUI->fileSelector->tag = 0;
+	GUI->fileSelector->type = GUI_FS_BASELOAD;
+	GUI->fileSelector->title = "SELECT ROM MODULE FILE (*.mrm, *.rmm)";
+	GUI->fileSelector->extFilter = (char **) mrm_filter;
+	GUI->fileSelector->callback.disconnect_all();
+	GUI->fileSelector->callback.connect(this, &TEmulator::ChangeMegaRomFile);
+
+	if (fileName) {
+		char *file = LocateROM(fileName);
+		if (file == NULL)
+			file = fileName;
+
+		strcpy(GUI->fileSelector->path, file);
+		if (!TestDir(GUI->fileSelector->path, (char *) "..", NULL))
+			fileName = NULL;
+	}
+	if (!fileName) {
+		if (stat(PathAppConfig, &filestat) == 0)
+			strcpy(GUI->fileSelector->path, PathAppConfig);
+		else if (stat(PathResources, &filestat) == 0)
+			strcpy(GUI->fileSelector->path, PathResources);
+		else
+			strcpy(GUI->fileSelector->path, PathApplication);
+	}
+
+	GUI->MenuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
+}
+//---------------------------------------------------------------------------
 void TEmulator::ActionRawFile(bool save)
 {
 	ActionPlayPause(false, false);
@@ -1306,6 +1355,7 @@ void TEmulator::InsertRomModul(bool inserted)
 
 	if (romModule) {
 		cpu->RemoveDevice(ROM_MODULE_ADR);
+		cpu->RemoveDevice(MEGA_MODULE_ADR);
 		delete romModule;
 		romModule = NULL;
 	}
@@ -1335,6 +1385,47 @@ void TEmulator::InsertRomModul(bool inserted)
 
 		kBadr += sizeKB;
 	}
+
+	delete[] buff;
+}
+//---------------------------------------------------------------------------
+void TEmulator::InsertMegaRomModul(bool inserted)
+{
+	long size;
+	BYTE *buff;
+
+	if (romModule) {
+		cpu->RemoveDevice(ROM_MODULE_ADR);
+		cpu->RemoveDevice(MEGA_MODULE_ADR);
+		delete romModule;
+		romModule = NULL;
+	}
+
+	if (!inserted)
+		return;
+
+	romModule = new MegaModule();
+	cpu->AddDevice(ROM_MODULE_ADR, ROM_MODULE_MASK, romModule, true);
+	cpu->AddDevice(MEGA_MODULE_ADR, MEGA_MODULE_MASK, romModule, false);
+
+	char *mrmFile = LocateROM(Settings->CurrentModel->mrmFile);
+	if (mrmFile == NULL)
+		mrmFile = Settings->CurrentModel->mrmFile;
+	size = FileSize(mrmFile);
+	if (size < 0) {
+		warning("Emulator", "MEGAModule ROM file not found: \"%s\"", mrmFile ? mrmFile : "");
+		return;
+	}
+	if (size > 8*KB*KB) {
+		warning("Emulator", "MEGAModule ROM file too large: \"%s\"", mrmFile ? mrmFile : "");
+		size = 8*KB*KB;
+	}
+	buff = new BYTE[size];
+	memset(buff, 0xFF, size);
+	if (ReadFromFile(mrmFile, 0, size, buff) > 0)
+		static_cast<MegaModule *>(romModule)->LoadRom(size, buff);
+	else
+		warning("Emulator", "Error reading MEGAModule ROM file: \"%s\"", mrmFile ? mrmFile : "");
 
 	delete[] buff;
 }
@@ -1854,6 +1945,29 @@ void TEmulator::ChangeROMFile(char *fileName, BYTE *flag)
 	delete [] Settings->CurrentModel->romFile;
 	Settings->CurrentModel->romFile = new char[strlen(ptr) + 1];
 	strcpy(Settings->CurrentModel->romFile, ptr);
+	GUI->uiSetChanges |= PS_MACHINE;
+
+	romChanged = true;
+	*flag = 1;
+}
+//---------------------------------------------------------------------------
+void TEmulator::ChangeMegaRomFile(char *fileName, BYTE *flag)
+{
+	char *ptr = (char *) AdaptFilePath(fileName, PathAppConfig);
+	if (ptr == fileName) {
+		ptr = (char *) AdaptFilePath(fileName, PathResources);
+		if (ptr == fileName) {
+			char res[MAX_PATH];
+			sprintf(res, "%s%c%s", PathApplication, DIR_DELIMITER, "rom");
+			ptr = (char *) AdaptFilePath(fileName, res);
+			if (ptr == fileName)
+				ptr = (char *) AdaptFilePath(fileName);
+		}
+	}
+
+	delete [] Settings->CurrentModel->mrmFile;
+	Settings->CurrentModel->mrmFile = new char[strlen(ptr) + 1];
+	strcpy(Settings->CurrentModel->mrmFile, ptr);
 	GUI->uiSetChanges |= PS_MACHINE;
 
 	romChanged = true;

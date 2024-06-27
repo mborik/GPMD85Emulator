@@ -42,6 +42,7 @@ const char *ExtractFileName(const char *filePath);
 char *ComposeFilePath(const char *filePath);
 char *LocateResource(const char *fileName, bool locateAtHome = true, bool copyToHome = false);
 char *LocateROM(const char *fileName);
+long int FileSize(const char *fileName);
 int ReadFromFile(const char *fileName, int offset, int size, BYTE *dest);
 int WriteToFile(const char *fileName, int offset, int size, BYTE *src, bool createNew);
 bool CreateMedium(const char *fileName, DWORD size, BYTE fill);

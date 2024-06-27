@@ -315,6 +315,8 @@ void UserInterface::KeyhandlerMenu(WORD key)
 
 	if (change) {
 		DrawMenuItems();
+		// again, this is workaround to properly re-draw menu, TODO investigate
+		DrawMenuItems();
 		return;
 	}
 
@@ -334,8 +336,11 @@ void UserInterface::KeyhandlerMenu(WORD key)
 					KeyhandlerTapeDialog(ptr->action);
 					return;
 				}
-				else if (cMenu_data)
+				else if (cMenu_data) {
 					DrawMenuItems();
+					// again, this is workaround to properly re-draw menu, TODO investigate
+					DrawMenuItems();
+				}
 			}
 
 			break;

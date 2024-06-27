@@ -192,6 +192,31 @@ const char *dcb_mem_rmod_state(GUI_MENU_ENTRY *ptr)
 	return NULL;
 }
 //-----------------------------------------------------------------------------
+const char *dcb_mem_mrm_file_state(GUI_MENU_ENTRY *ptr)
+{
+	ptr->enabled = Settings->CurrentModel->romModuleInserted && Settings->CurrentModel->megaModuleEnabled;
+	return ExtractFileName(Settings->CurrentModel->mrmFile);
+}
+//-----------------------------------------------------------------------------
+const char *dcb_mem_mrm_state(GUI_MENU_ENTRY *ptr)
+{
+	switch (Settings->CurrentModel->type) {
+		case CM_V1:
+		case CM_V2:
+		case CM_V2A:
+		case CM_V3:
+			ptr->enabled = Settings->CurrentModel->romModuleInserted;
+			ptr->state = Settings->CurrentModel->megaModuleEnabled;
+			break;
+
+		default:
+			ptr->enabled = ptr->state = false;
+			break;
+	}
+
+	return NULL;
+}
+//-----------------------------------------------------------------------------
 const char *dcb_mem_rpkg_state(GUI_MENU_ENTRY *ptr)
 {
 	if (gui_rom_packages == NULL) {
@@ -225,7 +250,8 @@ const char *dcb_mem_rpkg_state(GUI_MENU_ENTRY *ptr)
 		case CM_V2:
 		case CM_V2A:
 		case CM_V3:
-			ptr->enabled = true;
+			ptr->enabled = Settings->CurrentModel->romModuleInserted &&
+			              !Settings->CurrentModel->megaModuleEnabled;
 			return ExtractFileName(Settings->CurrentModel->romModule->name);
 
 		default:
@@ -393,6 +419,10 @@ bool ccb_fileselector(GUI_MENU_ENTRY *ptr)
 
 		case 5:
 			Emulator->ActionROMLoad();
+			break;
+
+		case 6:
+			Emulator->ActionMegaRomLoad();
 			break;
 
 		case 7:
@@ -584,6 +614,13 @@ bool ccb_machine(GUI_MENU_ENTRY *ptr)
 bool ccb_mem_rmod(GUI_MENU_ENTRY *ptr)
 {
 	Settings->CurrentModel->romModuleInserted = (ptr->state = !ptr->state);
+	GUI->uiSetChanges |= PS_MACHINE | PS_PERIPHERALS;
+	return false;
+}
+//-----------------------------------------------------------------------------
+bool ccb_mem_mrm(GUI_MENU_ENTRY *ptr)
+{
+	Settings->CurrentModel->megaModuleEnabled = (ptr->state = !ptr->state);
 	GUI->uiSetChanges |= PS_MACHINE | PS_PERIPHERALS;
 	return false;
 }
