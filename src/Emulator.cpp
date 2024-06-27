@@ -1416,9 +1416,9 @@ void TEmulator::InsertMegaRomModul(bool inserted)
 		warning("Emulator", "MEGAModule ROM file not found: \"%s\"", mrmFile ? mrmFile : "");
 		return;
 	}
-	if (size > 8*KB*KB) {
+	if (size > 8 * KB * KB) {
 		warning("Emulator", "MEGAModule ROM file too large: \"%s\"", mrmFile ? mrmFile : "");
-		size = 8*KB*KB;
+		size = 8 * KB * KB;
 	}
 	buff = new BYTE[size];
 	memset(buff, 0xFF, size);
