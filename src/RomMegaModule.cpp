@@ -42,7 +42,7 @@ RomMegaModule::~RomMegaModule()
 //---------------------------------------------------------------------------
 void RomMegaModule::ResetDevice(int ticks)
 {
-    debug("RomMegaModule", "Re-set to ROM module No.0");
+	debug("RomMegaModule", "Reset to page 0");
 	RomModule::ResetDevice(ticks);
 	page = 0;
 	RomPack = RomPages[0];
@@ -54,7 +54,7 @@ void RomMegaModule::ResetDevice(int ticks)
 void RomMegaModule::WriteToDevice(BYTE port, BYTE value, int ticks)
 {
 	if ((port & MEGA_MODULE_MASK) == MEGA_MODULE_ADR) {
-		debug("RomMegaModule", "Selected ROM module No.%d", value);
+		debug("RomMegaModule", "Selected page %d", value);
 
 		page = value;
 		RomPack = RomPages[page];
@@ -66,12 +66,12 @@ void RomMegaModule::WriteToDevice(BYTE port, BYTE value, int ticks)
 bool RomMegaModule::LoadRom(unsigned int size, BYTE *src)
 {
 	int remain = size;
-	int toCopy;
+	int toCopy, i;
 
 	if (size == 0 || size > MEGA_MODULE_MAX_PAGES * ROM_PACK_SIZE)
 		return false;
 
-	for (int i = 0; i < MEGA_MODULE_MAX_PAGES; i++)
+	for (i = 0; i < MEGA_MODULE_MAX_PAGES; i++)
 	{
 		if (RomPages[i] == NULL) {
 			RomPages[i] = new BYTE[ROM_PACK_SIZE];
@@ -79,12 +79,13 @@ bool RomMegaModule::LoadRom(unsigned int size, BYTE *src)
 		memset(RomPages[i], 0xFF, ROM_PACK_SIZE);
 		toCopy = remain > ROM_PACK_SIZE ? ROM_PACK_SIZE : remain;
 		memcpy(RomPages[i], src + i * ROM_PACK_SIZE, toCopy);
-		debug("RomMegaModule", "ROM module %d loaded (%d bytes)", i, toCopy);
 
 		remain -= toCopy;
 		if (remain == 0)
 			break;
 	}
+
+	debug("RomMegaModule", "Mega module loaded (%d bytes, %d pages)", size, ++i);
 	return true;
 }
 //---------------------------------------------------------------------------
