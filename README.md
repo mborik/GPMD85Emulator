@@ -13,12 +13,14 @@
   - original Windows code and emulation of CPU and chips
 - **ub880d**
   - support developer, maintainer, tester
+- **mikezt/zeroteam**
+  - quick-search in file-selector, bugfixing and testing
+- **a8jan**
+  - implementantion of Mega ROM Module, 5x5 scaler, support
 
 ### SPECIAL THANKS FOR THE SUPPORT:
 - **ikon/SinDiKat**
   - translation of comments sk>en, testing and support
-- **mikezt/zeroteam**
-  - quick-search in file-selector, bugfixing and testing
 - **Cizo/SinDiKat**
   - testing and support
 - **Staon**
@@ -56,6 +58,8 @@
   --- select machine (`1`, `2`, `2A`, `3`, `C2717`, `Alfa`, `Alfa2`, `Mato`)
 - `-r`, `--rmm`
   --- connect ROM module
+- `-mrm`, `--megarom`
+  --- Mega ROM module image
 - `-sc`, `--scaler` `{1..5}`
   --- screen size multiplier
 - `-bd`, `--border` `{0..9}`

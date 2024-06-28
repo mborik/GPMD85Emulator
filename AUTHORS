@@ -13,16 +13,21 @@
 + ub880d <ub880d@users.sourceforge.net>
   - support developer, maintainer, tester.
 
++ mikezt [Michal Jurica] <mikezt@zeroteam.sk>
+  - quick-search in file-selector
+  - bugfixes and testing.
+
++ a8jan [Jan Krupa] <apc.atari@gmail.com>
+  - Mega ROM Module implementation
+  - 5x5 pixel scaler
+  - minor tweaks and support.
+
 
 ### SPECIAL THANKS FOR THE SUPPORT:
 
 + ikon/SinDiKaT
   - translation of rombor's comments in classes from slovak language
   - testing and support
-
-+ mikezt/zeroteam
-  - quick-search in file-selector
-  - bugfixes and testing.
 
 + Cizo/SinDiKaT
   - testing and support
