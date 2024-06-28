@@ -149,6 +149,12 @@ void TEmulator::ProcessArgvOptions(bool memModifiers)
 		}
 
 		Settings->CurrentModel->romModuleInserted = argv_config.rmm;
+		if (argv_config.megarom != NULL) {
+			Settings->CurrentModel->megaModuleEnabled = true;
+			if (Settings->CurrentModel->mrmFile)
+				delete [] Settings->CurrentModel->mrmFile;
+			Settings->CurrentModel->mrmFile = ComposeFilePath(argv_config.megarom);
+		}
 
 		// Screen
 		if (argv_config.scaler > 0)

@@ -45,6 +45,7 @@ extern struct TCmdLineArguments {
 	char *machine;
 	int   model;
 	bool  rmm;
+	char *megarom;
 	int   scaler;
 	int   border;
 	int   halfpass;

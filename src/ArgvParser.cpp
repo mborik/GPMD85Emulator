@@ -33,6 +33,7 @@ struct TCmdLineArguments argv_config = {
 	NULL,   /* --machine */
 	CM_UNKNOWN, /* machine id translated into TComputerModel form */
 	false,  /* --rmm */
+	NULL,   /* --megarom */
 	NOVAL,  /* --scaler */
 	NOVAL,  /* --border */
 	NOVAL,  /* --halfpass */
@@ -66,6 +67,8 @@ TCmdLineSwitch switches[] = {
 				"select machine", SWPAR("{1, 2, 2A.. C2717}") },
 	{ "-r",   "--rmm", VAR_BOOL, (void *) &argv_config.rmm,
 				"connect ROM module", SWPAR(NULL) },
+	{ "-mrm", "--megarom", VAR_STRING, (void *) &argv_config.megarom,
+				"Mega ROM module image", SWPAR("\"filename.mrm\"") },
 	{ "-sc",  "--scaler", VAR_INT, (void *) &argv_config.scaler,
 				"screen size multiplier", SWPAR("{1..5}") },
 	{ "-bd",  "--border", VAR_INT, (void *) &argv_config.border,
@@ -288,6 +291,10 @@ bool ParseOptions(int *argc, char *(*argv[]))
 			argv_config.volume = NOVAL;
 		}
 
+		if (argv_config.megarom != NULL && !argv_config.rmm) {
+			// Mega ROM module requires ROM module to be connected, so auto-enable it
+			argv_config.rmm = true;
+		}
 		if (argv_config.memblock == NULL && argv_config.memstart != NOVAL) {
 			warning("Arguments", "Memory block file missing");
 			argv_config.memstart = NOVAL;
@@ -304,6 +311,7 @@ bool ParseOptions(int *argc, char *(*argv[]))
 		argv_config.any_related =
 			argv_config.machine != NULL ||
 			argv_config.rmm ||
+			argv_config.megarom != NULL ||
 			argv_config.scaler > 0 ||
 			argv_config.halfpass >= 0 ||
 			argv_config.color >= 0 ||
