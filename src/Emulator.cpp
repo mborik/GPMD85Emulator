@@ -1198,6 +1198,25 @@ void TEmulator::ActionSpeedChange()
 	ActionPlayPause(!Settings->isPaused, false);
 }
 //---------------------------------------------------------------------------
+int TEmulator::ActionMegaModulePage(bool set, BYTE page)
+{
+	int result = -1;
+	if (!(romModuleConnected && megaModuleEnabled))
+		return result;
+
+	RomMegaModule *megaModule = static_cast<RomMegaModule *>(romModule);
+	if (megaModule) {
+		result = (int) megaModule->GetCurrentPage();
+		if (set) {
+			ActionPlayPause(false, false);
+			megaModule->WriteToDevice(MEGA_MODULE_ADR, page, 0);
+			ActionPlayPause(!Settings->isPaused, false);
+		}
+	}
+
+	return result;
+}
+//---------------------------------------------------------------------------
 void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 {
 	int fileSize;

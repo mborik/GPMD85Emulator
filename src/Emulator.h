@@ -83,6 +83,7 @@ class TEmulator : public sigslot::has_slots<>
 		void ActionPlayPause(bool play, bool globalChange = true);
 		void ActionSpeedChange();
 		void ActionSizeChange(int mode);
+		int  ActionMegaModulePage(bool set = false, BYTE page = 0);
 
 	private:
 		bool inmenu;

@@ -32,12 +32,13 @@ class RomMegaModule: public RomModule
 		RomMegaModule();
 		virtual ~RomMegaModule();
 
-		virtual void ResetDevice(int ticks);
-		virtual void WriteToDevice(BYTE port, BYTE value, int ticks);
+		void ResetDevice(int ticks);
+		void WriteToDevice(BYTE port, BYTE value, int ticks);
 
 		bool LoadRom(unsigned int size, BYTE *src);
-
 		void ReadFromRom();
+
+		inline int GetCurrentPage() { return page; }
 
 	protected:
 		int page;

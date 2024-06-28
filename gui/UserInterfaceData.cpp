@@ -217,6 +217,23 @@ const char *dcb_mem_mrm_state(GUI_MENU_ENTRY *ptr)
 	return NULL;
 }
 //-----------------------------------------------------------------------------
+const char *dcb_mem_mrmpage_state(GUI_MENU_ENTRY *ptr)
+{
+	int page = Emulator->ActionMegaModulePage();
+	if (page < 0) {
+		ptr->enabled = false;
+		ptr->action = 0;
+		*((char *) uicch) = '\0';
+	}
+	else {
+		ptr->enabled = true;
+		ptr->action = (WORD) page;
+		sprintf((char *) uicch, "%d", page);
+	}
+
+	return uicch;
+}
+//-----------------------------------------------------------------------------
 const char *dcb_mem_rpkg_state(GUI_MENU_ENTRY *ptr)
 {
 	if (gui_rom_packages == NULL) {
@@ -633,6 +650,22 @@ bool ccb_mem_mrm(GUI_MENU_ENTRY *ptr)
 		if (ptr->detail)
 			ptr->detail(ptr);
 		ptr++;
+	}
+
+	return false;
+}
+//-----------------------------------------------------------------------------
+bool ccb_mem_mrmpage(GUI_MENU_ENTRY *ptr)
+{
+	WORD value = ptr ? ptr->action : (WORD) Emulator->ActionMegaModulePage();
+
+	sprintf(msgbuffer, "%d", value);
+	if (GUI->EditBox("MEGAMODULE PAGE:", msgbuffer, 3, true) == 1) {
+		value = strtol(msgbuffer, NULL, 10);
+		if (value <= MEGA_MODULE_MAX_PAGES) {
+			Emulator->ActionMegaModulePage(true, (BYTE) value);
+			GUI->uiSetChanges |= PS_CLOSEALL;
+		}
 	}
 
 	return false;

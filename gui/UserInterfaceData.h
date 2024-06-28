@@ -46,6 +46,7 @@ const char *dcb_mem_file_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_mem_rmod_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_mem_mrm_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_mem_mrm_file_state(GUI_MENU_ENTRY *ptr);
+const char *dcb_mem_mrmpage_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_mem_rpkg_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_rom_pckg_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_mem_x256k_state(GUI_MENU_ENTRY *ptr);
@@ -90,6 +91,7 @@ bool ccb_mem_m3cmp(GUI_MENU_ENTRY *ptr);
 bool ccb_mem_spl8k(GUI_MENU_ENTRY *ptr);
 bool ccb_mem_rmod(GUI_MENU_ENTRY *ptr);
 bool ccb_mem_mrm(GUI_MENU_ENTRY *ptr);
+bool ccb_mem_mrmpage(GUI_MENU_ENTRY *ptr);
 bool ccb_rom_pckg(GUI_MENU_ENTRY *ptr);
 bool ccb_p32_imgd(GUI_MENU_ENTRY *ptr);
 bool ccb_p32_conn(GUI_MENU_ENTRY *ptr);
@@ -301,6 +303,7 @@ static GUI_MENU_ENTRY gui_mem_menu[] = {
 	{ MI_SUBMENU, "ROM \aPACKAGE", NULL, SDL_SCANCODE_P, NULL, NULL, dcb_mem_rpkg_state, true },
 	{ MI_CHECKBOX, "MEGAMODUL\aE", NULL, SDL_SCANCODE_E, NULL, ccb_mem_mrm, dcb_mem_mrm_state, true },
 	{ MI_DIALOG, "MEGAMODULE \aFILE", NULL, SDL_SCANCODE_F, NULL, ccb_fileselector, dcb_mem_mrm_file_state, true, false, 6 },
+	{ MI_VALUE, "MEGAMODULE PA\aGE", NULL, SDL_SCANCODE_G, NULL, ccb_mem_mrmpage, dcb_mem_mrmpage_state },
 	{ MI_SEPARATOR },
 	{ MI_CHECKBOX, "256k MEMORY E\aXPANSION", NULL, SDL_SCANCODE_X, NULL, ccb_mem_x256k, dcb_mem_x256k_state },
 	{ MI_CHECKBOX, "\aCOMPATIBILITY MODE", NULL, SDL_SCANCODE_C, NULL, ccb_mem_m3cmp, dcb_mem_m3cmp_state },
