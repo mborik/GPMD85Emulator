@@ -34,10 +34,6 @@ class SoundDriver : public sigslot::has_slots<>
 
 		void PrepareSample(int chn, bool state, int ticks);
 		void PrepareBuffer();
-		void FillSoundBuffer(BYTE *data, DWORD len);
-
-		bool CreateWaveFile(const char* fileName);
-		bool CloseWaveFile();
 
 	private:
 		char FadeoutChannel(int chn);
@@ -46,7 +42,6 @@ class SoundDriver : public sigslot::has_slots<>
 		bool initOK;
 		bool playOK;
 		bool enabledMIF85;
-		int  writePos;
 
 		#pragma pack(push, 1)
 		typedef struct {
@@ -75,21 +70,14 @@ class SoundDriver : public sigslot::has_slots<>
 		} CHANNEL;
 
 		BYTE silence;
-		int frameSize;
-		int numChannels;
+		int  numChannels;
 		CHANNEL *channels;
 		char totalVolume;
 		char channelVolume;
 		BYTE *soundBuff;
 
-		FILE *hFile;
-		WAVE_HEADER head;
+		SDL_AudioDeviceID audioDevice;
 };
-//---------------------------------------------------------------------------
-inline void SoundDriver_MixerCallback(void *param, BYTE *buf, int len)
-{
-	((SoundDriver *) param)->FillSoundBuffer(buf, len);
-}
 //---------------------------------------------------------------------------
 #endif
 //---------------------------------------------------------------------------

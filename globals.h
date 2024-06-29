@@ -143,7 +143,9 @@ typedef bool _Bool;
 #define SAMPLE_RATE         44100
 #define SAMPLE_TICK_INC     ((1 << 24) / SAMPLE_RATE)
 #define FADEOUT_RATE        ((1 << 24) / 150)
-#define AUDIO_BUFF_SIZE     (SAMPLE_RATE / CPU_FRAMES_PER_SEC)
+#define SAMPS_PER_CPU_FRAME (SAMPLE_RATE / CPU_FRAMES_PER_SEC)
+#define BYTES_PER_SAMPLE    2 // 8-bit stereo
+#define AUDIO_BUFF_SIZE     1024
 #define AUDIO_BEEP_CHANNELS 2
 #define AUDIO_MAX_CHANNELS  3
 

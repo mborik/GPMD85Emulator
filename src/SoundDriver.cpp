@@ -22,37 +22,44 @@
 //---------------------------------------------------------------------------
 SoundDriver::SoundDriver(char totalAmpl)
 {
+	audioDevice = 0;
 	initOK = false;
 	playOK = true;
 	enabledMIF85 = false;
-	writePos = -1;
 	channels = NULL;
-	hFile = NULL;
 
 	SDL_AudioSpec desired;
 	SDL_zero(desired);
 
 	desired.freq = SAMPLE_RATE;
 	desired.format = AUDIO_U8;
-	desired.channels = 2;
+	desired.channels = BYTES_PER_SAMPLE;
 	desired.samples = AUDIO_BUFF_SIZE;
-	desired.callback = SoundDriver_MixerCallback;
+	desired.callback = NULL;
 	desired.userdata = this;
 
 	initOK = (SDL_OpenAudio(&desired, NULL) != -1);
 	if (initOK) {
-		debug("Sound", "Initialized device to %dHz/%dbit with %dB buffer",
-				desired.freq, desired.format, desired.samples);
+		audioDevice = 1; // always 1 after SDL_OpenAudio
+		debug("Sound", "Initialized device to %dHz/%dbit with %dB (%dB) buffer",
+				desired.freq, desired.format, desired.samples, desired.size);
 
-		frameSize = desired.size;
 		silence = desired.silence;
 
-		soundBuff = new BYTE[frameSize];
+		int frameSize = desired.size / BYTES_PER_SAMPLE;
+		if (frameSize != AUDIO_BUFF_SIZE)
+			warning("Sound", "Initialized sound buffer size different from desired! (%d vs %d)",
+					AUDIO_BUFF_SIZE, frameSize);
+
+		size_t len = SAMPS_PER_CPU_FRAME * BYTES_PER_SAMPLE;
+		soundBuff = new BYTE[len];
+		memset(soundBuff, silence, sizeof(BYTE) * len);
+
 		channels = new CHANNEL[AUDIO_MAX_CHANNELS];
 		for (int ii = 0; ii < AUDIO_MAX_CHANNELS; ii++) {
 			memset(&channels[ii], 0, sizeof(CHANNEL));
-			channels[ii].sampleBuff = new char[frameSize * 2];
-			memset(channels[ii].sampleBuff, silence, frameSize * 2);
+			channels[ii].sampleBuff = new char[len];
+			memset(channels[ii].sampleBuff, silence, len);
 		}
 
 		initOK = true;
@@ -68,9 +75,6 @@ SoundDriver::SoundDriver(char totalAmpl)
 //---------------------------------------------------------------------------
 SoundDriver::~SoundDriver()
 {
-	if (hFile != NULL)
-		CloseWaveFile();
-
 	playOK = false;
 	SDL_PauseAudio(1);
 	initOK = false;
@@ -134,76 +138,64 @@ void SoundDriver::PrepareSample(int chn, bool state, int ticks)
 	if (channels[chn].oldVal == val)
 		return;
 
-	int curPos = (ticks * frameSize) / TCYCLES_PER_FRAME;
+	int curPos = (ticks * SAMPS_PER_CPU_FRAME) / TCYCLES_PER_FRAME;
 
 	// filling a gap from the last position
-	char *ptr = channels[chn].sampleBuff + channels[chn].fillPos;
-	for (int ii = channels[chn].fillPos; ii < curPos && ii < frameSize; ii++) {
+	char *ptr = channels[chn].sampleBuff + (channels[chn].fillPos * BYTES_PER_SAMPLE);
+	for (int ii = channels[chn].fillPos; ii < curPos && ii < SAMPS_PER_CPU_FRAME; ii++) {
 		*ptr++ = FadeoutChannel(chn);
 		*ptr++ = FadeoutChannel(chn);
 	}
 
 	// writting to the new position
-	if (curPos < frameSize) {
-		channels[chn].sampleBuff[curPos] = val;
-		channels[chn].sampleBuff[curPos + 1] = val;
+	if (curPos < SAMPS_PER_CPU_FRAME) {
+		ptr = channels[chn].sampleBuff + (curPos * BYTES_PER_SAMPLE);
+		*ptr++ = val;
+		*ptr++ = val;
 	}
 
-	channels[chn].fillPos = curPos + 2;
+	channels[chn].fillPos = curPos + 1;
 	channels[chn].curVal = val;
 	channels[chn].oldVal = val;
 }
 //---------------------------------------------------------------------------
 void SoundDriver::PrepareBuffer()
 {
-	char *ptr, valL, valR;
+	char *ptr;
 	int ii, jj;
+	size_t len = SAMPS_PER_CPU_FRAME * BYTES_PER_SAMPLE;
 
 	if (!initOK || !playOK)
 		return;
 
-	// fadeout from actual position to the end of buffer
+	memset(soundBuff, silence, len);
 	for (ii = 0; ii < numChannels; ii++) {
 		if (ii == CHNL_MIF85) {
 			if (SAA1099 != NULL)
-				SAA1099->GenerateMany((BYTE *) channels[ii].sampleBuff, AUDIO_BUFF_SIZE);
+				SAA1099->GenerateMany((BYTE *) channels[ii].sampleBuff, SAMPS_PER_CPU_FRAME);
 			else
-				memset(channels[ii].sampleBuff, silence, frameSize);
+				memset(channels[ii].sampleBuff, silence, len);
 		}
 		else {
-			ptr = channels[ii].sampleBuff + channels[ii].fillPos;
-			for (jj = channels[ii].fillPos; jj < frameSize; jj += 2) {
+			// fadeout from actual position to the end of buffer
+			ptr = channels[ii].sampleBuff + (channels[ii].fillPos * BYTES_PER_SAMPLE);
+			for (jj = channels[ii].fillPos; jj < SAMPS_PER_CPU_FRAME; jj++) {
 				*ptr++ = FadeoutChannel(ii);
 				*ptr++ = FadeoutChannel(ii);
 			}
-
-			channels[ii].fillPos = 0;
-		}
-	}
-
-	SDL_LockAudio();
-	writePos = 0;
-	SDL_UnlockAudio();
-
-	// file writer with channel mixing
-	if (hFile != NULL) {
-		BYTE *data = soundBuff;
-
-		for (jj = 0; jj < frameSize; jj += 2) {
-			valL = 0;
-			valR = 0;
-
-			for (ii = 0; ii < numChannels; ii++) {
-				valL += (channels[ii].sampleBuff[jj] / numChannels);
-				valR += (channels[ii].sampleBuff[jj + 1] / numChannels);
-			}
-
-			*data++ = (BYTE) valL;
-			*data++ = (BYTE) valR;
 		}
 
-		fwrite(soundBuff, frameSize, 1, hFile);
+		channels[ii].fillPos = 0;
+
+		SDL_MixAudioFormat(
+			soundBuff,
+			(const BYTE *) channels[ii].sampleBuff,
+			(ii < AUDIO_BEEP_CHANNELS) ? AUDIO_S8 : AUDIO_U8,
+			len, totalVolume
+		);
 	}
+
+	SDL_QueueAudio(audioDevice, (const void *) soundBuff, len);
 }
 //---------------------------------------------------------------------------
 char SoundDriver::FadeoutChannel(int chn)
@@ -219,77 +211,5 @@ char SoundDriver::FadeoutChannel(int chn)
 	}
 
 	return channels[chn].curVal;
-}
-//---------------------------------------------------------------------------
-void SoundDriver::FillSoundBuffer(BYTE *data, DWORD len)
-{
-	memset(data, silence, len);
-
-	if ((writePos + ((int) len)) > frameSize)
-		len = (DWORD) (frameSize - writePos);
-
-	for (int ii = 0; ii < numChannels; ii++) {
-		SDL_MixAudioFormat(
-			data,
-			(const BYTE *) (channels[ii].sampleBuff + writePos),
-			(ii < AUDIO_BEEP_CHANNELS) ? AUDIO_S8 : AUDIO_U8,
-			len, totalVolume
-		);
-	}
-
-	int bufLen = (int) len;
-	if ((writePos + bufLen) < frameSize)
-		writePos += bufLen;
-}
-//---------------------------------------------------------------------------
-bool SoundDriver::CreateWaveFile(const char* fileName)
-{
-	if (!initOK || hFile != NULL)
-		return false;
-
-	hFile = fopen(fileName, "w+");
-	if (hFile == NULL)
-		return false;
-
-	memcpy(head.riff, "RIFF", 4);
-	memcpy(head.wave, "WAVE", 4);
-	memcpy(head.fmt,  "fmt ", 4);
-	head.hdrLength = 4 * sizeof(WORD) + 2 * sizeof(DWORD);
-	head.wFormatTag = 1;
-	head.nChannels = 2;
-	head.nSamplesPerSec = SAMPLE_RATE;
-	head.nAvgBytesPerSec = SAMPLE_RATE;
-	head.nBlockAlign = 1;
-	head.wBitsPerSample = 8;
-	memcpy(head.data, "data", 4);
-	fwrite(&head, sizeof(WAVE_HEADER), 1, hFile);
-
-	return true;
-}
-//---------------------------------------------------------------------------
-bool SoundDriver::CloseWaveFile()
-{
-	if (!initOK || hFile == NULL)
-		return false;
-
-	fseek(hFile, 0L, SEEK_END);
-	DWORD flen = ftell(hFile);
-	size_t rr, wr = 0, hlen = sizeof(WAVE_HEADER);
-
-	fseek(hFile, 0L, SEEK_SET);
-	rr = fread(&head, hlen, 1, hFile);
-
-	if (rr == 1) {
-		head.totLength = flen - 8;
-		head.dataLength = flen - hlen;
-
-		fseek(hFile, 0L, SEEK_SET);
-		wr = fwrite(&head, hlen, 1, hFile);
-	}
-
-	fclose(hFile);
-	hFile = NULL;
-
-	return (rr == wr);
 }
 //---------------------------------------------------------------------------
