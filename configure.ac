@@ -43,8 +43,8 @@ if test "x$debug" = "xyes"; then
 	LDFLAGS=""
 	DEBUG=1
 else
-	CXXFLAGS="-Os -Wall"
-	CFLAGS="-Os -Wall"
+	CXXFLAGS="-Os -Wno-deprecated"
+	CFLAGS="-Os -Wno-deprecated"
 	if test "x$clang" = "xno"; then
 		LDFLAGS="-s"
 	fi
