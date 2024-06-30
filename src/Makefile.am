@@ -1,5 +1,5 @@
 # GPMD85emu automake
-# mborik, 10/2011, 02/2012, 01/2018
+# mborik, 10/2011, 02/2012, 01/2018, 06/2024
 
 AUTOMAKE_OPTIONS = foreign
 AM_CPPFLAGS = \
@@ -29,6 +29,7 @@ libGPMD85emu_core_a_SOURCES = \
 	IifTape.cpp \
 	IifTimer.cpp \
 	Mif85.cpp \
+	Mouse602.cpp \
 	Pmd32.cpp \
 	RomModule.cpp \
 	RomMegaModule.cpp \
@@ -61,6 +62,7 @@ noinst_HEADERS = \
 	IifTimer.h \
 	InterruptController.h \
 	Mif85.h \
+	Mouse602.h \
 	PeripheralDevice.h \
 	Pmd32.h \
 	RomModule.h \

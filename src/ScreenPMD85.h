@@ -65,6 +65,8 @@ public:
 	inline bool GetBlinkStatus() { return blinkState; }
 
 	inline int GetMultiplier() { return screenRect->h / bufferHeight; }
+	inline int GetScreenOffsetX() { return screenRect->x; }
+	inline int GetScreenOffsetY() { return screenRect->y; }
 
 	void SetColorProfile(TColorProfile ColProf);
 	inline TColorProfile GetColorProfile() { return colorProfile; }

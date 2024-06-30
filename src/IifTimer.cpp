@@ -1,5 +1,5 @@
 /*  IifTimer.cpp: Class for emulation of timer interface
-    Copyright (c) 2006-2010 Roman Borik <pmd85emu@gmail.com>
+    Copyright (c) 2006-2018 Roman Borik <pmd85emu@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -116,7 +116,7 @@ void IifTimer::ITimerService(int ticks, int dur)
 			PeripheralSetClock(CT_2, stateRtc);
 		}
 
-		// Timer T1 - clock for USART
+		// Timer T1 - clock for USART or Mouse 602
 		for (int ii = 0; ii < dur; ii++) {
 			PeripheralSetClock(CT_1, true);
 			PeripheralSetClock(CT_1, false);
@@ -137,7 +137,7 @@ void IifTimer::ITimerService(int ticks, int dur)
 //---------------------------------------------------------------------------
 void IifTimer::Timer0OutChange(TPITCounter counter, bool outState)
 {
-	if ((model == CM_V1 || model == CM_V2 || model == CM_V2A || model == CM_V3) && !outState) {
+	if (IsPMD85() && !outState) {
 		// Mouse 602 (Ing. Vit Libovicky concept)
 		if (mouse602)
 			cpu->DoInterrupt();
@@ -160,7 +160,10 @@ void IifTimer::Mouse602Clock(TPITCounter counter, bool outState)
 //---------------------------------------------------------------------------
 void IifTimer::EnableMouse602(bool enable)
 {
-	mouse602 = (model == CM_V1) ? enable : false;
+	if (IsPMD85())
+		mouse602 = enable;
+	else
+		mouse602 = false;
 
 	if (mouse602)
 		Counters[1].OnOutChange.connect(this, &IifTimer::Mouse602Clock);
@@ -170,7 +173,7 @@ void IifTimer::EnableMouse602(bool enable)
 //---------------------------------------------------------------------------
 void IifTimer::EnableMIF85(bool enable, Mif85 *_mif85)
 {
-	if (model == CM_V1 || model == CM_V2 || model == CM_V2A || model == CM_V3) {
+	if (IsPMD85()) {
 		ifMIF85 = enable;
 		mif85 = _mif85;
 	}

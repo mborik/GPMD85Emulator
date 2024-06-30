@@ -1,5 +1,5 @@
 /*	Settings.cpp: Class for reading, handling and saveing settings
-	Copyright (c) 2011-2018 Martin Borik <mborik@users.sourceforge.net>
+	Copyright (c) 2011-2024 Martin Borik <mborik@users.sourceforge.net>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -436,8 +436,6 @@ TSettings::TSettings(bool userCfg)
 	if ((m = cfgGetLine(n, "type")) != NULL) {
 		if (strcmp(m->value, "m602") == 0)
 			Mouse->type = MT_M602;
-		else if (strcmp(m->value, "poly8") == 0)
-			Mouse->type = MT_POLY8;
 
 		m->type = LT_MOUSE;
 		m->ptr = (void *) &(Mouse->type);
@@ -1040,9 +1038,6 @@ void TSettings::storeSettings()
 					switch ((TMouseType) i) {
 						case MT_M602:
 							buf = (char *) "m602";
-							break;
-						case MT_POLY8:
-							buf = (char *) "poly8";
 							break;
 						default:
 							buf = (char *) "none";

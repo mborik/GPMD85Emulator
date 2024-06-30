@@ -1,5 +1,5 @@
 /*  IifTimer.h: Class for emulation of timer interface
-    Copyright (c) 2006-2010 Roman Borik <pmd85emu@gmail.com>
+    Copyright (c) 2006-2018 Roman Borik <pmd85emu@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -63,6 +63,10 @@ private:
 	bool mouse602;
 	// MIF 85 interface
 	bool ifMIF85;
+
+	inline bool IsPMD85() {
+		return model == CM_V1 || model == CM_V2 || model == CM_V2A || model == CM_V3;
+	}
 };
 //---------------------------------------------------------------------------
 #endif

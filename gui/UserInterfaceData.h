@@ -1,5 +1,5 @@
 /*	UserInterfaceData.h
-	Copyright (c) 2011-2019 Martin Borik <mborik@users.sourceforge.net>
+	Copyright (c) 2011-2024 Martin Borik <mborik@users.sourceforge.net>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -57,7 +57,9 @@ const char *dcb_p32_imgs_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_p32_extc_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_p32_sdcd_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_p32_imgd_state(GUI_MENU_ENTRY *ptr);
-const char *dcb_per_mif85_state(GUI_MENU_ENTRY *ptr);
+const char *dcb_mouse_conn_state(GUI_MENU_ENTRY *ptr);
+const char *dcb_mouse_cursor_state(GUI_MENU_ENTRY *ptr);
+const char *dcb_mif85_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_blk_file_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_blk_strt_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_blk_leng_state(GUI_MENU_ENTRY *ptr);
@@ -96,7 +98,9 @@ bool ccb_rom_pckg(GUI_MENU_ENTRY *ptr);
 bool ccb_p32_imgd(GUI_MENU_ENTRY *ptr);
 bool ccb_p32_conn(GUI_MENU_ENTRY *ptr);
 bool ccb_p32_extc(GUI_MENU_ENTRY *ptr);
-bool ccb_per_mif85(GUI_MENU_ENTRY *ptr);
+bool ccb_mouse_conn(GUI_MENU_ENTRY *ptr);
+bool ccb_mouse_cursor(GUI_MENU_ENTRY *ptr);
+bool ccb_mif85(GUI_MENU_ENTRY *ptr);
 bool ccb_blk_strt(GUI_MENU_ENTRY *ptr);
 bool ccb_blk_leng(GUI_MENU_ENTRY *ptr);
 bool ccb_blk_hexa(GUI_MENU_ENTRY *ptr);
@@ -310,6 +314,13 @@ static GUI_MENU_ENTRY gui_mem_menu[] = {
 	{ MI_CHECKBOX, "\aSPLIT 8kB ROM", NULL, SDL_SCANCODE_S, NULL, ccb_mem_spl8k, dcb_mem_spl8k_state },
 	{ MENU_END }
 };
+static GUI_MENU_ENTRY gui_mouse_menu[] = {
+	{ MI_TITLE, "MOUSE 602" },
+	{ MI_CHECKBOX, "\aCONNECTED", NULL, SDL_SCANCODE_C, NULL, ccb_mouse_conn, dcb_mouse_conn_state, true },
+	{ MI_SEPARATOR },
+	{ MI_CHECKBOX, "\aHIDE MOUSE CURSOR", NULL, SDL_SCANCODE_H, NULL, ccb_mouse_cursor, dcb_mouse_cursor_state, true },
+	{ MENU_END }
+};
 static GUI_MENU_ENTRY gui_p32_menu[] = {
 	{ MI_TITLE, "DISK DRIVE PMD 32" },
 	{ MI_CHECKBOX, "\aCONNECTED", NULL, SDL_SCANCODE_C, NULL, ccb_p32_conn, dcb_p32_conn_state, true },
@@ -323,11 +334,11 @@ static GUI_MENU_ENTRY gui_p32_menu[] = {
 static GUI_MENU_ENTRY gui_pers_menu[] = {
 	{ MI_TITLE, "PERIPHERALS" },
 	{ MI_SUBMENU, "\aJOYSTICK 4004/482", NULL, SDL_SCANCODE_J, NULL, NULL, NULL, false },
-	{ MI_SUBMENU, "\aMOUSE", NULL, SDL_SCANCODE_M, NULL, NULL, NULL, false },
+	{ MI_SUBMENU, "\aMOUSE 602", NULL, SDL_SCANCODE_M, gui_mouse_menu, NULL, NULL, true },
 	{ MI_SEPARATOR },
 	{ MI_SUBMENU, "PMD \a32", NULL, SDL_SCANCODE_3, gui_p32_menu, NULL, NULL, true },
 	{ MI_SEPARATOR },
-	{ MI_CHECKBOX, "M\aIF 85", NULL, SDL_SCANCODE_I, NULL, ccb_per_mif85, dcb_per_mif85_state, true },
+	{ MI_CHECKBOX, "M\aIF 85", NULL, SDL_SCANCODE_I, NULL, ccb_mif85, dcb_mif85_state, true },
 	{ MENU_END }
 };
 static GUI_MENU_ENTRY UNUSED_VARIABLE gui_main_menu[] = {

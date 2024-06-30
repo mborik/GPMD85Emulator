@@ -1,6 +1,6 @@
 /*	Emulator.cpp: Core of emulation and interface.
-	Copyright (c) 2006-2010 Roman Borik <pmd85emu@gmail.com>
-	Copyright (c) 2011-2018 Martin Borik <mborik@users.sourceforge.net>
+	Copyright (c) 2006-2018 Roman Borik <pmd85emu@gmail.com>
+	Copyright (c) 2011-2024 Martin Borik <mborik@users.sourceforge.net>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -33,6 +33,7 @@ TEmulator::TEmulator()
 	ifTape = NULL;
 	ifGpio = NULL;
 	mif85 = NULL;
+	mouse602 = NULL;
 	pmd32 = NULL;
 	romModule = NULL;
 	sound = NULL;
@@ -51,6 +52,7 @@ TEmulator::TEmulator()
 	compatibilityMode = false;
 	ramExpansion256k = false;
 	mif85connected = false;
+	mouse602connected = false;
 	pmd32connected = false;
 	romModuleConnected = false;
 	megaModuleEnabled = false;
@@ -111,6 +113,10 @@ TEmulator::~TEmulator()
 	if (mif85)
 		delete mif85;
 	mif85 = NULL;
+
+	if (mouse602)
+		delete mouse602;
+	mouse602 = NULL;
 
 	if (sound)
 		delete sound;
@@ -268,7 +274,15 @@ void TEmulator::ProcessSettings(BYTE filter)
 		video = new ScreenPMD85(Settings->Screen->size, Settings->Screen->border);
 	else if (filter & PS_SCREEN_SIZE) {
 		video->SetDisplayMode(Settings->Screen->size, Settings->Screen->border);
-		Settings->Screen->realsize = (TDisplayMode) video->GetMultiplier();
+		int multiplier = video->GetMultiplier();
+		Settings->Screen->realsize = (TDisplayMode) multiplier;
+
+		if (mouse602)
+			mouse602->SetMouseArea(
+				multiplier,
+				video->GetScreenOffsetX(),
+				video->GetScreenOffsetY()
+			);
 	}
 
 	if (filter & PS_SCREEN_MODE) {
@@ -359,6 +373,7 @@ void TEmulator::ProcessSettings(BYTE filter)
 		bool init = (filter & PS_MACHINE) || romChanged;
 
 		ConnectMIF85(init);
+		ConnectMouse602(init);
 		ConnectPMD32(init);
 
 		if (romModuleConnected) {
@@ -1178,6 +1193,13 @@ void TEmulator::ActionPlayPause(bool play, bool globalChange)
 		sound->SoundOn();
 	else
 		sound->SoundMute();
+
+	if (play && mouse602 && mouse602->GetHideCursor()) {
+		SDL_ShowCursor(SDL_DISABLE);
+	}
+	else {
+		SDL_ShowCursor(SDL_ENABLE);
+	}
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionSizeChange(int mode)
@@ -1221,6 +1243,19 @@ int TEmulator::ActionMegaModulePage(bool set, BYTE page)
 	}
 
 	return result;
+}
+//---------------------------------------------------------------------------
+void TEmulator::ActionMouseState(int x, int y, int leftBtn, int rightBtn, int middleBtn)
+{
+	if (!GUI->InMenu() && mouse602)
+		mouse602->SetMouseState(x, y, leftBtn, rightBtn, middleBtn);
+}
+//---------------------------------------------------------------------------
+void TEmulator::ActionHideCursor(bool hide)
+{
+	Settings->Mouse->hideCursor = hide;
+	if (mouse602)
+		mouse602->SetHideCursor(hide);
 }
 //---------------------------------------------------------------------------
 void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
@@ -1479,6 +1514,40 @@ void TEmulator::ConnectMIF85(bool init)
 				sound->EnableMIF85(true);
 			if (ifTimer)
 				ifTimer->EnableMIF85(true, mif85);
+		}
+	}
+}
+//---------------------------------------------------------------------------
+void TEmulator::ConnectMouse602(bool init)
+{
+	bool mouse602enabled = Settings->Mouse->type == MT_M602;
+	if (init || (mouse602connected != mouse602enabled)) {
+		if (ifTimer)
+			ifTimer->EnableMouse602(false);
+
+		cpu->RemoveDevice(MOUSE_ADR);
+
+		if (mouse602) {
+			cpu->TCyclesListeners.disconnect(mouse602);
+
+			delete mouse602;
+			mouse602 = NULL;
+		}
+
+		mouse602connected = mouse602enabled;
+		if (mouse602connected) {
+			mouse602 = new Mouse602(
+				video->GetMultiplier(),
+				video->GetScreenOffsetX(),
+				video->GetScreenOffsetY()
+			);
+
+			mouse602->SetHideCursor(Settings->Mouse->hideCursor);
+			cpu->AddDevice(MOUSE_ADR, MOUSE_MASK, mouse602, true);
+			cpu->TCyclesListeners.connect(mouse602, &Mouse602::MouseService);
+
+			if (ifTimer)
+				ifTimer->EnableMouse602(true);
 		}
 	}
 }

@@ -1,5 +1,5 @@
 /*	globals.h: Global includes, constatns, enumerators and functions.
-	Copyright (c) 2011-2019 Martin Borik <mborik@users.sourceforge.net>
+	Copyright (c) 2011-2024 Martin Borik <mborik@users.sourceforge.net>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -171,7 +171,7 @@ enum TComputerModel { CM_UNKNOWN = -1, CM_V1 = 0, CM_V2, CM_V2A, CM_V3, CM_MATO,
 enum TAutoStopType { AS_OFF = 0, AS_NEXTHEAD, AS_CURSOR };
 enum TGpioPort { GP_GPIO_0 = 0, GP_GPIO_1, GP_GPIO_BOTH };
 enum TJoyType { JT_NONE = -1, JT_KEYS = 0, JT_AXES, JT_POV, JT_BUTTONS };
-enum TMouseType { MT_NONE = -1, MT_M602 = 0, MT_POLY8 };
+enum TMouseType { MT_NONE = -1, MT_M602 = 0 };
 enum TDisplayMode { DM_NORMAL = 1, DM_DOUBLESIZE, DM_TRIPLESIZE, DM_QUADRUPLESIZE, DM_QUINTUPLESIZE,  DM_FULLSCREEN = 0 };
 enum TColorProfile { CP_MONO, CP_STANDARD, CP_COLOR, CP_COLORACE };
 enum TColorPalette { CL_DEFINED, CL_RGB, CL_VIDEO };

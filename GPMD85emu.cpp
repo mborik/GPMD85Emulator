@@ -150,6 +150,34 @@ int main(int argc, char** argv)
 						k = 4;
 					break;
 
+				case SDL_MOUSEBUTTONUP:
+				case SDL_MOUSEBUTTONDOWN:
+					switch (event.button.button) {
+						case SDL_BUTTON_LEFT:
+							Emulator->ActionMouseState(
+								event.button.x, event.button.y,
+								event.button.state == SDL_PRESSED ? 1 : -1
+							);
+							break;
+						case SDL_BUTTON_RIGHT:
+							Emulator->ActionMouseState(
+								event.button.x, event.button.y, 0,
+								event.button.state == SDL_PRESSED ? 1 : -1
+							);
+							break;
+						case SDL_BUTTON_MIDDLE:
+							Emulator->ActionMouseState(
+								event.button.x, event.button.y, 0, 0,
+								event.button.state == SDL_PRESSED ? 1 : -1
+							);
+						  break;
+					}
+					break;
+
+				case SDL_MOUSEMOTION:
+					Emulator->ActionMouseState(event.motion.x, event.motion.y);
+					break;
+
 				case SDL_WINDOWEVENT:
 					if (event.window.windowID == gdc.windowID) {
 						if (event.window.event == SDL_WINDOWEVENT_EXPOSED) {

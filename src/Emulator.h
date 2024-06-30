@@ -1,6 +1,6 @@
 /*	Emulator.h: Core of emulation and interface.
-	Copyright (c) 2006-2010 Roman Borik <pmd85emu@gmail.com>
-	Copyright (c) 2011-2018 Martin Borik <mborik@users.sourceforge.net>
+	Copyright (c) 2006-2018 Roman Borik <pmd85emu@gmail.com>
+	Copyright (c) 2011-2024 Martin Borik <mborik@users.sourceforge.net>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@
 #include "IifTimer.h"
 #include "IifTape.h"
 #include "IifGPIO.h"
+#include "Mouse602.h"
 #include "Pmd32.h"
 #include "RomModule.h"
 #include "RomMegaModule.h"
@@ -74,6 +75,7 @@ class TEmulator : public sigslot::has_slots<>
 		void ActionSnapSave();
 		void ActionROMLoad();
 		void ActionMegaRomLoad();
+		int  ActionMegaModulePage(bool set = false, BYTE page = 0);
 		void ActionRawFile(bool save);
 
 		void ActionReset();
@@ -83,7 +85,8 @@ class TEmulator : public sigslot::has_slots<>
 		void ActionPlayPause(bool play, bool globalChange = true);
 		void ActionSpeedChange();
 		void ActionSizeChange(int mode);
-		int  ActionMegaModulePage(bool set = false, BYTE page = 0);
+		void ActionMouseState(int x, int y, int leftBtn = 0, int rightBtn = 0, int middleBtn = 0);
+		void ActionHideCursor(bool hide = false);
 
 	private:
 		bool inmenu;
@@ -100,6 +103,7 @@ class TEmulator : public sigslot::has_slots<>
 		IifTape *ifTape;
 		IifGPIO *ifGpio;
 		Mif85 *mif85;
+		Mouse602 *mouse602;
 		Pmd32 *pmd32;
 		RomModule *romModule;
 
@@ -112,8 +116,9 @@ class TEmulator : public sigslot::has_slots<>
 		bool ramExpansion256k;
 
 		bool mif85connected;
-		int  pmd32workdrive;
+		bool mouse602connected;
 		bool pmd32connected;
+		int  pmd32workdrive;
 		bool romModuleConnected;
 		bool megaModuleEnabled;
 
@@ -121,6 +126,7 @@ class TEmulator : public sigslot::has_slots<>
 		void InsertRomModule(bool inserted);
 		void InsertRomMegaModule(bool inserted);
 		void ConnectMIF85(bool init);
+		void ConnectMouse602(bool init);
 		void ConnectPMD32(bool init);
 		void ProcessSnapshot(char *fileName, BYTE *flag);
 		void PrepareSnapshot(char *fileName, BYTE *flag);

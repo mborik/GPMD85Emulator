@@ -1,5 +1,5 @@
 /*	UserInterfaceData.h
-	Copyright (c) 2011-2019 Martin Borik <mborik@users.sourceforge.net>
+	Copyright (c) 2011-2024 Martin Borik <mborik@users.sourceforge.net>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -358,7 +358,19 @@ const char *dcb_p32_imgd_state(GUI_MENU_ENTRY *ptr)
 	return ret;
 }
 //-----------------------------------------------------------------------------
-const char *dcb_per_mif85_state(GUI_MENU_ENTRY *ptr)
+const char *dcb_mouse_conn_state(GUI_MENU_ENTRY *ptr)
+{
+	ptr->state = Settings->Mouse->type == MT_M602;
+	return NULL;
+}
+//-----------------------------------------------------------------------------
+const char *dcb_mouse_cursor_state(GUI_MENU_ENTRY *ptr)
+{
+	ptr->state = Settings->Mouse->hideCursor;
+	return NULL;
+}
+//-----------------------------------------------------------------------------
+const char *dcb_mif85_state(GUI_MENU_ENTRY *ptr)
 {
 	ptr->state = Settings->Sound->ifMIF85;
 	return NULL;
@@ -753,7 +765,20 @@ bool ccb_p32_extc(GUI_MENU_ENTRY *ptr)
 	return false;
 }
 //-----------------------------------------------------------------------------
-bool ccb_per_mif85(GUI_MENU_ENTRY *ptr)
+bool ccb_mouse_conn(GUI_MENU_ENTRY *ptr)
+{
+	Settings->Mouse->type = (ptr->state = !ptr->state) ? MT_M602 : MT_NONE;
+	GUI->uiSetChanges |= PS_PERIPHERALS;
+	return false;
+}
+//-----------------------------------------------------------------------------
+bool ccb_mouse_cursor(GUI_MENU_ENTRY *ptr)
+{
+	Emulator->ActionHideCursor(ptr->state = !ptr->state);
+	return false;
+}
+//-----------------------------------------------------------------------------
+bool ccb_mif85(GUI_MENU_ENTRY *ptr)
 {
 	Settings->Sound->ifMIF85 = (ptr->state = !ptr->state);
 	GUI->uiSetChanges |= PS_PERIPHERALS;
