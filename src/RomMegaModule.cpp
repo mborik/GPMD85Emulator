@@ -1,6 +1,6 @@
 /*	RomMegaModule.cpp: Class for emulation of plugged ROM MEGAmodule
-	Copyright (c) 2006 Roman Borik <pmd85emu@gmail.com>
-	              2024 Jan Krupa <apc.atari@gmail.com>
+	Copyright (c) 2023 Roman Borik <pmd85emu@gmail.com>
+	Copyright (c) 2024 Jan Krupa <apc.atari@gmail.com>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
