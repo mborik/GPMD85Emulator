@@ -451,7 +451,7 @@ TSettings::TSettings(bool userCfg)
 	Joystick->GPIO1 = new SetJoystickGPIO;
 
 	Joystick->GPIO0->connected = cfgGetBoolValue(n, "connected", false, &(Joystick->GPIO0->connected));
-	Joystick->GPIO0->guid = cfgGetStringValue(n, "guid", &(Joystick->GPIO0->guid));
+	Joystick->GPIO0->guid = cfgGetIntValue(n, "guid", -1, &(Joystick->GPIO0->guid));
 	Joystick->GPIO0->ctrlLeft = cfgGetIntValue(n, "left", SDL_SCANCODE_UNKNOWN, &(Joystick->GPIO0->ctrlLeft));
 	Joystick->GPIO0->ctrlRight = cfgGetIntValue(n, "right", SDL_SCANCODE_UNKNOWN, &(Joystick->GPIO0->ctrlRight));
 	Joystick->GPIO0->ctrlUp = cfgGetIntValue(n, "up", SDL_SCANCODE_UNKNOWN, &(Joystick->GPIO0->ctrlUp));
@@ -480,7 +480,7 @@ TSettings::TSettings(bool userCfg)
 	n = cfgFindSection(cfgRoot, "Joystick-GPIO1");
 
 	Joystick->GPIO1->connected = cfgGetBoolValue(n, "connected", false, &(Joystick->GPIO1->connected));
-	Joystick->GPIO1->guid = cfgGetStringValue(n, "guid", &(Joystick->GPIO1->guid));
+	Joystick->GPIO1->guid = cfgGetIntValue(n, "guid", -1, &(Joystick->GPIO1->guid));
 	Joystick->GPIO1->ctrlLeft = cfgGetIntValue(n, "left", SDL_SCANCODE_UNKNOWN, &(Joystick->GPIO1->ctrlLeft));
 	Joystick->GPIO1->ctrlRight = cfgGetIntValue(n, "right", SDL_SCANCODE_UNKNOWN, &(Joystick->GPIO1->ctrlRight));
 	Joystick->GPIO1->ctrlUp = cfgGetIntValue(n, "up", SDL_SCANCODE_UNKNOWN, &(Joystick->GPIO1->ctrlUp));
@@ -612,21 +612,11 @@ TSettings::~TSettings()
 
 	if (Joystick) {
 		if (Joystick->GPIO0) {
-			if (Joystick->GPIO0->guid) {
-				delete [] Joystick->GPIO0->guid;
-				Joystick->GPIO0->guid = NULL;
-			}
-
 			delete Joystick->GPIO0;
 			Joystick->GPIO0 = NULL;
 		}
 
 		if (Joystick->GPIO1) {
-			if (Joystick->GPIO1->guid) {
-				delete [] Joystick->GPIO1->guid;
-				Joystick->GPIO1->guid = NULL;
-			}
-
 			delete Joystick->GPIO1;
 			Joystick->GPIO1 = NULL;
 		}

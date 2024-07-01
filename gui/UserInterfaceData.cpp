@@ -358,6 +358,46 @@ const char *dcb_p32_imgd_state(GUI_MENU_ENTRY *ptr)
 	return ret;
 }
 //-----------------------------------------------------------------------------
+const char *dcb_joy_conn_state(GUI_MENU_ENTRY *ptr)
+{
+	TSettings::SetJoystickGPIO *gpio = Settings->Joystick->GPIO0;
+	if (ptr->action == GP_GPIO_1)
+		gpio = Settings->Joystick->GPIO1;
+	ptr->state = gpio->connected;
+	return NULL;
+}
+//-----------------------------------------------------------------------------
+const char *dcb_joy_menu_state(GUI_MENU_ENTRY *ptr)
+{
+	TSettings::SetJoystickGPIO *gpio = Settings->Joystick->GPIO0;
+	if (ptr->action == GP_GPIO_1)
+		gpio = Settings->Joystick->GPIO1;
+	ptr->enabled = gpio->connected;
+	return NULL;
+}
+//-----------------------------------------------------------------------------
+const char *dcb_joy_type_state(GUI_MENU_ENTRY *ptr)
+{
+	TSettings::SetJoystickGPIO *gpio = Settings->Joystick->GPIO0;
+	if ((ptr->action >> 8) == GP_GPIO_1)
+		gpio = Settings->Joystick->GPIO1;
+	BYTE type = (ptr->action & 0XFF);
+	ptr->state = gpio->type == (TJoyType) type;
+
+	static const char *comments[4] = {
+		/* JT_KEYS */
+		NULL,
+		/* JKM_CURSORS */
+		"DPAD+A",
+		/* JKM_QAOP */
+		"LeftStick+A",
+		/* JKM_WASD */
+		"ABXY+Bumpers"
+	};
+
+	return comments[type];
+}
+//-----------------------------------------------------------------------------
 const char *dcb_mouse_conn_state(GUI_MENU_ENTRY *ptr)
 {
 	ptr->state = Settings->Mouse->type == MT_M602;
@@ -763,6 +803,59 @@ bool ccb_p32_extc(GUI_MENU_ENTRY *ptr)
 	ptr++;
 	ptr->enabled = Settings->PMD32->extraCommands;
 	return false;
+}
+//-----------------------------------------------------------------------------
+bool ccb_joy_conn(GUI_MENU_ENTRY *ptr)
+{
+	TSettings::SetJoystickGPIO *gpio = Settings->Joystick->GPIO0;
+	if (ptr->action == GP_GPIO_1)
+		gpio = Settings->Joystick->GPIO1;
+	gpio->connected = (ptr->state = !ptr->state);
+	GUI->uiSetChanges |= PS_PERIPHERALS;
+
+	while ((++ptr)->type != MENU_END)
+		if (ptr->detail)
+			ptr->detail(ptr);
+
+	return false;
+}
+//-----------------------------------------------------------------------------
+bool ccb_joy_type(GUI_MENU_ENTRY *ptr)
+{
+	TSettings::SetJoystickGPIO *gpio = Settings->Joystick->GPIO0;
+	if ((ptr->action >> 8) == GP_GPIO_1)
+		gpio = Settings->Joystick->GPIO1;
+	gpio->type = (TJoyType) (ptr->action & 0xFF);
+	GUI->uiSetChanges |= PS_PERIPHERALS;
+	ptr->detail(ptr);
+	return false;
+}
+//-----------------------------------------------------------------------------
+bool ccb_joy_keyset(GUI_MENU_ENTRY *ptr)
+{
+	TSettings::SetJoystickGPIO *gpio = Settings->Joystick->GPIO0;
+	if ((ptr->action >> 8) == GP_GPIO_1)
+		gpio = Settings->Joystick->GPIO1;
+
+	static const WORD joyKeymaps[4][5] = {
+		/* JKM_NUMPAD */
+		{ SDL_SCANCODE_KP_8, SDL_SCANCODE_KP_2, SDL_SCANCODE_KP_4, SDL_SCANCODE_KP_6, SDL_SCANCODE_KP_0 },
+		/* JKM_CURSORS */
+		{ SDL_SCANCODE_UP, SDL_SCANCODE_DOWN, SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT, SDL_SCANCODE_LCTRL },
+		/* JKM_QAOP */
+		{ SDL_SCANCODE_Q, SDL_SCANCODE_A, SDL_SCANCODE_O, SDL_SCANCODE_P, SDL_SCANCODE_SPACE },
+		/* JKM_WASD */
+		{ SDL_SCANCODE_W, SDL_SCANCODE_S, SDL_SCANCODE_A, SDL_SCANCODE_D, SDL_SCANCODE_C }
+	};
+
+	int keymap = (ptr->action & 0xFF);
+	gpio->ctrlUp = joyKeymaps[keymap][0];
+	gpio->ctrlDown = joyKeymaps[keymap][1];
+	gpio->ctrlLeft = joyKeymaps[keymap][2];
+	gpio->ctrlRight = joyKeymaps[keymap][3];
+	gpio->ctrlFire = joyKeymaps[keymap][4];
+
+	return true;
 }
 //-----------------------------------------------------------------------------
 bool ccb_mouse_conn(GUI_MENU_ENTRY *ptr)

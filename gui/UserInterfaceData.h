@@ -57,6 +57,9 @@ const char *dcb_p32_imgs_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_p32_extc_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_p32_sdcd_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_p32_imgd_state(GUI_MENU_ENTRY *ptr);
+const char *dcb_joy_conn_state(GUI_MENU_ENTRY *ptr);
+const char *dcb_joy_menu_state(GUI_MENU_ENTRY *ptr);
+const char *dcb_joy_type_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_mouse_conn_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_mouse_cursor_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_mif85_state(GUI_MENU_ENTRY *ptr);
@@ -98,6 +101,9 @@ bool ccb_rom_pckg(GUI_MENU_ENTRY *ptr);
 bool ccb_p32_imgd(GUI_MENU_ENTRY *ptr);
 bool ccb_p32_conn(GUI_MENU_ENTRY *ptr);
 bool ccb_p32_extc(GUI_MENU_ENTRY *ptr);
+bool ccb_joy_conn(GUI_MENU_ENTRY *ptr);
+bool ccb_joy_type(GUI_MENU_ENTRY *ptr);
+bool ccb_joy_keyset(GUI_MENU_ENTRY *ptr);
 bool ccb_mouse_conn(GUI_MENU_ENTRY *ptr);
 bool ccb_mouse_cursor(GUI_MENU_ENTRY *ptr);
 bool ccb_mif85(GUI_MENU_ENTRY *ptr);
@@ -314,6 +320,53 @@ static GUI_MENU_ENTRY gui_mem_menu[] = {
 	{ MI_CHECKBOX, "\aSPLIT 8kB ROM", NULL, SDL_SCANCODE_S, NULL, ccb_mem_spl8k, dcb_mem_spl8k_state },
 	{ MENU_END }
 };
+static GUI_MENU_ENTRY gui_joy0_keymap_menu[] = {
+	{ MI_TITLE, "'MAP TO KEYBOARD' CONFIG" },
+	{ MI_RADIO, "\aENABLED", NULL, SDL_SCANCODE_E, NULL, ccb_joy_type, dcb_joy_type_state, true, false, (GP_GPIO_0 << 8) | JT_KEYS },
+	{ MI_SEPARATOR },
+	{ MI_STANDARD, "PRESET: \aNumArrows+0", NULL, SDL_SCANCODE_N, NULL, ccb_joy_keyset, NULL, true, false, (GP_GPIO_0 << 8) | JKM_NUMPAD },
+	{ MI_STANDARD, "PRESET: \aCursors+LCtrl", NULL, SDL_SCANCODE_C, NULL, ccb_joy_keyset, NULL, true, false, (GP_GPIO_0 << 8) | JKM_CURSORS },
+	{ MI_STANDARD, "PRESET: \aQAOP+Space", NULL, SDL_SCANCODE_Q, NULL, ccb_joy_keyset, NULL, true, false, (GP_GPIO_0 << 8) | JKM_QAOP },
+	{ MI_STANDARD, "PRESET: \aWASD+C", NULL, SDL_SCANCODE_W, NULL, ccb_joy_keyset, NULL, true, false, (GP_GPIO_0 << 8) | JKM_WASD },
+	{ MENU_END }
+};
+static GUI_MENU_ENTRY gui_joy0_gamepad_menu[] = {
+	{ MI_TITLE, "GAMEPAD CONFIGURATION" },
+	{ MI_RADIO, "\aAXES", NULL, SDL_SCANCODE_A, NULL, ccb_joy_type, dcb_joy_type_state, true, false, (GP_GPIO_0 << 8) | JT_AXES },
+	{ MI_RADIO, "\aPOV", NULL, SDL_SCANCODE_P, NULL, ccb_joy_type, dcb_joy_type_state, true, false, (GP_GPIO_0 << 8) | JT_POV },
+	{ MI_RADIO, "\aBUTTONS", NULL, SDL_SCANCODE_B, NULL, ccb_joy_type, dcb_joy_type_state, true, false, (GP_GPIO_0 << 8) | JT_BUTTONS },
+	{ MENU_END }
+};
+static GUI_MENU_ENTRY gui_joy1_keymap_menu[] = {
+	{ MI_TITLE, "'MAP TO KEYBOARD' CONFIG" },
+	{ MI_RADIO, "\aENABLED", NULL, SDL_SCANCODE_E, NULL, ccb_joy_type, dcb_joy_type_state, true, false, (GP_GPIO_1 << 8) | JT_KEYS },
+	{ MI_SEPARATOR },
+	{ MI_STANDARD, "PRESET: \aNumArrows+0", NULL, SDL_SCANCODE_N, NULL, ccb_joy_keyset, NULL, true, false, (GP_GPIO_1 << 8) | JKM_NUMPAD },
+	{ MI_STANDARD, "PRESET: \aCursors+LCtrl", NULL, SDL_SCANCODE_C, NULL, ccb_joy_keyset, NULL, true, false, (GP_GPIO_1 << 8) | JKM_CURSORS },
+	{ MI_STANDARD, "PRESET: \aQAOP+Space", NULL, SDL_SCANCODE_Q, NULL, ccb_joy_keyset, NULL, true, false, (GP_GPIO_1 << 8) | JKM_QAOP },
+	{ MI_STANDARD, "PRESET: \aWASD+C", NULL, SDL_SCANCODE_W, NULL, ccb_joy_keyset, NULL, true, false, (GP_GPIO_1 << 8) | JKM_WASD },
+	{ MENU_END }
+};
+static GUI_MENU_ENTRY gui_joy1_gamepad_menu[] = {
+	{ MI_TITLE, "GAMEPAD CONFIGURATION" },
+	{ MI_RADIO, "\aAXES", NULL, SDL_SCANCODE_A, NULL, ccb_joy_type, dcb_joy_type_state, true, false, (GP_GPIO_1 << 8) | JT_AXES },
+	{ MI_RADIO, "\aPOV", NULL, SDL_SCANCODE_P, NULL, ccb_joy_type, dcb_joy_type_state, true, false, (GP_GPIO_1 << 8) | JT_POV },
+	{ MI_RADIO, "\aBUTTONS", NULL, SDL_SCANCODE_B, NULL, ccb_joy_type, dcb_joy_type_state, true, false, (GP_GPIO_1 << 8) | JT_BUTTONS },
+	{ MENU_END }
+};
+static GUI_MENU_ENTRY gui_joy_menu[] = {
+	{ MI_TITLE, "JOYSTICK 4004/482" },
+	{ MI_CHECKBOX, "CONNECTED TO K3-GPIO/\a0", NULL, SDL_SCANCODE_0, NULL, ccb_joy_conn, dcb_joy_conn_state, true, true, GP_GPIO_0 },
+	{ MI_SEPARATOR },
+	{ MI_SUBMENU, "MAP TO KEYBOARD", NULL, SDL_NUM_SCANCODES, gui_joy0_keymap_menu, NULL, dcb_joy_menu_state, true, false, GP_GPIO_0 },
+	{ MI_SUBMENU, "GAME CONTROLLER", NULL, SDL_NUM_SCANCODES, gui_joy0_gamepad_menu, NULL, dcb_joy_menu_state, true, false, GP_GPIO_0 },
+	{ MI_SEPARATOR },
+	{ MI_CHECKBOX, "CONNECTED TO K4-GPIO/\a1", NULL, SDL_SCANCODE_1, NULL, ccb_joy_conn, dcb_joy_conn_state, true, true, GP_GPIO_1 },
+	{ MI_SEPARATOR },
+	{ MI_SUBMENU, "MAP TO KEYBOARD", NULL, SDL_NUM_SCANCODES, gui_joy1_keymap_menu, NULL, dcb_joy_menu_state, true, false, GP_GPIO_1 },
+	{ MI_SUBMENU, "GAME CONTROLLER", NULL, SDL_NUM_SCANCODES, gui_joy1_gamepad_menu, NULL, dcb_joy_menu_state, true, false, GP_GPIO_1 },
+	{ MENU_END }
+};
 static GUI_MENU_ENTRY gui_mouse_menu[] = {
 	{ MI_TITLE, "MOUSE 602" },
 	{ MI_CHECKBOX, "\aCONNECTED", NULL, SDL_SCANCODE_C, NULL, ccb_mouse_conn, dcb_mouse_conn_state, true },
@@ -333,7 +386,7 @@ static GUI_MENU_ENTRY gui_p32_menu[] = {
 };
 static GUI_MENU_ENTRY gui_pers_menu[] = {
 	{ MI_TITLE, "PERIPHERALS" },
-	{ MI_SUBMENU, "\aJOYSTICK 4004/482", NULL, SDL_SCANCODE_J, NULL, NULL, NULL, false },
+	{ MI_SUBMENU, "\aJOYSTICK 4004/482", NULL, SDL_SCANCODE_J, gui_joy_menu, NULL, NULL, true },
 	{ MI_SUBMENU, "\aMOUSE 602", NULL, SDL_SCANCODE_M, gui_mouse_menu, NULL, NULL, true },
 	{ MI_SEPARATOR },
 	{ MI_SUBMENU, "PMD \a32", NULL, SDL_SCANCODE_3, gui_p32_menu, NULL, NULL, true },

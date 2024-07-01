@@ -28,6 +28,7 @@ libGPMD85emu_core_a_SOURCES = \
 	IifGPIO.cpp \
 	IifTape.cpp \
 	IifTimer.cpp \
+	Joy4004482.cpp \
 	Mif85.cpp \
 	Mouse602.cpp \
 	Pmd32.cpp \
@@ -61,6 +62,7 @@ noinst_HEADERS = \
 	IifTape.h \
 	IifTimer.h \
 	InterruptController.h \
+	Joy4004482.h \
 	Mif85.h \
 	Mouse602.h \
 	PeripheralDevice.h \
