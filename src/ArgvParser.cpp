@@ -112,7 +112,7 @@ TCmdLineSwitch switches[] = {
 	{ "-soft", "--soft-render", VAR_BOOL, (void *) &argv_config.softrender,
 				"use software renderer instead of accelerated", SWPAR(NULL) },
 };
-TCmdLineSwitches cmdline = { switches, 26 };
+TCmdLineSwitches cmdline = { switches, 27 };
 //-----------------------------------------------------------------------------
 void IntroMessage()
 {
