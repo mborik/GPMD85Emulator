@@ -81,33 +81,134 @@ void Joy4004482::ScanJoy(BYTE *KeyBuffer)
 	if (KeyBuffer == NULL)
 		return;
 
-	// TODO
-}
-//---------------------------------------------------------------------------
-// void ScanJoyKey(JOY *joy, BYTE *keyBuffer);
-void Joy4004482::ScanJoyKey(JOY *joy, BYTE *keyBuffer)
-{
-	if (joy->map->connected && joy->map->type == JT_KEYS) {
-		BYTE value = 0xFF;
+	for (int ii = 0; ii < joyCnt; ii++) {
+		if (joy[ii].map->type == JT_NONE) {
+			joy[ii].value = 0xFF;
+			continue;
+		}
+		if (joy[ii].map->type == JT_KEYS) {
+			ScanJoyKey(&joy[ii], KeyBuffer);
+			continue;
+		}
+		if (joy[ii].map->type == JT_POV || joy[ii].map->type == JT_BUTTONS) {
+			ScanJoyButtons(&joy[ii], false);
+			continue;
+		}
 
-		if (joy->map->ctrlDown)
-			value &= JOY_MASK_DOWN;
-		if (joy->map->ctrlUp)
-			value &= JOY_MASK_UP;
-		if (joy->map->ctrlRight)
-			value &= JOY_MASK_RIGHT;
-		if (joy->map->ctrlLeft)
-			value &= JOY_MASK_LEFT;
-		if (joy->map->ctrlFire)
-			value &= JOY_MASK_FIRE;
-
-		joy->value = value;
+		ScanJoyAxis(&joy[ii]);
+		ScanJoyButtons(&joy[ii], true);
 	}
 }
 //---------------------------------------------------------------------------
-// void ScanRealJoy(JOY *joy, bool onlyFire);
-void Joy4004482::ScanRealJoy(JOY *joy, bool onlyFire)
+void Joy4004482::ScanJoyKey(JOY *joy, BYTE *keyBuffer)
 {
-	// TODO
+	BYTE value = 0xFF;
+
+	if (keyBuffer[joy->map->ctrlUp])
+		value &= JOY_MASK_UP;
+	if (keyBuffer[joy->map->ctrlDown])
+		value &= JOY_MASK_DOWN;
+	if (keyBuffer[joy->map->ctrlLeft])
+		value &= JOY_MASK_LEFT;
+	if (keyBuffer[joy->map->ctrlRight])
+		value &= JOY_MASK_RIGHT;
+	if (keyBuffer[joy->map->ctrlFire])
+		value &= JOY_MASK_FIRE;
+
+	joy->value = value;
+}
+//---------------------------------------------------------------------------
+void Joy4004482::ScanJoyButtons(JOY *joy, bool onlyFire)
+{
+	BYTE value;
+
+	static const SDL_GameControllerButton mapping[2][4] = {
+		{ SDL_CONTROLLER_BUTTON_DPAD_UP, SDL_CONTROLLER_BUTTON_DPAD_DOWN, SDL_CONTROLLER_BUTTON_DPAD_LEFT, SDL_CONTROLLER_BUTTON_DPAD_RIGHT },
+		{ SDL_CONTROLLER_BUTTON_Y, SDL_CONTROLLER_BUTTON_A, SDL_CONTROLLER_BUTTON_X, SDL_CONTROLLER_BUTTON_B }
+	};
+
+	if (onlyFire)
+		value = (BYTE) (joy->value | ~JOY_MASK_FIRE);
+	else {
+		value = 0xFF;
+		const SDL_GameControllerButton *dirmap = mapping[joy->map->type == JT_BUTTONS ? 1 : 0];
+
+		if (SDL_GameControllerGetButton(joy->controller, dirmap[0]))
+			value &= JOY_MASK_UP;
+		if (SDL_GameControllerGetButton(joy->controller, dirmap[1]))
+			value &= JOY_MASK_DOWN;
+		if (SDL_GameControllerGetButton(joy->controller, dirmap[2]))
+			value &= JOY_MASK_LEFT;
+		if (SDL_GameControllerGetButton(joy->controller, dirmap[3]))
+			value &= JOY_MASK_RIGHT;
+	}
+
+	if (joy->map->type == JT_BUTTONS) {
+		if (SDL_GameControllerGetButton(joy->controller, SDL_CONTROLLER_BUTTON_LEFTSHOULDER)
+			|| SDL_GameControllerGetButton(joy->controller, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER)
+			|| SDL_GameControllerGetButton(joy->controller, SDL_CONTROLLER_BUTTON_LEFTSTICK)
+			|| SDL_GameControllerGetButton(joy->controller, SDL_CONTROLLER_BUTTON_RIGHTSTICK))
+				value &= JOY_MASK_FIRE;
+	}
+	else {
+		if (SDL_GameControllerGetButton(joy->controller, SDL_CONTROLLER_BUTTON_A))
+			value &= JOY_MASK_FIRE;
+	}
+
+	joy->value = value;
+}
+//---------------------------------------------------------------------------
+void Joy4004482::ScanJoyAxis(JOY *joy)
+{
+	BYTE value = 0xFF;
+
+	int x = SDL_GameControllerGetAxis(joy->controller, joy->map->pov ? SDL_CONTROLLER_AXIS_RIGHTX : SDL_CONTROLLER_AXIS_LEFTX);
+	int y = SDL_GameControllerGetAxis(joy->controller, joy->map->pov ? SDL_CONTROLLER_AXIS_RIGHTY : SDL_CONTROLLER_AXIS_LEFTY);
+
+	double p = sqrt((double) (x * x + y * y));
+	int q = -1;
+	int r = (int) (p / (JOY_AXES_RANGE / 2.0f) * 100.0f);
+	if (r > joy->map->sensitivity) {
+		p = acos(y / p);
+		if (x < 0)
+			p = (2 * M_PI) - p;
+		q = (int) ((p / M_PI_4) + 0.5f);
+	}
+
+	switch (q) {
+		case 0: // 0 - Up
+			value &= JOY_MASK_UP;
+			break;
+		case 1: // 45 - Up-Right
+			value &= JOY_MASK_UP;
+			value &= JOY_MASK_RIGHT;
+			break;
+		case 2: // 90 - Right
+			value &= JOY_MASK_RIGHT;
+			break;
+		case 3: // 135 - Down-Right
+			value &= JOY_MASK_DOWN;
+			value &= JOY_MASK_RIGHT;
+			break;
+		case 4: // 180 - Down
+			value &= JOY_MASK_DOWN;
+			break;
+		case 5: // 225 - Down-Left
+			value &= JOY_MASK_DOWN;
+			value &= JOY_MASK_LEFT;
+			break;
+		case 6: // 270 - Left
+			value &= JOY_MASK_LEFT;
+			break;
+		case 7: // 315 - Up-Left
+			value &= JOY_MASK_UP;
+			value &= JOY_MASK_LEFT;
+			break;
+		default:
+			value = 0xFF;
+			break;
+	}
+
+	joy->value = value;
 }
 //---------------------------------------------------------------------------

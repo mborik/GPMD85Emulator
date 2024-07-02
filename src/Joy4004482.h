@@ -23,11 +23,15 @@
 #include "Settings.h"
 #include "IifGPIO.h"
 //---------------------------------------------------------------------------
-#define JOY_MASK_DOWN  (~1)
-#define JOY_MASK_UP    (~2)
-#define JOY_MASK_RIGHT (~4)
-#define JOY_MASK_LEFT  (~8)
-#define JOY_MASK_FIRE  (~16)
+#define JOY_MASK_DOWN    (~1)
+#define JOY_MASK_UP      (~2)
+#define JOY_MASK_RIGHT   (~4)
+#define JOY_MASK_LEFT    (~8)
+#define JOY_MASK_FIRE    (~16)
+
+#define JOY_AXES_MIN_VAL -32768
+#define JOY_AXES_MAX_VAL 32767
+#define JOY_AXES_RANGE   (JOY_AXES_MAX_VAL - JOY_AXES_MIN_VAL)
 //---------------------------------------------------------------------------
 class Joy4004482 : public sigslot::has_slots<>
 {
@@ -44,7 +48,7 @@ protected:
 private:
 	typedef struct {
 		TSettings::SetJoystickGPIO *map;
-		bool polled;
+		SDL_GameController * controller;
 		BYTE value;
 	} JOY;
 
@@ -54,7 +58,8 @@ private:
 	bool sameDev;
 
 	void ScanJoyKey(JOY *joy, BYTE *keyBuffer);
-	void ScanRealJoy(JOY *joy, bool onlyFire);
+	void ScanJoyButtons(JOY *joy, bool onlyFire);
+	void ScanJoyAxis(JOY *joy);
 };
 //---------------------------------------------------------------------------
 #endif

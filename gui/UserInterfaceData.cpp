@@ -387,11 +387,11 @@ const char *dcb_joy_type_state(GUI_MENU_ENTRY *ptr)
 	static const char *comments[4] = {
 		/* JT_KEYS */
 		NULL,
-		/* JKM_CURSORS */
+		/* JT_POV */
 		"DPAD+A",
-		/* JKM_QAOP */
+		/* JT_AXES */
 		"LeftStick+A",
-		/* JKM_WASD */
+		/* JT_BUTTONS */
 		"ABXY+Bumpers"
 	};
 

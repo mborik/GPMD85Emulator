@@ -31,6 +31,7 @@
 #include "IifTimer.h"
 #include "IifTape.h"
 #include "IifGPIO.h"
+#include "Joy4004482.h"
 #include "Mouse602.h"
 #include "Pmd32.h"
 #include "RomModule.h"
@@ -102,6 +103,7 @@ class TEmulator : public sigslot::has_slots<>
 		IifTimer *ifTimer;
 		IifTape *ifTape;
 		IifGPIO *ifGpio;
+		Joy4004482 *joystick;
 		Mif85 *mif85;
 		Mouse602 *mouse602;
 		Pmd32 *pmd32;
@@ -115,8 +117,9 @@ class TEmulator : public sigslot::has_slots<>
 		bool compatibilityMode;
 		bool ramExpansion256k;
 
-		bool mif85connected;
+		bool joy4004482connected;
 		bool mouse602connected;
+		bool mif85connected;
 		bool pmd32connected;
 		int  pmd32workdrive;
 		bool romModuleConnected;
@@ -125,6 +128,7 @@ class TEmulator : public sigslot::has_slots<>
 		void SetComputerModel(bool fromSnap = false, int snapRomLen = 0, BYTE *snapRom = NULL);
 		void InsertRomModule(bool inserted);
 		void InsertRomMegaModule(bool inserted);
+		void ConnectJoystick(bool init);
 		void ConnectMIF85(bool init);
 		void ConnectMouse602(bool init);
 		void ConnectPMD32(bool init);

@@ -332,8 +332,8 @@ static GUI_MENU_ENTRY gui_joy0_keymap_menu[] = {
 };
 static GUI_MENU_ENTRY gui_joy0_gamepad_menu[] = {
 	{ MI_TITLE, "GAMEPAD CONFIGURATION" },
-	{ MI_RADIO, "\aAXES", NULL, SDL_SCANCODE_A, NULL, ccb_joy_type, dcb_joy_type_state, true, false, (GP_GPIO_0 << 8) | JT_AXES },
 	{ MI_RADIO, "\aPOV", NULL, SDL_SCANCODE_P, NULL, ccb_joy_type, dcb_joy_type_state, true, false, (GP_GPIO_0 << 8) | JT_POV },
+	{ MI_RADIO, "\aAXES", NULL, SDL_SCANCODE_A, NULL, ccb_joy_type, dcb_joy_type_state, true, false, (GP_GPIO_0 << 8) | JT_AXES },
 	{ MI_RADIO, "\aBUTTONS", NULL, SDL_SCANCODE_B, NULL, ccb_joy_type, dcb_joy_type_state, true, false, (GP_GPIO_0 << 8) | JT_BUTTONS },
 	{ MENU_END }
 };
@@ -349,8 +349,8 @@ static GUI_MENU_ENTRY gui_joy1_keymap_menu[] = {
 };
 static GUI_MENU_ENTRY gui_joy1_gamepad_menu[] = {
 	{ MI_TITLE, "GAMEPAD CONFIGURATION" },
-	{ MI_RADIO, "\aAXES", NULL, SDL_SCANCODE_A, NULL, ccb_joy_type, dcb_joy_type_state, true, false, (GP_GPIO_1 << 8) | JT_AXES },
 	{ MI_RADIO, "\aPOV", NULL, SDL_SCANCODE_P, NULL, ccb_joy_type, dcb_joy_type_state, true, false, (GP_GPIO_1 << 8) | JT_POV },
+	{ MI_RADIO, "\aAXES", NULL, SDL_SCANCODE_A, NULL, ccb_joy_type, dcb_joy_type_state, true, false, (GP_GPIO_1 << 8) | JT_AXES },
 	{ MI_RADIO, "\aBUTTONS", NULL, SDL_SCANCODE_B, NULL, ccb_joy_type, dcb_joy_type_state, true, false, (GP_GPIO_1 << 8) | JT_BUTTONS },
 	{ MENU_END }
 };

@@ -32,6 +32,7 @@ TEmulator::TEmulator()
 	ifTimer = NULL;
 	ifTape = NULL;
 	ifGpio = NULL;
+	joystick = NULL;
 	mif85 = NULL;
 	mouse602 = NULL;
 	pmd32 = NULL;
@@ -97,6 +98,10 @@ TEmulator::~TEmulator()
 	if (ifTape)
 		delete ifTape;
 	ifTape = NULL;
+
+	if (joystick)
+		delete joystick;
+	joystick = NULL;
 
 	if (pmd32) // must be preceded by ifGpio
 		delete pmd32;
@@ -372,6 +377,7 @@ void TEmulator::ProcessSettings(BYTE filter)
 	if (!isActive || (filter & PS_PERIPHERALS)) {
 		bool init = (filter & PS_MACHINE) || romChanged;
 
+		ConnectJoystick(init);
 		ConnectMIF85(init);
 		ConnectMouse602(init);
 		ConnectPMD32(init);
@@ -423,6 +429,9 @@ void TEmulator::BaseTimerCallback()
 		blinkCounter += (thisTime - lastTick);
 
 	if (isRunning) {
+		if (joystick)
+			joystick->ScanJoy(keyBuffer);
+
 		if (systemPIO) {
 			systemPIO->ScanKeyboard(keyBuffer);
 
@@ -1488,6 +1497,30 @@ void TEmulator::InsertRomMegaModule(bool inserted)
 		warning("Emulator", "Error reading MEGAModule ROM file: \"%s\"", mrmFile ? mrmFile : "");
 
 	delete[] buff;
+}
+//---------------------------------------------------------------------------
+void TEmulator::ConnectJoystick(bool init)
+{
+	bool anyJoyConnected =
+		Settings->Joystick->GPIO0->connected || Settings->Joystick->GPIO1->connected;
+
+	if (init || (joy4004482connected != anyJoyConnected)) {
+		if (joystick) {
+			delete joystick;
+			joystick = NULL;
+		}
+
+		if (!ifGpio) {
+			joy4004482connected = false;
+			error("Emulator", "GPIO not initialized for joystick init!");
+			return;
+		}
+
+		joy4004482connected = anyJoyConnected;
+		if (joy4004482connected) {
+			joystick = new Joy4004482(ifGpio, Settings->Joystick);
+		}
+	}
 }
 //---------------------------------------------------------------------------
 void TEmulator::ConnectMIF85(bool init)
