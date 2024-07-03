@@ -363,16 +363,26 @@ const char *dcb_joy_conn_state(GUI_MENU_ENTRY *ptr)
 	TSettings::SetJoystickGPIO *gpio = Settings->Joystick->GPIO0;
 	if (ptr->action == GP_GPIO_1)
 		gpio = Settings->Joystick->GPIO1;
-	ptr->state = gpio->connected;
+	else if (Settings->PMD32->connected) {
+		gpio->connected = false;
+		if (ptr->submenu)
+			ptr->enabled = false;
+		else
+			ptr->state = false;
+		return NULL;
+	}
+	if (ptr->submenu)
+		ptr->enabled = gpio->connected;
+	else
+		ptr->state = gpio->connected;
 	return NULL;
 }
 //-----------------------------------------------------------------------------
 const char *dcb_joy_menu_state(GUI_MENU_ENTRY *ptr)
 {
-	TSettings::SetJoystickGPIO *gpio = Settings->Joystick->GPIO0;
-	if (ptr->action == GP_GPIO_1)
-		gpio = Settings->Joystick->GPIO1;
-	ptr->enabled = gpio->connected;
+	dcb_joy_conn_state(ptr);
+	if (!Emulator->ActionJoyControllers())
+		ptr->enabled = false;
 	return NULL;
 }
 //-----------------------------------------------------------------------------
@@ -382,7 +392,7 @@ const char *dcb_joy_type_state(GUI_MENU_ENTRY *ptr)
 	if ((ptr->action >> 8) == GP_GPIO_1)
 		gpio = Settings->Joystick->GPIO1;
 	BYTE type = (ptr->action & 0XFF);
-	ptr->state = gpio->type == (TJoyType) type;
+	ptr->state = (gpio->type == (TJoyType) type);
 
 	static const char *comments[4] = {
 		/* JT_KEYS */
@@ -390,7 +400,7 @@ const char *dcb_joy_type_state(GUI_MENU_ENTRY *ptr)
 		/* JT_POV */
 		"DPAD+A",
 		/* JT_AXES */
-		"LeftStick+A",
+		"Stick+A",
 		/* JT_BUTTONS */
 		"ABXY+Bumpers"
 	};
@@ -825,9 +835,18 @@ bool ccb_joy_type(GUI_MENU_ENTRY *ptr)
 	TSettings::SetJoystickGPIO *gpio = Settings->Joystick->GPIO0;
 	if ((ptr->action >> 8) == GP_GPIO_1)
 		gpio = Settings->Joystick->GPIO1;
-	gpio->type = (TJoyType) (ptr->action & 0xFF);
-	GUI->uiSetChanges |= PS_PERIPHERALS;
-	ptr->detail(ptr);
+
+	TJoyType newType = (TJoyType) (ptr->action & 0xFF);
+	if (!gpio->connected || gpio->type == newType)
+		return true;
+
+	gpio->type = newType;
+
+	while ((--ptr)->type != MI_TITLE);
+	while ((++ptr)->type != MENU_END)
+		if (ptr->detail)
+			ptr->detail(ptr);
+
 	return false;
 }
 //-----------------------------------------------------------------------------

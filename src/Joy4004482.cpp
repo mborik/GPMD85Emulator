@@ -20,18 +20,47 @@
 //---------------------------------------------------------------------------
 Joy4004482::Joy4004482(IifGPIO *pio, TSettings::SetJoystick* settings)
 {
+	if (!pio)
+		throw std::invalid_argument("Required GPIO not initialized!");
+
 	this->pio = pio;
+	this->settings = settings;
 
 	sameDev = false;
-	joyCnt = 1;
-	if (settings->GPIO0->connected && settings->GPIO1->connected) {
-		joyCnt = 2;
+	joyCnt = 0;
 
+	memset(joy, 0, sizeof(joy) * 2);
+}
+//---------------------------------------------------------------------------
+Joy4004482::~Joy4004482()
+{
+	pio->OnCpuReadA.disconnect(this);
+	pio->OnCpuReadB.disconnect(this);
+
+	if (deviceList) {
+		for (int ii = 0; ii < deviceCount; ii++) {
+			if (deviceList[ii])
+				SDL_GameControllerClose(deviceList[ii]);
+		}
+		free(deviceList);
+	}
+}
+//---------------------------------------------------------------------------
+bool Joy4004482::Connect()
+{
+	if (joyCnt > 0) {
+		pio->OnCpuReadA.disconnect(this);
+		pio->OnCpuReadB.disconnect(this);
+	}
+
+	joyCnt = 0;
+	if (settings->GPIO0->connected && settings->GPIO1->connected) {
 		pio->OnCpuReadA.connect(this, &Joy4004482::ReadJoy0);
 		pio->OnCpuReadB.connect(this, &Joy4004482::ReadJoy1);
 
 		joy[0].map = settings->GPIO0;
 		joy[1].map = settings->GPIO1;
+		joyCnt = 2;
 
 		if (strcasecmp(settings->GPIO0->guid, settings->GPIO1->guid) == 0)
 			sameDev = true;
@@ -39,41 +68,70 @@ Joy4004482::Joy4004482(IifGPIO *pio, TSettings::SetJoystick* settings)
 	else if (settings->GPIO0->connected) {
 		pio->OnCpuReadA.connect(this, &Joy4004482::ReadJoy0);
 		joy[0].map = settings->GPIO0;
+		joyCnt = 1;
 	}
 	else if (settings->GPIO1->connected) {
 		pio->OnCpuReadB.connect(this, &Joy4004482::ReadJoy1);
 		joy[0].map = settings->GPIO1;
+		joyCnt = 1;
 	}
 }
 //---------------------------------------------------------------------------
-Joy4004482::~Joy4004482()
+int Joy4004482::GetControllers(SDL_GameController ***controllers, bool refresh)
 {
-	pio->OnCpuReadA.disconnect(this);
-	pio->OnCpuReadB.disconnect(this);
+	if (refresh || deviceList == NULL) {
+		if (deviceList) {
+			for (int ii = 0; ii < deviceCount; ii++) {
+				if (deviceList[ii])
+					SDL_GameControllerClose(deviceList[ii]);
+			}
+			free(deviceList);
+
+			for (int ii = 0; ii < joyCnt; ii++) {
+				joy[ii].initialized = false;
+				if (joy[ii].controller)
+					joy[ii].controller = NULL;
+			}
+		}
+
+		deviceCount = 0;
+		deviceList = NULL;
+		for (int ii = 0; ii < SDL_NumJoysticks(); ii++) {
+			if (SDL_IsGameController(ii)) {
+				SDL_GameController *controller = SDL_GameControllerOpen(ii);
+				deviceList = (SDL_GameController **) realloc(deviceList, (deviceCount + 1) * sizeof(SDL_GameController *));
+				deviceList[deviceCount++] = controller;
+			}
+		}
+	}
+
+	if (controllers)
+		*controllers = deviceList;
+	return deviceCount;
 }
 //---------------------------------------------------------------------------
 void Joy4004482::ReadJoy0()
 {
-  if (pio) {
-    BYTE value = 0xFF;
+	if (pio) {
+		BYTE value = 0xFF;
 
-    if (pio->ReadByte(PP_PortC) & 0x10)
-      value = joy[0].value;
+		if (pio->ReadByte(PP_PortC) & 0x10)
+			value = joy[0].value;
 
-    pio->WriteByte(PP_PortA, value);
-  }
+		pio->WriteByte(PP_PortA, value);
+	}
 }
 //---------------------------------------------------------------------------
 void Joy4004482::ReadJoy1()
 {
-  if (pio) {
-    BYTE value = 0xFF;
+	if (pio) {
+		BYTE value = 0xFF;
 
-    if (pio->ReadByte(PP_PortC) & 0x01)
-      value = joy[joyCnt - 1].value;
+		if (pio->ReadByte(PP_PortC) & 0x01)
+			value = joy[joyCnt - 1].value;
 
-    pio->WriteByte(PP_PortB, value);
-  }
+		pio->WriteByte(PP_PortB, value);
+	}
 }
 //---------------------------------------------------------------------------
 void Joy4004482::ScanJoy(BYTE *KeyBuffer)
@@ -82,7 +140,7 @@ void Joy4004482::ScanJoy(BYTE *KeyBuffer)
 		return;
 
 	for (int ii = 0; ii < joyCnt; ii++) {
-		if (joy[ii].map->type == JT_NONE) {
+		if (!joy[ii].map->connected || joy[ii].map->type == JT_NONE) {
 			joy[ii].value = 0xFF;
 			continue;
 		}
@@ -90,6 +148,34 @@ void Joy4004482::ScanJoy(BYTE *KeyBuffer)
 			ScanJoyKey(&joy[ii], KeyBuffer);
 			continue;
 		}
+
+		if (ii > 0 && sameDev)
+			continue;
+		else if (!(joy[ii].controller && joy[ii].initialized)) {
+			SDL_GameController **controllers;
+			int devCount = GetControllers(&controllers, false);
+
+			if (!devCount)
+				continue;
+
+			if (joy[ii].map->guid && joy[ii].map->guid[0] != '\0') {
+				for (int jj = 0; jj < devCount; jj++) {
+					if (strcasecmp(joy[ii].map->guid, SDL_GameControllerGetSerial(controllers[jj])) == 0) {
+						joy[ii].controller = controllers[jj];
+						break;
+					}
+				}
+			}
+			if (!joy[ii].controller) {
+				joy[ii].controller = controllers[0];
+				const char *guid = SDL_GameControllerGetSerial(joy[ii].controller);
+				joy[ii].map->guid = new char[strlen(guid) + 1];
+				strcpy(joy[ii].map->guid, guid);
+			}
+
+			joy[ii].initialized = (SDL_GameControllerEventState(SDL_ENABLE) == SDL_ENABLE);
+		}
+
 		if (joy[ii].map->type == JT_POV || joy[ii].map->type == JT_BUTTONS) {
 			ScanJoyButtons(&joy[ii], false);
 			continue;
@@ -164,7 +250,7 @@ void Joy4004482::ScanJoyAxis(JOY *joy)
 
 	int x = SDL_GameControllerGetAxis(joy->controller,
 		(SDL_GameControllerAxis) ((int) SDL_CONTROLLER_AXIS_LEFTX + (joy->map->axis * 2)));
-	int y = SDL_GameControllerGetAxis(joy->controller,
+	int y = -SDL_GameControllerGetAxis(joy->controller,
 		(SDL_GameControllerAxis) ((int) SDL_CONTROLLER_AXIS_LEFTY + (joy->map->axis * 2)));
 
 	double p = sqrt((double) (x * x + y * y));

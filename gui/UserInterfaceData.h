@@ -358,12 +358,12 @@ static GUI_MENU_ENTRY gui_joy_menu[] = {
 	{ MI_TITLE, "JOYSTICK 4004/482" },
 	{ MI_CHECKBOX, "CONNECTED TO K3-GPIO/\a0", NULL, SDL_SCANCODE_0, NULL, ccb_joy_conn, dcb_joy_conn_state, true, true, GP_GPIO_0 },
 	{ MI_SEPARATOR },
-	{ MI_SUBMENU, "MAP TO KEYBOARD", NULL, SDL_NUM_SCANCODES, gui_joy0_keymap_menu, NULL, dcb_joy_menu_state, true, false, GP_GPIO_0 },
+	{ MI_SUBMENU, "MAP TO KEYBOARD", NULL, SDL_NUM_SCANCODES, gui_joy0_keymap_menu, NULL, dcb_joy_conn_state, true, false, GP_GPIO_0 },
 	{ MI_SUBMENU, "GAME CONTROLLER", NULL, SDL_NUM_SCANCODES, gui_joy0_gamepad_menu, NULL, dcb_joy_menu_state, true, false, GP_GPIO_0 },
 	{ MI_SEPARATOR },
 	{ MI_CHECKBOX, "CONNECTED TO K4-GPIO/\a1", NULL, SDL_SCANCODE_1, NULL, ccb_joy_conn, dcb_joy_conn_state, true, true, GP_GPIO_1 },
 	{ MI_SEPARATOR },
-	{ MI_SUBMENU, "MAP TO KEYBOARD", NULL, SDL_NUM_SCANCODES, gui_joy1_keymap_menu, NULL, dcb_joy_menu_state, true, false, GP_GPIO_1 },
+	{ MI_SUBMENU, "MAP TO KEYBOARD", NULL, SDL_NUM_SCANCODES, gui_joy1_keymap_menu, NULL, dcb_joy_conn_state, true, false, GP_GPIO_1 },
 	{ MI_SUBMENU, "GAME CONTROLLER", NULL, SDL_NUM_SCANCODES, gui_joy1_gamepad_menu, NULL, dcb_joy_menu_state, true, false, GP_GPIO_1 },
 	{ MENU_END }
 };

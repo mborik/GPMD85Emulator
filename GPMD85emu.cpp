@@ -45,8 +45,11 @@ int main(int argc, char** argv)
 		mkdir(PathAppConfig, 0755);
 
 	// initialization of SDL
-	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_EVENTS) < 0)
+	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER | SDL_INIT_TIMER | SDL_INIT_EVENTS) < 0)
 		error("", "Couldn't initialize SDL:\n\t%s", SDL_GetError());
+
+	SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_JOY_CONS, "1");
+	SDL_SetHint(SDL_HINT_GAMECONTROLLER_USE_BUTTON_LABELS, "0");
 
 	SDL_DisplayMode desktop;
 	if (SDL_GetDesktopDisplayMode(0, &desktop) != 0)
@@ -190,6 +193,11 @@ int main(int argc, char** argv)
 							Emulator->ActionPlayPause((event.window.event == SDL_WINDOWEVENT_FOCUS_GAINED));
 						}
 					}
+					break;
+
+				case SDL_CONTROLLERDEVICEADDED:
+				case SDL_CONTROLLERDEVICEREMOVED:
+					Emulator->ActionJoyControllers(NULL, true);
 					break;
 
 				default:

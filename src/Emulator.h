@@ -74,10 +74,10 @@ class TEmulator : public sigslot::has_slots<>
 		void ActionPMD32LoadDisk(int drive);
 		void ActionSnapLoad();
 		void ActionSnapSave();
+		void ActionRawFile(bool save);
 		void ActionROMLoad();
 		void ActionMegaRomLoad();
 		int  ActionMegaModulePage(bool set = false, BYTE page = 0);
-		void ActionRawFile(bool save);
 
 		void ActionReset();
 		void ActionHardReset();
@@ -88,6 +88,7 @@ class TEmulator : public sigslot::has_slots<>
 		void ActionSizeChange(int mode);
 		void ActionMouseState(int x, int y, int leftBtn = 0, int rightBtn = 0, int middleBtn = 0);
 		void ActionHideCursor(bool hide = false);
+		int  ActionJoyControllers(SDL_GameController ***controllers = NULL, bool refresh = false);
 
 	private:
 		bool inmenu;
@@ -95,19 +96,19 @@ class TEmulator : public sigslot::has_slots<>
 
 		int cpuUsage;
 		ChipCpu8080 *cpu;
-		ChipMemory *memory;
+		ChipMemory  *memory;
 		ScreenPMD85 *video;
 		SoundDriver *sound;
 
-		SystemPIO *systemPIO;
-		IifTimer *ifTimer;
-		IifTape *ifTape;
-		IifGPIO *ifGpio;
-		Joy4004482 *joystick;
-		Mif85 *mif85;
-		Mouse602 *mouse602;
-		Pmd32 *pmd32;
-		RomModule *romModule;
+		SystemPIO   *systemPIO;
+		IifTimer    *ifTimer;
+		IifTape     *ifTape;
+		IifGPIO     *ifGpio;
+		Joy4004482  *joystick;
+		Mif85       *mif85;
+		Mouse602    *mouse602;
+		Pmd32       *pmd32;
+		RomModule   *romModule;
 
 		TComputerModel model;
 		int  monitorLength;
@@ -117,7 +118,6 @@ class TEmulator : public sigslot::has_slots<>
 		bool compatibilityMode;
 		bool ramExpansion256k;
 
-		bool joy4004482connected;
 		bool mouse602connected;
 		bool mif85connected;
 		bool pmd32connected;
@@ -128,7 +128,6 @@ class TEmulator : public sigslot::has_slots<>
 		void SetComputerModel(bool fromSnap = false, int snapRomLen = 0, BYTE *snapRom = NULL);
 		void InsertRomModule(bool inserted);
 		void InsertRomMegaModule(bool inserted);
-		void ConnectJoystick(bool init);
 		void ConnectMIF85(bool init);
 		void ConnectMouse602(bool init);
 		void ConnectPMD32(bool init);

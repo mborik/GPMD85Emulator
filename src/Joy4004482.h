@@ -39,6 +39,8 @@ public:
 	Joy4004482(IifGPIO *pio, TSettings::SetJoystick* settings);
 	virtual ~Joy4004482();
 
+	bool Connect();
+	int  GetControllers(SDL_GameController ***controllers, bool refresh = false);
 	void ScanJoy(BYTE *keyBuffer);
 
 protected:
@@ -48,11 +50,14 @@ protected:
 private:
 	typedef struct {
 		TSettings::SetJoystickGPIO *map;
-		SDL_GameController * controller;
+		SDL_GameController *controller;
+		bool initialized;
 		BYTE value;
 	} JOY;
 
 	IifGPIO *pio;
+	TSettings::SetJoystick *settings;
+
 	JOY joy[2];
 	uint8_t joyCnt;
 	bool sameDev;
@@ -60,6 +65,9 @@ private:
 	void ScanJoyKey(JOY *joy, BYTE *keyBuffer);
 	void ScanJoyButtons(JOY *joy, bool onlyFire);
 	void ScanJoyAxis(JOY *joy);
+
+	SDL_GameController **deviceList = NULL;
+	unsigned deviceCount = 0;
 };
 //---------------------------------------------------------------------------
 #endif

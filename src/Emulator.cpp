@@ -377,10 +377,13 @@ void TEmulator::ProcessSettings(BYTE filter)
 	if (!isActive || (filter & PS_PERIPHERALS)) {
 		bool init = (filter & PS_MACHINE) || romChanged;
 
-		ConnectJoystick(init);
 		ConnectMIF85(init);
 		ConnectMouse602(init);
 		ConnectPMD32(init);
+
+		if (init || Settings->Joystick->GPIO0->connected || Settings->Joystick->GPIO1->connected) {
+			joystick->Connect();
+		}
 
 		if (romModuleConnected) {
 			if (megaModuleEnabled)
@@ -1267,6 +1270,14 @@ void TEmulator::ActionHideCursor(bool hide)
 		mouse602->SetHideCursor(hide);
 }
 //---------------------------------------------------------------------------
+int TEmulator::ActionJoyControllers(SDL_GameController ***controllers, bool refresh)
+{
+	if (!joystick)
+		return 0;
+
+	return joystick->GetControllers(controllers, refresh);
+}
+//---------------------------------------------------------------------------
 void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 {
 	int fileSize;
@@ -1284,6 +1295,9 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 	if (ifTimer)
 		delete ifTimer;
 	ifTimer = NULL;
+	if (joystick)
+		delete joystick;
+	joystick = NULL;
 	if (ifGpio)
 		delete ifGpio;
 	ifGpio = NULL;
@@ -1372,6 +1386,9 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 		// GPIO interface
 		ifGpio = new IifGPIO();
 		cpu->AddDevice(IIF_GPIO_ADR, IIF_GPIO_MASK, ifGpio, true);
+
+		// Joystick 4004/482 interface
+		joystick = new Joy4004482(ifGpio, Settings->Joystick);
 
 		// Timer interface
 		ifTimer = new IifTimer(model, cpu);
@@ -1499,30 +1516,6 @@ void TEmulator::InsertRomMegaModule(bool inserted)
 	delete[] buff;
 }
 //---------------------------------------------------------------------------
-void TEmulator::ConnectJoystick(bool init)
-{
-	bool anyJoyConnected =
-		Settings->Joystick->GPIO0->connected || Settings->Joystick->GPIO1->connected;
-
-	if (init || (joy4004482connected != anyJoyConnected)) {
-		if (joystick) {
-			delete joystick;
-			joystick = NULL;
-		}
-
-		if (!ifGpio) {
-			joy4004482connected = false;
-			error("Emulator", "GPIO not initialized for joystick init!");
-			return;
-		}
-
-		joy4004482connected = anyJoyConnected;
-		if (joy4004482connected) {
-			joystick = new Joy4004482(ifGpio, Settings->Joystick);
-		}
-	}
-}
-//---------------------------------------------------------------------------
 void TEmulator::ConnectMIF85(bool init)
 {
 	if (init || (mif85connected != Settings->Sound->ifMIF85)) {
@@ -1604,6 +1597,8 @@ void TEmulator::ConnectPMD32(bool init)
 		}
 
 		if (cpu && ifGpio && Settings->PMD32->connected) {
+			Settings->Joystick->GPIO0->connected = false;
+
 			pmd32 = new Pmd32(ifGpio);
 			cpu->TCyclesListeners.connect(pmd32, &Pmd32::Disk32Service);
 		}
