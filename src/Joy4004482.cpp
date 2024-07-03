@@ -16,12 +16,13 @@
 	along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 //---------------------------------------------------------------------------
+#include <stdexcept>
 #include "Joy4004482.h"
 //---------------------------------------------------------------------------
 Joy4004482::Joy4004482(IifGPIO *pio, TSettings::SetJoystick* settings)
 {
 	if (!pio)
-		throw std::invalid_argument("Required GPIO not initialized!");
+		throw std::runtime_error("Required GPIO not initialized!");
 
 	this->pio = pio;
 	this->settings = settings;
@@ -46,7 +47,7 @@ Joy4004482::~Joy4004482()
 	}
 }
 //---------------------------------------------------------------------------
-bool Joy4004482::Connect()
+void Joy4004482::Connect()
 {
 	if (joyCnt > 0) {
 		pio->OnCpuReadA.disconnect(this);

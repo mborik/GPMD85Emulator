@@ -39,7 +39,7 @@ public:
 	Joy4004482(IifGPIO *pio, TSettings::SetJoystick* settings);
 	virtual ~Joy4004482();
 
-	bool Connect();
+	void Connect();
 	int  GetControllers(SDL_GameController ***controllers, bool refresh = false);
 	void ScanJoy(BYTE *keyBuffer);
 
