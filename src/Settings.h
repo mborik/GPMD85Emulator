@@ -87,14 +87,14 @@ class TSettings
 		struct SetJoystickGPIO {
 			bool connected;
 			TJoyType type;
-			int guid;
+			char *guid;
 			int ctrlLeft;
 			int ctrlRight;
 			int ctrlUp;
 			int ctrlDown;
 			int ctrlFire;
 			int sensitivity;
-			int pov;
+			int axis;
 		};
 		struct SetJoystick {
 			SetJoystickGPIO *GPIO0;

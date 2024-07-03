@@ -451,14 +451,14 @@ TSettings::TSettings(bool userCfg)
 	Joystick->GPIO1 = new SetJoystickGPIO;
 
 	Joystick->GPIO0->connected = cfgGetBoolValue(n, "connected", false, &(Joystick->GPIO0->connected));
-	Joystick->GPIO0->guid = cfgGetIntValue(n, "guid", -1, &(Joystick->GPIO0->guid));
+	Joystick->GPIO0->guid = cfgGetStringValue(n, "guid", &(Joystick->GPIO0->guid));
 	Joystick->GPIO0->ctrlLeft = cfgGetIntValue(n, "left", SDL_SCANCODE_UNKNOWN, &(Joystick->GPIO0->ctrlLeft));
 	Joystick->GPIO0->ctrlRight = cfgGetIntValue(n, "right", SDL_SCANCODE_UNKNOWN, &(Joystick->GPIO0->ctrlRight));
 	Joystick->GPIO0->ctrlUp = cfgGetIntValue(n, "up", SDL_SCANCODE_UNKNOWN, &(Joystick->GPIO0->ctrlUp));
 	Joystick->GPIO0->ctrlDown = cfgGetIntValue(n, "down", SDL_SCANCODE_UNKNOWN, &(Joystick->GPIO0->ctrlDown));
 	Joystick->GPIO0->ctrlFire = cfgGetIntValue(n, "fire", SDL_SCANCODE_UNKNOWN, &(Joystick->GPIO0->ctrlFire));
 	Joystick->GPIO0->sensitivity = cfgGetIntValue(n, "sensitivity", 50, &(Joystick->GPIO0->sensitivity));
-	Joystick->GPIO0->pov = cfgGetIntValue(n, "pov", 0, &(Joystick->GPIO0->pov));
+	Joystick->GPIO0->axis = cfgGetIntValue(n, "axis", 0, &(Joystick->GPIO0->axis));
 
 	Joystick->GPIO0->type = JT_NONE;
 	if ((m = cfgGetLine(n, "type")) != NULL) {
@@ -480,14 +480,14 @@ TSettings::TSettings(bool userCfg)
 	n = cfgFindSection(cfgRoot, "Joystick-GPIO1");
 
 	Joystick->GPIO1->connected = cfgGetBoolValue(n, "connected", false, &(Joystick->GPIO1->connected));
-	Joystick->GPIO1->guid = cfgGetIntValue(n, "guid", -1, &(Joystick->GPIO1->guid));
+	Joystick->GPIO1->guid = cfgGetStringValue(n, "guid", &(Joystick->GPIO1->guid));
 	Joystick->GPIO1->ctrlLeft = cfgGetIntValue(n, "left", SDL_SCANCODE_UNKNOWN, &(Joystick->GPIO1->ctrlLeft));
 	Joystick->GPIO1->ctrlRight = cfgGetIntValue(n, "right", SDL_SCANCODE_UNKNOWN, &(Joystick->GPIO1->ctrlRight));
 	Joystick->GPIO1->ctrlUp = cfgGetIntValue(n, "up", SDL_SCANCODE_UNKNOWN, &(Joystick->GPIO1->ctrlUp));
 	Joystick->GPIO1->ctrlDown = cfgGetIntValue(n, "down", SDL_SCANCODE_UNKNOWN, &(Joystick->GPIO1->ctrlDown));
 	Joystick->GPIO1->ctrlFire = cfgGetIntValue(n, "fire", SDL_SCANCODE_UNKNOWN, &(Joystick->GPIO1->ctrlFire));
 	Joystick->GPIO1->sensitivity = cfgGetIntValue(n, "sensitivity", 50, &(Joystick->GPIO1->sensitivity));
-	Joystick->GPIO1->pov = cfgGetIntValue(n, "pov", 0, &(Joystick->GPIO1->pov));
+	Joystick->GPIO1->axis = cfgGetIntValue(n, "axis", 0, &(Joystick->GPIO1->axis));
 
 	Joystick->GPIO1->type = JT_NONE;
 	if ((m = cfgGetLine(n, "type")) != NULL) {
@@ -612,11 +612,21 @@ TSettings::~TSettings()
 
 	if (Joystick) {
 		if (Joystick->GPIO0) {
+			if (Joystick->GPIO0->guid) {
+				delete [] Joystick->GPIO0->guid;
+				Joystick->GPIO0->guid = NULL;
+			}
+
 			delete Joystick->GPIO0;
 			Joystick->GPIO0 = NULL;
 		}
 
 		if (Joystick->GPIO1) {
+			if (Joystick->GPIO1->guid) {
+				delete [] Joystick->GPIO1->guid;
+				Joystick->GPIO1->guid = NULL;
+			}
+
 			delete Joystick->GPIO1;
 			Joystick->GPIO1 = NULL;
 		}

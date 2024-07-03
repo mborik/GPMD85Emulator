@@ -33,7 +33,7 @@ Joy4004482::Joy4004482(IifGPIO *pio, TSettings::SetJoystick* settings)
 		joy[0].map = settings->GPIO0;
 		joy[1].map = settings->GPIO1;
 
-		if (settings->GPIO0->guid == settings->GPIO1->guid && settings->GPIO0->guid >= 0)
+		if (strcasecmp(settings->GPIO0->guid, settings->GPIO1->guid) == 0)
 			sameDev = true;
 	}
 	else if (settings->GPIO0->connected) {
@@ -162,8 +162,10 @@ void Joy4004482::ScanJoyAxis(JOY *joy)
 {
 	BYTE value = 0xFF;
 
-	int x = SDL_GameControllerGetAxis(joy->controller, joy->map->pov ? SDL_CONTROLLER_AXIS_RIGHTX : SDL_CONTROLLER_AXIS_LEFTX);
-	int y = SDL_GameControllerGetAxis(joy->controller, joy->map->pov ? SDL_CONTROLLER_AXIS_RIGHTY : SDL_CONTROLLER_AXIS_LEFTY);
+	int x = SDL_GameControllerGetAxis(joy->controller,
+		(SDL_GameControllerAxis) ((int) SDL_CONTROLLER_AXIS_LEFTX + (joy->map->axis * 2)));
+	int y = SDL_GameControllerGetAxis(joy->controller,
+		(SDL_GameControllerAxis) ((int) SDL_CONTROLLER_AXIS_LEFTY + (joy->map->axis * 2)));
 
 	double p = sqrt((double) (x * x + y * y));
 	int q = -1;
