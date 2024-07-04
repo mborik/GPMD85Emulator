@@ -988,6 +988,12 @@ bool ccb_debugger(GUI_MENU_ENTRY *ptr)
 	return true;
 }
 //-----------------------------------------------------------------------------
+bool ccb_about(GUI_MENU_ENTRY *ptr)
+{
+	GUI->AboutDialog();
+	return false;
+}
+//-----------------------------------------------------------------------------
 bool ccb_exit(GUI_MENU_ENTRY *ptr)
 {
 	Emulator->ActionExit();

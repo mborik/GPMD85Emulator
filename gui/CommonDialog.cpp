@@ -19,6 +19,156 @@
 #include "UserInterfaceData.h"
 #include "Emulator.h"
 //-----------------------------------------------------------------------------
+void UserInterface::AboutDialog()
+{
+	GUI_SURFACE *defaultSurface = LockSurface(defaultTexture);
+
+	if (menuStackLevel < 0)
+		memset(defaultSurface->pixels, 0, frameLength);
+	else {
+		menuStack[menuStackLevel].frame = new BYTE[frameLength];
+		memcpy(menuStack[menuStackLevel].frame, defaultSurface->pixels, frameLength);
+	}
+
+	menuStackLevel++;
+
+	sprintf(
+		msgbuffer,
+		"%s v%s (c) %s\n\n"
+		"Open-source multi-platform\n"
+		"emulator of the Tesla PMD 85,\n"
+		"an 8-bit personal micro-computer\n"
+		"produced in 80s of 20th century\n"
+		"in former Czechoslovakia.\n\n"
+		"Licensed under GNU/GPL version 3.\n\n"
+		"\200 %s",
+		PACKAGE_NAME, VERSION, PACKAGE_YEAR, (PACKAGE_URL) + 8
+	);
+
+	unsigned i, w = 0, h = fontLineHeight, x, y;
+	for (i = 0, x = 0; i < strlen(msgbuffer); i++) {
+		if (x > (unsigned) (maxCharsOnScreen - 5)) {
+			for (y = i; y <= strlen(msgbuffer); y++)
+				msgbuffer[y + 1] = msgbuffer[y];
+
+			msgbuffer[i] = '\n';
+		}
+
+		if (msgbuffer[i] == '\n') {
+			h += fontLineHeight;
+			if (w < (x * fontWidth))
+				w = (x * fontWidth);
+
+			x = 0;
+			continue;
+		}
+		else if (msgbuffer[i] == '\a')
+			continue;
+
+		x++;
+	}
+
+	if (w < (x * fontWidth))
+		w = (x * fontWidth);
+
+	w = (4 * GUI_CONST_BORDER) + 32 + w;
+	h = (2 * GUI_CONST_BORDER) + h;
+	x = (frameWidth  - w) / 2;
+	y = (frameHeight - h) / 2;
+
+	DrawOutlineRounded(defaultSurface, x - 1, y - 1, w + 2, h + 2, GUI_COLOR_SHADOW);
+	DrawRectangle(defaultSurface, x + 1, y + 1, w - 2, h - 2, GUI_COLOR_BACKGROUND);
+	DrawOutlineRounded(defaultSurface, x, y, w, h, GUI_COLOR_BORDER);
+	PrintText(defaultSurface, x + (2 * GUI_CONST_BORDER),
+			y + GUI_CONST_BORDER + 1, GUI_COLOR_FOREGROUND, msgbuffer);
+
+	GUI_SURFACE *icon = LoadImgToSurface(LocateResource("icon.bmp"));
+	if (icon) {
+		SDL_Rect dstRect = {
+			(int) ((x + w) - GUI_CONST_BORDER - icon->w),
+			(int) (y + GUI_CONST_BORDER),
+			icon->w, icon->h
+		};
+
+		int bpp = defaultSurface->pitch / defaultSurface->w;
+		BYTE *ptr1 = defaultSurface->pixels + (dstRect.y * defaultSurface->pitch) + (dstRect.x * bpp);
+		BYTE *ptr2 = icon->pixels;
+
+		for (int hh = icon->h; hh > 0; --hh, ptr1 += defaultSurface->pitch, ptr2 += icon->pitch) {
+			for (int ii = 0; ii < icon->w; ii++) {
+				DWORD color = *((DWORD *) ptr2 + ii);
+				if (color == GUI->globalPalette[0])
+					color = GUI->globalPalette[GUI_COLOR_BACKGROUND];
+				*((DWORD *) ptr1 + ii) = color;
+			}
+		}
+
+		free(icon->pixels);
+		delete icon;
+	}
+	else
+		warning("GUI", "Can't load icon resource file");
+
+	UnlockSurface(defaultTexture, defaultSurface);
+	SDL_Delay(GPU_TIMER_INTERVAL);
+
+	i = 1;
+	DWORD nextTick;
+	SDL_Event event;
+
+	while (i) {
+		nextTick = SDL_GetTicks() + CPU_TIMER_INTERVAL;
+
+		while (SDL_PollEvent(&event)) {
+			switch (event.type) {
+				case SDL_KEYDOWN:
+					switch (event.key.keysym.scancode) {
+						case SDL_SCANCODE_SPACE:
+						case SDL_SCANCODE_ESCAPE:
+						case SDL_SCANCODE_RETURN:
+						case SDL_SCANCODE_KP_ENTER:
+							i = 0;
+							break;
+
+						default:
+							break;
+					}
+					break;
+
+				case SDL_WINDOWEVENT:
+					if (event.window.windowID == gdc.windowID &&
+						event.window.event == SDL_WINDOWEVENT_EXPOSED) {
+
+						Emulator->RefreshDisplay();
+					}
+					break;
+
+				default:
+					break;
+			}
+		}
+
+		while (SDL_GetTicks() < nextTick)
+			SDL_Delay(1);
+	}
+
+	defaultSurface = LockSurface(defaultTexture);
+
+	menuStackLevel--;
+	if (menuStackLevel >= 0) {
+		memcpy(defaultSurface->pixels, menuStack[menuStackLevel].frame, frameLength);
+		delete [] menuStack[menuStackLevel].frame;
+		menuStack[menuStackLevel].frame = NULL;
+	}
+	else
+		memset(defaultSurface->pixels, 0, frameLength);
+
+	UnlockSurface(defaultTexture, defaultSurface);
+
+	SDL_Delay(GPU_TIMER_INTERVAL);
+	needRelease = true;
+}
+//-----------------------------------------------------------------------------
 BYTE UserInterface::QueryDialog(const char *title, bool save)
 {
 	void *data = (save) ? gui_query_save : gui_query_confirm;

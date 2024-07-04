@@ -630,6 +630,11 @@ bool TEmulator::TestHotkeys()
 	if (key & KM_ALT) {
 		i = key & 0x01FF;
 
+		if (key & KM_SHIFT && i == SDL_SCANCODE_F1) {
+			GUI->AboutDialog();
+			return true;
+		}
+
 		switch (i) {
 			case SDL_SCANCODE_1:	// SCREEN SIZE 1x1
 				ActionSizeChange(1);

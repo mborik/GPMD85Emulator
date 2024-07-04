@@ -145,6 +145,7 @@ class UserInterface : public sigslot::has_slots<>
 		inline void SetLineHeight(BYTE l) { fontLineHeight = (l > 0) ? l : (fontHeight + 1); }
 		inline bool InMenu() { return (menuStackLevel >= 0); }
 
+		void AboutDialog();
 		BYTE QueryDialog(const char *title, bool save);
 		void MessageBox(const char *text, ...);
 		BYTE EditBox(const char *title, char *buffer, BYTE maxLength, bool decimal);

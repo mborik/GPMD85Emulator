@@ -115,6 +115,7 @@ bool ccb_blk_rmap(GUI_MENU_ENTRY *ptr);
 bool ccb_blk_exec(GUI_MENU_ENTRY *ptr);
 bool ccb_tapebrowser(GUI_MENU_ENTRY *ptr);
 bool ccb_debugger(GUI_MENU_ENTRY *ptr);
+bool ccb_about(GUI_MENU_ENTRY *ptr);
 bool ccb_exit(GUI_MENU_ENTRY *ptr);
 //-----------------------------------------------------------------------------
 static GUI_MENU_ENTRY UNUSED_VARIABLE *gui_rom_packages = NULL;
@@ -407,7 +408,7 @@ static GUI_MENU_ENTRY UNUSED_VARIABLE gui_main_menu[] = {
 	{ MI_DIALOG, "DEBU\aGGER", "F12", SDL_SCANCODE_G, NULL, ccb_debugger, NULL, true },
 	{ MI_DIALOG, "P\aOKE", NULL, SDL_SCANCODE_O, NULL, NULL, NULL, false },
 	{ MI_SEPARATOR },
-	{ MI_DIALOG, "\aABOUT", "^F1", SDL_SCANCODE_A, NULL, NULL, NULL, false },
+	{ MI_DIALOG, "\aABOUT", "^F1", SDL_SCANCODE_A, NULL, ccb_about, NULL, true },
 	{ MI_STANDARD, "E\aXIT", "F4", SDL_SCANCODE_X, NULL, ccb_exit, NULL, true },
 	{ MENU_END }
 };
