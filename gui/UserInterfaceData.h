@@ -60,6 +60,7 @@ const char *dcb_p32_imgd_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_joy_conn_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_joy_menu_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_joy_type_state(GUI_MENU_ENTRY *ptr);
+const char *dcb_joy_sens_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_mouse_conn_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_mouse_cursor_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_mif85_state(GUI_MENU_ENTRY *ptr);
@@ -104,6 +105,7 @@ bool ccb_p32_extc(GUI_MENU_ENTRY *ptr);
 bool ccb_joy_conn(GUI_MENU_ENTRY *ptr);
 bool ccb_joy_type(GUI_MENU_ENTRY *ptr);
 bool ccb_joy_keyset(GUI_MENU_ENTRY *ptr);
+bool ccb_joy_sens(GUI_MENU_ENTRY *ptr);
 bool ccb_mouse_conn(GUI_MENU_ENTRY *ptr);
 bool ccb_mouse_cursor(GUI_MENU_ENTRY *ptr);
 bool ccb_mif85(GUI_MENU_ENTRY *ptr);
@@ -336,6 +338,8 @@ static GUI_MENU_ENTRY gui_joy0_gamepad_menu[] = {
 	{ MI_RADIO, "\aPOV", NULL, SDL_SCANCODE_P, NULL, ccb_joy_type, dcb_joy_type_state, true, false, (GP_GPIO_0 << 8) | JT_POV },
 	{ MI_RADIO, "\aAXES", NULL, SDL_SCANCODE_A, NULL, ccb_joy_type, dcb_joy_type_state, true, false, (GP_GPIO_0 << 8) | JT_AXES },
 	{ MI_RADIO, "\aBUTTONS", NULL, SDL_SCANCODE_B, NULL, ccb_joy_type, dcb_joy_type_state, true, false, (GP_GPIO_0 << 8) | JT_BUTTONS },
+	{ MI_SEPARATOR },
+	{ MI_VALUE, "\aSENSITIVITY", NULL, SDL_SCANCODE_S, NULL, ccb_joy_sens, dcb_joy_sens_state, true, false, GP_GPIO_0 << 8 },
 	{ MENU_END }
 };
 static GUI_MENU_ENTRY gui_joy1_keymap_menu[] = {
@@ -353,6 +357,8 @@ static GUI_MENU_ENTRY gui_joy1_gamepad_menu[] = {
 	{ MI_RADIO, "\aPOV", NULL, SDL_SCANCODE_P, NULL, ccb_joy_type, dcb_joy_type_state, true, false, (GP_GPIO_1 << 8) | JT_POV },
 	{ MI_RADIO, "\aAXES", NULL, SDL_SCANCODE_A, NULL, ccb_joy_type, dcb_joy_type_state, true, false, (GP_GPIO_1 << 8) | JT_AXES },
 	{ MI_RADIO, "\aBUTTONS", NULL, SDL_SCANCODE_B, NULL, ccb_joy_type, dcb_joy_type_state, true, false, (GP_GPIO_1 << 8) | JT_BUTTONS },
+	{ MI_SEPARATOR },
+	{ MI_VALUE, "\aSENSITIVITY", NULL, SDL_SCANCODE_S, NULL, ccb_joy_sens, dcb_joy_sens_state, true, false, GP_GPIO_1 << 8 },
 	{ MENU_END }
 };
 static GUI_MENU_ENTRY gui_joy_menu[] = {

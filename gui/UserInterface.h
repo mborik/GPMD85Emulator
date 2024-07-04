@@ -148,7 +148,7 @@ class UserInterface : public sigslot::has_slots<>
 		void AboutDialog();
 		BYTE QueryDialog(const char *title, bool save);
 		void MessageBox(const char *text, ...);
-		BYTE EditBox(const char *title, char *buffer, BYTE maxLength, bool decimal);
+		BYTE EditBox(const char *title, const char *description, char *buffer, BYTE maxLength, bool decimal);
 
 		void MenuOpen(GUI_MENU_TYPE type, void *data = NULL);
 		void MenuClose();

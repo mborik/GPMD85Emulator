@@ -18,7 +18,7 @@
 #include "UserInterface.h"
 #include "Emulator.h"
 //-----------------------------------------------------------------------------
-BYTE UserInterface::EditBox(const char *title, char *buffer, BYTE maxLength, bool decimal)
+BYTE UserInterface::EditBox(const char *title, const char *description, char *buffer, BYTE maxLength, bool decimal)
 {
 	if (maxLength <= 0 || maxLength > (maxCharsOnScreen - 2))
 		maxLength = maxCharsOnScreen - 2;
@@ -41,6 +41,8 @@ BYTE UserInterface::EditBox(const char *title, char *buffer, BYTE maxLength, boo
 	WORD i, len = strlen(buffer), cursor = len,
 		w = (strlen(title) + 4) * fontWidth, h, x, y;
 
+	if (description != NULL && w < ((strlen(description) + 4) * fontWidth))
+		w = (strlen(description) + 4) * fontWidth;
 	if (w < ((maxLength + 1) * fontWidth))
 		w = ((maxLength + 1) * fontWidth);
 
@@ -49,14 +51,22 @@ BYTE UserInterface::EditBox(const char *title, char *buffer, BYTE maxLength, boo
 	x = (frameWidth  - w) / 2;
 	y = (frameHeight - h) / 2;
 
+	if (description != NULL)
+		h += (2 * GUI_CONST_BORDER);
+
 	DrawDialogWithBorder(defaultSurface, x, y, w, h);
 	PrintTitle(defaultSurface, x, y + 1, w, GUI_COLOR_BACKGROUND, title);
-
-	UnlockSurface(defaultTexture, defaultSurface);
 
 	x += GUI_CONST_BORDER;
 	y += (2 * GUI_CONST_BORDER);
 	w -= (2 * GUI_CONST_BORDER);
+
+	if (description != NULL) {
+		PrintText(defaultSurface, x, y, GUI_COLOR_DISABLED, description);
+		y += (2 * GUI_CONST_BORDER);
+	}
+
+	UnlockSurface(defaultTexture, defaultSurface);
 
 	DWORD nextTick;
 	BYTE result = -1;

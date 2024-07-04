@@ -266,7 +266,7 @@ void UserInterface::KeyhandlerFileSelector(WORD key)
 				if (*ptr == '\xA0')
 					strcpy(buffer, ptr + 1);
 
-				if (EditBox("ENTER FILENAME:", buffer, 32, false) && strlen(buffer) > 0) {
+				if (EditBox("ENTER FILENAME:", NULL, buffer, 32, false) && strlen(buffer) > 0) {
 					for (b = 0; b < strlen(buffer); b++) {
 						switch (buffer[b]) {
 						// multiplatform restricted characters in filenames;
