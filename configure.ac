@@ -1,5 +1,5 @@
 # GPMD85emu autoconf
-# mborik, 10/2011-04/2014, 09/2017, 11-12/2019
+# mborik, 10/2011-04/2014, 09/2017, 11-12/2019, 07/2024
 
 AC_PREREQ([2.59])
 AC_INIT([GPMD85emulator], [0.12.2407], [mborik@users.sourceforge.net],

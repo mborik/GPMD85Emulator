@@ -2137,7 +2137,7 @@ void TEmulator::SelectRawFile(char *fileName, BYTE *flag)
 bool TEmulator::ProcessRawFile(bool save)
 {
 	int length = Settings->MemoryBlock->length,
-	    start = Settings->MemoryBlock->start;
+	     start = Settings->MemoryBlock->start;
 
 	if (start < 0 || start > 65535)
 		return false;

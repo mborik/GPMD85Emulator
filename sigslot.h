@@ -301,7 +301,7 @@ namespace sigslot {
 	};
 
 	template<class mt_policy = SIGSLOT_DEFAULT_MT_POLICY>
-	class has_slots : public mt_policy 
+	class has_slots : public mt_policy
 	{
 	private:
 		typedef typename std::set<_signal_base<mt_policy> *> sender_set;
@@ -322,7 +322,7 @@ namespace sigslot {
 				m_senders.insert(*it);
 				++it;
 			}
-		} 
+		}
 
 		void signal_connect(_signal_base<mt_policy>* sender)
 		{
@@ -473,7 +473,7 @@ namespace sigslot {
 		}
 
 	protected:
-		connections_list m_connected_slots;   
+		connections_list m_connected_slots;
 	};
 
 	template<class arg1_type, class mt_policy>
@@ -590,7 +590,7 @@ namespace sigslot {
 
 
 	protected:
-		connections_list m_connected_slots;   
+		connections_list m_connected_slots;
 	};
 
 	template<class arg1_type, class arg2_type, class mt_policy>
@@ -707,7 +707,7 @@ namespace sigslot {
 		}
 
 	protected:
-		connections_list m_connected_slots;   
+		connections_list m_connected_slots;
 	};
 
 	template<class arg1_type, class arg2_type, class arg3_type, class mt_policy>
@@ -824,7 +824,7 @@ namespace sigslot {
 		}
 
 	protected:
-		connections_list m_connected_slots;   
+		connections_list m_connected_slots;
 	};
 
 	template<class arg1_type, class arg2_type, class arg3_type, class arg4_type, class mt_policy>
@@ -941,7 +941,7 @@ namespace sigslot {
 		}
 
 	protected:
-		connections_list m_connected_slots;   
+		connections_list m_connected_slots;
 	};
 
 
@@ -1150,7 +1150,7 @@ namespace sigslot {
 			return new _connection4<dest_type, arg1_type, arg2_type, arg3_type, arg4_type, mt_policy>((dest_type *)pnewdest, m_pmemfun);
 		}
 
-		virtual void emit(arg1_type a1, arg2_type a2, arg3_type a3, 
+		virtual void emit(arg1_type a1, arg2_type a2, arg3_type a3,
 			arg4_type a4)
 		{
 			(m_pobject->*m_pmemfun)(a1, a2, a3, a4);
@@ -1176,7 +1176,7 @@ namespace sigslot {
 		typedef typename base::connections_list connections_list;
 		using base::m_connected_slots;
 
-    	signal0() {}
+		signal0() {}
 
 		signal0(const signal0<mt_policy>& s)
 			: _signal_base0<mt_policy>(s) {}
@@ -1187,7 +1187,7 @@ namespace sigslot {
 			void connect(desttype* pclass, void (desttype::*pmemfun)())
 		{
 			lock_block<mt_policy> lock(this);
-			_connection0<desttype, mt_policy>* conn = 
+			_connection0<desttype, mt_policy>* conn =
 				new _connection0<desttype, mt_policy>(pclass, pmemfun);
 			m_connected_slots.push_back(conn);
 			pclass->signal_connect(this);
@@ -1236,7 +1236,7 @@ namespace sigslot {
 		typedef typename base::connections_list connections_list;
 		using base::m_connected_slots;
 
-    	signal1() {}
+		signal1() {}
 
 		signal1(const signal1<arg1_type, mt_policy>& s)
 			: _signal_base1<arg1_type, mt_policy>(s) {}
@@ -1247,7 +1247,7 @@ namespace sigslot {
 			void connect(desttype* pclass, void (desttype::*pmemfun)(arg1_type))
 		{
 			lock_block<mt_policy> lock(this);
-			_connection1<desttype, arg1_type, mt_policy>* conn = 
+			_connection1<desttype, arg1_type, mt_policy>* conn =
 				new _connection1<desttype, arg1_type, mt_policy>(pclass, pmemfun);
 			m_connected_slots.push_back(conn);
 			pclass->signal_connect(this);
@@ -1296,7 +1296,7 @@ namespace sigslot {
 		typedef typename base::connections_list connections_list;
 		using base::m_connected_slots;
 
-    	signal2() {}
+		signal2() {}
 
 		signal2(const signal2<arg1_type, arg2_type, mt_policy>& s)
 			: _signal_base2<arg1_type, arg2_type, mt_policy>(s) {}
@@ -1357,7 +1357,7 @@ namespace sigslot {
 		typedef typename base::connections_list connections_list;
 		using base::m_connected_slots;
 
-    	signal3() {}
+		signal3() {}
 
 		signal3(const signal3<arg1_type, arg2_type, arg3_type, mt_policy>& s)
 			: _signal_base3<arg1_type, arg2_type, arg3_type, mt_policy>(s) {}
@@ -1369,7 +1369,7 @@ namespace sigslot {
 			arg2_type, arg3_type))
 		{
 			lock_block<mt_policy> lock(this);
-			_connection3<desttype, arg1_type, arg2_type, arg3_type, mt_policy>* conn = 
+			_connection3<desttype, arg1_type, arg2_type, arg3_type, mt_policy>* conn =
 				new _connection3<desttype, arg1_type, arg2_type, arg3_type, mt_policy>(pclass,
 				pmemfun);
 			m_connected_slots.push_back(conn);
@@ -1420,7 +1420,7 @@ namespace sigslot {
 		typedef typename base::connections_list connections_list;
 		using base::m_connected_slots;
 
-    	signal4() {}
+		signal4() {}
 
 		signal4(const signal4<arg1_type, arg2_type, arg3_type, arg4_type, mt_policy>& s)
 			: _signal_base4<arg1_type, arg2_type, arg3_type, arg4_type, mt_policy>(s) {}

@@ -79,14 +79,14 @@ int ChipPIT8253::GetChipState(BYTE *buffer)
 		*(buffer + 14) = (BYTE)((Counters[2].CounterValue >> 8) & 0xFF);
 
 		*(buffer + 15) = (BYTE)(((Counters[0].Out) ? STAT_OUT  : 0)
-                            |  ((Counters[0].Gate) ? STAT_GATE : 0)
-                            | ((Counters[0].Clock) ? STAT_CLK  : 0));
+		                    |  ((Counters[0].Gate) ? STAT_GATE : 0)
+		                    | ((Counters[0].Clock) ? STAT_CLK  : 0));
 		*(buffer + 16) = (BYTE)(((Counters[1].Out) ? STAT_OUT  : 0)
-                            |  ((Counters[1].Gate) ? STAT_GATE : 0)
-                            | ((Counters[1].Clock) ? STAT_CLK  : 0));
+		                    |  ((Counters[1].Gate) ? STAT_GATE : 0)
+		                    | ((Counters[1].Clock) ? STAT_CLK  : 0));
 		*(buffer + 17) = (BYTE)(((Counters[2].Out) ? STAT_OUT  : 0)
-                            |  ((Counters[2].Gate) ? STAT_GATE : 0)
-                            | ((Counters[2].Clock) ? STAT_CLK  : 0));
+		                    |  ((Counters[2].Gate) ? STAT_GATE : 0)
+		                    | ((Counters[2].Clock) ? STAT_CLK  : 0));
 	}
 
 	return 18;

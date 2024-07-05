@@ -554,8 +554,11 @@ bool TDebugger::CheckDebugRet(int *t)
 	BYTE oc = memory->ReadByte(cpu->GetPC());
 	*t = cpu->DoInstruction();
 
-	if ((oc == 0xC9 || oc == 0xD9 || ((oc & 0xC7) == 0xC0 && *t == 11))
-	  && wsp < cpu->GetSP())
+	if (
+	  (oc == 0xC9 || oc == 0xD9 ||
+	  ((oc & 0xC7) == 0xC0 && *t == 11)
+	  ) && wsp < cpu->GetSP()
+	)
 		return true;
 
 	return false;
