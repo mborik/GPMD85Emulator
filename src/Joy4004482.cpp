@@ -76,6 +76,9 @@ void Joy4004482::Connect()
 		joy[0].map = settings->GPIO1;
 		joyCnt = 1;
 	}
+
+	debug("Joystick", "Connected %d joystick(s)%s", joyCnt,
+		sameDev ? " on same device" : "");
 }
 //---------------------------------------------------------------------------
 int Joy4004482::GetControllers(SDL_GameController ***controllers, bool refresh)
@@ -102,6 +105,9 @@ int Joy4004482::GetControllers(SDL_GameController ***controllers, bool refresh)
 				SDL_GameController *controller = SDL_GameControllerOpen(ii);
 				deviceList = (SDL_GameController **) realloc(deviceList, (deviceCount + 1) * sizeof(SDL_GameController *));
 				deviceList[deviceCount++] = controller;
+
+				debug("Joystick", "Detected controller %d: %s [%s]", deviceCount,
+					SDL_GameControllerName(controller), SDL_GameControllerGetSerial(controller));
 			}
 		}
 	}

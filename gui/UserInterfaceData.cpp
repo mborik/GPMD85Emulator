@@ -408,6 +408,54 @@ const char *dcb_joy_type_state(GUI_MENU_ENTRY *ptr)
 	return comments[type];
 }
 //-----------------------------------------------------------------------------
+const char *dcb_joy_select_state(GUI_MENU_ENTRY *ptr)
+{
+	TSettings::SetJoystickGPIO *gpio = Settings->Joystick->GPIO0;
+	if (ptr->action == GP_GPIO_1)
+		gpio = Settings->Joystick->GPIO1;
+
+	SDL_GameController **controllers;
+	int devCount = Emulator->ActionJoyControllers(&controllers, false);
+	ptr->enabled = (devCount > 1);
+	ptr->text = "";
+
+	static char *controllerName = NULL;
+
+	*((char *) uicch) = '\0';
+	if (gpio->guid && gpio->guid[0] != '\0') {
+		for (int jj = 0; jj < devCount; jj++) {
+			if (strcasecmp(gpio->guid, SDL_GameControllerGetSerial(controllers[jj])) == 0) {
+				const char *name = SDL_GameControllerName(controllers[jj]);
+				if (name != NULL) {
+					if (controllerName != NULL)
+						delete controllerName;
+					controllerName = new char[22];
+
+					if (strlen(name) > 20) {
+						strncpy(controllerName, name, 20);
+						controllerName[20] = '\205';
+						controllerName[21] = '\0';
+					}
+					else
+						strcpy(controllerName, SDL_GameControllerName(controllers[jj]));
+
+					ptr->text = controllerName;
+				}
+
+				sprintf((char *) uicch, "%d", jj + 1);
+				break;
+			}
+		}
+	}
+	else {
+		ptr->enabled = true;
+		ptr->text = "SELECT\205";
+		return "\205";
+	}
+
+	return uicch;
+}
+//-----------------------------------------------------------------------------
 const char *dcb_joy_sens_state(GUI_MENU_ENTRY *ptr)
 {
 	TSettings::SetJoystickGPIO *gpio = Settings->Joystick->GPIO0;
@@ -901,6 +949,47 @@ bool ccb_joy_sens(GUI_MENU_ENTRY *ptr)
 		value = strtol(msgbuffer, NULL, 10);
 		if (value >= 1 && value < 100) {
 			gpio->sensitivity = value;
+		}
+	}
+
+	return false;
+}
+//-----------------------------------------------------------------------------
+bool ccb_joy_select(GUI_MENU_ENTRY *ptr)
+{
+	TSettings::SetJoystickGPIO *gpio = Settings->Joystick->GPIO0;
+	if (ptr->action == GP_GPIO_1)
+		gpio = Settings->Joystick->GPIO1;
+
+	SDL_GameController **controllers;
+	int devCount = Emulator->ActionJoyControllers(&controllers, false);
+
+	int value = 0;
+	if (gpio->guid && gpio->guid[0] != '\0') {
+		for (int jj = 0; jj < devCount; jj++) {
+			if (strcasecmp(gpio->guid, SDL_GameControllerGetSerial(controllers[jj])) == 0) {
+				value = jj + 1;
+				break;
+			}
+		}
+	}
+
+	if (value == 0)
+		value = devCount;
+
+	char *input = (char *) uicch;
+	sprintf(msgbuffer, "(total controllers = %d)", devCount);
+	sprintf(input, "%d", value);
+	if (GUI->EditBox("CONTROLLER NUMBER:", msgbuffer, input, 1, true) == 1) {
+		value = strtol(input, NULL, 10);
+		if (value >= 1 && value <= devCount) {
+			const char *guid = SDL_GameControllerGetSerial(controllers[value - 1]);
+			delete gpio->guid;
+			gpio->guid = new char[strlen(guid) + 1];
+			strcpy(gpio->guid, guid);
+
+			Emulator->ActionJoyControllers(NULL, true);
+			ptr->detail(ptr);
 		}
 	}
 

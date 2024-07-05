@@ -170,7 +170,7 @@ typedef bool _Bool;
 enum TComputerModel { CM_UNKNOWN = -1, CM_V1 = 0, CM_V2, CM_V2A, CM_V3, CM_MATO, CM_ALFA, CM_ALFA2, CM_C2717, CM_LAST = CM_C2717 };
 enum TAutoStopType { AS_OFF = 0, AS_NEXTHEAD, AS_CURSOR };
 enum TGpioPort { GP_GPIO_0 = 0, GP_GPIO_1 };
-enum TJoyType { JT_NONE = -1, JT_KEYS = 0, JT_AXES, JT_POV, JT_BUTTONS };
+enum TJoyType { JT_NONE = -1, JT_KEYS = 0, JT_POV, JT_AXES, JT_BUTTONS };
 enum TJoyKeyMap { JKM_NUMPAD, JKM_CURSORS, JKM_QAOP, JKM_WASD };
 enum TMouseType { MT_NONE = -1, MT_M602 = 0 };
 enum TDisplayMode { DM_NORMAL = 1, DM_DOUBLESIZE, DM_TRIPLESIZE, DM_QUADRUPLESIZE, DM_QUINTUPLESIZE,  DM_FULLSCREEN = 0 };
