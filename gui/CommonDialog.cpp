@@ -41,7 +41,8 @@ void UserInterface::AboutDialog()
 		"produced in 80s of 20th century\n"
 		"in former Czechoslovakia.\n\n"
 		"Licensed under GNU/GPL version 3.\n\n"
-		"\200 %s",
+		"\200 %s\n"
+		"\200 pmd85.borik.net",
 		PACKAGE_NAME, VERSION, PACKAGE_YEAR, (PACKAGE_URL) + 8
 	);
 
