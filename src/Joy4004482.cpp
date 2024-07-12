@@ -19,18 +19,16 @@
 #include <stdexcept>
 #include "Joy4004482.h"
 //---------------------------------------------------------------------------
-Joy4004482::Joy4004482(IifGPIO *pio, TSettings::SetJoystick* settings)
+Joy4004482::Joy4004482(IifGPIO *pio, TSettings::SetJoystick* settings) :
+	joy{{ nullptr, nullptr, false, 0 }, { nullptr, nullptr, false, 0 }},
+	joyCnt(0),
+	sameDev(false)
 {
 	if (!pio)
 		throw std::runtime_error("Required GPIO not initialized!");
 
 	this->pio = pio;
 	this->settings = settings;
-
-	sameDev = false;
-	joyCnt = 0;
-
-	memset(joy, 0, sizeof(joy) * 2);
 }
 //---------------------------------------------------------------------------
 Joy4004482::~Joy4004482()
