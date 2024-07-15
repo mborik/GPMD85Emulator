@@ -16,19 +16,15 @@
 	along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 //---------------------------------------------------------------------------
-#include <stdexcept>
 #include "Joy4004482.h"
 //---------------------------------------------------------------------------
 Joy4004482::Joy4004482(IifGPIO *pio, TSettings::SetJoystick* settings) :
-	joy{{ nullptr, nullptr, false, 0 }, { nullptr, nullptr, false, 0 }},
+	pio(pio),
+	settings(settings),
+	joy{{ NULL, NULL, false, 0 }, { NULL, NULL, false, 0 }},
 	joyCnt(0),
 	sameDev(false)
 {
-	if (!pio)
-		throw std::runtime_error("Required GPIO not initialized!");
-
-	this->pio = pio;
-	this->settings = settings;
 }
 //---------------------------------------------------------------------------
 Joy4004482::~Joy4004482()
