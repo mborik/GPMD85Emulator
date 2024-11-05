@@ -382,7 +382,8 @@ void TEmulator::ProcessSettings(BYTE filter)
 		ConnectPMD32(init);
 
 		if (init || Settings->Joystick->GPIO0->connected || Settings->Joystick->GPIO1->connected) {
-			joystick->Connect();
+			if (joystick)
+				joystick->Connect();
 		}
 
 		if (romModuleConnected) {
