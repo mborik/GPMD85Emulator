@@ -26,6 +26,16 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([], [[
 ]])], [clang=yes], [clang=no])
 AC_MSG_RESULT([$clang])
 
+# Add an additional flag if using Emscripten
+AC_MSG_CHECKING([if compiling with Emscripten])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([], [[
+	#ifndef __EMSCRIPTEN__
+		not emscripten
+	#endif
+]])], [emscripten=yes], [emscripten=no])
+AM_CONDITIONAL([EMSCRIPTEN], [test "x$emscripten" = "xyes"])
+AC_MSG_RESULT([$emscripten])
+
 # Check if we have enabled debug mode:
 AC_MSG_CHECKING([gpmd85emu: Debug mode])
 AC_ARG_ENABLE([debug],
@@ -85,8 +95,18 @@ if test "x$softrender" = "xyes"; then
 fi
 AC_MSG_RESULT([${softrender}])
 
-resDir_CFLAGS=" -DDIR_RESOURCES=\"\\\""$\{pkgdatadir}"\\\"\""
-AC_SUBST(resDir_CFLAGS)
+if test "x$emscripten" = "xyes"; then
+AC_MSG_RESULT([override gpmd85emu: Software renderer... yes for Emscripten])
+	CXXFLAGS+=" -DSOFTRENDER -s USE_SDL=2"
+	CFLAGS+=" -DSOFTRENDER -s USE_SDL=2"
+	LDFLAGS+=" -Oz \
+	-s ENVIRONMENT=web \
+	-s ALLOW_MEMORY_GROWTH=1 \
+	-s OFFSCREEN_FRAMEBUFFER=1 \
+	--use-preload-plugins --preload-file ./storage"
+	EXEEXT=".js"
+else
+	resDir_CFLAGS=" -DDIR_RESOURCES=\"\\\""$\{pkgdatadir}"\\\"\""
 
 # Checks for libraries (with classic lib/header solution if pkg-config fail):
 PKG_CHECK_MODULES([libSDL], [sdl2],, [
@@ -100,6 +120,15 @@ PKG_CHECK_MODULES([libSDL], [sdl2],, [
 	], AC_MSG_ERROR([SDL2 library not found]))
 ])
 
+# NOTICE: In case of compile error with missing malloc() / realloc() functions,
+#         you can try to set enviroment variables 'ac_cv_func_malloc_0_nonnull'
+#         and 'ac_cv_func_realloc_0_nonnull' to 'yes' and reconfigure.
+AC_FUNC_MALLOC
+AC_FUNC_REALLOC
+AC_FUNC_ERROR_AT_LINE
+fi
+
+AC_SUBST(resDir_CFLAGS)
 AC_SUBST(CXXFLAGS)
 AC_SUBST(CFLAGS)
 AC_SUBST(DEBUG)
@@ -108,7 +137,7 @@ AC_SUBST(DEBUG)
 AC_CHECK_HEADERS([\
 	stdio.h stdarg.h stddef.h stdint.h stdlib.h unistd.h \
 	inttypes.h memory.h string.h strings.h \
-	sys/syslimits.h \
+	sys/syslimits.h sys/stat.h sys/types.h \
 ])
 
 AC_HEADER_STAT
@@ -117,13 +146,6 @@ AC_STRUCT_DIRENT_D_TYPE
 AC_HEADER_STDBOOL
 AC_C_BIGENDIAN
 AC_C_INLINE
-
-# NOTICE: In case of compile error with missing malloc() / realloc() functions,
-#         you can try to set enviroment variables 'ac_cv_func_malloc_0_nonnull'
-#         and 'ac_cv_func_realloc_0_nonnull' to 'yes' and reconfigure.
-AC_FUNC_MALLOC
-AC_FUNC_REALLOC
-AC_FUNC_ERROR_AT_LINE
 
 # Checks for standard library functions:
 AC_CHECK_FUNCS([memset mkdir strstr strtol strcasecmp strrchr])

@@ -19,8 +19,26 @@
 #include "CommonUtils.h"
 #include "Emulator.h"
 //-----------------------------------------------------------------------------
+#ifdef __EMSCRIPTEN__
+	// Webassembly version - use emscripten main loop
+	#include <emscripten.h>
+	#include <functional>
+	static std::function<void()> loop;
+	static void main_loop() { loop(); }
+	static inline void loop_delay(const DWORD) {}
+#endif
+//-----------------------------------------------------------------------------
 int main(int argc, char** argv)
 {
+#ifdef __EMSCRIPTEN__
+#define PATH_ROOT "/storage"
+	PathUserHome = strdup(PATH_ROOT);
+	PathApplication = strdup(PATH_ROOT);
+	PathResources = (char *) malloc(strlen(PATH_ROOT) + 1);
+	PathAppConfig = (char *) malloc(strlen(PATH_ROOT) + 1);
+	strcpy(PathResources, PATH_ROOT);
+	strcpy(PathAppConfig, PATH_ROOT);
+#else
 	if (!ParseOptions(&argc, &argv))
 		return EXIT_FAILURE;
 	else if (argv_config.version) {
@@ -36,6 +54,7 @@ int main(int argc, char** argv)
 	PathAppConfig = (char *) malloc(strlen(PathUserHome) + 16);
 	strcpy(PathResources, DIR_RESOURCES);
 	sprintf(PathAppConfig, "%s%c.%s", PathUserHome, DIR_DELIMITER, PACKAGE_TARNAME);
+#endif
 
 	debug("",   "Resource path: %s", PathResources);
 	debug(NULL, "Application path: %s", PathApplication);
@@ -125,7 +144,12 @@ int main(int argc, char** argv)
 
 	debug("", "Starting main CPU %dHz loop", CPU_FRAMES_PER_SEC);
 
+#ifdef __EMSCRIPTEN__
+	loop = [&] {
+#else
 	while (Emulator->isActive) {
+#endif
+
 		nextTick = SDL_GetTicks() + CPU_TIMER_INTERVAL;
 
 		while (SDL_PollEvent(&event)) {
@@ -214,9 +238,16 @@ int main(int argc, char** argv)
 
 		Emulator->CpuTimerCallback();
 
+#ifdef __EMSCRIPTEN__
+		loop_delay(nextTick);
+	};
+
+	emscripten_set_main_loop(main_loop, 0, true);
+#else
 		while (SDL_GetTicks() < nextTick)
 			SDL_Delay(1);
 	}
+#endif
 
 	SDL_GetWindowPosition(gdc.window,
 			&Settings->Screen->position.x, &Settings->Screen->position.y);

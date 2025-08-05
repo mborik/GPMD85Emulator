@@ -699,6 +699,7 @@ bool TEmulator::TestHotkeys()
 				Settings->Screen->halfPass = HP_OFF;
 				break;
 
+#ifndef __EMSCRIPTEN__
 			case SDL_SCANCODE_F:	// FULL-SCREEN
 			case SDL_SCANCODE_RETURN:
 				if (Settings->Screen->size == DM_FULLSCREEN)
@@ -706,6 +707,7 @@ bool TEmulator::TestHotkeys()
 				else
 					ActionSizeChange(0);
 				return true;
+#endif
 
 			case SDL_SCANCODE_M:	// MONO/STANDARD MODES
 				if (video->GetColorProfile() == CP_STANDARD) {
@@ -760,9 +762,11 @@ bool TEmulator::TestHotkeys()
 					ActionPlayPause();
 				break;
 
+#ifndef __EMSCRIPTEN__
 			case SDL_SCANCODE_F4:	// EXIT
 				ActionExit();
 				break;
+#endif
 
 			case SDL_SCANCODE_F5:	// RESET
 				if (key & KM_SHIFT)
