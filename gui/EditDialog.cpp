@@ -18,10 +18,18 @@
 #include "UserInterface.h"
 #include "Emulator.h"
 //-----------------------------------------------------------------------------
-BYTE UserInterface::EditBox(const char *title, const char *description, char *buffer, BYTE maxLength, bool decimal)
+void UserInterface::EditBox(const char *title, const char *description, char *buffer, BYTE maxLength, bool decimal)
 {
 	if (maxLength <= 0 || maxLength > (maxCharsOnScreen - 2))
 		maxLength = maxCharsOnScreen - 2;
+
+	editBox->buffer = buffer;
+	editBox->maxLength = maxLength;
+	editBox->decimal = decimal;
+	editBox->len = strlen(buffer);
+	editBox->cursor = editBox->len;
+	editBox->result = (BYTE) -1;
+	editBox->atTheEnd = true;
 
 	GUI_SURFACE *defaultSurface = LockSurface(defaultTexture);
 
@@ -33,204 +41,159 @@ BYTE UserInterface::EditBox(const char *title, const char *description, char *bu
 	}
 
 	menuStackLevel++;
-	menuStack[menuStackLevel].type = GUI_TYPE_MENU;
-	menuStack[menuStackLevel].hilite = 0;
-	menuStack[menuStackLevel].data = NULL;
+	menuStack[menuStackLevel].type = GUI_TYPE_EDITBOX;
+	menuStack[menuStackLevel].data = editBox;
 	menuStack[menuStackLevel].frame = NULL;
+	menuStack[menuStackLevel].hilite = 0;
 
-	WORD i, len = strlen(buffer), cursor = len,
-		w = (strlen(title) + 4) * fontWidth, h, x, y;
+	editBox->w = (strlen(title) + 4) * fontWidth;
+	editBox->h = (4 * GUI_CONST_BORDER);
 
-	if (description != NULL && w < ((strlen(description) + 4) * fontWidth))
-		w = (strlen(description) + 4) * fontWidth;
-	if (w < ((maxLength + 1) * fontWidth))
-		w = ((maxLength + 1) * fontWidth);
-
-	w = (2 * GUI_CONST_BORDER) + w;
-	h = (4 * GUI_CONST_BORDER);
-	x = (frameWidth  - w) / 2;
-	y = (frameHeight - h) / 2;
-
+	if (description != NULL && editBox->w < ((strlen(description) + 4) * fontWidth))
+		editBox->w = (strlen(description) + 4) * fontWidth;
+	if (editBox->w < ((editBox->maxLength + 1) * fontWidth))
+		editBox->w = ((editBox->maxLength + 1) * fontWidth);
+	editBox->w = (2 * GUI_CONST_BORDER) + editBox->w;
 	if (description != NULL)
-		h += (2 * GUI_CONST_BORDER);
+		editBox->h += (2 * GUI_CONST_BORDER);
+	editBox->x = (frameWidth  - editBox->w) / 2;
+	editBox->y = (frameHeight - editBox->h) / 2;
 
-	DrawDialogWithBorder(defaultSurface, x, y, w, h);
-	PrintTitle(defaultSurface, x, y + 1, w, GUI_COLOR_BACKGROUND, title);
+	DrawDialogWithBorder(defaultSurface, editBox->x, editBox->y, editBox->w, editBox->h);
+	PrintTitle(defaultSurface, editBox->x, editBox->y + 1, editBox->w, GUI_COLOR_BACKGROUND, title);
 
-	x += GUI_CONST_BORDER;
-	y += (2 * GUI_CONST_BORDER);
-	w -= (2 * GUI_CONST_BORDER);
+	editBox->x += GUI_CONST_BORDER;
+	editBox->y += (2 * GUI_CONST_BORDER);
+	editBox->w -= (2 * GUI_CONST_BORDER);
 
-	if (description != NULL) {
-		PrintText(defaultSurface, x, y, GUI_COLOR_DISABLED, description);
-		y += (2 * GUI_CONST_BORDER);
+	if (editBox->description != NULL) {
+		PrintText(defaultSurface, editBox->x, editBox->y, GUI_COLOR_DISABLED, editBox->description);
+		editBox->y += (2 * GUI_CONST_BORDER);
 	}
+}
+//-----------------------------------------------------------------------------
+void UserInterface::KeyhandlerEditBox(WORD key)
+{
+	bool change = false;
 
-	UnlockSurface(defaultTexture, defaultSurface);
+	switch (key) {
+		case SDL_SCANCODE_ESCAPE:
+			editBox->result = 0;
+			editBox->callback(editBox->buffer, editBox->result);
+			MenuClose();
+			break;
 
-	DWORD nextTick;
-	BYTE result = -1;
-	SDL_Event event;
-	bool atTheEnd = true, change = true;
+		case SDL_SCANCODE_RETURN:
+		case SDL_SCANCODE_KP_ENTER:
+			// trim left
+			editBox->cursor = 0;
+			while (editBox->buffer[editBox->cursor] == ' ')
+				editBox->cursor++;
 
-	SDL_Delay(GPU_TIMER_INTERVAL);
-	while (result == (BYTE) -1) {
-		nextTick = SDL_GetTicks() + CPU_TIMER_INTERVAL;
+			if (editBox->cursor > 0)
+				for (int i = 0; editBox->cursor <= editBox->len; i++, editBox->cursor++)
+					editBox->buffer[i] = editBox->buffer[editBox->cursor];
 
-		while (SDL_PollEvent(&event)) {
-			switch (event.type) {
-				case SDL_KEYDOWN:
-					switch (event.key.keysym.scancode) {
-						case SDL_SCANCODE_ESCAPE:
-							result = 0;
-							break;
+			// trim right
+			editBox->cursor = (editBox->len = strlen(editBox->buffer)) - 1;
+			while (editBox->buffer[editBox->cursor] == ' ')
+				editBox->cursor--;
 
-						case SDL_SCANCODE_RETURN:
-						case SDL_SCANCODE_KP_ENTER:
-							// trim left
-							cursor = 0;
-							while (buffer[cursor] == ' ')
-								cursor++;
+			if (++editBox->cursor < editBox->len)
+				editBox->buffer[editBox->cursor] = '\0';
 
-							if (cursor > 0)
-								for (i = 0; cursor <= len; i++, cursor++)
-									buffer[i] = buffer[cursor];
+			editBox->result = 1;
+			MenuClose();
+			break;
 
-							// trim right
-							cursor = (len = strlen(buffer)) - 1;
-							while (buffer[cursor] == ' ')
-								cursor--;
-
-							if (++cursor < len)
-								buffer[cursor] = '\0';
-
-							result = 1;
-							break;
-
-						case SDL_SCANCODE_LEFT:
-							if (cursor > 0) {
-								cursor--;
-								change = true;
-							}
-							break;
-
-						case SDL_SCANCODE_RIGHT:
-							if (!atTheEnd) {
-								cursor++;
-								change = true;
-							}
-							break;
-
-						case SDL_SCANCODE_BACKSPACE:
-							if (cursor > 0) {
-								cursor--;
-								for (i = cursor; i < len; i++)
-									buffer[i] = buffer[i + 1];
-								change = true;
-							}
-							break;
-
-						case SDL_SCANCODE_INSERT:
-							if (!atTheEnd && len < maxLength) {
-								for (i = len + 1; i > cursor; i--)
-									buffer[i] = buffer[i - 1];
-								buffer[cursor] = ' ';
-								change = true;
-							}
-							break;
-
-						case SDL_SCANCODE_DELETE:
-							if (!atTheEnd) {
-								for (i = cursor; i < len; i++)
-									buffer[i] = buffer[i + 1];
-								change = true;
-							}
-							break;
-
-						case SDL_SCANCODE_HOME:
-							if (cursor > 0) {
-								cursor = 0;
-								change = true;
-							}
-							break;
-
-						case SDL_SCANCODE_END:
-							if (!atTheEnd) {
-								cursor = len;
-								change = true;
-							}
-							break;
-
-						default:
-							if (event.key.keysym.sym < SDLK_SPACE
-							 || event.key.keysym.sym > 0x007E)
-								break;
-
-							char c = (char) event.key.keysym.sym & 0x7f;
-							if (cursor < maxLength) {
-								if (decimal && (c < '0' || c > '9'))
-									break;
-
-								buffer[cursor] = c;
-								cursor++;
-								if (atTheEnd)
-									buffer[cursor] = '\0';
-
-								change = true;
-							}
-							break;
-					}
-					break;
-
-				case SDL_WINDOWEVENT:
-					if (event.window.windowID == gdc.windowID &&
-						event.window.event == SDL_WINDOWEVENT_EXPOSED) {
-
-						Emulator->RefreshDisplay();
-					}
-					break;
-
-				default:
-					break;
+		case SDL_SCANCODE_LEFT:
+			if (editBox->cursor > 0) {
+				editBox->cursor--;
+				change = true;
 			}
+			break;
 
-			if (change) {
-				defaultSurface = LockSurface(defaultTexture);
+		case SDL_SCANCODE_RIGHT:
+			if (!editBox->atTheEnd) {
+				editBox->cursor++;
+				change = true;
+			}
+			break;
 
-				DrawRectangle(defaultSurface, x, y - 1, w, fontHeight + 1,
-					GUI_COLOR_BACKGROUND);
-				DrawRectangle(defaultSurface, x + (cursor * fontWidth), y - 1,
-					fontWidth, fontHeight + 1, GUI_COLOR_HIGHLIGHT);
-				PrintText(defaultSurface, x, y, GUI_COLOR_FOREGROUND, buffer);
+		case SDL_SCANCODE_BACKSPACE:
+			if (editBox->cursor > 0) {
+				editBox->cursor--;
+				for (int i = editBox->cursor; i < editBox->len; i++)
+					editBox->buffer[i] = editBox->buffer[i + 1];
+				change = true;
+			}
+			break;
 
-				len = strlen(buffer);
-				atTheEnd = (cursor == len);
+		case SDL_SCANCODE_INSERT:
+			if (!editBox->atTheEnd && editBox->len < editBox->maxLength) {
+				for (int i = editBox->len + 1; i > editBox->cursor; i--)
+					editBox->buffer[i] = editBox->buffer[i - 1];
+				editBox->buffer[editBox->cursor] = ' ';
+				change = true;
+			}
+			break;
 
-				UnlockSurface(defaultTexture, defaultSurface);
-				change = false;
+		case SDL_SCANCODE_DELETE:
+			if (!editBox->atTheEnd) {
+				for (int i = editBox->cursor; i < editBox->len; i++)
+					editBox->buffer[i] = editBox->buffer[i + 1];
+				change = true;
+			}
+			break;
+
+		case SDL_SCANCODE_HOME:
+			if (editBox->cursor > 0) {
+				editBox->cursor = 0;
+				change = true;
+			}
+			break;
+
+		case SDL_SCANCODE_END:
+			if (!editBox->atTheEnd) {
+				editBox->cursor = editBox->len;
+				change = true;
+			}
+			break;
+
+		default:
+			if (key < SDLK_SPACE || key > 0x007E)
 				break;
+
+			char c = (char) key & 0x7f;
+			if (editBox->cursor < editBox->maxLength) {
+				if (editBox->decimal && (c < '0' || c > '9'))
+					break;
+
+				editBox->buffer[editBox->cursor] = c;
+				editBox->cursor++;
+				if (editBox->atTheEnd)
+					editBox->buffer[editBox->cursor] = '\0';
+
+				change = true;
 			}
-		}
-
-		while (SDL_GetTicks() < nextTick)
-			SDL_Delay(1);
+			break;
 	}
 
-	defaultSurface = LockSurface(defaultTexture);
+	if (change) {
+		GUI_SURFACE *defaultSurface = LockSurface(defaultTexture);
 
-	menuStackLevel--;
-	if (menuStackLevel >= 0) {
-		memcpy(defaultSurface->pixels, menuStack[menuStackLevel].frame, frameLength);
-		delete [] menuStack[menuStackLevel].frame;
-		menuStack[menuStackLevel].frame = NULL;
+		DrawRectangle(defaultSurface,
+			editBox->x, editBox->y - 1, editBox->w, fontHeight + 1, GUI_COLOR_BACKGROUND);
+		DrawRectangle(defaultSurface,
+			editBox->x + (editBox->cursor * fontWidth), editBox->y - 1,
+			fontWidth, fontHeight + 1, GUI_COLOR_HIGHLIGHT);
+		PrintText(defaultSurface,
+			editBox->x, editBox->y, GUI_COLOR_FOREGROUND, editBox->buffer);
+
+		editBox->len = strlen(editBox->buffer);
+		editBox->atTheEnd = (editBox->cursor == editBox->len);
+
+		UnlockSurface(defaultTexture, defaultSurface);
 	}
-	else
-		memset(defaultSurface->pixels, 0, frameLength);
-
-	UnlockSurface(defaultTexture, defaultSurface);
-	SDL_Delay(GPU_TIMER_INTERVAL);
-
-	needRelease = true;
-	return result;
 }
 //-----------------------------------------------------------------------------

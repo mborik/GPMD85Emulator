@@ -107,6 +107,7 @@ UserInterface::UserInterface()
 
 	cMenu_data = NULL;
 	cMenu_rect = new SDL_Rect;
+	SDL_zero(cMenuPopup);
 
 	fileSelector = new GUI_FILESELECTOR_DATA;
 	fileSelector->dirEntries = NULL;
@@ -119,7 +120,18 @@ UserInterface::UserInterface()
 	tapeDialog = new GUI_TAPEDIALOG_DATA;
 	tapeDialog->entries = NULL;
 	tapeDialog->count = 0;
-	tapeDialog->popup.rect = NULL;
+
+	editData = new GUI_EDITBOX_DATA;
+	editData->title = NULL;
+	editData->description = NULL;
+	editData->buffer = msgbuffer;
+	editData->maxLength = 0;
+	editData->decimal = true;
+	editData->len = 0;
+	editData->cursor = 0;
+	editData->result = (BYTE) -1;
+	editData->atTheEnd = true;
+	editData->change = false;
 
 	ledState = 0;
 	iconState = 0;
@@ -156,6 +168,7 @@ UserInterface::~UserInterface()
 
 	if (fileSelector) {
 		ScanDir(NULL, &fileSelector->dirEntries, &fileSelector->count);
+		fileSelector->callback.disconnect_all();
 		delete fileSelector;
 		fileSelector = NULL;
 	}
@@ -473,14 +486,15 @@ void UserInterface::MenuOpen(GUI_MENU_TYPE type, void *data)
 		menuStack[menuStackLevel].frame = new BYTE[frameLength];
 		memcpy(menuStack[menuStackLevel].frame, defaultSurface->pixels, frameLength);
 
-		if (type == GUI_TYPE_TAPE_POPUP) {
-			if (tapeDialog->popup.rect)
-				delete tapeDialog->popup.rect;
+		if (type == GUI_TYPE_TAPE_POPUP || type == GUI_TYPE_QUERY_DIALOG) {
+			if (cMenuPopup.rect)
+				delete cMenuPopup.rect;
 
-			tapeDialog->popup.rect = new SDL_Rect(*cMenu_rect);
-			tapeDialog->popup.count = cMenu_count;
-			tapeDialog->popup.hilite = cMenu_hilite;
-			tapeDialog->popup.leftMargin = cMenu_leftMargin;
+			cMenuPopup.rect = new SDL_Rect(*cMenu_rect);
+			cMenuPopup.count = cMenu_count;
+			cMenuPopup.hilite = cMenu_hilite;
+			cMenuPopup.leftMargin = cMenu_leftMargin;
+			cMenuPopup.set = true;
 		}
 		else
 			menuStack[menuStackLevel].hilite = cMenu_hilite;
@@ -497,6 +511,7 @@ void UserInterface::MenuOpen(GUI_MENU_TYPE type, void *data)
 	switch (type) {
 		case GUI_TYPE_MENU:
 		case GUI_TYPE_TAPE_POPUP:
+		case GUI_TYPE_QUERY_DIALOG:
 			DrawMenu(data);
 			break;
 
@@ -526,6 +541,14 @@ void UserInterface::MenuClose()
 
 	GUI_SURFACE *defaultSurface = LockSurface(defaultTexture);
 
+	if (menuStack[menuStackLevel].type == GUI_TYPE_QUERY_DIALOG) {
+		void *data = menuStack[menuStackLevel].data;
+		char *queryDialogTitle = ((GUI_MENU_ENTRY *) data)->text;
+		if (queryDialogTitle)
+			delete [] queryDialogTitle;
+		((GUI_MENU_ENTRY *) data)->text = NULL;
+	}
+
 	menuStack[menuStackLevel].data = NULL;
 	menuStackLevel--;
 	if (menuStackLevel >= 0) {
@@ -535,25 +558,26 @@ void UserInterface::MenuClose()
 		delete [] menuStack[menuStackLevel].frame;
 		menuStack[menuStackLevel].frame = NULL;
 
-		if (menuStack[menuStackLevel + 1].type == GUI_TYPE_TAPE_POPUP) {
-			cMenu_rect->x = tapeDialog->popup.rect->x;
-			cMenu_rect->y = tapeDialog->popup.rect->y;
-			cMenu_rect->w = tapeDialog->popup.rect->w;
-			cMenu_rect->h = tapeDialog->popup.rect->h;
-			cMenu_count = tapeDialog->popup.count;
-			cMenu_hilite = tapeDialog->popup.hilite;
-			cMenu_leftMargin = tapeDialog->popup.leftMargin;
+		GUI_MENU_TYPE lastType = menuStack[menuStackLevel + 1].type;
+		if ((lastType == GUI_TYPE_TAPE_POPUP || lastType == GUI_TYPE_QUERY_DIALOG) && cMenuPopup.set) {
+			cMenu_rect->x = cMenuPopup.rect->x;
+			cMenu_rect->y = cMenuPopup.rect->y;
+			cMenu_rect->w = cMenuPopup.rect->w;
+			cMenu_rect->h = cMenuPopup.rect->h;
+			cMenu_count = cMenuPopup.count;
+			cMenu_hilite = cMenuPopup.hilite;
+			cMenu_leftMargin = cMenuPopup.leftMargin;
 
-			if (tapeDialog->popup.rect)
-				delete tapeDialog->popup.rect;
+			if (cMenuPopup.rect)
+				delete cMenuPopup.rect;
 
-			tapeDialog->popup.rect = NULL;
-			tapeDialog->popup.count = -1;
-			tapeDialog->popup.hilite = -1;
-			tapeDialog->popup.leftMargin = -1;
-
+			SDL_zero(cMenuPopup);
 			needRelease = true;
 			return;
+		}
+		else if (lastType == GUI_TYPE_EDITBOX) {
+			GUI_EDITBOX_DATA *editBoxData = (GUI_EDITBOX_DATA *) menuStack[menuStackLevel + 1].data;
+			editBoxData->callback.disconnect_all();
 		}
 		else
 			cMenu_hilite = menuStack[menuStackLevel].hilite;
@@ -583,20 +607,23 @@ void UserInterface::MenuCloseAll()
 	SDL_Delay(GUI_CONST_KEY_REPEAT);
 
 	for (int i = menuStackLevel; i >= 0; i--) {
-		if (menuStack[i].type == GUI_TYPE_TAPE_POPUP) {
-			if (tapeDialog->popup.rect)
-				delete tapeDialog->popup.rect;
-
-			tapeDialog->popup.rect = NULL;
-			tapeDialog->popup.count = -1;
-			tapeDialog->popup.hilite = -1;
-			tapeDialog->popup.leftMargin = -1;
+		if (menuStack[i].type == GUI_TYPE_QUERY_DIALOG) {
+			void *data = menuStack[i].data;
+			char *queryDialogTitle = ((GUI_MENU_ENTRY *) data)->text;
+			if (queryDialogTitle)
+				delete [] queryDialogTitle;
+			((GUI_MENU_ENTRY *) data)->text = NULL;
 		}
-
 		if (menuStack[i].frame)
 			delete [] menuStack[i].frame;
 		menuStack[i].frame = NULL;
 		menuStack[i].data = NULL;
+	}
+
+	if (cMenuPopup.set) {
+		if (cMenuPopup.rect)
+			delete cMenuPopup.rect;
+		SDL_zero(cMenuPopup);
 	}
 
 	GUI_SURFACE *defaultSurface = LockSurface(defaultTexture);
@@ -625,6 +652,19 @@ void UserInterface::MenuHandleKey(WORD key)
 
 			case GUI_TYPE_DEBUGGER:
 				KeyhandlerDebugWindow(key);
+				break;
+
+			case GUI_TYPE_ABOUT_DIALOG:
+			case GUI_TYPE_MESSAGE_BOX:
+				KeyhandlerCommonDialog(key);
+				break;
+
+			case GUI_TYPE_QUERY_DIALOG:
+				KeyhandlerQueryDialog(key);
+				break;
+
+			case GUI_TYPE_EDITBOX:
+				KeyhandlerEditBox(key);
 				break;
 
 			default:

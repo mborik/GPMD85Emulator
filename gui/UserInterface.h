@@ -99,7 +99,11 @@ class UserInterface : public sigslot::has_slots<>
 			GUI_TYPE_TAPEBROWSER,       // Tape-browser
 			GUI_TYPE_TAPE_POPUP,        // Tape-browser popup menu
 			GUI_TYPE_DEBUGGER,          // Debugger dialog
-			GUI_TYPE_POKE               // Poke dialog
+			GUI_TYPE_POKE,              // Poke dialog
+			GUI_TYPE_ABOUT_DIALOG,      // About dialog
+			GUI_TYPE_QUERY_DIALOG,      // Query dialog
+			GUI_TYPE_MESSAGE_BOX,       // MessageBox dialog
+			GUI_TYPE_EDITBOX            // EditBox dialog
 		};
 
 		typedef struct GUI_FILESELECTOR_DATA {
@@ -117,12 +121,22 @@ class UserInterface : public sigslot::has_slots<>
 
 		typedef struct GUI_TAPEDIALOG_DATA {
 			int  count;
+			int  hilite;
 			char **entries;
-			struct {
-				SDL_Rect *rect;
-				int leftMargin, count, hilite;
-			} popup;
 		} GUI_TAPEBROWSER_DATA;
+
+		typedef struct GUI_EDITBOX_DATA {
+			char *buffer;
+			BYTE maxLength;
+			bool decimal;
+
+			// state variables
+			WORD x, y, w, len, cursor;
+			BYTE result;
+			bool atTheEnd;
+
+			sigslot::signal2<char *, BYTE> callback;
+		} GUI_EDITBOX_DATA;
 
 		bool needRelease;
 		BYTE uiSetChanges;
@@ -136,7 +150,7 @@ class UserInterface : public sigslot::has_slots<>
 
 		GUI_FILESELECTOR_DATA *fileSelector;
 		GUI_TAPEDIALOG_DATA *tapeDialog;
-		sigslot::signal2<char *, BYTE *> editBoxValidator;
+		GUI_EDITBOX_DATA *editBox;
 
 		UserInterface();
 		virtual ~UserInterface();
@@ -146,9 +160,9 @@ class UserInterface : public sigslot::has_slots<>
 		inline bool InMenu() { return (menuStackLevel >= 0); }
 
 		void AboutDialog();
-		BYTE QueryDialog(const char *title, bool save);
+		void QueryDialog(const char *title, bool save);
 		void MessageBox(const char *text, ...);
-		BYTE EditBox(const char *title, const char *description, char *buffer, BYTE maxLength, bool decimal);
+		void EditBox(const char *title, const char *description, char *buffer, BYTE maxLength, bool decimal);
 
 		void MenuOpen(GUI_MENU_TYPE type, void *data = NULL);
 		void MenuClose();
@@ -202,6 +216,12 @@ class UserInterface : public sigslot::has_slots<>
 		SDL_Rect *cMenu_rect;
 		int cMenu_leftMargin, cMenu_count, cMenu_hilite;
 
+		struct {
+			bool set;
+			SDL_Rect *rect;
+			int leftMargin, count, hilite;
+		} cMenuPopup;
+
 		GUI_SURFACE *LoadImgToSurface(const char *file);
 		void BlitToSurface(GUI_SURFACE *src, const SDL_Rect *srcRect, GUI_SURFACE *dst, const SDL_Rect *dstRect);
 
@@ -235,6 +255,9 @@ class UserInterface : public sigslot::has_slots<>
 		void DrawDebugWidgetBreaks(GUI_SURFACE *s, SDL_Rect *r);
 		void DrawDebugWindow();
 		void KeyhandlerMenu(WORD key);
+		void KeyhandlerEditBox(WORD key);
+		void KeyhandlerQueryDialog(WORD key);
+		void KeyhandlerCommonDialog(WORD key);
 		void KeyhandlerFileSelector(WORD key);
 		void KeyhandlerFileSelectorCallback(char *fileName);
 		int  KeyhandlerFileSelectorSearch(int from = 0);

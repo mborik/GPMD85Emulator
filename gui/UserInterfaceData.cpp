@@ -40,7 +40,7 @@ const char *dcb_tape_contblk_state(GUI_MENU_ENTRY *ptr)
 		ptr->enabled = TapeBrowser->Selection->continuity;
 		if (TapeBrowser->Selection->total == 0) {
 			ptr->enabled = true;
-			f = l = GUI->tapeDialog->popup.hilite;
+			f = l = GUI->tapeDialog->hilite;
 		}
 
 		if ((i == SDL_SCANCODE_UP && f == 0) ||
