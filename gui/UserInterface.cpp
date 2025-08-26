@@ -121,17 +121,14 @@ UserInterface::UserInterface()
 	tapeDialog->entries = NULL;
 	tapeDialog->count = 0;
 
-	editData = new GUI_EDITBOX_DATA;
-	editData->title = NULL;
-	editData->description = NULL;
-	editData->buffer = msgbuffer;
-	editData->maxLength = 0;
-	editData->decimal = true;
-	editData->len = 0;
-	editData->cursor = 0;
-	editData->result = (BYTE) -1;
-	editData->atTheEnd = true;
-	editData->change = false;
+	editBox = new GUI_EDITBOX_DATA;
+	editBox->buffer = msgbuffer;
+	editBox->maxLength = 0;
+	editBox->decimal = true;
+	editBox->len = 0;
+	editBox->cursor = 0;
+	editBox->result = (BYTE) -1;
+	editBox->atTheEnd = true;
 
 	ledState = 0;
 	iconState = 0;
@@ -543,7 +540,7 @@ void UserInterface::MenuClose()
 
 	if (menuStack[menuStackLevel].type == GUI_TYPE_QUERY_DIALOG) {
 		void *data = menuStack[menuStackLevel].data;
-		char *queryDialogTitle = ((GUI_MENU_ENTRY *) data)->text;
+		const char *queryDialogTitle = ((GUI_MENU_ENTRY *) data)->text;
 		if (queryDialogTitle)
 			delete [] queryDialogTitle;
 		((GUI_MENU_ENTRY *) data)->text = NULL;
@@ -577,6 +574,7 @@ void UserInterface::MenuClose()
 		}
 		else if (lastType == GUI_TYPE_EDITBOX) {
 			GUI_EDITBOX_DATA *editBoxData = (GUI_EDITBOX_DATA *) menuStack[menuStackLevel + 1].data;
+			editBoxData->callback(editBoxData->buffer, editBoxData->result);
 			editBoxData->callback.disconnect_all();
 		}
 		else
@@ -609,7 +607,7 @@ void UserInterface::MenuCloseAll()
 	for (int i = menuStackLevel; i >= 0; i--) {
 		if (menuStack[i].type == GUI_TYPE_QUERY_DIALOG) {
 			void *data = menuStack[i].data;
-			char *queryDialogTitle = ((GUI_MENU_ENTRY *) data)->text;
+			const char *queryDialogTitle = ((GUI_MENU_ENTRY *) data)->text;
 			if (queryDialogTitle)
 				delete [] queryDialogTitle;
 			((GUI_MENU_ENTRY *) data)->text = NULL;

@@ -47,7 +47,7 @@ void UserInterface::EditBox(const char *title, const char *description, char *bu
 	menuStack[menuStackLevel].hilite = 0;
 
 	editBox->w = (strlen(title) + 4) * fontWidth;
-	editBox->h = (4 * GUI_CONST_BORDER);
+	WORD h = (4 * GUI_CONST_BORDER);
 
 	if (description != NULL && editBox->w < ((strlen(description) + 4) * fontWidth))
 		editBox->w = (strlen(description) + 4) * fontWidth;
@@ -55,19 +55,19 @@ void UserInterface::EditBox(const char *title, const char *description, char *bu
 		editBox->w = ((editBox->maxLength + 1) * fontWidth);
 	editBox->w = (2 * GUI_CONST_BORDER) + editBox->w;
 	if (description != NULL)
-		editBox->h += (2 * GUI_CONST_BORDER);
+		h += (2 * GUI_CONST_BORDER);
 	editBox->x = (frameWidth  - editBox->w) / 2;
-	editBox->y = (frameHeight - editBox->h) / 2;
+	editBox->y = (frameHeight - h) / 2;
 
-	DrawDialogWithBorder(defaultSurface, editBox->x, editBox->y, editBox->w, editBox->h);
+	DrawDialogWithBorder(defaultSurface, editBox->x, editBox->y, editBox->w, h);
 	PrintTitle(defaultSurface, editBox->x, editBox->y + 1, editBox->w, GUI_COLOR_BACKGROUND, title);
 
 	editBox->x += GUI_CONST_BORDER;
 	editBox->y += (2 * GUI_CONST_BORDER);
 	editBox->w -= (2 * GUI_CONST_BORDER);
 
-	if (editBox->description != NULL) {
-		PrintText(defaultSurface, editBox->x, editBox->y, GUI_COLOR_DISABLED, editBox->description);
+	if (description != NULL) {
+		PrintText(defaultSurface, editBox->x, editBox->y, GUI_COLOR_DISABLED, description);
 		editBox->y += (2 * GUI_CONST_BORDER);
 	}
 }
@@ -79,7 +79,6 @@ void UserInterface::KeyhandlerEditBox(WORD key)
 	switch (key) {
 		case SDL_SCANCODE_ESCAPE:
 			editBox->result = 0;
-			editBox->callback(editBox->buffer, editBox->result);
 			MenuClose();
 			break;
 

@@ -116,6 +116,7 @@ class UserInterface : public sigslot::has_slots<>
 			char **extFilter;
 			BYTE itemsOnPage;
 			BYTE tag;
+			bool callbackShouldExit;
 			sigslot::signal2<char *, BYTE *> callback;
 		} GUI_FILESELECTOR_DATA;
 
@@ -160,9 +161,10 @@ class UserInterface : public sigslot::has_slots<>
 		inline bool InMenu() { return (menuStackLevel >= 0); }
 
 		void AboutDialog();
-		void QueryDialog(const char *title, bool save);
+		BYTE QueryDialog(const char *title, bool save);
 		void MessageBox(const char *text, ...);
 		void EditBox(const char *title, const char *description, char *buffer, BYTE maxLength, bool decimal);
+		void EditBoxFileSelectorCallback(char *buffer, BYTE result);
 
 		void MenuOpen(GUI_MENU_TYPE type, void *data = NULL);
 		void MenuClose();

@@ -117,7 +117,7 @@ void UserInterface::AboutDialog()
 	UnlockSurface(defaultTexture, defaultSurface);
 }
 //-----------------------------------------------------------------------------
-void UserInterface::QueryDialog(const char *title, bool save)
+BYTE UserInterface::QueryDialog(const char *title, bool save)
 {
 	void *data = (save) ? gui_query_save : gui_query_confirm;
 	char *dialogTitle = new char[strlen(title) + 5];
@@ -126,6 +126,9 @@ void UserInterface::QueryDialog(const char *title, bool save)
 	((GUI_MENU_ENTRY *) data)->text = (const char *) dialogTitle;
 
 	MenuOpen(GUI_TYPE_QUERY_DIALOG, data);
+
+	// TODO FIXME
+	return GUI_QUERY_NONE;
 }
 //-----------------------------------------------------------------------------
 void UserInterface::KeyhandlerQueryDialog(WORD key)

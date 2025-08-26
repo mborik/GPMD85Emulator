@@ -266,40 +266,12 @@ void UserInterface::KeyhandlerFileSelector(WORD key)
 				if (*ptr == '\xA0')
 					strcpy(buffer, ptr + 1);
 
-				if (EditBox("ENTER FILENAME:", NULL, buffer, 32, false) && strlen(buffer) > 0) {
-					for (b = 0; b < strlen(buffer); b++) {
-						switch (buffer[b]) {
-						// multiplatform restricted characters in filenames;
-						// filtering to avoid file portability problems;
-							case ' ':  case '/':  case '\\': case '?':
-							case '*':  case '%':  case ':':  case '|':
-							case '"':  case '<':  case '>':
-								buffer[b] = '_';
-								break;
+				fileSelector->callbackShouldExit = false;
+				editBox->callback.connect(this, &UserInterface::EditBoxFileSelectorCallback);
+				EditBox("ENTER FILENAME:", NULL, buffer, 32, false);
 
-							default:
-								break;
-						}
-					}
-
-					if (fileSelector->extFilter) {
-						if ((ptr = strrchr(buffer, '.'))) {
-							for (b = 0; fileSelector->extFilter[b] != NULL; b++) {
-								if (strcasecmp(ptr + 1, fileSelector->extFilter[b]) == 0) {
-									KeyhandlerFileSelectorCallback(buffer);
-									return;
-								}
-							}
-						}
-
-						ptr = buffer + strlen(buffer);
-						*ptr = '.';
-						strcpy(ptr + 1, fileSelector->extFilter[0]);
-					}
-
-					KeyhandlerFileSelectorCallback(buffer);
+				if (fileSelector->callbackShouldExit)
 					return;
-				}
 			}
 			break;
 
@@ -502,6 +474,47 @@ void UserInterface::KeyhandlerFileSelector(WORD key)
 		cMenu_hilite = i;
 		DrawFileSelectorItems();
 	}
+}
+//-----------------------------------------------------------------------------
+void UserInterface::EditBoxFileSelectorCallback(char *buffer, BYTE result)
+{
+	if (result == 0 && strlen(buffer) <= 0)
+		return;
+
+	char *ptr;
+	for (int b = 0; b < strlen(buffer); b++) {
+		switch (buffer[b]) {
+		// multiplatform restricted characters in filenames;
+		// filtering to avoid file portability problems;
+			case ' ':  case '/':  case '\\': case '?':
+			case '*':  case '%':  case ':':  case '|':
+			case '"':  case '<':  case '>':
+				buffer[b] = '_';
+				break;
+
+			default:
+				break;
+		}
+	}
+
+	if (fileSelector->extFilter) {
+		if ((ptr = strrchr(buffer, '.'))) {
+			for (int b = 0; fileSelector->extFilter[b] != NULL; b++) {
+				if (strcasecmp(ptr + 1, fileSelector->extFilter[b]) == 0) {
+					KeyhandlerFileSelectorCallback(buffer);
+					fileSelector->callbackShouldExit = true;
+					return;
+				}
+			}
+		}
+
+		ptr = buffer + strlen(buffer);
+		*ptr = '.';
+		strcpy(ptr + 1, fileSelector->extFilter[0]);
+	}
+
+	KeyhandlerFileSelectorCallback(buffer);
+	fileSelector->callbackShouldExit = true;
 }
 //-----------------------------------------------------------------------------
 void UserInterface::KeyhandlerFileSelectorCallback(char *fileName)
