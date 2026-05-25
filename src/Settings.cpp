@@ -141,6 +141,7 @@ TSettings::TSettings(bool userCfg)
 		model->romModuleInserted = cfgGetBoolValue(n, "rmm-inserted", false, &(model->romModuleInserted));
 		model->ramExpansion256k = cfgGetBoolValue(n, "ext-256k-ram", false, &(model->ramExpansion256k));
 		model->romSplit8kMode = cfgGetBoolValue(n, "rom-split-8k", false, &(model->romSplit8kMode));
+		model->matoAllRAM64k = cfgGetBoolValue(n, "allram-64k", false, &(model->matoAllRAM64k));
 		model->megaModuleEnabled = cfgGetBoolValue(n, "mrm-enabled", false, &(model->megaModuleEnabled));
 
 		model->mrmFile = cfgGetStringValue(n, "mrm-file", &(model->mrmFile));
@@ -153,6 +154,8 @@ TSettings::TSettings(bool userCfg)
 			model->ramExpansion256k = false;
 		if (model->romSplit8kMode && model->type > CM_V2A)
 			model->romSplit8kMode = false;
+		if (model->matoAllRAM64k && model->type != CM_MATO)
+			model->matoAllRAM64k = false;
 
 		s = cfgGetStringValue(n, "rmm-name");
 		if ((model->romModule = findROMmodule(s))) {

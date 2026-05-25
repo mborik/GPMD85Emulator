@@ -52,6 +52,7 @@ const char *dcb_rom_pckg_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_mem_x256k_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_mem_m3cmp_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_mem_spl8k_state(GUI_MENU_ENTRY *ptr);
+const char *dcb_mem_mato64k_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_p32_conn_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_p32_imgs_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_p32_extc_state(GUI_MENU_ENTRY *ptr);
@@ -96,6 +97,7 @@ bool ccb_machine(GUI_MENU_ENTRY *ptr);
 bool ccb_mem_x256k(GUI_MENU_ENTRY *ptr);
 bool ccb_mem_m3cmp(GUI_MENU_ENTRY *ptr);
 bool ccb_mem_spl8k(GUI_MENU_ENTRY *ptr);
+bool ccb_mem_mato64k(GUI_MENU_ENTRY *ptr);
 bool ccb_mem_rmod(GUI_MENU_ENTRY *ptr);
 bool ccb_mem_mrm(GUI_MENU_ENTRY *ptr);
 bool ccb_mem_mrmpage(GUI_MENU_ENTRY *ptr);
@@ -323,6 +325,7 @@ static GUI_MENU_ENTRY gui_mem_menu[] = {
 	{ MI_CHECKBOX, "256k MEMORY E\aXPANSION", NULL, SDL_SCANCODE_X, NULL, ccb_mem_x256k, dcb_mem_x256k_state },
 	{ MI_CHECKBOX, "\aCOMPATIBILITY MODE", NULL, SDL_SCANCODE_C, NULL, ccb_mem_m3cmp, dcb_mem_m3cmp_state },
 	{ MI_CHECKBOX, "\aSPLIT 8kB ROM", NULL, SDL_SCANCODE_S, NULL, ccb_mem_spl8k, dcb_mem_spl8k_state },
+	{ MI_CHECKBOX, "ALLRAM 64\akB FIX", NULL, SDL_SCANCODE_K, NULL, ccb_mem_mato64k, dcb_mem_mato64k_state },
 	{ MENU_END }
 };
 static GUI_MENU_ENTRY gui_joy0_keymap_menu[] = {

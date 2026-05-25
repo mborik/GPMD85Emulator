@@ -42,6 +42,7 @@ class TSettings
 			bool romModuleInserted;
 			bool romSplit8kMode;
 			bool ramExpansion256k;
+			bool matoAllRAM64k;
 			SetRomPackage *romModule;
 			bool megaModuleEnabled;
 			char *mrmFile;
