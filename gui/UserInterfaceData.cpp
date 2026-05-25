@@ -305,6 +305,13 @@ const char *dcb_mem_spl8k_state(GUI_MENU_ENTRY *ptr)
 	return "on 8000h/A000h";
 }
 //-----------------------------------------------------------------------------
+const char *dcb_mem_mato64k_state(GUI_MENU_ENTRY *ptr)
+{
+	ptr->state = Settings->CurrentModel->matoAllRAM64k;
+	ptr->enabled = (Settings->CurrentModel->type == CM_MATO);
+	return "for Ma\213o";
+}
+//-----------------------------------------------------------------------------
 const char *dcb_p32_conn_state(GUI_MENU_ENTRY *ptr)
 {
 	ptr->state = Settings->PMD32->connected;
@@ -815,6 +822,13 @@ bool ccb_mem_m3cmp(GUI_MENU_ENTRY *ptr)
 bool ccb_mem_spl8k(GUI_MENU_ENTRY *ptr)
 {
 	Settings->CurrentModel->romSplit8kMode = (ptr->state = !ptr->state);
+	GUI->uiSetChanges |= PS_MACHINE;
+	return false;
+}
+//-----------------------------------------------------------------------------
+bool ccb_mem_mato64k(GUI_MENU_ENTRY *ptr)
+{
+	Settings->CurrentModel->matoAllRAM64k = (ptr->state = !ptr->state);
 	GUI->uiSetChanges |= PS_MACHINE;
 	return false;
 }
