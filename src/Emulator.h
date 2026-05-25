@@ -27,6 +27,7 @@
 #include "ChipMemory3.h"
 #include "ChipMemory3Ex.h"
 #include "ChipMemoryC2717.h"
+#include "ChipMemoryMato.h"
 #include "SystemPIO.h"
 #include "IifTimer.h"
 #include "IifTape.h"
@@ -117,6 +118,7 @@ class TEmulator : public sigslot::has_slots<>
 		bool romSplit8kMode;
 		bool compatibilityMode;
 		bool ramExpansion256k;
+		bool matoAllRAM64k;
 
 		bool mouse602connected;
 		bool mif85connected;

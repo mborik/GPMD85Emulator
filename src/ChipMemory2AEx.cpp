@@ -1,6 +1,6 @@
 /*  ChipMemory2AEx.h: Derived class for memory management and
         peripheral device handling of memory expansion for Model 2A.
-    Copyright (c) 2015-2016 Roman Borik <pmd85emu@gmail.com>
+    Copyright (c) 2015-2026 Roman Borik <pmd85emu@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -20,10 +20,11 @@
 //---------------------------------------------------------------------------
 ChipMemory2AEx::ChipMemory2AEx(BYTE totalSizeKB) : ChipMemory(totalSizeKB)
 {
-	mem256 = true;
 	sizeRAM = 256 * 1024;
 	memRAM = new BYTE[sizeRAM];
 	memset(memRAM, 0, sizeRAM);
+	hasAllRAM = true;
+	mem256 = true;
 }
 //---------------------------------------------------------------------------
 void ChipMemory2AEx::ResetOn()

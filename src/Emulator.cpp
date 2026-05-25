@@ -1,6 +1,6 @@
-/*	Emulator.cpp: Core of emulation and interface.
-	Copyright (c) 2006-2018 Roman Borik <pmd85emu@gmail.com>
-	Copyright (c) 2011-2024 Martin Borik <mborik@users.sourceforge.net>
+/*	Emulator.cpp: Core of emulation and user interface.
+	Copyright (c) 2006-2026 Roman Borik <pmd85emu@gmail.com>
+	Copyright (c) 2011-2026 Martin Borik <mborik@users.sourceforge.net>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -52,6 +52,7 @@ TEmulator::TEmulator()
 	romSplit8kMode = false;
 	compatibilityMode = false;
 	ramExpansion256k = false;
+	matoAllRAM64k = false;
 	mif85connected = false;
 	mouse602connected = false;
 	pmd32connected = false;
@@ -1343,7 +1344,7 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 		case CM_ALFA :  // Didaktik Alfa
 		case CM_ALFA2 : // Didaktik Alfa 2
 		case CM_V2 :    // PMD 85-2
-			memory = new ChipMemory12(romSize);    // 48 kB RAM, x kB ROM
+			memory = new ChipMemory12(romSize);      // 48 kB RAM, x kB ROM
 			break;
 
 		case CM_V2A : // PMD 85-2A
@@ -1362,13 +1363,13 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 			break;
 
 		case CM_MATO :  // Mato
-			romSize = 16;
-			memory = new ChipMemory12(romSize);    // 48 kB RAM, 16kB ROM
+			romSize = 16;                         // 48/64 kB RAM, 16kB ROM
+			memory = new ChipMemoryMato(romSize, matoAllRAM64k);
 			break;
 
 		case CM_C2717 :  // CONSUL 2717
 			romSize = 16;
-			memory = new ChipMemoryC2717(romSize); // 64 kB RAM, 16 kB ROM
+			memory = new ChipMemoryC2717(romSize);  // 64 kB RAM, 16 kB ROM
 			memory->SetRemapped(true);
 			break;
 	}

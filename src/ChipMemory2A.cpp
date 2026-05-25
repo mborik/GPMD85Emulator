@@ -1,5 +1,5 @@
 /*  ChipMemory2A.cpp: Derived class for memory management of Model 2A
-    Copyright (c) 2015-2016 Roman Borik <pmd85emu@gmail.com>
+    Copyright (c) 2015-2026 Roman Borik <pmd85emu@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@ ChipMemory2A::ChipMemory2A(BYTE totalSizeKB) : ChipMemory(totalSizeKB)
 	memRAM = new BYTE[sizeRAM];
 	memset(memRAM, 0, sizeRAM);
 	vramOffset = 0xC000;
+	hasAllRAM = true;
 }
 //---------------------------------------------------------------------------
 void ChipMemory2A::ResetOn()

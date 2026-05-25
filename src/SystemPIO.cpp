@@ -30,7 +30,9 @@ SystemPIO::SystemPIO(TComputerModel model, ChipMemory *memory) : ChipPIO8255(fal
 
 	OnCpuReadB.connect(this, &SystemPIO::ReadKeyboardB);
 	OnCpuWriteCL.connect(this, &SystemPIO::WriteSound);
-	OnCpuWriteCH.connect(this, &SystemPIO::WritePaging);
+
+	if (model != CM_MATO)
+		OnCpuWriteCH.connect(this, &SystemPIO::WritePaging);
 
 	ledState = 0;
 	width384 = 0;
@@ -40,6 +42,9 @@ SystemPIO::SystemPIO(TComputerModel model, ChipMemory *memory) : ChipPIO8255(fal
 	exchZY = false;
 	numpad = false;
 	extMato = false;
+
+	matoTapeIn = false;
+	matoTapeOut = false;
 
 #ifdef BEEP_FREQ_SEPARATED
 	cnt1kh = 0;
@@ -486,8 +491,10 @@ void SystemPIO::ReadKeyboardB()
 		val = (BYTE) (~val);
 	}
 	else
-		val = (BYTE) ((~KeyColumns[PeripheralReadByte(PP_PortA) & 0x0F] & 0x1F)
-			| (~ShiftStopCtrl & 0x60));
+		val = (BYTE) (
+			(~KeyColumns[PeripheralReadByte(PP_PortA) & 0x0F] & 0x1F)
+			| (~ShiftStopCtrl & 0x60)
+		);
 
 	PeripheralWriteByte(PP_PortB, val);
 }
@@ -499,7 +506,10 @@ void SystemPIO::ReadKeyboardB()
  */
 void SystemPIO::ReadKeyboardC()
 {
-	PeripheralWriteByte(PP_PortC, (BYTE) ((~ShiftStopCtrl & 0x70) | 0x01));
+	PeripheralWriteByte(
+		PP_PortC,
+		(BYTE) ((~ShiftStopCtrl & 0x70) | 0x01) | ((matoTapeIn) ? 0x80 : 0)
+	);
 }
 //---------------------------------------------------------------------------
 /**
@@ -534,28 +544,40 @@ void SystemPIO::WritePaging()
 }
 //---------------------------------------------------------------------------
 /**
- * Method is used as notification function while lower bits of port C are
- * being written. Method handles speaker and LED.
+ * Method is used as notification function while lower bits of port C
+ * are being written.
+ * Method handles speaker and LED, and tape output & AllRAM for Mato.
  */
 void SystemPIO::WriteSound()
 {
 	BYTE beep = PeripheralReadByte(PP_PortC);
 
-	if (model == CM_MATO) {
-		PrepareSample(CHNL_SPEAKER, beep & 6, currentTicks);
+	if (model == CM_MATO) { // Mato
+		PrepareSample(CHNL_SPEAKER, beep & 2, currentTicks);
 
-		if (beep & 6)
+		if (beep & 2)
 			ledState |= LED_YELLOW;
 		else
 			ledState &= ~LED_YELLOW;
+
+		// AllRAM
+		if (memory->HasAllRAM()) {
+			memory->SetAllRAM(beep & 8);
+			if (memory->IsAllRAM())
+				ledState |= LED_BLUE;
+			else
+				ledState &= ~LED_BLUE;
+		}
+
+		matoTapeOut = (beep & 1);
 	}
-	else {
+	else { // other models
 #ifdef BEEP_FREQ_SEPARATED
 		bool out = (beep & 4) || ((beep & 2) && state4kh) || ((beep & 1) && state1kh);
 #else
 		bool out = (beep & 4)
-		       || ((beep & 2) && (videoCounter & R7_MASK))
-		       || ((beep & 1) && (videoCounter & R9_MASK));
+					 || ((beep & 2) && (videoCounter & R7_MASK))
+					 || ((beep & 1) && (videoCounter & R9_MASK));
 #endif
 
 		PrepareSample(CHNL_SPEAKER, out, currentTicks);
@@ -591,8 +613,9 @@ void SystemPIO::SoundService(int ticks, int dur)
 		if ((cnt1kh % 4) == 0)
 			state1kh = !state1kh;
 
-		out = (beep & 4) || ((beep & 2) && state4kh)
-				|| ((beep & 1) && state1kh);
+		out = (beep & 4)
+			|| ((beep & 2) && state4kh)
+			|| ((beep & 1) && state1kh);
 
 		PrepareSample(CHNL_SPEAKER, out, ticks - cnt4kh);
 

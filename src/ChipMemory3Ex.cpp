@@ -1,6 +1,6 @@
 /*  ChipMemory3Ex.h: Derived class for memory management and
         peripheral device handling of memory expansion for Model 3.
-    Copyright (c) 2015-2016 Roman Borik <pmd85emu@gmail.com>
+    Copyright (c) 2015-2026 Roman Borik <pmd85emu@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@ ChipMemory3Ex::ChipMemory3Ex(BYTE totalSizeKB) : ChipMemory(totalSizeKB)
 	sizeRAM = 256 * 1024;
 	memRAM = new BYTE[sizeRAM];
 	memset(memRAM, 0, sizeRAM);
+	hasAllRAM = true;
 }
 //---------------------------------------------------------------------------
 void ChipMemory3Ex::ResetOn()

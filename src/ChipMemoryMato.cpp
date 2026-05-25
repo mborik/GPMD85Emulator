@@ -1,4 +1,4 @@
-/*  ChipMemoryC2717.cpp: Derived class for memory management of Consul 2717
+/*  ChipMemoryMato.cpp: Derived class for memory management of Mato
 		Copyright (c) 2015-2026 Roman Borik <pmd85emu@gmail.com>
 
 		This program is free software: you can redistribute it and/or modify
@@ -15,24 +15,24 @@
 		along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 //---------------------------------------------------------------------------
-#include "ChipMemoryC2717.h"
+#include "ChipMemoryMato.h"
 //---------------------------------------------------------------------------
-ChipMemoryC2717::ChipMemoryC2717(BYTE totalSizeKB) : ChipMemory(totalSizeKB)
+ChipMemoryMato::ChipMemoryMato(BYTE totalSizeKB, bool hasRAM64kB) : ChipMemory(totalSizeKB)
 {
 	sizeRAM = 64 * 1024;
 	memRAM = new BYTE[sizeRAM];
 	memset(memRAM, 0, sizeRAM);
 	vramOffset = 0xC000;
-	hasAllRAM = true;
+	hasAllRAM = hasRAM64kB;
 }
 //---------------------------------------------------------------------------
-void ChipMemoryC2717::ResetOn()
+void ChipMemoryMato::ResetOn()
 {
 	// reset happen...
 	resetState = true;
 }
 //---------------------------------------------------------------------------
-void ChipMemoryC2717::ResetOff()
+void ChipMemoryMato::ResetOff()
 {
 	if (!resetState)
 		return;
@@ -41,7 +41,7 @@ void ChipMemoryC2717::ResetOff()
 	resetState = false;
 }
 //---------------------------------------------------------------------------
-BYTE* ChipMemoryC2717::GetVramPointer()
+BYTE* ChipMemoryMato::GetVramPointer()
 {
 	return memRAM + vramOffset;
 }
@@ -60,43 +60,28 @@ BYTE* ChipMemoryC2717::GetVramPointer()
  * @param ptr address of variable where to store address to virtual area
  * @return number of bytes that can fit to block found
  */
-int ChipMemoryC2717::FindPointer(int physAddr, int len, int oper, BYTE **ptr)
+int ChipMemoryMato::FindPointer(int physAddr, int len, int oper, BYTE **ptr)
 {
 	if (physAddr >= 0 && physAddr <= 0xFFFF && len > 0 && len <= 0x10000) {
-		if (remapped && physAddr >= 0xC000) {
-			if (remapType != 2) {
-				// Version "1"
-				// Address : F E D C B A 9 8  7 6 5 4 3 2 1 0
-				//                    _ _
-				// Mapping : F E 5 4 B A 9 8  7 6 H H 3 2 1 0
-				physAddr = (physAddr & 0xCFCF)
-				         | (((physAddr & 0x0030) ^ 0x0030) << 8)
-				         | 0x0030;
-			}
-			else {
-				// Version "2"
-				// Address : F E D C B A 9 8  7 6 5 4 3 2 1 0
-				//                                     _ _
-				// Mapping : F E 5 4 B A 9 8  7 6 D C 3 2 1 0
-				physAddr = (physAddr & 0xCFCF)
-				         | ((physAddr & 0x0030) << 8)
-				         | (((physAddr & 0x3000) ^ 0x3000) >> 8);
-			}
-		}
-
-		if (!allRAM || resetState) {
+		if (!hasAllRAM || resetState) {
 			if ((physAddr >= 0x8000 && physAddr < 0xC000)
 					|| (resetState && physAddr >= 0 && physAddr < 0x4000)) {
 				if (oper == OP_READ) {
-						int offset = physAddr & 0x3FFF;
-						*ptr = memROM + offset;
-						int lenX = 0x4000 - offset;
-						return (len < lenX) ? len : lenX;
+					int offset = physAddr & 0x3FFF;
+					*ptr = memROM + offset;
+					int lenX = 0x4000 - offset;
+					return (len < lenX) ? len : lenX;
 				}
 				else {
 					*ptr = NULL;
 					return -1;
 				}
+			}
+			if (resetState) {
+				// while reset state, ROM was mirrored in 0000-3FFF range
+				// RAM in range 4000-7FFF and C000-FFFF is not accessible
+				*ptr = NULL;
+				return -1;
 			}
 		}
 
