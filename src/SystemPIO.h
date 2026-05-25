@@ -61,6 +61,8 @@ public:
 
 	void ScanKeyboard(BYTE *keybuf);
 	void SoundService(int ticks, int dur);
+	void inline SetMatoTapeIn(bool _matoTapeIn)
+		{ matoTapeIn = _matoTapeIn; }
 
 	sigslot::signal3<int, bool, int> PrepareSample;
 
@@ -96,6 +98,9 @@ private:
 	static KEYMAP KeyMapMatoExt[];
 	BYTE ShiftStopCtrl;
 	BYTE KeyColumns[16];
+
+	bool matoTapeIn;
+	bool matoTapeOut;
 };
 //---------------------------------------------------------------------------
 #endif

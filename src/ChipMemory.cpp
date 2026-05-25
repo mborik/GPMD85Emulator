@@ -1,5 +1,5 @@
 /*  ChipMemory.cpp: Base class for memory management
-    Copyright (c) 2006-2016 Roman Borik <pmd85emu@gmail.com>
+    Copyright (c) 2006-2026 Roman Borik <pmd85emu@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -34,12 +34,16 @@ ChipMemory::ChipMemory(WORD initRomSizeKB)
 	memset(memROM, 0xFF, sizeROM);
 
 	memRAM = NULL;
+	sizeRAM = 0;
 
 	resetState = false;
 	allRAM = false;
 	remapped = false;
 	mem256 = false;
 	split8k = false;
+
+	hasAllRAM = false;
+	remapType = 1;
 
 	drawRegion.tl = 0x3FFF;
 	drawRegion.br = 0x0000;
@@ -169,7 +173,7 @@ bool ChipMemory::GetMem(BYTE *dest, int physAddr, int size)
 bool ChipMemory::FillMem(int destAddr, BYTE value, int size)
 {
 	int count;
-	BYTE *ptr;
+	BYTE *ptr = NULL;
 
 	if (destAddr < 0 || destAddr > 0xFFFF || size < 1 ||
 			size > 0x10000 || (destAddr + size) > 0x10000)
@@ -200,8 +204,10 @@ bool ChipMemory::FillMem(int destAddr, BYTE value, int size)
 BYTE ChipMemory::ReadByte(int physAddr)
 {
 	BYTE *ptr;
-	if (FindPointer(physAddr, 1, OP_READ, &ptr) > 0 && ptr)
-		return *ptr;
+	if (physAddr >= 0 && physAddr < 0x10000) {
+		if (FindPointer(physAddr, 1, OP_READ, &ptr) > 0 && ptr)
+			return *ptr;
+	}
 
 	return NA_BYTE;
 }

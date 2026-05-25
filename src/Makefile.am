@@ -22,6 +22,7 @@ libGPMD85emu_core_a_SOURCES = \
 	ChipMemory3.cpp \
 	ChipMemory3Ex.cpp \
 	ChipMemoryC2717.cpp \
+	ChipMemoryMato.cpp \
 	ChipPIO8255.cpp \
 	ChipPIT8253.cpp \
 	ChipUSART8251.cpp \
@@ -55,6 +56,7 @@ noinst_HEADERS = \
 	ChipMemory3.h \
 	ChipMemory3Ex.h \
 	ChipMemoryC2717.h \
+	ChipMemoryMato.h \
 	ChipPIO8255.h \
 	ChipPIT8253.h \
 	ChipUSART8251.h \

@@ -1,5 +1,5 @@
 /*  ChipMemory.h: Base class for memory management
-    Copyright (c) 2006-2016 Roman Borik <pmd85emu@gmail.com>
+    Copyright (c) 2006-2026 Roman Borik <pmd85emu@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -40,8 +40,8 @@
 #define PAGE_ANY  -99999
 
 // memory mapper of 256k extension
-#define MM256_REG_MASK        0xFF
-#define MM256_REG_ADR         0x6D
+#define MM256_REG_MASK 0xFF
+#define MM256_REG_ADR  0x6D
 //---------------------------------------------------------------------------
 class ChipMemory
 {
@@ -71,6 +71,9 @@ public:
 	inline bool IsSplit8k() { return split8k; }
 	inline void SetSplit8k(bool split)
 		{ split8k = split8k && (sizeRomKB > 4 && sizeRomKB <= 8); }
+	bool HasAllRAM() { return hasAllRAM; }
+	bool GetRemapType() { return remapType; }
+	void SetRemapType(int iRemapT) { remapType = iRemapT; }
 	bool WasVramModified();
 
 	// read/write/fill of memory space
@@ -84,6 +87,8 @@ public:
 	WORD ReadWord(int physAddr);
 	void WriteByte(int physAddr, BYTE value);
 	void WriteWord(int physAddr, WORD value);
+
+	bool IsMemoryValid() { return (memROM != NULL && memRAM != NULL); }
 
 protected:
 	BYTE *memROM;      // pointer to virtual ROM memory area
@@ -99,6 +104,8 @@ protected:
 	bool remapped;     // enabled virtual mapping of addresses to another
 	bool mem256;       // extended memory to 256 kilobytes
 	bool split8k;      // enable spliting of the ROM into 8000h & A000h
+  bool hasAllRAM;    // if computer model has AllRAM capability
+  int  remapType;    // type of memory remap on 0xC000, C2717 specific
 
 	// union rectangle top-left -> bottom-right corner
 	TDrawRegion drawRegion;
