@@ -1405,7 +1405,6 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 		delete memory;
 	memory = NULL;
 	if (ifTape) {
-		ifTape->PrepareSample.disconnect_all();
 		if (ifTape->GetModel() == CM_MATO)
 			delete ((IifTapeMato *) ifTape);
 		else
@@ -1421,10 +1420,8 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 	if (ifGpio)
 		delete ifGpio;
 	ifGpio = NULL;
-	if (systemPIO) {
-		systemPIO->PrepareSample.disconnect_all();
+	if (systemPIO)
 		delete systemPIO;
-	}
 	systemPIO = NULL;
 
 	TTapeIfType tapeIfType = TIT_V1;
@@ -1534,10 +1531,13 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 	TapeBrowser->SetIfTape(ifTape);
 
 	// set proper tape interface ports in CPU
-	if (model == CM_ALFA || model == CM_ALFA2)
-		cpu->AddDevice(IIF_TAPE_ADR_A, IIF_TAPE_MASK_A, (PeripheralDevice *) ifTape, true);
-	else if (model != CM_MATO)
-		cpu->AddDevice(IIF_TAPE_ADR, IIF_TAPE_MASK, (PeripheralDevice *) ifTape, true);
+	if (model != CM_MATO) {
+		PeripheralDevice *tapeDevice = dynamic_cast<PeripheralDevice *>((IifTapePMD85 *) ifTape);
+		if (model == CM_ALFA || model == CM_ALFA2)
+			cpu->AddDevice(IIF_TAPE_ADR_A, IIF_TAPE_MASK_A, tapeDevice, true);
+		else
+			cpu->AddDevice(IIF_TAPE_ADR, IIF_TAPE_MASK, tapeDevice, true);
+	}
 
 	if (model == CM_MATO)
 		cpu->TCyclesListeners.connect((IifTapeMato *) ifTape, &IifTapeMato::TapeClockService);
@@ -1550,7 +1550,7 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 		cpu->TCyclesListeners.connect((IifTapePMD85 *) ifTape, &IifTapePMD85::TapeClockService123);
 	}
 
-	if (model != CM_MATO) {
+	if (model == CM_V2A || model == CM_V3) {
 		// registering the extended memory 256k mapper
 		if (ramExpansion256k)
 			cpu->AddDevice(MM256_REG_ADR, MM256_REG_MASK,
