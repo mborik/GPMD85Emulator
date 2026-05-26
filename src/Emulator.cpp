@@ -96,8 +96,12 @@ TEmulator::~TEmulator()
 		delete ifTimer;
 	ifTimer = NULL;
 
-	if (ifTape)
-		delete ifTape;
+	if (ifTape) {
+		if (ifTape->GetModel() == CM_MATO)
+			delete ((IifTapeMato *) ifTape);
+		else
+			delete ((IifTapePMD85 *) ifTape);
+	}
 	ifTape = NULL;
 
 	if (joystick)
@@ -486,7 +490,10 @@ void TEmulator::CpuTimerCallback()
 		return;
 
 	DWORD beg = SDL_GetTicks();
-	WORD pc, loader = (0x8B6C | ((model == CM_V3) ? 6000 : 0));
+	WORD byte, pc, hl, de, bc, tapeBlockLen, len, crc;
+	BYTE *tapeBlock, val1, val2, val3;
+	bool cy;
+
 	int tci, tcpf = (TCYCLES_PER_FRAME * Settings->emulationSpeed);
 
 	if (sound)
@@ -506,15 +513,116 @@ void TEmulator::CpuTimerCallback()
 		if (pc == 0xE04C && model == CM_V3 && compatibilityMode)
 			cpu->SetPC(0xFFF0);
 
-		// tape flash loading - ROM routine entry-point mapping
-		if (pc == loader && model != CM_V1 && model != CM_MATO &&
-		          ifTape && ifTape->IsFlashLoadOn()) {
+		// tape flash loading - ROM entry-point mappings
+		if (ifTape && ifTape->IsFlashLoadOn()) {
+			// block
+			if (pc == 0x8DC4 || (pc == 0xEDC4 && model == CM_V3)) {
+				val1 = memory->ReadByte((pc & 0xFF00) | 0xD3);
+				val2 = memory->ReadByte((pc & 0xFF00) | 0xE1);
+				val3 = memory->ReadByte(0x8F89);
+				if (((model != CM_MATO && val1 == 0x23 && val2 == 0xC9) ||
+					(model == CM_MATO && val1 == 0xD6 && val2 == 0x8F && val3 == 0xC9)) &&
+						ifTape->GetTapeBlock(&tapeBlock, &tapeBlockLen) == true) {
 
-			BYTE byte = 0;
-			bool cy = ifTape->GetTapeByte(&byte);
+					hl = cpu->GetHL(); // HL = start address
+					de = cpu->GetDE(); // DE = block length - 1
+					bc = cpu->GetBC(); // C = 0 - check / C !=0 - load
+					cy = ((bc & 0xFF) != 0);
+					if (tapeBlock != NULL && (de + 2) <= tapeBlockLen) {
+						tapeBlockLen = (WORD) (de + 1);
+						crc = 0;
+						for (len = 0; len < tapeBlockLen; len++) {
+							if (cy == true)
+								memory->WriteByte(hl, *tapeBlock);
+							crc += *tapeBlock;
+							hl++;
+							tapeBlock++;
+						}
+						if (model == CM_V1)
+							byte = *tapeBlock;
+						else {
+							byte = 0;
+							hl -= tapeBlockLen;
+						}
+						tapeBlockLen++;
+						crc &= 0xFF;
 
-			cpu->SetAF((byte << 8) | (cy ? FLAG_CY : 0));
-			cpu->SetPC(loader + 0x2F);
+						cpu->SetHL(hl);
+						cpu->SetDE(0xFFFF);
+						cpu->SetBC((WORD) ((crc << 8) | (bc & 0xFF)));
+						if (crc  == *tapeBlock)
+							cpu->SetAF((WORD) ((byte << 8) | FLAG_Z));
+						else
+							cpu->SetAF((WORD) ((byte << 8) | FLAG_CY));
+						if (model == CM_MATO)
+							cpu->SetPC((WORD) 0x8F89);
+						else
+							cpu->SetPC((WORD) ((pc & 0xFF00) | 0xE1));
+
+						ifTape->AcceptTapeBlock(tapeBlockLen);
+					}
+				}
+			}
+
+			// byte
+			else if ((pc == 0x8B6C || (pc == 0xEB6C && model == CM_V3)) &&
+				(model != CM_V1 && model != CM_ALFA && model != CM_MATO)) {
+
+				val1 = memory->ReadByte(pc);
+				val2 = memory->ReadByte((pc & 0xFF00) | 0x9B);
+				if (val1 == 0xC5 && val2 == 0xC9) {
+					cy = ifTape->GetTapeByte((BYTE *) &byte);
+					cpu->SetAF((WORD) ((byte << 8) | ((cy == true) ? FLAG_CY : 0)));
+					cpu->SetPC((WORD) ((pc & 0xFF00) | 0x9B));
+				}
+			}
+		}
+
+		// catch the tape write on Mato - ROM entry-point mapping
+		if (model == CM_MATO && ifTape && pc == 0x8D6C) {
+			val1 = 0;
+			hl = cpu->GetHL();  // HL = start address
+			de = cpu->GetDE();  // DE = length - 1
+			tapeBlockLen = (WORD) (de + 1);
+			int pos = ifTape->GetSavedBlock(&tapeBlock);
+			tapeBlock += pos;
+
+			if (ifTape->GetTxState() == TP_TX_WAIT_HEAD && tapeBlockLen == 14) {
+				*((WORD *) tapeBlock) = (WORD) 63;
+				tapeBlock += 2;
+				for (int i = 0; i < 16; i++)
+					*tapeBlock++ = 0xFF;
+				for (int i = 0; i < 16; i++)
+					*tapeBlock++ = 0;
+				for (int i = 0; i < 16; i++)
+					*tapeBlock++ = 0x55;
+			}
+			else {
+				*((WORD *) tapeBlock) = (WORD) (tapeBlockLen + 1);
+				tapeBlock += 2;
+			}
+
+			crc = 0;
+			for (len = 0; len < tapeBlockLen; len++) {
+				val1 = memory->ReadByte(hl);
+				*tapeBlock = val1;
+				crc += val1;
+				hl++;
+				tapeBlock++;
+			}
+			*tapeBlock = (BYTE) crc;
+
+			ifTape->SetTxState(
+				(ifTape->GetTxState() == TP_TX_WAIT_HEAD)
+					? TP_TX_HEAD
+					: TP_TX_BODY
+			);
+
+			cpu->SetHL((WORD) (hl + tapeBlockLen));
+			cpu->SetDE((WORD) 0);
+			cpu->SetBC((WORD) (crc << 8));
+			cpu->SetAF((WORD) 0x0056);
+			cpu->SetPC((WORD) 0x8D93);
 		}
 
 		// back to debugger after RET, Rx instructions
@@ -1296,8 +1404,13 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 	if (memory)
 		delete memory;
 	memory = NULL;
-	if (ifTape)
-		delete ifTape;
+	if (ifTape) {
+		ifTape->PrepareSample.disconnect_all();
+		if (ifTape->GetModel() == CM_MATO)
+			delete ((IifTapeMato *) ifTape);
+		else
+			delete ((IifTapePMD85 *) ifTape);
+	}
 	ifTape = NULL;
 	if (ifTimer)
 		delete ifTimer;
@@ -1308,9 +1421,17 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 	if (ifGpio)
 		delete ifGpio;
 	ifGpio = NULL;
-	if (systemPIO)
+	if (systemPIO) {
+		systemPIO->PrepareSample.disconnect_all();
 		delete systemPIO;
+	}
 	systemPIO = NULL;
+
+	TTapeIfType tapeIfType = TIT_V1;
+	if (model < CM_MATO)
+		tapeIfType = Settings->CurrentModel->tapeIfType;
+	else if (model == CM_ALFA2 || model == CM_C2717)
+		tapeIfType = TIT_V2;
 
 	BYTE *romBuff = new BYTE[16 * KB];
 	memset(romBuff, 0xFF, 16 * KB);
@@ -1401,25 +1522,35 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 		ifTimer = new IifTimer(model, cpu);
 		cpu->AddDevice(IIF_TIMER_ADR, IIF_TIMER_MASK, ifTimer, false);
 		cpu->TCyclesListeners.connect(ifTimer, &IifTimer::ITimerService);
+	}
 
-		// Tape interface
-		ifTape = new IifTape(model);
-		ifTape->PrepareSample.connect(sound, &SoundDriver::PrepareSample);
-		TapeBrowser->SetIfTape(ifTape);
+	// Tape interface
+	if (model == CM_MATO)
+		ifTape = new IifTapeMato(systemPIO);
+	else
+		ifTape = new IifTapePMD85(model, tapeIfType);
 
-		// set proper tape interface ports in CPU
-		if (model == CM_ALFA || model == CM_ALFA2)
-			cpu->AddDevice(IIF_TAPE_ADR_A, IIF_TAPE_MASK_A, ifTape, true);
-		else
-			cpu->AddDevice(IIF_TAPE_ADR, IIF_TAPE_MASK, ifTape, true);
+	ifTape->PrepareSample.connect(sound, &SoundDriver::PrepareSample);
+	TapeBrowser->SetIfTape(ifTape);
 
+	// set proper tape interface ports in CPU
+	if (model == CM_ALFA || model == CM_ALFA2)
+		cpu->AddDevice(IIF_TAPE_ADR_A, IIF_TAPE_MASK_A, (PeripheralDevice *) ifTape, true);
+	else if (model != CM_MATO)
+		cpu->AddDevice(IIF_TAPE_ADR, IIF_TAPE_MASK, (PeripheralDevice *) ifTape, true);
+
+	if (model == CM_MATO)
+		cpu->TCyclesListeners.connect((IifTapeMato *) ifTape, &IifTapeMato::TapeClockService);
+	else {
 		// pin tape interface signal to timer
 		if (model != CM_V1 && model != CM_ALFA)
-			ifTimer->Counters[((model == CM_C2717) ? 0 : 1)].OnOutChange.connect(ifTape, &IifTape::TapeClockService23);
+			ifTimer->Counters[((model == CM_C2717) ? 0 : 1)].OnOutChange.connect((IifTapePMD85 *) ifTape, &IifTapePMD85::TapeClockService23);
 
 		// pin tape interface signal to CPU
-		cpu->TCyclesListeners.connect(ifTape, &IifTape::TapeClockService123);
+		cpu->TCyclesListeners.connect((IifTapePMD85 *) ifTape, &IifTapePMD85::TapeClockService123);
+	}
 
+	if (model != CM_MATO) {
 		// registering the extended memory 256k mapper
 		if (ramExpansion256k)
 			cpu->AddDevice(MM256_REG_ADR, MM256_REG_MASK,
@@ -1724,8 +1855,10 @@ void TEmulator::ProcessSnapshot(char *fileName, BYTE *flag)
 //			ifIms2->SetChipState(buf + 38);
 		if (ifTimer)
 			ifTimer->SetChipState(buf + 43);
-		if (ifTape)
-			ifTape->SetChipState(buf + 52);
+		if (ifTape) {
+			if (ifTape->GetModel() != CM_MATO)
+				((IifTapePMD85 *) ifTape)->SetChipState(buf + 52);
+		}
 
 		// block 0 - 3FFFh
 		len = (int) *((WORD *) (buf + 22));
@@ -1842,8 +1975,10 @@ void TEmulator::PrepareSnapshot(char *fileName, BYTE *flag)
 //		ifIms2->GetChipState(buf + 38);
 	if (ifTimer)
 		ifTimer->GetChipState(buf + 43);
-	if (ifTape)
-		ifTape->GetChipState(buf + 52);
+	if (ifTape) {
+		if (ifTape->GetModel() != CM_MATO)
+			((IifTapePMD85 *) ifTape)->GetChipState(buf + 52);
+	}
 
 	do {
 		*flag = 0xFF;
@@ -2139,7 +2274,7 @@ void TEmulator::SelectRawFile(char *fileName, BYTE *flag)
 bool TEmulator::ProcessRawFile(bool save)
 {
 	int length = Settings->MemoryBlock->length,
-	     start = Settings->MemoryBlock->start;
+		 start = Settings->MemoryBlock->start;
 
 	if (start < 0 || start > 65535)
 		return false;

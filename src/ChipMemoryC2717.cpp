@@ -53,6 +53,7 @@ BYTE* ChipMemoryC2717::GetVramPointer()
  * area (MA_NA), returns NULL value into address of output parameter 'ptr'.
  * If requested block doesn't exist or parameters are incorrect, returns
  * value -1 and NULL in 'ptr' adress.
+ * In C2717 there are two different remapping modes for addresses above C000h.
  *
  * @param physAddr physical address to memory - 0 to FFFFh
  * @param len lenght of requested block

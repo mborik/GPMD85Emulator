@@ -31,6 +31,8 @@
 #include "SystemPIO.h"
 #include "IifTimer.h"
 #include "IifTape.h"
+#include "IifTapePMD85.h"
+#include "IifTapeMato.h"
 #include "IifGPIO.h"
 #include "Joy4004482.h"
 #include "Mouse602.h"

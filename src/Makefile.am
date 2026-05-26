@@ -28,6 +28,8 @@ libGPMD85emu_core_a_SOURCES = \
 	ChipUSART8251.cpp \
 	IifGPIO.cpp \
 	IifTape.cpp \
+	IifTapeMato.cpp \
+	IifTapePMD85.cpp \
 	IifTimer.cpp \
 	Joy4004482.cpp \
 	Mif85.cpp \
@@ -62,6 +64,8 @@ noinst_HEADERS = \
 	ChipUSART8251.h \
 	IifGPIO.h \
 	IifTape.h \
+	IifTapeMato.h \
+	IifTapePMD85.h \
 	IifTimer.h \
 	InterruptController.h \
 	Joy4004482.h \

@@ -130,6 +130,17 @@ TSettings::TSettings(bool userCfg)
 			continue;
 		}
 
+		model->tapeIfType = TIT_V2;
+		if ((m = cfgGetLine(n, "tape-if")) != NULL) {
+			if (strcmp(m->value, "v1") == 0)
+				model->tapeIfType = TIT_V1;
+
+			m->type = LT_TAPEIF;
+			m->ptr = (void *) &(model->tapeIfType);
+		}
+		else if (model->type < CM_MATO)
+			cfgInsertNewLine(n->next, "tape-if", LT_TAPEIF, (void *) &(model->tapeIfType));
+
 		model->romFile = cfgGetStringValue(n, "rom", &(model->romFile));
 		if (model->romFile == NULL) {
 			warning("Settings", "ROM file not defined for %s!", n->key);
@@ -141,7 +152,13 @@ TSettings::TSettings(bool userCfg)
 		model->romModuleInserted = cfgGetBoolValue(n, "rmm-inserted", false, &(model->romModuleInserted));
 		model->ramExpansion256k = cfgGetBoolValue(n, "ext-256k-ram", false, &(model->ramExpansion256k));
 		model->romSplit8kMode = cfgGetBoolValue(n, "rom-split-8k", false, &(model->romSplit8kMode));
-		model->matoAllRAM64k = cfgGetBoolValue(n, "allram-64k", false, &(model->matoAllRAM64k));
+
+		model->matoAllRAM64k = false;
+		if ((m = cfgGetLine(n, "allram-64k")) != NULL)
+			model->matoAllRAM64k = cfgGetBoolValue(n, "allram-64k", false, &(model->matoAllRAM64k));
+		else if (model->type == CM_MATO)
+			cfgInsertNewLine(n->next, "allram-64k", LT_BOOL, (void *) &(model->matoAllRAM64k));
+
 		model->megaModuleEnabled = cfgGetBoolValue(n, "mrm-enabled", false, &(model->megaModuleEnabled));
 
 		model->mrmFile = cfgGetStringValue(n, "mrm-file", &(model->mrmFile));
@@ -986,6 +1003,54 @@ void TSettings::storeSettings()
 					std = b = true;
 					break;
 
+				case LT_MOUSE:
+					i = *((uintptr_t *) entry->ptr);
+					switch ((TMouseType) i) {
+						case MT_M602:
+							buf = (char *) "m602";
+							break;
+						default:
+							buf = (char *) "none";
+							break;
+					}
+					std = true;
+					break;
+
+				case LT_JOY:
+					i = *((uintptr_t *) entry->ptr);
+					switch ((TJoyType) i) {
+						case JT_KEYS:
+							buf = (char *) "keys";
+							break;
+						case JT_AXES:
+							buf = (char *) "axes";
+							break;
+						case JT_POV:
+							buf = (char *) "pov";
+							break;
+						case JT_BUTTONS:
+							buf = (char *) "buttons";
+							break;
+						default:
+							buf = (char *) "none";
+							break;
+					}
+					std = true;
+					break;
+
+				case LT_TAPEIF:
+					i = *((uintptr_t *) entry->ptr);
+					switch ((TTapeIfType) i) {
+						case TIT_V1:
+							buf = (char *) "v1";
+							break;
+						default:
+							buf = (char *) "v2";
+							break;
+					}
+					std = true;
+					break;
+
 				case LT_NOTATION:
 					b = *((bool *) entry->ptr);
 					buf = (char *) (b ? "z80" : "i8080");
@@ -1031,41 +1096,6 @@ void TSettings::storeSettings()
 							break;
 						default:
 							buf = (char *) "mem";
-							break;
-					}
-					std = true;
-					break;
-
-				case LT_MOUSE:
-					i = *((uintptr_t *) entry->ptr);
-					switch ((TMouseType) i) {
-						case MT_M602:
-							buf = (char *) "m602";
-							break;
-						default:
-							buf = (char *) "none";
-							break;
-					}
-					std = true;
-					break;
-
-				case LT_JOY:
-					i = *((uintptr_t *) entry->ptr);
-					switch ((TJoyType) i) {
-						case JT_KEYS:
-							buf = (char *) "keys";
-							break;
-						case JT_AXES:
-							buf = (char *) "axes";
-							break;
-						case JT_POV:
-							buf = (char *) "pov";
-							break;
-						case JT_BUTTONS:
-							buf = (char *) "buttons";
-							break;
-						default:
-							buf = (char *) "none";
 							break;
 					}
 					std = true;

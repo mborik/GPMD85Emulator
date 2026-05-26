@@ -1,27 +1,24 @@
-/*  IifTape.h: Class for emulation of tape interface
-    Copyright (c) 2006-2010 Roman Borik <pmd85emu@gmail.com>
+/*	IifTape.h: Core of emulation of tape interface
+	Copyright (c) 2006-2026 Roman Borik <pmd85emu@gmail.com>
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program. If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 //---------------------------------------------------------------------------
 #ifndef IifTapeH
 #define IifTapeH
 //---------------------------------------------------------------------------
 #include "globals.h"
-#include "PeripheralDevice.h"
-#include "ChipUSART8251.h"
-#include "ChipPIT8253.h"
 //---------------------------------------------------------------------------
 // Cassette recorder interface and IRPS uses port addresses 1Eh and 1Fh
 // Because of incomplete address decoder these mirror at 1Ch and 1Dh
@@ -58,6 +55,9 @@
 #define TC_EB_GAP         (int)(0.2 / (1.0 / TAPE_FREQ)) * 2  // 0.2 sec
 #define TC_EB_MAX         (int)(2.0 / (1.0 / TAPE_FREQ)) * 2  // 2.0 sec
 
+#define TC_PULSE_SHORT    619       // 302,246 us
+#define TC_PULSE_LONG     1211      // 591,309 us
+
 #define TP_RX_IDLE        0
 #define TP_RX_LEADER      1
 #define TP_RX_START       2
@@ -65,6 +65,13 @@
 #define TP_RX_STOP        4
 #define TP_RX_TAIL        5
 #define TP_RX_GAP         6
+#define TP_RX_PULSE_0     7
+#define TP_RX_PULSE_1     8
+#define TP_RX_LOG_0       9
+#define TP_RX_LOG_1       10
+#define TP_RX_BYTE        11
+#define TP_RX_BLOCK       12
+#define TP_RX_BLOCK_END   13
 
 #define TP_TX_FF          0
 #define TP_TX_00          1
@@ -73,6 +80,8 @@
 #define TP_TX_BODY        4
 #define TP_TX_WAIT_EB     5
 #define TP_TX_EXT_BODY    6
+#define TP_TX_WAIT_HEAD   7
+#define TP_TX_WAIT_BODY   8
 
 #define CMD_STOP          1
 #define CMD_NEXT          2
@@ -81,21 +90,14 @@
 #define CMD_PRE_SAVE      5
 #define CMD_SAVE          6
 //---------------------------------------------------------------------------
-class IifTape : public PeripheralDevice, public ChipUSART8251 {
+class IifTape {
 	public:
-		IifTape(TComputerModel model);
-
-		virtual void ResetDevice(int ticks);
-		virtual void WriteToDevice(BYTE port, BYTE value, int ticks);
-		virtual BYTE ReadFromDevice(BYTE port, int ticks);
+		IifTape(TComputerModel model, TTapeIfType ifType);
 
 		sigslot::signal2<int, bool *> TapeCommand;
 		sigslot::signal3<int, bool, int> PrepareSample;
 
 		int GetTapeIcon();
-
-		void TapeClockService123(int ticks, int dur);
-		void TapeClockService23(TPITCounter counter, bool outState);
 
 		TComputerModel inline GetModel() { return model; }
 
@@ -107,8 +109,14 @@ class IifTape : public PeripheralDevice, public ChipUSART8251 {
 		void PrepareBlock(BYTE *data, WORD length, bool head, bool flash, bool onPlay);
 		int GetSavedBlock(BYTE **pbuf);
 
-	private:
+		inline WORD GetRestDatalen() { return dataLen; }
+		inline int GetRxState() { return tapeRxState; }
+		inline int GetTxState() { return tapeTxState; }
+		inline void SetTxState(int txState) { tapeTxState = txState; }
+
+	protected:
 		TComputerModel model;
+		TTapeIfType ifType;
 
 		int tapeTicks;
 		bool tapeClkState;
@@ -129,10 +137,6 @@ class IifTape : public PeripheralDevice, public ChipUSART8251 {
 		int txTickCounter;
 		BYTE buff[TAPE_BLOCK_SIZE + 2];
 		BYTE crc;
-
-		void FnOnRtsSet();
-		void FnOnTxRChange();
-		void InitTapeTx();
 };
 //---------------------------------------------------------------------------
 #endif
