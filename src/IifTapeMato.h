@@ -1,0 +1,38 @@
+/*	IifTapeMato.h: Derived class for emulation of Mato tape interface
+	Copyright (c) 2006-2026 Roman Borik <pmd85emu@gmail.com>
+
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+//---------------------------------------------------------------------------
+#ifndef IifTapeMatoH
+#define IifTapeMatoH
+//---------------------------------------------------------------------------
+#include "globals.h"
+#include "IifTape.h"
+#include "SystemPIO.h"
+//---------------------------------------------------------------------------
+class IifTapeMato : public IifTape, public sigslot::has_slots<> {
+	public:
+		IifTapeMato(SystemPIO *systemPIO);
+		void TapeClockService(int ticks, int dur);
+
+	private:
+		SystemPIO *systemPIO;
+		int tapeRxStateNext;
+		int tapeTicksNext;
+		int counter;
+};
+//---------------------------------------------------------------------------
+#endif
+//---------------------------------------------------------------------------

@@ -20,7 +20,7 @@
 //-----------------------------------------------------------------------------
 #include "globals.h"
 //-----------------------------------------------------------------------------
-#define CONFIGURATION_VERSION "5"
+#define CONFIGURATION_VERSION "6"
 //-----------------------------------------------------------------------------
 class TSettings
 {
@@ -43,6 +43,7 @@ class TSettings
 			bool romSplit8kMode;
 			bool ramExpansion256k;
 			bool matoAllRAM64k;
+			TTapeIfType tapeIfType;
 			SetRomPackage *romModule;
 			bool megaModuleEnabled;
 			char *mrmFile;
@@ -138,7 +139,7 @@ class TSettings
 			LT_EMPTY, LT_COMMENT, LT_DELIMITER, LT_SECTION, LT_ITEM, LT_LIST,
 			LT_STRING, LT_QUOTED, LT_NUMBER, LT_BOOL, LT_RADIX, LT_AUTOSTOP,
 			LT_SCR_SIZE, LT_SCR_HP, LT_SCR_COL, LT_SCR_PAL, LT_COLOR, LT_ROM,
-			LT_NOTATION, LT_DEBUGLIST, LT_DEBUGSRC, LT_MOUSE, LT_JOY
+			LT_MOUSE, LT_JOY, LT_TAPEIF, LT_NOTATION, LT_DEBUGLIST, LT_DEBUGSRC
 		};
 		typedef struct cfgIniLine {
 			cfgIniLineType type;

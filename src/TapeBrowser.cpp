@@ -357,7 +357,15 @@ void TTapeBrowser::ActionPlay()
 		return;
 
 	PrepareData(true);
-	ifTape->PrepareBlock(data, dataLen, head, Settings->TapeBrowser->flash, true);
+	if (ifTape) {
+		// Handle special case for Mato.
+		// Header block has 63 bytes, but pass only 15 bytes to the ROM routine.
+		if (head && dataLen == 63 && ifTape->GetModel() == CM_MATO)
+			ifTape->PrepareBlock(data + 48, 15, head, Settings->TapeBrowser->flash, true);
+		else
+			ifTape->PrepareBlock(data, dataLen, head, Settings->TapeBrowser->flash, true);
+	}
+
 	ProgressBar->Position = 0;
 	ProgressBar->Max = dataLen;
 
