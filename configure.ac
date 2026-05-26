@@ -2,7 +2,7 @@
 # mborik, 10/2011-04/2014, 09/2017, 11-12/2019, 07/2024
 
 AC_PREREQ([2.59])
-AC_INIT([GPMD85emulator], [0.12.2407], [mborik@users.sourceforge.net],
+AC_INIT([GPMD85emulator], [0.13.2605], [mborik@users.sourceforge.net],
         [gpmd85emu], [https://github.com/mborik/GPMD85Emulator])
 AC_CONFIG_SRCDIR([GPMD85emu.cpp])
 
@@ -38,8 +38,8 @@ AC_ARG_ENABLE([debug],
 	[debug=no]
 )
 if test "x$debug" = "xyes"; then
-	CXXFLAGS="-g3 -O0 -Wall -DDEBUG"
-	CFLAGS="-g3 -O0 -Wall -DDEBUG"
+	CXXFLAGS="-g3 -O0 -Wno-deprecated -DDEBUG"
+	CFLAGS="-g3 -O0 -Wno-deprecated -DDEBUG"
 	LDFLAGS=""
 	DEBUG=1
 else
