@@ -90,6 +90,7 @@ void IifTapeMato::TapeClockService(int ticks, int dur)
 			}
 			else if (--counter == 0) {
 				if (tapeRxState == TP_RX_LEADER) {
+					TapeCommand(CMD_PROGRESS, NULL);
 					tapeRxState = TP_RX_BYTE;
 					byte = 0x55;
 					counter = -2;
@@ -145,6 +146,7 @@ void IifTapeMato::TapeClockService(int ticks, int dur)
 				tapeRxStateNext = TP_RX_BYTE;
 			}
 			else if (--counter == 0) {
+				TapeCommand(CMD_PROGRESS, NULL);
 				tapeRxState = TP_RX_BLOCK;
 			}
 			else {
