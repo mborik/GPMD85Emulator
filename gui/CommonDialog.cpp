@@ -31,6 +31,10 @@ void UserInterface::AboutDialog()
 	}
 
 	menuStackLevel++;
+	menuStack[menuStackLevel].type = GUI_TYPE_ABOUT_DIALOG;
+	menuStack[menuStackLevel].data = NULL;
+	menuStack[menuStackLevel].frame = NULL;
+	menuStack[menuStackLevel].hilite = 0;
 
 	sprintf(
 		msgbuffer,
@@ -111,63 +115,6 @@ void UserInterface::AboutDialog()
 		warning("GUI", "Can't load icon resource file");
 
 	UnlockSurface(defaultTexture, defaultSurface);
-	SDL_Delay(GPU_TIMER_INTERVAL);
-
-	i = 1;
-	DWORD nextTick;
-	SDL_Event event;
-
-	while (i) {
-		nextTick = SDL_GetTicks() + CPU_TIMER_INTERVAL;
-
-		while (SDL_PollEvent(&event)) {
-			switch (event.type) {
-				case SDL_KEYDOWN:
-					switch (event.key.keysym.scancode) {
-						case SDL_SCANCODE_SPACE:
-						case SDL_SCANCODE_ESCAPE:
-						case SDL_SCANCODE_RETURN:
-						case SDL_SCANCODE_KP_ENTER:
-							i = 0;
-							break;
-
-						default:
-							break;
-					}
-					break;
-
-				case SDL_WINDOWEVENT:
-					if (event.window.windowID == gdc.windowID &&
-						event.window.event == SDL_WINDOWEVENT_EXPOSED) {
-
-						Emulator->RefreshDisplay();
-					}
-					break;
-
-				default:
-					break;
-			}
-		}
-
-		while (SDL_GetTicks() < nextTick)
-			SDL_Delay(1);
-	}
-
-	defaultSurface = LockSurface(defaultTexture);
-
-	menuStackLevel--;
-	if (menuStackLevel >= 0) {
-		memcpy(defaultSurface->pixels, menuStack[menuStackLevel].frame, frameLength);
-		delete [] menuStack[menuStackLevel].frame;
-		menuStack[menuStackLevel].frame = NULL;
-	}
-	else
-		memset(defaultSurface->pixels, 0, frameLength);
-
-	UnlockSurface(defaultTexture, defaultSurface);
-
-	SDL_Delay(GPU_TIMER_INTERVAL);
-	needRelease = true;
 }
 //-----------------------------------------------------------------------------
 BYTE UserInterface::QueryDialog(const char *title, bool save)
@@ -178,146 +125,73 @@ BYTE UserInterface::QueryDialog(const char *title, bool save)
 	sprintf(dialogTitle, "  %s  ", title);
 	((GUI_MENU_ENTRY *) data)->text = (const char *) dialogTitle;
 
-	GUI_SURFACE *defaultSurface = LockSurface(defaultTexture);
-	if (menuStackLevel < 0)
-		memset(defaultSurface->pixels, 0, frameLength);
-	else {
-		menuStack[menuStackLevel].frame = new BYTE[frameLength];
-		memcpy(menuStack[menuStackLevel].frame, defaultSurface->pixels, frameLength);
-	}
-	UnlockSurface(defaultTexture, defaultSurface);
+	MenuOpen(GUI_TYPE_QUERY_DIALOG, data);
 
-	GUI_MENU_ENTRY *bkm_data = cMenu_data;
-	SDL_Rect *bkm_rect = new SDL_Rect(*cMenu_rect);
-	int bkm_leftMargin = cMenu_leftMargin,
-		bkm_hilite = cMenu_hilite,
-		bkm_count = cMenu_count;
+	// TODO FIXME
+	return GUI_QUERY_NONE;
+}
+//-----------------------------------------------------------------------------
+void UserInterface::KeyhandlerQueryDialog(WORD key)
+{
+	GUI_MENU_ENTRY *ptr = &cMenu_data[cMenu_hilite + 1];
+	bool change = false;
 
-	menuStackLevel++;
-	menuStack[menuStackLevel].type = GUI_TYPE_MENU;
-	menuStack[menuStackLevel].data = data;
-	menuStack[menuStackLevel].hilite = cMenu_hilite = (save) ? 2 : 1;
-	menuStack[menuStackLevel].frame = NULL;
+	switch (key) {
+		case SDL_SCANCODE_ESCAPE:
+			uiQueryState = GUI_QUERY_CANCEL;
+			MenuClose();
+			return;
 
-	DrawMenu(data);
+		case SDL_SCANCODE_RETURN:
+		case SDL_SCANCODE_KP_ENTER:
+			uiQueryState = ptr->action;
+			MenuClose();
+			return;
 
-	bool change;
-	DWORD nextTick;
-	SDL_Event event;
-	GUI_MENU_ENTRY *ptr;
-	uiQueryState = GUI_QUERY_NONE;
-
-	SDL_Delay(GPU_TIMER_INTERVAL);
-	while (uiQueryState == GUI_QUERY_NONE) {
-		nextTick = SDL_GetTicks() + CPU_TIMER_INTERVAL;
-
-		while (SDL_PollEvent(&event)) {
-			switch (event.type) {
-				case SDL_KEYDOWN:
-					ptr = &cMenu_data[cMenu_hilite + 1];
-					change = false;
-
-					switch (event.key.keysym.scancode) {
-						case SDL_SCANCODE_ESCAPE:
-							uiQueryState = GUI_QUERY_CANCEL;
-							break;
-
-						case SDL_SCANCODE_RETURN:
-						case SDL_SCANCODE_KP_ENTER:
-							uiQueryState = ptr->action;
-							break;
-
-						case SDL_SCANCODE_Y:
-							if (!save) {
-								uiQueryState = cMenu_data[1].action;
-							}
-							break;
-
-						case SDL_SCANCODE_N:
-							if (!save) {
-								uiQueryState = cMenu_data[2].action;
-							}
-							break;
-
-						case SDL_SCANCODE_UP:
-							if (cMenu_hilite > 0) {
-								cMenu_hilite--;
-								change = true;
-							}
-							break;
-
-						case SDL_SCANCODE_DOWN:
-							if (cMenu_hilite < (cMenu_count - 1)) {
-								cMenu_hilite++;
-								change = true;
-							}
-							break;
-
-						default:
-							break;
-					}
-
-					if (change) {
-						DrawMenuItems();
-						break;
-					}
-
-					for (ptr = &cMenu_data[1]; ptr->type != MENU_END; ptr++) {
-						if (event.key.keysym.sym == ptr->key) {
-							uiQueryState = ptr->action;
-							break;
-						}
-					}
-					break;
-
-				case SDL_WINDOWEVENT:
-					if (event.window.windowID == gdc.windowID &&
-						event.window.event == SDL_WINDOWEVENT_EXPOSED) {
-
-						Emulator->RefreshDisplay();
-					}
-					break;
-
-				default:
-					break;
+		case SDL_SCANCODE_Y:
+			if (cMenu_data[2].action != GUI_QUERY_SAVE) {
+				uiQueryState = cMenu_data[1].action;
+				MenuClose();
 			}
+			return;
+
+		case SDL_SCANCODE_N:
+			if (cMenu_data[2].action != GUI_QUERY_SAVE) {
+				uiQueryState = cMenu_data[2].action;
+				MenuClose();
+			}
+			return;
+
+		case SDL_SCANCODE_UP:
+			if (cMenu_hilite > 0) {
+				cMenu_hilite--;
+				change = true;
+			}
+			break;
+
+		case SDL_SCANCODE_DOWN:
+			if (cMenu_hilite < (cMenu_count - 1)) {
+				cMenu_hilite++;
+				change = true;
+			}
+			break;
+
+		default:
+			break;
+	}
+
+	if (change) {
+		DrawMenuItems();
+		return;
+	}
+
+	for (ptr = &cMenu_data[1]; ptr->type != MENU_END; ptr++) {
+		if (key == ptr->key) {
+			uiQueryState = ptr->action;
+			MenuClose();
+			return;
 		}
-
-		while (SDL_GetTicks() < nextTick)
-			SDL_Delay(1);
 	}
-
-	defaultSurface = LockSurface(defaultTexture);
-
-	menuStackLevel--;
-	if (menuStackLevel >= 0) {
-		memcpy(defaultSurface->pixels, menuStack[menuStackLevel].frame, frameLength);
-		delete [] menuStack[menuStackLevel].frame;
-		menuStack[menuStackLevel].frame = NULL;
-	}
-	else
-		memset(defaultSurface->pixels, 0, frameLength);
-
-	UnlockSurface(defaultTexture, defaultSurface);
-
-	needRelease = true;
-
-	((GUI_MENU_ENTRY *) data)->text = NULL;
-	delete [] dialogTitle;
-
-	cMenu_rect->x = bkm_rect->x;
-	cMenu_rect->y = bkm_rect->y;
-	cMenu_rect->w = bkm_rect->w;
-	cMenu_rect->h = bkm_rect->h;
-	delete bkm_rect;
-
-	cMenu_data = bkm_data;
-	cMenu_leftMargin = bkm_leftMargin;
-	cMenu_hilite = bkm_hilite;
-	cMenu_count = bkm_count;
-
-	SDL_Delay(GPU_TIMER_INTERVAL);
-	return uiQueryState;
 }
 //-----------------------------------------------------------------------------
 void UserInterface::MessageBox(const char *text, ...)
@@ -337,6 +211,10 @@ void UserInterface::MessageBox(const char *text, ...)
 	}
 
 	menuStackLevel++;
+	menuStack[menuStackLevel].type = GUI_TYPE_MESSAGE_BOX;
+	menuStack[menuStackLevel].data = NULL;
+	menuStack[menuStackLevel].frame = NULL;
+	menuStack[menuStackLevel].hilite = 0;
 
 	unsigned i, w = 0, h = fontLineHeight, x, y;
 	for (i = 0, x = 0; i < strlen(msgbuffer); i++) {
@@ -376,62 +254,21 @@ void UserInterface::MessageBox(const char *text, ...)
 			y + GUI_CONST_BORDER + 1, GUI_COLOR_FOREGROUND, msgbuffer);
 
 	UnlockSurface(defaultTexture, defaultSurface);
-	SDL_Delay(GPU_TIMER_INTERVAL);
-
-	i = 1;
-	DWORD nextTick;
-	SDL_Event event;
-
-	while (i) {
-		nextTick = SDL_GetTicks() + CPU_TIMER_INTERVAL;
-
-		while (SDL_PollEvent(&event)) {
-			switch (event.type) {
-				case SDL_KEYDOWN:
-					switch (event.key.keysym.scancode) {
-						case SDL_SCANCODE_SPACE:
-						case SDL_SCANCODE_ESCAPE:
-						case SDL_SCANCODE_RETURN:
-						case SDL_SCANCODE_KP_ENTER:
-							i = 0;
-							break;
-
-						default:
-							break;
-					}
-					break;
-
-				case SDL_WINDOWEVENT:
-					if (event.window.windowID == gdc.windowID &&
-						event.window.event == SDL_WINDOWEVENT_EXPOSED) {
-
-						Emulator->RefreshDisplay();
-					}
-					break;
-
-				default:
-					break;
-			}
-		}
-
-		while (SDL_GetTicks() < nextTick)
-			SDL_Delay(1);
-	}
-
-	defaultSurface = LockSurface(defaultTexture);
-
-	menuStackLevel--;
-	if (menuStackLevel >= 0) {
-		memcpy(defaultSurface->pixels, menuStack[menuStackLevel].frame, frameLength);
-		delete [] menuStack[menuStackLevel].frame;
-		menuStack[menuStackLevel].frame = NULL;
-	}
-	else
-		memset(defaultSurface->pixels, 0, frameLength);
-
-	UnlockSurface(defaultTexture, defaultSurface);
-
-	SDL_Delay(GPU_TIMER_INTERVAL);
 	needRelease = true;
+}
+//-----------------------------------------------------------------------------
+void UserInterface::KeyhandlerCommonDialog(WORD key)
+{
+	switch (key) {
+		case SDL_SCANCODE_SPACE:
+		case SDL_SCANCODE_ESCAPE:
+		case SDL_SCANCODE_RETURN:
+		case SDL_SCANCODE_KP_ENTER:
+			MenuClose();
+			break;
+
+		default:
+			break;
+	}
 }
 //-----------------------------------------------------------------------------

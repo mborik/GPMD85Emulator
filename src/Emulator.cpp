@@ -1399,6 +1399,139 @@ int TEmulator::ActionJoyControllers(SDL_GameController ***controllers, bool refr
 	return joystick->GetControllers(controllers, refresh);
 }
 //---------------------------------------------------------------------------
+void TEmulator::ActionScreenBorderCallback(char *buffer, BYTE result)
+{
+	if (result != 1)
+		return;
+
+	WORD newValue = strtol(buffer, NULL, 10);
+	if (newValue == 0 && buffer[0] != '0')
+		newValue = -1;
+
+	if (newValue >= 0 && newValue <= 9) {
+		Settings->Screen->border = (BYTE) newValue;
+		GUI->uiSetChanges |= PS_SCREEN_SIZE;
+	}
+}
+//---------------------------------------------------------------------------
+void TEmulator::ActionSoundVolumeCallback(char *buffer, BYTE result)
+{
+	if (result != 1)
+		return;
+
+	WORD value = strtol(buffer, NULL, 10);
+	if (value > 1 && value <= 127) {
+		Settings->Sound->volume = (BYTE) value;
+		GUI->uiSetChanges |= PS_SOUND;
+	}
+}
+//---------------------------------------------------------------------------
+void TEmulator::ActionEmulationSpeedCallback(char *buffer, BYTE result)
+{
+	if (result != 1)
+		return;
+
+	WORD value = strtol(buffer, NULL, 10);
+	if (value == 0 && buffer[0] != '0')
+		value = 100;
+	else if (value < 10 && value > 1000)
+		value = 100;
+
+	Settings->emulationSpeed = ((double) value / 100.0f);
+}
+//---------------------------------------------------------------------------
+void TEmulator::ActionMemMegaModulePageCallback(char *buffer, BYTE result)
+{
+	if (result != 1)
+		return;
+
+	WORD value = strtol(buffer, NULL, 10);
+	if (value <= MEGA_MODULE_MAX_PAGES) {
+		ActionMegaModulePage(true, (BYTE) value);
+		GUI->uiSetChanges |= PS_CLOSEALL;
+	}
+}
+//---------------------------------------------------------------------------
+void TEmulator::ActionJoySensitivityCallback(char *buffer, BYTE result)
+{
+	if (result != 1)
+		return;
+
+	TSettings::SetJoystickGPIO *gpio = Settings->Joystick->GPIO0;
+	if (buffer[0x100] == GP_GPIO_1)
+		gpio = Settings->Joystick->GPIO1;
+
+	WORD value = strtol(buffer, NULL, 10);
+	if (value >= 1 && value < 100) {
+		gpio->sensitivity = value;
+	}
+}
+//---------------------------------------------------------------------------
+void TEmulator::ActionJoySelectionCallback(char *buffer, BYTE result)
+{
+	if (result != 1)
+		return;
+
+	TSettings::SetJoystickGPIO *gpio = Settings->Joystick->GPIO0;
+	if (buffer[31] == GP_GPIO_1)
+		gpio = Settings->Joystick->GPIO1;
+
+	SDL_GameController **controllers;
+	int devCount = Emulator->ActionJoyControllers(&controllers, false);
+
+	WORD value = strtol(buffer, NULL, 10);
+	if (value >= 1 && value <= devCount) {
+		const char *guid = SDL_GameControllerGetSerial(controllers[value - 1]);
+		delete gpio->guid;
+		gpio->guid = new char[strlen(guid) + 1];
+		strcpy(gpio->guid, guid);
+
+		Emulator->ActionJoyControllers(NULL, true);
+	}
+}
+//---------------------------------------------------------------------------
+void TEmulator::ActionMemBlockAddressCallback(char *buffer, BYTE result)
+{
+	if (result != 1)
+		return;
+
+	int value;
+	if (buffer[0] == '#') {
+		value = strtol(buffer + 1, NULL, 16);
+		if (value == 0 && buffer[1] != '0')
+			value = -1;
+	}
+	else {
+		value = strtol(buffer, NULL, 10);
+		if (value == 0 && buffer[0] != '0')
+			value = -1;
+	}
+
+	if (value >= 0 && value < 65536)
+		Settings->MemoryBlock->start = (WORD) value;
+}
+//---------------------------------------------------------------------------
+void TEmulator::ActionMemBlockLengthCallback(char *buffer, BYTE result)
+{
+	if (result != 1)
+		return;
+
+	int value;
+	if (msgbuffer[0] == '#') {
+		value = strtol(msgbuffer + 1, NULL, 16);
+		if (value == 0 && msgbuffer[1] != '0')
+			value = -1;
+	}
+	else {
+		value = strtol(msgbuffer, NULL, 10);
+		if (value == 0 && msgbuffer[0] != '0')
+			value = -1;
+	}
+
+	if (value >= 0 && value < 65536)
+		Settings->MemoryBlock->length = (WORD) value;
+}
+//---------------------------------------------------------------------------
 void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 {
 	int fileSize;

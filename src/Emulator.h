@@ -93,6 +93,15 @@ class TEmulator : public sigslot::has_slots<>
 		void ActionHideCursor(bool hide = false);
 		int  ActionJoyControllers(SDL_GameController ***controllers = NULL, bool refresh = false);
 
+		void ActionScreenBorderCallback(char *buffer, BYTE result);
+		void ActionSoundVolumeCallback(char *buffer, BYTE result);
+		void ActionEmulationSpeedCallback(char *buffer, BYTE result);
+		void ActionMemMegaModulePageCallback(char *buffer, BYTE result);
+		void ActionJoySensitivityCallback(char *buffer, BYTE result);
+		void ActionJoySelectionCallback(char *buffer, BYTE result);
+		void ActionMemBlockAddressCallback(char *buffer, BYTE result);
+		void ActionMemBlockLengthCallback(char *buffer, BYTE result);
+
 	private:
 		bool inmenu;
 		SDL_Event exposeEvent;

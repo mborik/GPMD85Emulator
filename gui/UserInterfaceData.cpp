@@ -40,7 +40,7 @@ const char *dcb_tape_contblk_state(GUI_MENU_ENTRY *ptr)
 		ptr->enabled = TapeBrowser->Selection->continuity;
 		if (TapeBrowser->Selection->total == 0) {
 			ptr->enabled = true;
-			f = l = GUI->tapeDialog->popup.hilite;
+			f = l = GUI->tapeDialog->hilite;
 		}
 
 		if ((i == SDL_SCANCODE_UP && f == 0) ||
@@ -619,16 +619,8 @@ bool ccb_view_brdr(GUI_MENU_ENTRY *ptr)
 	WORD value = ((ptr) ? ptr->action : Settings->Screen->border);
 
 	sprintf(msgbuffer, "%d", value);
-	if (GUI->EditBox("CHANGE BORDER SIZE:", "(multiples of 8px)", msgbuffer, 1, true) == 1) {
-		value = strtol(msgbuffer, NULL, 10);
-		if (value == 0 && msgbuffer[0] != '0')
-			value = -1;
-
-		if (value >= 0 && value <= 9) {
-			Settings->Screen->border = (BYTE) value;
-			GUI->uiSetChanges |= PS_SCREEN_SIZE;
-		}
-	}
+	GUI->editBox->callback.connect(Emulator, &TEmulator::ActionScreenBorderCallback);
+	GUI->EditBox("CHANGE BORDER SIZE:", "(multiples of 8px)", msgbuffer, 1, true);
 
 	return false;
 }
@@ -677,13 +669,8 @@ bool ccb_snd_volume(GUI_MENU_ENTRY *ptr)
 	WORD value = ((ptr) ? ptr->action : Settings->Sound->volume);
 
 	sprintf(msgbuffer, "%d", value);
-	if (GUI->EditBox("CHANGE VOLUME:", "(min=2, max=127)", msgbuffer, 3, true) == 1) {
-		value = strtol(msgbuffer, NULL, 10);
-		if (value > 1 && value <= 127) {
-			Settings->Sound->volume = (BYTE) value;
-			GUI->uiSetChanges |= PS_SOUND;
-		}
-	}
+	GUI->editBox->callback.connect(Emulator, &TEmulator::ActionSoundVolumeCallback);
+	GUI->EditBox("CHANGE VOLUME:", "(min=2, max=127)", msgbuffer, 3, true);
 
 	return false;
 }
@@ -720,15 +707,8 @@ bool ccb_emu_speed(GUI_MENU_ENTRY *ptr)
 	WORD value = ((ptr) ? ptr->action : (Settings->emulationSpeed * 100.0f));
 
 	sprintf(msgbuffer, "%d", value);
-	if (GUI->EditBox("EMULATION SPEED:", "(enter 10% to 1000%)", msgbuffer, 4, true) == 1) {
-		value = strtol(msgbuffer, NULL, 10);
-		if (value == 0 && msgbuffer[0] != '0')
-			value = 100;
-		else if (value < 10 && value > 1000)
-			value = 100;
-
-		Settings->emulationSpeed = ((double) value / 100.0f);
-	}
+	GUI->editBox->callback.connect(Emulator, &TEmulator::ActionEmulationSpeedCallback);
+	GUI->EditBox("EMULATION SPEED:", "(enter 10% to 1000%)", msgbuffer, 4, true);
 
 	return false;
 }
@@ -810,13 +790,8 @@ bool ccb_mem_mrmpage(GUI_MENU_ENTRY *ptr)
 	WORD value = ptr ? ptr->action : (WORD) Emulator->ActionMegaModulePage();
 
 	sprintf(msgbuffer, "%d", value);
-	if (GUI->EditBox("MEGAMODULE PAGE:", "(enter 0 to 256)", msgbuffer, 3, true) == 1) {
-		value = strtol(msgbuffer, NULL, 10);
-		if (value <= MEGA_MODULE_MAX_PAGES) {
-			Emulator->ActionMegaModulePage(true, (BYTE) value);
-			GUI->uiSetChanges |= PS_CLOSEALL;
-		}
-	}
+	GUI->editBox->callback.connect(Emulator, &TEmulator::ActionMemMegaModulePageCallback);
+	GUI->EditBox("MEGAMODULE PAGE:", "(enter 0 to 256)", msgbuffer, 3, true);
 
 	return false;
 }
@@ -975,19 +950,16 @@ bool ccb_joy_keyset(GUI_MENU_ENTRY *ptr)
 bool ccb_joy_sens(GUI_MENU_ENTRY *ptr)
 {
 	TSettings::SetJoystickGPIO *gpio = Settings->Joystick->GPIO0;
-	WORD gpio_w = (ptr->action & 0x100);
 	if ((ptr->action >> 8) == GP_GPIO_1)
 		gpio = Settings->Joystick->GPIO1;
 
 	int value = gpio->sensitivity;
 
 	sprintf(msgbuffer, "%d", value);
-	if (GUI->EditBox("AXIS SENSITIVITY:", "(lower is more sensitive)", msgbuffer, 2, true) == 1) {
-		value = strtol(msgbuffer, NULL, 10);
-		if (value >= 1 && value < 100) {
-			gpio->sensitivity = value;
-		}
-	}
+	msgbuffer[0x100] = (ptr->action >> 8);
+
+	GUI->editBox->callback.connect(Emulator, &TEmulator::ActionJoySensitivityCallback);
+	GUI->EditBox("AXIS SENSITIVITY:", "(lower is more sensitive)", msgbuffer, 2, true);
 
 	return false;
 }
@@ -1017,18 +989,12 @@ bool ccb_joy_select(GUI_MENU_ENTRY *ptr)
 	char *input = (char *) uicch;
 	sprintf(msgbuffer, "(total controllers = %d)", devCount);
 	sprintf(input, "%d", value);
-	if (GUI->EditBox("CONTROLLER NUMBER:", msgbuffer, input, 1, true) == 1) {
-		value = strtol(input, NULL, 10);
-		if (value >= 1 && value <= devCount) {
-			const char *guid = SDL_GameControllerGetSerial(controllers[value - 1]);
-			delete gpio->guid;
-			gpio->guid = new char[strlen(guid) + 1];
-			strcpy(gpio->guid, guid);
+	input[31] = ptr->action;
 
-			Emulator->ActionJoyControllers(NULL, true);
-			ptr->detail(ptr);
-		}
-	}
+	GUI->editBox->callback.connect(Emulator, &TEmulator::ActionJoySelectionCallback);
+	GUI->EditBox("CONTROLLER NUMBER:", msgbuffer, input, 1, true);
+
+	// TODO FIXME: missing `ptr->detail(ptr)`
 
 	return false;
 }
@@ -1058,21 +1024,8 @@ bool ccb_blk_strt(GUI_MENU_ENTRY *ptr)
 	int value = ((ptr) ? ptr->action : Settings->MemoryBlock->start);
 
 	sprintf(msgbuffer, Settings->MemoryBlock->hex ? "#%04X" : "%d", value);
-	if (GUI->EditBox("CHANGE START ADDRESS:", NULL, msgbuffer, 5, false) == 1) {
-		if (msgbuffer[0] == '#') {
-			value = strtol(msgbuffer + 1, NULL, 16);
-			if (value == 0 && msgbuffer[1] != '0')
-				value = -1;
-		}
-		else {
-			value = strtol(msgbuffer, NULL, 10);
-			if (value == 0 && msgbuffer[0] != '0')
-				value = -1;
-		}
-
-		if (value >= 0 && value < 65536)
-			Settings->MemoryBlock->start = (WORD) value;
-	}
+	GUI->editBox->callback.connect(Emulator, &TEmulator::ActionMemBlockAddressCallback);
+	GUI->EditBox("CHANGE START ADDRESS:", NULL, msgbuffer, 5, false);
 
 	return false;
 }
@@ -1082,21 +1035,8 @@ bool ccb_blk_leng(GUI_MENU_ENTRY *ptr)
 	int value = ((ptr) ? ptr->action : Settings->MemoryBlock->length);
 
 	sprintf(msgbuffer, Settings->MemoryBlock->hex ? "#%04X" : "%d", value);
-	if (GUI->EditBox("CHANGE LENGTH:", NULL, msgbuffer, 5, false) == 1) {
-		if (msgbuffer[0] == '#') {
-			value = strtol(msgbuffer + 1, NULL, 16);
-			if (value == 0 && msgbuffer[1] != '0')
-				value = -1;
-		}
-		else {
-			value = strtol(msgbuffer, NULL, 10);
-			if (value == 0 && msgbuffer[0] != '0')
-				value = -1;
-		}
-
-		if (value >= 0 && value < 65536)
-			Settings->MemoryBlock->length = (WORD) value;
-	}
+	GUI->editBox->callback.connect(Emulator, &TEmulator::ActionMemBlockLengthCallback);
+	GUI->EditBox("CHANGE LENGTH:", NULL, msgbuffer, 5, false);
 
 	return false;
 }
