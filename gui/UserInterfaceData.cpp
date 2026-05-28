@@ -485,9 +485,25 @@ const char *dcb_mouse_cursor_state(GUI_MENU_ENTRY *ptr)
 	return NULL;
 }
 //-----------------------------------------------------------------------------
+const char *dcb_mouse_state(GUI_MENU_ENTRY *ptr)
+{
+	ptr->enabled = (Settings->CurrentModel->type <= CM_V3);
+	return NULL;
+}
+//-----------------------------------------------------------------------------
+const char *dcb_pmd32_state(GUI_MENU_ENTRY *ptr)
+{
+	ptr->enabled = (
+		Settings->CurrentModel->type <= CM_V3 ||
+		Settings->CurrentModel->type == CM_C2717
+	);
+	return NULL;
+}
+//-----------------------------------------------------------------------------
 const char *dcb_mif85_state(GUI_MENU_ENTRY *ptr)
 {
-	ptr->state = Settings->Sound->ifMIF85;
+	ptr->enabled = (Settings->CurrentModel->type <= CM_V3);
+	ptr->state = ptr->enabled ? Settings->Sound->ifMIF85 : false;
 	return NULL;
 }
 //-----------------------------------------------------------------------------
@@ -529,6 +545,13 @@ const char *dcb_blk_rmap_state(GUI_MENU_ENTRY *ptr)
 {
 	ptr->enabled = (Settings->CurrentModel->type == CM_C2717);
 	ptr->state = Settings->MemoryBlock->remapping;
+	return NULL;
+}
+//-----------------------------------------------------------------------------
+const char *dcb_pers_state(GUI_MENU_ENTRY *ptr)
+{
+	ptr->enabled = (Settings->CurrentModel->type != CM_MATO);
+	ptr->hotkey = ptr->enabled ? "F10" : NULL;
 	return NULL;
 }
 //-----------------------------------------------------------------------------

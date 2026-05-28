@@ -65,6 +65,8 @@ const char *dcb_joy_sens_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_joy_select_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_mouse_conn_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_mouse_cursor_state(GUI_MENU_ENTRY *ptr);
+const char *dcb_mouse_state(GUI_MENU_ENTRY *ptr);
+const char *dcb_pmd32_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_mif85_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_blk_file_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_blk_strt_state(GUI_MENU_ENTRY *ptr);
@@ -72,6 +74,7 @@ const char *dcb_blk_leng_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_blk_hexa_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_blk_roma_state(GUI_MENU_ENTRY *ptr);
 const char *dcb_blk_rmap_state(GUI_MENU_ENTRY *ptr);
+const char *dcb_pers_state(GUI_MENU_ENTRY *ptr);
 //-----------------------------------------------------------------------------
 bool ccb_tape_command(GUI_MENU_ENTRY *ptr);
 bool ccb_tape_new(GUI_MENU_ENTRY *ptr);
@@ -403,9 +406,9 @@ static GUI_MENU_ENTRY gui_p32_menu[] = {
 static GUI_MENU_ENTRY gui_pers_menu[] = {
 	{ MI_TITLE, "PERIPHERALS" },
 	{ MI_SUBMENU, "\aJOYSTICK 4004/482", NULL, SDL_SCANCODE_J, gui_joy_menu, NULL, NULL, true },
-	{ MI_SUBMENU, "\aMOUSE 602", NULL, SDL_SCANCODE_M, gui_mouse_menu, NULL, NULL, true },
+	{ MI_SUBMENU, "\aMOUSE 602", NULL, SDL_SCANCODE_M, gui_mouse_menu, NULL, dcb_mouse_state, true },
 	{ MI_SEPARATOR },
-	{ MI_SUBMENU, "PMD \a32", NULL, SDL_SCANCODE_3, gui_p32_menu, NULL, NULL, true },
+	{ MI_SUBMENU, "PMD \a32", NULL, SDL_SCANCODE_3, gui_p32_menu, NULL, dcb_pmd32_state, true },
 	{ MI_SEPARATOR },
 	{ MI_CHECKBOX, "M\aIF 85", NULL, SDL_SCANCODE_I, NULL, ccb_mif85, dcb_mif85_state, true },
 	{ MENU_END }
@@ -417,7 +420,7 @@ static GUI_MENU_ENTRY UNUSED_VARIABLE gui_main_menu[] = {
 	{ MI_SUBMENU, "\aEMULATOR", NULL, SDL_SCANCODE_E, gui_emu_menu, NULL, NULL, true },
 	{ MI_SUBMENU, "MA\aCHINE", "F9", SDL_SCANCODE_C, gui_machine_menu, NULL, NULL, true },
 	{ MI_SUBMENU, "\aMEMORY", "^F9", SDL_SCANCODE_M, gui_mem_menu, NULL, NULL, true },
-	{ MI_SUBMENU, "\aPERIPHERALS", "F10", SDL_SCANCODE_P, gui_pers_menu, NULL, NULL, true },
+	{ MI_SUBMENU, "\aPERIPHERALS", "F10", SDL_SCANCODE_P, gui_pers_menu, NULL, dcb_pers_state, true },
 	{ MI_SEPARATOR },
 	{ MI_DIALOG, "\aTAPE BROWSER", "T", SDL_SCANCODE_T, NULL, ccb_tapebrowser, NULL, true },
 //	{ MI_DIALOG, "DEBU\aGGER", "F12", SDL_SCANCODE_G, NULL, ccb_debugger, NULL, true },

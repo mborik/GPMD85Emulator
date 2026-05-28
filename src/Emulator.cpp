@@ -386,7 +386,11 @@ void TEmulator::ProcessSettings(BYTE filter)
 		ConnectMouse602(init);
 		ConnectPMD32(init);
 
-		if (init || Settings->Joystick->GPIO0->connected || Settings->Joystick->GPIO1->connected) {
+		if (Settings->CurrentModel->type != CM_MATO && (
+			init ||
+			Settings->Joystick->GPIO0->connected ||
+			Settings->Joystick->GPIO1->connected
+		)) {
 			if (joystick)
 				joystick->Connect();
 		}
@@ -905,8 +909,10 @@ bool TEmulator::TestHotkeys()
 				break;
 
 			case SDL_SCANCODE_F10:	// PERIPHERALS
-				ActionPlayPause(false, false);
-				GUI->MenuOpen(UserInterface::GUI_TYPE_MENU, gui_pers_menu);
+				if (Settings->CurrentModel->type != CM_MATO) {
+					ActionPlayPause(false, false);
+					GUI->MenuOpen(UserInterface::GUI_TYPE_MENU, gui_pers_menu);
+				}
 				break;
 
 			case SDL_SCANCODE_F11:	// MEMORY BLOCK READ/WRITE
@@ -1669,7 +1675,9 @@ void TEmulator::ConnectMIF85(bool init)
 			mif85 = NULL;
 		}
 
-		mif85connected = Settings->Sound->ifMIF85;
+		mif85connected =
+			(Settings->CurrentModel->type <= CM_V3) ? Settings->Sound->ifMIF85 : false;
+
 		if (mif85connected) {
 			mif85 = new Mif85();
 			cpu->AddDevice(MIF85_ADR, MIF85_MASK, mif85, true);
@@ -1698,7 +1706,9 @@ void TEmulator::ConnectMouse602(bool init)
 			mouse602 = NULL;
 		}
 
-		mouse602connected = mouse602enabled;
+		mouse602connected =
+			(Settings->CurrentModel->type <= CM_V3) ? mouse602enabled : false;
+
 		if (mouse602connected) {
 			mouse602 = new Mouse602(
 				video->GetMultiplier(),
@@ -1734,14 +1744,18 @@ void TEmulator::ConnectPMD32(bool init)
 			pmd32 = NULL;
 		}
 
-		if (cpu && ifGpio && Settings->PMD32->connected) {
+		if (cpu && ifGpio && Settings->PMD32->connected && (
+			Settings->CurrentModel->type != CM_ALFA &&
+			Settings->CurrentModel->type != CM_ALFA2 &&
+			Settings->CurrentModel->type != CM_MATO
+		)) {
 			Settings->Joystick->GPIO0->connected = false;
 
 			pmd32 = new Pmd32(ifGpio);
 			cpu->TCyclesListeners.connect(pmd32, &Pmd32::Disk32Service);
-		}
 
-		pmd32connected = Settings->PMD32->connected;
+			pmd32connected = true;
+		}
 	}
 
 	if (pmd32) {
