@@ -1,5 +1,5 @@
 /*	GPMD85emu.cpp: Initialization and main program loop.
-	Copyright (c) 2011-2024 Martin Borik <mborik@users.sourceforge.net>
+	Copyright (c) 2011-2025 Martin Borik <mborik@users.sourceforge.net>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -21,6 +21,18 @@
 //-----------------------------------------------------------------------------
 int main(int argc, char** argv)
 {
+#ifdef __EMSCRIPTEN__
+#define PATH_WEBHOME "/home/web_user"
+#define PATH_STORAGE "/storage"
+	PathUserHome = strdup(PATH_WEBHOME);
+	PathApplication = strdup(PATH_STORAGE);
+	PathResources = (char *) malloc(strlen(PATH_STORAGE) + 1);
+	PathAppConfig = (char *) malloc(strlen(PATH_WEBHOME) + 1);
+	strcpy(PathResources, PATH_STORAGE);
+	strcpy(PathAppConfig, PATH_WEBHOME);
+
+	EmResetBlocking();
+#else
 	if (!ParseOptions(&argc, &argv))
 		return EXIT_FAILURE;
 	else if (argv_config.version) {
@@ -36,6 +48,7 @@ int main(int argc, char** argv)
 	PathAppConfig = (char *) malloc(strlen(PathUserHome) + 16);
 	strcpy(PathResources, DIR_RESOURCES);
 	sprintf(PathAppConfig, "%s%c.%s", PathUserHome, DIR_DELIMITER, PACKAGE_TARNAME);
+#endif
 
 	debug("",   "Resource path: %s", PathResources);
 	debug(NULL, "Application path: %s", PathApplication);
@@ -126,7 +139,18 @@ int main(int argc, char** argv)
 	debug("", "Starting main CPU %dHz loop", CPU_FRAMES_PER_SEC);
 
 	while (Emulator->isActive) {
+#ifdef __EMSCRIPTEN__
+	if (!EmCheckBlocking())
+		continue;
+
+	EmRegisterMainLoop([&] {
+		if (!Emulator->isActive) {
+			EmExitMainLoop();
+			return;
+		}
+#else
 		nextTick = SDL_GetTicks() + CPU_TIMER_INTERVAL;
+#endif
 
 		while (SDL_PollEvent(&event)) {
 			switch (event.type) {
@@ -214,8 +238,12 @@ int main(int argc, char** argv)
 
 		Emulator->CpuTimerCallback();
 
+#ifdef __EMSCRIPTEN__
+	});
+#else
 		while (SDL_GetTicks() < nextTick)
 			SDL_Delay(1);
+#endif
 	}
 
 	SDL_GetWindowPosition(gdc.window,

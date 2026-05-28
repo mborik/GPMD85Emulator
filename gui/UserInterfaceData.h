@@ -223,7 +223,9 @@ static GUI_MENU_ENTRY gui_view_size_menu[] = {
 	{ MI_RADIO, "\a300%", "3", SDL_SCANCODE_3, NULL, ccb_view_size, dcb_view_size_state, true, false, DM_TRIPLESIZE },
 	{ MI_RADIO, "\a400%", "4", SDL_SCANCODE_4, NULL, ccb_view_size, dcb_view_size_state, true, false, DM_QUADRUPLESIZE },
 	{ MI_RADIO, "\a500%", "5", SDL_SCANCODE_5, NULL, ccb_view_size, dcb_view_size_state, true, false, DM_QUINTUPLESIZE },
+#ifndef __EMSCRIPTEN__
 	{ MI_RADIO, "\aFULLSCREEN", "F", SDL_SCANCODE_F, NULL, ccb_view_size, dcb_view_size_state, true, false, DM_FULLSCREEN },
+#endif
 	{ MENU_END }
 };
 static GUI_MENU_ENTRY gui_view_cmode_menu[] = {
@@ -427,7 +429,9 @@ static GUI_MENU_ENTRY UNUSED_VARIABLE gui_main_menu[] = {
 //	{ MI_DIALOG, "P\aOKE", NULL, SDL_SCANCODE_O, NULL, NULL, NULL, false },
 	{ MI_SEPARATOR },
 	{ MI_DIALOG, "\aABOUT", "^F1", SDL_SCANCODE_A, NULL, ccb_about, NULL, true },
+#ifndef __EMSCRIPTEN__
 	{ MI_STANDARD, "E\aXIT", "F4", SDL_SCANCODE_X, NULL, ccb_exit, NULL, true },
+#endif
 	{ MENU_END }
 };
 //-----------------------------------------------------------------------------
