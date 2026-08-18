@@ -1706,8 +1706,11 @@ void TEmulator::ConnectMouse602(bool init)
 			mouse602 = NULL;
 		}
 
-		mouse602connected =
-			(Settings->CurrentModel->type <= CM_V3) ? mouse602enabled : false;
+		mouse602connected = (
+			Settings->CurrentModel->type != CM_ALFA &&
+			Settings->CurrentModel->type != CM_ALFA2 &&
+			Settings->CurrentModel->type != CM_MATO
+		) ? mouse602enabled : false;
 
 		if (mouse602connected) {
 			mouse602 = new Mouse602(

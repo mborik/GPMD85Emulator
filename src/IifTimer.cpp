@@ -166,9 +166,9 @@ void IifTimer::EnableMouse602(bool enable)
 		mouse602 = false;
 
 	if (mouse602)
-		Counters[1].OnOutChange2.connect(this, &IifTimer::Mouse602Clock);
+		Counters[1].OnOutChange.connect(this, &IifTimer::Mouse602Clock);
 	else
-		Counters[1].OnOutChange2.disconnect_all();
+		Counters[1].OnOutChange.disconnect_all();
 }
 //---------------------------------------------------------------------------
 void IifTimer::EnableMIF85(bool enable, Mif85 *_mif85)

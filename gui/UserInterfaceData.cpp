@@ -487,7 +487,10 @@ const char *dcb_mouse_cursor_state(GUI_MENU_ENTRY *ptr)
 //-----------------------------------------------------------------------------
 const char *dcb_mouse_state(GUI_MENU_ENTRY *ptr)
 {
-	ptr->enabled = (Settings->CurrentModel->type <= CM_V3);
+	ptr->enabled = (
+		Settings->CurrentModel->type <= CM_V3 ||
+		Settings->CurrentModel->type == CM_C2717
+	);
 	return NULL;
 }
 //-----------------------------------------------------------------------------
