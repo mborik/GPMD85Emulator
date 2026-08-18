@@ -2,7 +2,7 @@
 # mborik, 10/2011-04/2014, 09/2017, 11-12/2019, 07/2024
 
 AC_PREREQ([2.59])
-AC_INIT([GPMD85emulator], [0.13.2605], [mborik@users.sourceforge.net],
+AC_INIT([GPMD85emulator], [0.14.2608], [mborik@users.sourceforge.net],
         [gpmd85emu], [https://github.com/mborik/GPMD85Emulator])
 AC_CONFIG_SRCDIR([GPMD85emu.cpp])
 
