@@ -1173,7 +1173,7 @@ void TEmulator::ActionSnapSave()
 //---------------------------------------------------------------------------
 void TEmulator::ActionROMLoad()
 {
-	static const char *rom_filter[] = { "rom", NULL };
+	static const char *rom_filter[] = { "rom", "bin", NULL };
 	char *fileName;
 
 	ActionPlayPause(false, false);
@@ -1210,7 +1210,7 @@ void TEmulator::ActionROMLoad()
 //---------------------------------------------------------------------------
 void TEmulator::ActionMegaRomLoad()
 {
-	static const char *mrm_filter[] = { "mrm", "rmm", NULL };
+	static const char *mrm_filter[] = { "mrm", "rmm", "bin", NULL };
 	char *fileName;
 
 	ActionPlayPause(false, false);
