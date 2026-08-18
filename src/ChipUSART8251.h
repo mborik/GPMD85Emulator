@@ -114,7 +114,7 @@ enum TUSARTPin { UP_TXD, UP_TXR, UP_TXE, UP_RXR, UP_DTR, UP_RTS, UP_SYN, UP_BRK 
 // ******** status word ********
 
 // transmitter buffer register is empty
-#define TXRDY_MASK    0x01p
+#define TXRDY_MASK    0x01
 #define TXRDY_FULL    0x00
 #define TXRDY_EMPTY   0x01
 
@@ -209,6 +209,8 @@ public:
 	sigslot::signal0<> OnSynDetSet;
 	sigslot::signal0<> OnBrkDetSet;
 
+	sigslot::signal1<bool> OnCwrWrite;
+
 	int GetChipState(BYTE *buffer);
 	void SetChipState(BYTE *buffer);
 
@@ -293,8 +295,9 @@ private:
 	void PrepareAsyncTx();
 	void PrepareSyncTx();
 	void PrepareSyncRx(bool hunt, bool sync2);
-	void SynchroDetected(bool inHunt);
+	void SyncDetected(bool inHunt);
 	void CharReceived();
+	void InitRxBitCounter();
 };
 //---------------------------------------------------------------------------
 #endif

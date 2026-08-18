@@ -1,5 +1,5 @@
 /*	ChipUSART8251.cpp: Class for emulation of USART 8251 chip
-	Copyright (c) 2006-2007 Roman Borik <pmd85emu@gmail.com>
+	Copyright (c) 2006-2026 Roman Borik <pmd85emu@gmail.com>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -18,48 +18,27 @@
 #include "ChipUSART8251.h"
 //---------------------------------------------------------------------------
 /**
- * Konstruktor pre vytvorenie objektu cipu USART 8251. Zodpoveda stavu Power-up,
- * teda pripojeniu napajania spojeneho s resetom obvodu.
- * Zaroven sa nastavia adresy notifykacnych funkcii na NULL.
+ * Constructor for creating a USART 8251 chip object.
+ * Corresponds to the Power-up state (power supply is connected to the chip RESET input).
+ * At the same time, notification functions are disconnected.
  */
 ChipUSART8251::ChipUSART8251()
 {
 	ChipReset(true);
 
-	CWR = Command = CharLen = Factor = 0;
-
-	SyncMode = false;
-	SynDetState = false;
-	SyncChar1 = SyncChar2 = 0;
-
-	RxState = TxState = 0;
-	RxChar = TxChar = 0;
-	RxShift = TxShift = 0;
-	RxParity = TxParity = false;
-	RxBitCounter = TxBitCounter = 0;
-	RxFactorCounter = TxFactorCounter = 0;
-	RxBreakState = TxBreakState = false;
-	RxBreakCounter = 0;
-
-	StatusRxR = false;
-	StatusTxR = StatusTxE = true;
-	ParityError = OverrunError = FrameError = false;
-
-	TxC = false;
-	RxD = RxC = TxD = true;
-	_DSR = _CTS = true;
-
 	ByteTransferMode = false;
+	CWR = 0x4E;   // Async 8N1 k16
+	Command = SyncChar1 = SyncChar2 = 0;
 }
 //---------------------------------------------------------------------------
 /**
- * Metoda GetChipState je pouzivana pri vytvarani Snapshotu a ulozi niektore
- * vnutorne registre chipu do buffra. Ak je buffer null, vrati potrebnu velkost
- * buffra v bytoch.
- * Data sa do buffra ulozia v poradi: CWR, SyncChar1, SyncChar1, Command
+ * The GetChipState method is used when creating a Snapshot and stores some
+ * internal chip registers into a buffer.
+ * If the buffer is null, it returns the required size of the buffer in bytes.
+ * Data is stored in the buffer in the order: CWR, SyncChar1, SyncChar1, Command
  *
- * @param buffer buffer kam sa ulozi stav chipu
- * @return pocet bytov ulozenych do buffra
+ * @param buffer buffer where the chip state is stored
+ * @return number of bytes stored in the buffer
  */
 int ChipUSART8251::GetChipState(BYTE *buffer)
 {
@@ -74,12 +53,12 @@ int ChipUSART8251::GetChipState(BYTE *buffer)
 }
 //---------------------------------------------------------------------------
 /**
- * Metoda SetChipState je pouzivana po otvoreni Snapshotu pre prednastavenie
- * niektorych vnutornych registrov chipu.
- * Data v buffri musia byt v poradi: CWR, SyncChar1, SyncChar1, Command
+ * The SetChipState method is used after opening a Snapshot to preset
+ * some internal chip registers.
+ * Data in the buffer must be in the order: CWR, SyncChar1, SyncChar1, Command
  *
- * @param buffer buffer kam sa ulozi stav chipu
- * @return pocet bytov ulozenych do buffra
+ * @param buffer buffer where the chip state is stored
+ * @return number of bytes stored in the buffer
  */
 void ChipUSART8251::SetChipState(BYTE *buffer)
 {
@@ -95,22 +74,23 @@ void ChipUSART8251::SetChipState(BYTE *buffer)
 }
 //---------------------------------------------------------------------------
 /**
- * Metoda ChipReset prevedie reset cipu. Zodpoveda privedeniu urovne H na vstup
- * RESET (21).
- * Volitelne je mozne zrusit vsetky notifikacne funkcie.
+ * The ChipReset method performs a chip reset.
+ * It corresponds to bringing logic H level to the RESET input (21).
+ * Optionally, all notification functions can be disconnected.
  *
- * @param clearNotifyFunc ak je true, zrusi vsetky notifykacne funkcie
+ * @param clearNotifyFunc if true, clears all notification functions
  */
 void ChipUSART8251::ChipReset(bool clearNotifyFunc)
 {
 	InitState = INIT_MODE;
+	SynDetState = false;
 
 	if (clearNotifyFunc)
 		ClearAllNotifyFunctions();
 }
 //---------------------------------------------------------------------------
 /**
- * Privatna metoda pre nastavenie vsetkych notifykacnych funkcii na NULL.
+ * Private method to set all notification functions to NULL.
  */
 void ChipUSART8251::ClearAllNotifyFunctions()
 {
@@ -131,28 +111,30 @@ void ChipUSART8251::ClearAllNotifyFunctions()
 	OnRtsSet.disconnect_all();
 	OnSynDetSet.disconnect_all();
 	OnBrkDetSet.disconnect_all();
+
+	OnCwrWrite.disconnect_all();
 }
 //---------------------------------------------------------------------------
 /**
- * Metodu CpuWrite vola mikroprocesor pri vykonavani instrukcie OUT - zapis na
- * port (CPU -> PIO). Zodpoveda teda privedeniu urovne L na vstupy /CS (11) a
- * /WR (10).
- * Podla typu cieloveho registra a stavu obvodu sa prevedie zapis do riadiace,
- * poveloveho alebo datoveho registra.
+ * The CpuWrite method is called during the execution of an OUT instruction - write to
+ * a port (CPU -> PIO).
+ * It corresponds to bringing logic L level to inputs /CS (11) and /WR (10).
+ * According to the type of destination register and the state of the circuit,
+ * a write is performed to the control, command, or data register.
  *
- * @param dest oznacuje register (TUSARTReg), do ktoreho sa zapise hodnota 'val'
- * @param val zapisovana hodnota
+ * @param dest specifies the register (TUSARTReg) to which the value 'val' is written
+ * @param val value to be written
  */
 void ChipUSART8251::CpuWrite(TUSARTReg dest, BYTE val)
 {
 	switch (dest) {
 		case UR_CTRL :
 			switch (InitState) {
-				case INIT_MODE :  // riadiace slovo
+				case INIT_MODE :  // control word
 					CWR = val;
 
 					CharLen = ((CWR & CL_MASK) >> CL_SHIFT) + 5;
-					RxBitCounter = CharLen;
+					InitRxBitCounter();
 					TxBitCounter = CharLen;
 
 					switch (val & BRF_MASK) {
@@ -211,7 +193,7 @@ void ChipUSART8251::CpuWrite(TUSARTReg dest, BYTE val)
 
 					break;
 
-				case INIT_SYNC1 : // 1. synchronizacny znak
+				case INIT_SYNC1 : // 1st sync character
 					SyncChar1 = val;
 					if ((CWR & SCS_MASK) == SCS_2)
 						InitState = INIT_SYNC2;
@@ -222,28 +204,28 @@ void ChipUSART8251::CpuWrite(TUSARTReg dest, BYTE val)
 					}
 					break;
 
-				case INIT_SYNC2 : // 2. synchronizacny znak
+				case INIT_SYNC2 : // 2nd sync character
 					SyncChar2 = val;
 					InitState = COMMAND_MODE;
 					PrepareSyncTx();
 					PrepareSyncRx(true, false);
 					break;
 
-				case COMMAND_MODE : // povelove slovo
+				case COMMAND_MODE : // command word
 					BYTE oldCommand = Command;
 					Command = val;
 
-					if ((val & IR_MASK) == IR_RESET)  // interny reset
+					if ((val & IR_MASK) == IR_RESET)  // internal reset
 						InitState = INIT_MODE;
 					else {
-						// nulovanie chybovych priznakov
+						// zeroing of error flags
 						if ((val & ER_MASK) == ER_RESET) {
 							ParityError = false;
 							OverrunError = false;
 							FrameError = false;
 						}
 
-						// vysielanie BREAK
+						// transmitting BREAK
 						if ((val & SBC_MASK) == SBC_BREAK) {
 							TxBreakState = true;
 							if (TxD) {
@@ -253,7 +235,7 @@ void ChipUSART8251::CpuWrite(TUSARTReg dest, BYTE val)
 							}
 						}
 						else {
-							// zrusenie vysielania BREAK
+							// cancellation of BREAK transmission
 							if (TxBreakState) {
 								TxBreakState = false;
 								TxD = true;
@@ -266,18 +248,18 @@ void ChipUSART8251::CpuWrite(TUSARTReg dest, BYTE val)
 							}
 						}
 
-						// nastavenie DTR
+						// setting of DTR
 						OnDtrSet();
 						if ((oldCommand & DTR_MASK) ^ (Command & DTR_MASK))
 							OnDtrChange();
 
-						// nastavenie RTS
+						// setting of RTS
 //						debug("!(Command & RTS_MASK)=%d", !(Command & RTS_MASK));
 						OnRtsSet();
 						if ((oldCommand & RTS_MASK) ^ (Command & RTS_MASK))
 							OnRtsChange();
 
-						// spustenie vyhladavania synchronizacie
+						// start of synchronization searching
 						if (SyncMode  && (val & EHM_MASK) == EHM_ENABLED) {
 							if ((CWR & ESD_MASK) == ESD_INTERNAL)
 								RxState = SYNC_HUNT | SYNC_CHAR1;
@@ -287,6 +269,8 @@ void ChipUSART8251::CpuWrite(TUSARTReg dest, BYTE val)
 					}
 					break;
 			}
+
+			OnCwrWrite(InitState);
 			break;
 
 		case UR_DATA :
@@ -310,14 +294,14 @@ void ChipUSART8251::CpuWrite(TUSARTReg dest, BYTE val)
 }
 //---------------------------------------------------------------------------
 /**
- * Metodu CpuRead vola mikroprocesor pri vykonavani instrukcie IN - citanie z
- * portu (CPU <- PIO). Zodpoveda teda privedeniu urovne L na vstupy /CS (11) a
- * /RD (13).
- * Podla typu zdrojoveho registra a stavu obvodu sa vrati stavove slovo obsah
- * datoveho registra.
+ * The CpuRead method is called during the execution of an IN instruction - read from
+ * a port (CPU <- PIO).
+ * It corresponds to bringing logic L level to inputs /CS (11) and /RD (13).
+ * According to the type of source register and the state of the circuit,
+ * a status word or contents of the data register are returned.
  *
- * @param src oznacuje register (TUSARTReg), z ktoreho sa ma udaj precitat
- * @return hodnota precitana z registra
+ * @param src specifies the register (TUSARTReg) from which to read the data
+ * @return value read from the register
  */
 BYTE ChipUSART8251::CpuRead(TUSARTReg src)
 {
@@ -355,10 +339,11 @@ BYTE ChipUSART8251::CpuRead(TUSARTReg src)
 }
 //---------------------------------------------------------------------------
 /**
- * Umoznuje periferii nastavit pozadovanu log. uroven na vstupe RxD (3).
- * V asynchronnom rezime vyhodnocuje prichod start bitu a ukoncenie stavu Break.
+ * Allows the peripheral to set the desired logic level on the RxD input (3).
+ * In asynchronous mode, it evaluates the arrival of the start bit
+ * and the termination of the Break state.
  *
- * @param state log. uroven privedena na vstup RxD
+ * @param state logic level applied to the RxD input
  */
 void ChipUSART8251::PeripheralSetRxD(bool state)
 {
@@ -379,10 +364,10 @@ void ChipUSART8251::PeripheralSetRxD(bool state)
 }
 //---------------------------------------------------------------------------
 /**
- * Umoznuje periferii zistit log. uroven na vystupe TxD (19).
- * Tento vystup riadi vysielac.
+ * Allows the peripheral to determine the logic level on the TxD output (19).
+ * This output controls the transmitter.
  *
- * @return log. uroven na vystupe TxD
+ * @return logic level on the TxD output
  */
 bool ChipUSART8251::PeripheralReadTxD()
 {
@@ -390,26 +375,26 @@ bool ChipUSART8251::PeripheralReadTxD()
 }
 //---------------------------------------------------------------------------
 /**
- * Umoznuje periferii riadit hodinovy signal vysielaca, teda nastavit pozadovanu
- * log. uroven na vstupe _TxC (9). Pri zostupnej hrane tohto signalu sa meni
- * stav vystupu TxD.
+ * Allows the peripheral to control the transmitter clock signal, specifically,
+ * to set the desired logic level on the _TxC input (9).
+ * On the falling edge of this signal, the state of the TxD output changes.
  *
- * @param state log. uroven na vstupe _TxC
+ * @param state logic level on the _TxC input
  */
 void ChipUSART8251::PeripheralSetTxC(bool state)
 {
-	// zmena bitu je pri zostupnej hrane TxC --__
+	// bit change occurs at the falling edge of TxC --__
 	bool oldTxC = TxC;
 	TxC = state;
 	if (InitState != COMMAND_MODE || TxBreakState || oldTxC == TxC || TxC)
 		return;
 
 	bool oldTxD = TxD;
-	if (SyncMode) { // Synchronny rezim
+	if (SyncMode) { // Synchronous mode
 		switch (TxState & STATE_MASK) {
 			case DATA_BITS :
 				if ((_CTS || (Command & TEN_MASK) == TEN_DISABLED) && TxBitCounter == CharLen)
-					return; // vysielanie nie je povolene
+					return; // transmission is not enabled
 
 				TxD = (TxShift & 1);
 				TxShift >>= 1;
@@ -427,7 +412,7 @@ void ChipUSART8251::PeripheralSetTxC(bool state)
 				break;
 		}
 	}
-	else {  // Asynchronny rezim
+	else {  // Asynchronous mode
 		if (--TxFactorCounter > 0)
 			return;
 		TxFactorCounter = Factor;
@@ -435,7 +420,7 @@ void ChipUSART8251::PeripheralSetTxC(bool state)
 		switch (TxState) {
 			case START_BIT :
 				if (_CTS || (Command & TEN_MASK) == TEN_DISABLED)
-					return; // vysielanie nie je povolene
+					return; // transmission is not enabled
 
 				TxD = false;
 				TxState = DATA_BITS;
@@ -453,7 +438,7 @@ void ChipUSART8251::PeripheralSetTxC(bool state)
 				TxState = STOP_BIT;
 				break;
 
-			case STOP_BIT : // 1. stop bit
+			case STOP_BIT : // 1st Stop bit
 				TxD = true;
 				switch (CWR & SBL_MASK) {
 					case SBL_15 :
@@ -470,22 +455,22 @@ void ChipUSART8251::PeripheralSetTxC(bool state)
 				}
 				break;
 
-			case STOP_BIT15 : // 1/2 stop bit
-				if (TxFactorCounter > 1)
-					TxFactorCounter /= 2;
-					/* no break */
-			case STOP_BIT2 :  // 2. stop bit
-				TxD = true;
-				TxState = ASYNC_TX_IDLE;
-				break;
+		case STOP_BIT15 : // 1.5 Stop bit
+			if (TxFactorCounter > 1)
+				TxFactorCounter /= 2;
+			/* no break */
+		case STOP_BIT2 :  // 2nd Stop bit
+			TxD = true;
+			TxState = ASYNC_TX_IDLE;
+			break;
 
-			case ASYNC_TX_IDLE :
-				PrepareAsyncTx();
-				if (TxState == START_BIT) {
-					TxD = false;
-					TxState = DATA_BITS;
-				}
-				break;
+		case ASYNC_TX_IDLE :
+			PrepareAsyncTx();
+			if (TxState == START_BIT) {
+				TxD = false;
+				TxState = DATA_BITS;
+			}
+			break;
 		}
 	}
 
@@ -495,65 +480,70 @@ void ChipUSART8251::PeripheralSetTxC(bool state)
 }
 //---------------------------------------------------------------------------
 /**
- * Umoznuje periferii riadit hodinovy signal prijimaca, teda nastavit pozadovanu
- * log. uroven na vstupe _RxC (25). Pri nabeznej hrane tohto signalu sa vzorkuje
- * stav vstupu RxD.
+ * Allows the peripheral to control the receiver clock signal, specifically,
+ * to set the desired logic level on the _RxC input (25).
+ * At the rising edge of this signal, the state of the RxD input is sampled.
  *
- * @param state log. uroven na vstupe _RxC
+ * @param state logic level on the _RxC input
  */
 void ChipUSART8251::PeripheralSetRxC(bool state)
 {
-	// zmena bitu je pri nabeznej hrane RxC __--
+	// bit change occurs at the rising edge of RxC __--
 	bool oldRxC = RxC;
 	RxC = state;
 	if (InitState != COMMAND_MODE || oldRxC == RxC || !RxC)
 		return;
 
-	if (!SyncMode) { // Asynchronny rezim
+	if (!SyncMode) { // Asynchronous mode
 		if (--RxFactorCounter > 0)
 		 return;
 		RxFactorCounter = Factor;
 	}
 
 	switch (RxState & STATE_MASK) {
-		case SYNC_HUNT :  // Synchronny rezim
+		case SYNC_HUNT :  // Synchronous mode
 			if ((CWR & ESD_MASK) == ESD_INTERNAL) {
-				if (--RxBitCounter > 0) {
-					if ((bool)(RxShift & 1) == RxD)
-						RxShift >>= 1;
+				RxBitCounter--;
+				if (RxBitCounter == 0 && (CWR & PEN_MASK) == PEN_ENABLED) {
+					if (RxParity == RxD)
+						SyncDetected(true);
 					else
 						PrepareSyncRx(true, false);
-				}
+					}
 				else {
-					if (RxParity == RxD)
-						SynchroDetected(true);
+					if ((bool)(RxShift & 1) == RxD) {
+						RxShift >>= 1;
+						if (RxBitCounter == 0)
+							SyncDetected(true);
+					}
 					else
 						PrepareSyncRx(true, false);
 				}
 			}
 			break;
 
-		case WAIT_START : // Asynchronny rezim
+		case WAIT_START : // Asynchronous mode
 			if (!RxD && RxBreakCounter > 0) {
 				RxState = START_BIT;
 				RxFactorCounter = (Factor > 1) ? Factor / 2 : Factor;
 			}
 			break;
 
-		case START_BIT :  // Asynchronny rezim
+		case START_BIT :  // Asynchronous mode
 			if (RxD)
-				RxState = WAIT_START; // Nebol to Start bit, ale len falosny zakmit
+				RxState = WAIT_START; // it was not a Start bit, just a false noise
 			else {
-				RxState = DATA_BITS;  // bol to platny Start bit
-				RxShift = 0;          // nasleduju datove bity
+				RxState = DATA_BITS;  // it was a valid Start bit
+				RxShift = 0;          // data bits follow
 				RxBitCounter = CharLen;
 			}
 			break;
 
-		case DATA_BITS :  // Oba rezimy
+		case DATA_BITS :  // Both modes
 			RxShift >>= 1;
 			if (RxD)
 				RxShift |= 0x80;
+//			debug("RxD=%d, RxBitCounter=%d, RxShift=%08X", RxD, RxBitCounter, RxShift);
 			if (--RxBitCounter == 0) {
 				if (CharLen < 8)
 					RxShift >>= (8 - CharLen);
@@ -564,9 +554,10 @@ void ChipUSART8251::PeripheralSetRxC(bool state)
 				else {
 					if (SyncMode) {
 						if (((RxState & SYNC_MASK) == SYNC_CHAR1 && RxShift == SyncChar1)
-						|| ((RxState & SYNC_MASK) == SYNC_CHAR2 && RxShift == SyncChar2))
-							SynchroDetected(false);
-						CharReceived();
+						 || ((RxState & SYNC_MASK) == SYNC_CHAR2 && RxShift == SyncChar2))
+							SyncDetected(false);
+
+						InitRxBitCounter();
 					}
 					else
 						RxState = STOP_BIT;
@@ -578,22 +569,24 @@ void ChipUSART8251::PeripheralSetRxC(bool state)
 			if (RxD != RxParity)
 				ParityError = true;
 			if (SyncMode) {
-				if (((RxState & SYNC_MASK) == SYNC_CHAR1 && RxShift == SyncChar1)
-				|| ((RxState & SYNC_MASK) == SYNC_CHAR2 && RxShift == SyncChar2))
-					SynchroDetected(false);
 				CharReceived();
+				if (((RxState & SYNC_MASK) == SYNC_CHAR1 && RxShift == SyncChar1)
+				 || ((RxState & SYNC_MASK) == SYNC_CHAR2 && RxShift == SyncChar2))
+					SyncDetected(false);
+
+				InitRxBitCounter();
 			}
 			else
 				RxState = STOP_BIT;
 			break;
 
 		case STOP_BIT :
-			if (!RxD) {   // neplatny Stop bit
-				FrameError = true;  // chyba ukoncenia ramca
+			if (!RxD) {                     // invalid Stop bit
+				FrameError = true;          // frame termination error
 				RxBreakCounter++;
-				if (RxBreakCounter > 1) { // dve po sebe iduce chybne Stop bity
-					RxBreakCounter = 2;     // vratane Start, Data a Parity bitov
-					RxBreakState = true;    // znamena prijatie BREAK "slabiky"
+				if (RxBreakCounter > 1) {   // two consecutive invalid Stop bits
+					RxBreakCounter = 2;     // including Start, Data and Parity bits
+					RxBreakState = true;    // means reception of BREAK state
 					OnBrkDetSet();
 					OnBrkDetChange();
 				}
@@ -606,11 +599,11 @@ void ChipUSART8251::PeripheralSetRxC(bool state)
 }
 //---------------------------------------------------------------------------
 /**
- * Umoznuje periferii zistit log. uroven na vystupe TxRDY (15).
- * Tento vystup je v log.1 iba v pripade, ze je vyrovnavaci register vysielaca
- * prazdny, je povolene vysielanie a vstupny signal _CTS je v log.0.
+ * Allows the peripheral to determine the logic level on the TxRDY output (15).
+ * This output is at logic 1 only if the transmitter buffer register is empty,
+ * transmission is enabled, and the input signal _CTS is at logic 0.
  *
- * @return log. uroven na vystupe TxRDY
+ * @return logic level on the TxRDY output
  */
 bool ChipUSART8251::PeripheralReadTxR()
 {
@@ -618,11 +611,11 @@ bool ChipUSART8251::PeripheralReadTxR()
 }
 //---------------------------------------------------------------------------
 /**
- * Umoznuje periferii zistit log. uroven na vystupe TxEMPTY (18).
- * Tento vystup je v log.1, ak je vyrovnavaci aj posuvny register vysielaca
- * prazdny.
+ * Allows the peripheral to determine the logic level on the TxEMPTY output (18).
+ * This output is at logic 1 if both the buffer and shift registers of the transmitter
+ * are empty.
  *
- * @return log. uroven na vystupe TxEMPTY
+ * @return logic level on the TxEMPTY output
  */
 bool ChipUSART8251::PeripheralReadTxE()
 {
@@ -630,11 +623,11 @@ bool ChipUSART8251::PeripheralReadTxE()
 }
 //---------------------------------------------------------------------------
 /**
- * Umoznuje periferii zistit log. uroven na vystupe RxRDY (14).
- * Tento vystup je v log.1, ak bola prijata seriova slabika do vyrovnavacieho
- * registra prijimaca.
+ * Allows the peripheral to determine the logic level on the RxRDY output (14).
+ * This output is at logic 1 if a serial character has been received into the
+ * buffer register of the receiver.
  *
- * @return log. uroven na vystupe TxRDY
+ * @return logic level on the RxRDY output
  */
 bool ChipUSART8251::PeripheralReadRxR()
 {
@@ -642,9 +635,9 @@ bool ChipUSART8251::PeripheralReadRxR()
 }
 //---------------------------------------------------------------------------
 /**
- * Umoznuje periferii nastavit pozadovanu log. uroven na vstupe _DSR (22).
+ * Allows the peripheral to set the desired logic level on the _DSR input (22).
  *
- * @param state log. uroven privedena na vstup _DSR
+ * @param state logic level applied to the _DSR input
  */
 void ChipUSART8251::PeripheralSetDSR(bool state)
 {
@@ -652,10 +645,10 @@ void ChipUSART8251::PeripheralSetDSR(bool state)
 }
 //---------------------------------------------------------------------------
 /**
- * Umoznuje periferii zistit log. uroven na vystupe _DTR (24).
- * Tento vystup sa nastavuje povelovym slovom a ma negovanu uroven.
+ * Allows the peripheral to determine the logic level on the _DTR output (24).
+ * This output is set by the command word and has an inverted level.
  *
- * @return log. uroven na vystupe _DTR
+ * @return logic level on the _DTR output
  */
 bool ChipUSART8251::PeripheralReadDTR()
 {
@@ -663,9 +656,9 @@ bool ChipUSART8251::PeripheralReadDTR()
 }
 //---------------------------------------------------------------------------
 /**
- * Umoznuje periferii nastavit pozadovanu log. uroven na vstupe _CTS (17).
+ * Allows the peripheral to set the desired logic level on the _CTS input (17).
  *
- * @param state log. uroven privedena na vstup _CTS
+ * @param state logic level applied to the _CTS input
  */
 void ChipUSART8251::PeripheralSetCTS(bool state)
 {
@@ -674,10 +667,10 @@ void ChipUSART8251::PeripheralSetCTS(bool state)
 }
 //---------------------------------------------------------------------------
 /**
- * Umoznuje periferii zistit log. uroven na vystupe _RTS (23).
- * Tento vystup sa nastavuje povelovym slovom a ma negovanu uroven.
+ * Allows the peripheral to determine the logic level on the _RTS output (23).
+ * This output is set by the command word and has an inverted level.
  *
- * @return log. uroven na vystupe _RTS
+ * @return logic level on the _RTS output
  */
 bool ChipUSART8251::PeripheralReadRTS()
 {
@@ -685,11 +678,11 @@ bool ChipUSART8251::PeripheralReadRTS()
 }
 //---------------------------------------------------------------------------
 /**
- * Umoznuje perifernemu zariadeniu zmenu log. urovne na vstupe SYNDET (16).
- * Zmena hodnoty sa uplatni, iba ak je nastavena externa synchronizacia
- * v synchronnom rezime. Nabezna hrana impulzu __-- urcuje zaciatok slabiky.
+ * Allows the peripheral device to change the logic level on the SYNDET input (16).
+ * The change in value takes effect only if external synchronization is set in sync mode.
+ * The rising edge of the pulse __-- marks the beginning of a character.
  *
- * @param state log. uroven privedena na vstup SYNDET
+ * @param state logic level applied to the SYNDET input
  */
 void ChipUSART8251::PeripheralSetSynDet(bool state)
 {
@@ -703,13 +696,13 @@ void ChipUSART8251::PeripheralSetSynDet(bool state)
 }
 //---------------------------------------------------------------------------
 /**
- * Umoznuje periferii zistit log. uroven vystupu SYNDET/BRKDET.
- * V synchronnom rezime zodpoveda stavu internej synchronizacie. true znamena,
- * ze boli prijate jedna alebo obidve synchronizacne slabiky.
- * V asynchronnom rezime zodpoveda stavu Break, kedy dva po sebe nasledujuce
- * stop bity (vratane start, data a parity bitov) maju log.0.
+ * Allows the peripheral to determine the logic level of the SYNDET/BRKDET output.
+ * In synchronous mode, it corresponds to the state of internal synchronization.
+ * True means that one or both synchronization characters have been received.
+ * In asynchronous mode, it corresponds to the Break state, when two consecutive
+ * stop bits (including start, data, and parity bits) are at logic 0.
  *
- * @return uroven vystupu SYNDET/BRKDET
+ * @return level of the SYNDET/BRKDET output
  */
 bool ChipUSART8251::PeripheralReadSynBrk()
 {
@@ -752,12 +745,13 @@ BYTE ChipUSART8251::PeripheralReadByte()
 }
 //---------------------------------------------------------------------------
 /**
- * Vypocita paritu slabiky 'value'. Parita sa pocita z 'CharLen' bitov tejto
- * hodnoty a vratena hodnota zodpoveda pozadovanej parite. Ma teda hodnotu,
- * ktora sa ma vyslat alebo je ocakavana pri prijme.
+ * Calculates the parity of the character 'value'.
+ * Parity is calculated from 'CharLen' bits of this value and the returned value
+ * corresponds to the required parity. It therefore has a value
+ * that needs to be transmitted or is expected at reception.
  *
- * @param value slabika, pre ktoru ma byt vypocitana parita
- * @return vypocitana parita
+ * @param value character for which parity is to be calculated
+ * @return calculated parity
  */
 bool ChipUSART8251::CalculateParity(BYTE value)
 {
@@ -775,14 +769,14 @@ bool ChipUSART8251::CalculateParity(BYTE value)
 }
 //---------------------------------------------------------------------------
 /**
- * Pripravi vnutorne premenne vysielaca na vysielanie dalsej slabiky, ak ju CPU
- * zapisalo do vyrovnavacieho registra vysielaca.
- * Inak nastavi vysielac do Idle stavu.
+ * Prepares the internal transmitter variables for transmission of the next character,
+ * if the CPU has written it to the transmitter buffer register.
+ * Otherwise, it sets the transmitter to Idle state.
  */
 void ChipUSART8251::PrepareAsyncTx()
 {
 	if (!StatusTxR) {
-		TxState = START_BIT;  // je pripravena slabika na vysielanie
+		TxState = START_BIT;  // character is ready for transmission
 		TxShift = TxChar;
 		TxParity = CalculateParity(TxShift);
 		TxBitCounter = CharLen;
@@ -790,7 +784,7 @@ void ChipUSART8251::PrepareAsyncTx()
 		OnTxRSet();
 		OnTxRChange();
 	}
-	else {  // nie je co vysielat
+	else {  // nothing to transmit
 		StatusTxE = true;
 		OnTxESet();
 		OnTxEChange();
@@ -802,26 +796,27 @@ void ChipUSART8251::PrepareAsyncTx()
 }
 //---------------------------------------------------------------------------
 /**
- * Na zaklade stavu premennych TxState, CWR a StatusTxR pripravi v synchronnom
- * rezime vysielanie dalsej slabiky. To moze byt slabika pripravena v TxChar
- * alebo niektora zo synchronizacnych slabik. StatusTxE sa nastavi na true, ak
- * uz nie je co vysielat (iba synchro slabiky). Zaroven sa vypocita parita
- * (TxParity) pripravenej slabiky v posuvnom registri a nastavi sa TxBitCounter.
+ * Based on the state of variables TxState, CWR, and StatusTxR,
+ * prepares transmission of the next character in synchronous mode.
+ * This can be a character prepared in TxChar or one of the synchronization characters.
+ * StatusTxE is set to true if there is nothing more to transmit (only sync characters).
+ * At the same time, parity (TxParity) of the prepared character in the shift register
+ * is calculated and TxBitCounter is set.
  */
 void ChipUSART8251::PrepareSyncTx()
 {
 	if ((TxState & SYNC_MASK) == SYNC_CHAR1 && (CWR & SCS_MASK) == SCS_2) {
-		TxState = SYNC_CHAR2 | DATA_BITS; // vyslanie 2. synchro slabiky
-		TxShift = SyncChar2;              // presun do posuvneho registra
+		TxState = SYNC_CHAR2 | DATA_BITS; // transmission of 2nd sync character
+		TxShift = SyncChar2;              // move to shift register
 	}
 	else if (!StatusTxR) {
-		TxState = DATA_BITS;  // je pripravena slabika na vysielanie
+		TxState = DATA_BITS;  // character is ready for transmission
 		TxShift = TxChar;
 		StatusTxR = true;
 		OnTxRSet();
 		OnTxRChange();
 	}
-	else {  // nie je co vysielat, budu sa vysielat synchro slabiky
+	else {  // nothing to transmit, sync characters will be transmitted
 		TxState = SYNC_CHAR1 | DATA_BITS;
 		TxShift = SyncChar1;
 		StatusTxE = true;
@@ -846,7 +841,7 @@ void ChipUSART8251::PrepareSyncRx(bool hunt, bool sync2)
 				RxShift = SyncChar1;
 			}
 			RxParity = CalculateParity(RxShift);
-			RxBitCounter = CharLen + 1; // vratane parity
+			InitRxBitCounter();
 		}
 		else
 			RxState = SYNC_HUNT;
@@ -862,12 +857,12 @@ void ChipUSART8251::PrepareSyncRx(bool hunt, bool sync2)
 			RxState = DATA_BITS | SYNC_CHAR2;
 		else
 			RxState = DATA_BITS | SYNC_CHAR1;
-		RxBitCounter = CharLen;
+		InitRxBitCounter();
 		RxShift = 0;
 	}
 }
 //---------------------------------------------------------------------------
-void ChipUSART8251::SynchroDetected(bool inHunt)
+void ChipUSART8251::SyncDetected(bool inHunt)
 {
 	if ((RxState & SYNC_CHAR1) && (CWR & SCS_MASK) == SCS_2)
 		PrepareSyncRx(inHunt, true);
@@ -884,12 +879,19 @@ void ChipUSART8251::SynchroDetected(bool inHunt)
 void ChipUSART8251::CharReceived()
 {
 	bool oldStatusRxR = StatusRxR;
-	RxChar = RxShift;         // prijata slabika
+	RxChar = RxShift;        // received character
 	if (StatusRxR)
-		OverrunError = true;    // CPU si neprevzalo predoslu slabiku
+		OverrunError = true; // CPU did not read the previous character
 	StatusRxR = true;
 	OnRxRSet();
 	if (!oldStatusRxR)
 		OnRxRChange();
+}
+//---------------------------------------------------------------------------
+void ChipUSART8251::InitRxBitCounter()
+{
+	RxBitCounter = CharLen;
+	if ((CWR & PEN_MASK) == PEN_ENABLED)
+		RxBitCounter++;
 }
 //---------------------------------------------------------------------------

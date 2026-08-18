@@ -1,5 +1,5 @@
 /*	ChipPIT8253.cpp: Class for emulation of PIT 8253 chip
-	Copyright (c) 2006 Roman Borik <pmd85emu@gmail.com>
+	Copyright (c) 2006-2026 Roman Borik <pmd85emu@gmail.com>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -28,6 +28,7 @@ ChipPIT8253::ChipPIT8253()
 {
 	for (int ii = 0; ii < 3; ii++) {
 		Counters[ii].CWR = (BYTE)((ii << CNT_SHIFT) | RL_BOTH | MODE_1 | TYPE_BINARY);
+		Counters[ii].CwrWritten = false;
 		Counters[ii].InitValue = 0xFFFF;
 		Counters[ii].OnInit = 0;
 		Counters[ii].CounterValue = Counters[ii].InitValue;
@@ -44,6 +45,7 @@ ChipPIT8253::ChipPIT8253()
 		Counters[ii].Out = false;
 
 		Counters[ii].OnOutChange.disconnect_all();
+		Counters[ii].OnOutChange2.disconnect_all();
 	}
 }
 //---------------------------------------------------------------------------
@@ -93,7 +95,7 @@ int ChipPIT8253::GetChipState(BYTE *buffer)
 }
 //---------------------------------------------------------------------------
 /**
- * Method SetChips is used during open Snapshot load to pre-set some
+ * Method SetChipState is used during open Snapshot load to pre-set some
  * internal registers of chip.
  * Mandatory order of data in buffer:
  *    CWR0, Init0L, Init0H, CWR1, Init1L, Init1H, CWR2, Init2L, Init2H
@@ -125,13 +127,11 @@ void ChipPIT8253::SetChipState(BYTE *buffer)
 }
 //---------------------------------------------------------------------------
 /**
- * Method CpuWrite is invoked by microprocessor during OUT instruction -
- * write port (CPU -> PIT). It corresponds to setting logic level L on inputs
- * /CS (21) and /WR (23).
- * Write operation depends on mode and Read/Load status. LSB or MSB register
- * of counter preset is written eventually.
- * If status of counter is changed during write of control word corresponding
- * notification function is invoked.
+ * Method CpuWrite is invoked by CPU during OUT instruction - write to port (CPU -> PIT).
+ * It corresponds to setting logic level L on inputs /CS (21) and /WR (23).
+ * Write operation depends on mode and Read/Load status. LSB or MSB register of counter
+ * preset is written eventually. If status of counter is changed during write
+ * of control word corresponding notification function is invoked.
  *
  * @param dest distinguish between counter value or control word (TPITCounter)
  * @param val value to be sent
@@ -145,7 +145,7 @@ void ChipPIT8253::CpuWrite(TPITCounter dest, BYTE val)
 		case CT_0 :
 		case CT_1 :
 		case CT_2 :
-			cnt = (int)dest;
+			cnt = (int) dest;
 			switch (Counters[cnt].CWR & RL_MASK) {
 				case RL_LSB :
 //					Counters[cnt].InitValue = (WORD)((Counters[cnt].InitValue & 0xFF00) | val);
@@ -182,14 +182,14 @@ void ChipPIT8253::CpuWrite(TPITCounter dest, BYTE val)
 				switch (Counters[cnt].CWR & MODE_MASK) {
 					case MODE_0 :
 						Counters[cnt].Out = false;
-//						Counters[cnt].CounterValue = Counters[cnt].InitValue;
 						Counters[cnt].Counting = Counters[cnt].Gate;
+						Counters[cnt].Triggered = true;
 						break;
 
 					case MODE_1 :
 					case MODE_5 :
 						Counters[cnt].Out = true;
-						Counters[cnt].Counting = false;
+						Counters[cnt].Counting = Counters[cnt].Gate;
 						break;
 
 					case MODE_2 :
@@ -200,17 +200,23 @@ void ChipPIT8253::CpuWrite(TPITCounter dest, BYTE val)
 						Counters[cnt].Counting = Counters[cnt].Gate;
 						if (Counters[cnt].Counting == false)
 							Counters[cnt].CounterValue = Counters[cnt].InitValue;
+						else if (Counters[cnt].CwrWritten == true)
+							Counters[cnt].Triggered = true;
 						break;
 
 					case MODE_4 :
 						Counters[cnt].Out = true;
-//						Counters[cnt].CounterValue = Counters[cnt].InitValue;
 						Counters[cnt].Counting = Counters[cnt].Gate;
+						Counters[cnt].Triggered = true;
 						break;
 				}
 
-				if (oldOut != Counters[cnt].Out)
+				if (oldOut != Counters[cnt].Out) {
 					Counters[cnt].OnOutChange(dest, Counters[cnt].Out);
+					Counters[cnt].OnOutChange2(dest, Counters[cnt].Out);
+				}
+
+				Counters[cnt].CwrWritten = false;
 			}
 			break;
 
@@ -236,21 +242,23 @@ void ChipPIT8253::CpuWrite(TPITCounter dest, BYTE val)
 				oldOut = Counters[cnt].Out;
 				Counters[cnt].Out = ((Counters[cnt].CWR & MODE_MASK) != MODE_0);
 
-				if (oldOut != Counters[cnt].Out)
-					Counters[cnt].OnOutChange((TPITCounter)cnt, Counters[cnt].Out);
+				if (oldOut != Counters[cnt].Out) {
+					Counters[cnt].OnOutChange((TPITCounter) cnt, Counters[cnt].Out);
+					Counters[cnt].OnOutChange2((TPITCounter) cnt, Counters[cnt].Out);
+				}
+
+				Counters[cnt].CwrWritten = true;
 			}
 			break;
 	}
 }
 //---------------------------------------------------------------------------
 /**
- * Method CpuRead is invoked by microprocessor during IN instruction -
- * read port (CPU <- PIT). It corresponds to setting logic level L on inputs
- * /CS (21) and /RD (22).
- * It returns fetched value of counter if CAPTURE mode have been set.
- * Current value of counter is returned otherwise. Depending on mode
- * Read/Load it returns LSB or MSB. Reading of control word is not possible
- * and return value is always 0xFF.
+ * Method CpuRead is invoked by CPU during IN instruction - read port (CPU <- PIT).
+ * It corresponds to setting logic level L on inputs /CS (21) and /RD (22).
+ * It returns fetched value of counter if CAPTURE mode have been set. Current value
+ * of counter is returned otherwise. Depending on mode Read/Load it returns LSB or MSB.
+ * Reading of control word is not possible and return value is always 0xFF.
  *
  * @param src sets the counter to be read (TPITCounter)
  * @return value of counter
@@ -327,7 +335,7 @@ void ChipPIT8253::PeripheralSetGate(TPITCounter counter, bool state)
 		case MODE_1 :
 		case MODE_5 :
 			Counters[cnt].Counting = state;
-			if (oldGate == false && state == true)
+			if (!oldGate && state)
 				Counters[cnt].Triggered = true;
 			break;
 
@@ -336,17 +344,19 @@ void ChipPIT8253::PeripheralSetGate(TPITCounter counter, bool state)
 		case MODE_3 :
 		case MODE_3X :
 			Counters[cnt].Counting = state;
-			if (state == false)
+			if (!state)
 				Counters[cnt].Out = true;
-			else if (oldGate == false && state == true)
+			else if (!oldGate && state)
 				Counters[cnt].Triggered = true;
 			break;
 	}
 
 	Counters[cnt].Gate = state;
 
-	if (oldOut != Counters[cnt].Out)
+	if (oldOut != Counters[cnt].Out) {
 		Counters[cnt].OnOutChange(counter, Counters[cnt].Out);
+		Counters[cnt].OnOutChange2(counter, Counters[cnt].Out);
+	}
 }
 //---------------------------------------------------------------------------
 void ChipPIT8253::PeripheralSetClock(TPITCounter counter, bool state)
@@ -364,12 +374,12 @@ void ChipPIT8253::PeripheralSetClock(TPITCounter counter, bool state)
 
 	switch (Counters[cnt].CWR & MODE_MASK) {
 		case MODE_0 :
-			if (oldClock == true && state == false) {
-				if (Counters[cnt].InitValWritten == true) {
+			if (oldClock && !state) {
+				if (Counters[cnt].InitValWritten) {
 					Counters[cnt].CounterValue = Counters[cnt].InitValue;
 					Counters[cnt].InitValWritten = false;
 				}
-				else if (Counters[cnt].Counting == true) {
+				else if (Counters[cnt].Counting) {
 					if (DecrementCounter(cnt))
 						Counters[cnt].Out = true;
 				}
@@ -377,15 +387,15 @@ void ChipPIT8253::PeripheralSetClock(TPITCounter counter, bool state)
 			break;
 
 		case MODE_1 :
-			if (oldClock == true && state == false) {
-				if (Counters[cnt].Triggered == true) {
+			if (oldClock && !state) {
+				if (Counters[cnt].Triggered) {
 					Counters[cnt].Triggered = false;
 					Counters[cnt].InitValWritten = false;
 					Counters[cnt].CounterValue = Counters[cnt].InitValue;
 					Counters[cnt].Out = false;
 					Counters[cnt].Counting = true;
 				}
-				else if (Counters[cnt].Counting == true) {
+				else if (Counters[cnt].Counting) {
 					if (DecrementCounter(cnt))
 						Counters[cnt].Out = true;
 				}
@@ -394,13 +404,13 @@ void ChipPIT8253::PeripheralSetClock(TPITCounter counter, bool state)
 
 		case MODE_2 :
 		case MODE_2X :
-			if (oldClock == true && state == false) {
-				if (Counters[cnt].Triggered == true) {
+			if (oldClock && !state) {
+				if (Counters[cnt].Triggered) {
 					Counters[cnt].Triggered = false;
 					Counters[cnt].InitValWritten = false;
 					Counters[cnt].CounterValue = Counters[cnt].InitValue;
 				}
-				else if (Counters[cnt].Counting == true) {
+				else if (Counters[cnt].Counting) {
 					if (DecrementCounter(cnt)) {
 						Counters[cnt].InitValWritten = false;
 						Counters[cnt].CounterValue = Counters[cnt].InitValue;
@@ -414,14 +424,14 @@ void ChipPIT8253::PeripheralSetClock(TPITCounter counter, bool state)
 
 		case MODE_3 :
 		case MODE_3X :
-			if (oldClock == true && state == false) {
-				if (Counters[cnt].Triggered == true) {
+			if (oldClock && !state) {
+				if (Counters[cnt].Triggered) {
 					Counters[cnt].CounterValue = Counters[cnt].InitValue;
 					Counters[cnt].InitValWritten = false;
 					Counters[cnt].Triggered = false;
 				}
-				else if (Counters[cnt].Counting == true) {
-					if (Counters[cnt].Out == true) {
+				else if (Counters[cnt].Counting) {
+					if (Counters[cnt].Out) {
 						DecrementCounter(cnt);
 						if (Counters[cnt].CounterValue & 1)
 							DecrementCounter(cnt);
@@ -436,6 +446,11 @@ void ChipPIT8253::PeripheralSetClock(TPITCounter counter, bool state)
 					if (Counters[cnt].CounterValue == 0) {
 						Counters[cnt].InitValWritten = false;
 						Counters[cnt].CounterValue = Counters[cnt].InitValue;
+						// special rule for 3 and 1
+						if (!((!Counters[cnt].Out && Counters[cnt].InitValue == 3)
+						    || (Counters[cnt].Out && Counters[cnt].InitValue == 1)))
+							Counters[cnt].CounterValue = Counters[cnt].InitValue;
+
 						Counters[cnt].Out = !Counters[cnt].Out;
 					}
 				}
@@ -443,12 +458,12 @@ void ChipPIT8253::PeripheralSetClock(TPITCounter counter, bool state)
 			break;
 
 		case MODE_4 :
-			if (oldClock == true && state == false) {
-				if (Counters[cnt].InitValWritten == true) {
+			if (oldClock && !state) {
+				if (Counters[cnt].InitValWritten) {
 					Counters[cnt].CounterValue = Counters[cnt].InitValue;
 					Counters[cnt].InitValWritten = false;
 				}
-				else if (Counters[cnt].Counting == true) {
+				else if (Counters[cnt].Counting) {
 					if (DecrementCounter(cnt))
 						Counters[cnt].Out = false;
 					else if (((Counters[cnt].CWR & TYPE_MASK) == TYPE_BINARY
@@ -461,14 +476,14 @@ void ChipPIT8253::PeripheralSetClock(TPITCounter counter, bool state)
 			break;
 
 		case MODE_5 :
-			if (oldClock == true && state == false) {
-				if (Counters[cnt].Triggered == true) {
+			if (oldClock && !state) {
+				if (Counters[cnt].Triggered) {
 					Counters[cnt].Triggered = false;
 					Counters[cnt].InitValWritten = false;
 					Counters[cnt].CounterValue = Counters[cnt].InitValue;
 					Counters[cnt].Out = true;
 				}
-				else if (Counters[cnt].Counting == true) {
+				else if (Counters[cnt].Counting) {
 					if (DecrementCounter(cnt))
 						Counters[cnt].Out = false;
 					else if (((Counters[cnt].CWR & TYPE_MASK) == TYPE_BINARY
@@ -481,8 +496,10 @@ void ChipPIT8253::PeripheralSetClock(TPITCounter counter, bool state)
 			break;
 	}
 
-	if (oldOut != Counters[cnt].Out)
+	if (oldOut != Counters[cnt].Out) {
 		Counters[cnt].OnOutChange(counter, Counters[cnt].Out);
+		Counters[cnt].OnOutChange2(counter, Counters[cnt].Out);
+	}
 }
 //---------------------------------------------------------------------------
 bool ChipPIT8253::PeripheralReadOut(TPITCounter counter)

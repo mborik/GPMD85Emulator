@@ -124,7 +124,7 @@ void IifTimer::ITimerService(int ticks, int dur)
 
 		currentTicks = ticks;
 
-		// Timer T0 - clock for MIF 85 interrupt
+		// Timer T0 - clock for MIF 85 interrupt or Mouse 602
 		if (ifMIF85) {
 			for (int ii = 0; ii < dur; ii++) {
 				PeripheralSetClock(CT_0, true);
@@ -166,9 +166,9 @@ void IifTimer::EnableMouse602(bool enable)
 		mouse602 = false;
 
 	if (mouse602)
-		Counters[1].OnOutChange.connect(this, &IifTimer::Mouse602Clock);
+		Counters[1].OnOutChange2.connect(this, &IifTimer::Mouse602Clock);
 	else
-		Counters[1].OnOutChange.disconnect_all();
+		Counters[1].OnOutChange2.disconnect_all();
 }
 //---------------------------------------------------------------------------
 void IifTimer::EnableMIF85(bool enable, Mif85 *_mif85)

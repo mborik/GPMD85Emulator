@@ -62,6 +62,7 @@ private:
 	typedef struct
 	{
 		BYTE CWR;
+		bool CwrWritten;
 
 		WORD InitValue;
 		int OnInit;
@@ -79,8 +80,9 @@ private:
 
 		bool Triggered;
 		bool Counting;
-		sigslot::signal2<TPITCounter, bool> OnOutChange;
 
+		sigslot::signal2<TPITCounter, bool> OnOutChange;
+		sigslot::signal2<TPITCounter, bool> OnOutChange2;
 	} COUNTER;
 
 public:
