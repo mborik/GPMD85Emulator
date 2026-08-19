@@ -181,7 +181,6 @@ void ChipUSART8251::CpuWrite(TUSARTReg dest, BYTE val)
 					TxC = false;
 					_DSR = true;
 					_CTS = true;
-//					debug("_CTS=%d", _CTS);
 
 					if (SyncMode)
 						InitState = INIT_SYNC1;
@@ -190,7 +189,6 @@ void ChipUSART8251::CpuWrite(TUSARTReg dest, BYTE val)
 						PrepareAsyncTx();
 						RxState = WAIT_START;
 					}
-
 					break;
 
 				case INIT_SYNC1 : // 1st sync character

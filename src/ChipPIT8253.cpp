@@ -45,6 +45,7 @@ ChipPIT8253::ChipPIT8253()
 		Counters[ii].Out = false;
 
 		Counters[ii].OnOutChange.disconnect_all();
+		Counters[ii].OnOutChange2.disconnect_all();
 	}
 }
 //---------------------------------------------------------------------------
@@ -310,7 +311,7 @@ BYTE ChipPIT8253::CpuRead(TPITCounter src)
 			}
 			break;
 
-		default :  // data bus is in hi-Z (high impedance state)
+		case CT_CWR :  // data bus is in hi-Z (high impedance state)
 			retval = 0xFF;
 			break;
 	}

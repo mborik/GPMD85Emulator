@@ -1,5 +1,5 @@
 /*	Pmd32.cpp: Class for emulation of disk drive PMD 32
-	Copyright (c) 2008-2010 Roman Borik <pmd85emu@gmail.com>
+	Copyright (c) 2008-2026 Roman Borik <pmd85emu@gmail.com>
 	Copyright (c) 2011 Martin Borik <mborik@users.sourceforge.net>
 
 	This program is free software: you can redistribute it and/or modify
@@ -132,8 +132,8 @@ void Pmd32::OnHandshake()
 
 	inHandshake = true;
 	if (pio->ReadBit(PP_PortC, _OBFA) == false) {
-		pio->ChangeBit(PP_PortC, _ACKA, false);
 		val = pio->ReadByte(PP_PortA);
+		pio->ChangeBit(PP_PortC, _ACKA, false);
 		pio->ChangeBit(PP_PortC, _ACKA, true);
 
 		switch (diskState) {
@@ -254,6 +254,7 @@ void Pmd32::OnHandshake()
 
 			case WAIT_ADDR_L:
 				address |= val;
+				address &= 0x03FFF;
 				CRC ^= val;
 				if (command == 'J') {
 					debug("PMD32", "%c: %04X", command, address);
@@ -284,9 +285,10 @@ void Pmd32::OnHandshake()
 				break;
 
 			case WAIT_DATA_MEM:
-				if (address < INTERNAL_RAM_SIZE)
-					memory[address] = val;
+				if (address >= 0x1800 && address <= 0x1FFF)
+					memory[(address - 0x1800) & 0x03FF] = val;
 				address++;
+				address &= 0x3FFF;
 				CRC ^= val;
 				if (--byteCounter == 0)
 					diskState = WAIT_CRC;
@@ -379,9 +381,11 @@ void Pmd32::Disk32ServiceStateCheck()
 			break;
 
 		case SEND_DATA_MEM:
-			if (address < INTERNAL_RAM_SIZE)
-				toSend = memory[address];
+			toSend = 0xFF;
+			if (address >= 0x1800 && address <= 0x1FFF)
+				toSend = memory[(address - 0x1800) & 0x03FF];
 			address++;
+			address &= 0x3FFF;
 			CRC ^= toSend;
 			if (--byteCounter == 0)
 				diskState = SEND_CRC;

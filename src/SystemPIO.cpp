@@ -508,7 +508,7 @@ void SystemPIO::ReadKeyboardC()
 {
 	PeripheralWriteByte(
 		PP_PortC,
-		(BYTE) ((~ShiftStopCtrl & 0x70) | 0x01) | ((matoTapeIn) ? 0x80 : 0)
+		(BYTE) ((~ShiftStopCtrl & 0x70) | ((matoTapeIn) ? 0x80 : 0))
 	);
 }
 //---------------------------------------------------------------------------

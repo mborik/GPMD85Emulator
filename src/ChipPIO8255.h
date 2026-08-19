@@ -24,6 +24,11 @@ enum TPIOPort { PP_PortA = 0, PP_PortB, PP_PortC, PP_CWR, PP_PortCH, PP_PortCL }
 enum TPIOPortBit { PP_Bit0 = 0, PP_Bit1, PP_Bit2, PP_Bit3, PP_Bit4, PP_Bit5, PP_Bit6, PP_Bit7 };
 //---------------------------------------------------------------------------
 #define CWR_MASK      0x80  // bit mask of write CWR
+#define BIT_SET_MASK  0x0E  // bit mask of special bit setting
+#define BIT_MASK      0x01  // bit mask value for special bit setting
+
+#define IS_PC_BIT(v, b)   (((v & BIT_SET_MASK) >> 1) == b)
+#define IS_PC_BIT_SET(v)  ((v & BIT_MASK) != 0)
 
 // group A
 #define GA_MODE       0x60

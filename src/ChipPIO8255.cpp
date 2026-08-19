@@ -279,13 +279,13 @@ void ChipPIO8255::CpuWrite(TPIOPort dest, BYTE val)
 				mode = (BYTE) (CWR & (GA_MODE | PORTA_DIR));
 				oldVal = OutLatchC;
 
-				if ((mode == (GA_MODE1 | PORTA_INP) || (CWR & GA_MODE) == GA_MODE2) && (val & 0x0E) == 8) {
-					InteAin = (val & 1);
+				if ((mode == (GA_MODE1 | PORTA_INP) || (CWR & GA_MODE) == GA_MODE2) && IS_PC_BIT(val, 4)) {
+					InteAin = IS_PC_BIT_SET(val);
 					inte = true;
 //					debug("ChipPIO8255", "InteAin=%d", InteAin);
 				}
-				else if ((mode == (GA_MODE1 | PORTA_OUT) || (CWR & GA_MODE) == GA_MODE2) && (val & 0x0E) == 12) {
-					InteAout = (val & 1);
+				else if ((mode == (GA_MODE1 | PORTA_OUT) || (CWR & GA_MODE) == GA_MODE2) && IS_PC_BIT(val, 6)) {
+					InteAout = IS_PC_BIT_SET(val);
 					inte = true;
 //					debug("ChipPIO8255", "InteAout=%d", InteAout);
 				}
@@ -450,7 +450,6 @@ BYTE ChipPIO8255::CpuRead(TPIOPort src)
 			}
 
 			ret_val = 0;
-
 			if ((CWR & (GB_MODE | PORTCL_DIR)) == (GB_MODE0 | PORTCL_OUT))      // PB Mode 0, PCL output
 				ret_val |= (BYTE)(OutLatchC & 0x0F);
 			else if ((CWR & (GB_MODE | PORTCL_DIR)) == (GB_MODE0 | PORTCL_INP)) // PB Mode 0, PCL input
@@ -669,7 +668,7 @@ BYTE ChipPIO8255::PeripheralReadByte(TPIOPort src)
 			if ((CWR & GA_MODE) == GA_MODE2) {
 				if ((OutLatchC & _OBFA_MASK) == 0)
 					ret = OutLatchA;
-				else if ((OutLatchC & IBFA_MASK) == 0)
+				else if ((OutLatchC & IBFA_MASK) != 0)
 					ret = InBufferA;
 				else
 					ret = 0xFF;
