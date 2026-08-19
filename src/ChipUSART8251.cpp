@@ -427,7 +427,7 @@ void ChipUSART8251::PeripheralSetTxC(bool state)
 				break;
 
 			case DATA_BITS :
-				TxD = (TxShift & 1);
+				TxD = ((TxShift & 1) > 0);
 				TxShift >>= 1;
 				if (--TxBitCounter == 0)
 					TxState = ((CWR & PEN_MASK) == PEN_ENABLED) ? PARITY_BIT : STOP_BIT;
@@ -455,22 +455,22 @@ void ChipUSART8251::PeripheralSetTxC(bool state)
 				}
 				break;
 
-		case STOP_BIT15 : // 1.5 Stop bit
-			if (TxFactorCounter > 1)
-				TxFactorCounter /= 2;
-			/* no break */
-		case STOP_BIT2 :  // 2nd Stop bit
-			TxD = true;
-			TxState = ASYNC_TX_IDLE;
-			break;
+			case STOP_BIT15 : // 1/2 Stop bit
+				if (TxFactorCounter > 1)
+					TxFactorCounter /= 2;
+				/* no break */
+			case STOP_BIT2 :  // 2nd Stop bit
+				TxD = true;
+				TxState = ASYNC_TX_IDLE;
+				break;
 
-		case ASYNC_TX_IDLE :
-			PrepareAsyncTx();
-			if (TxState == START_BIT) {
-				TxD = false;
-				TxState = DATA_BITS;
-			}
-			break;
+			case ASYNC_TX_IDLE :
+				PrepareAsyncTx();
+				if (TxState == START_BIT) {
+					TxD = false;
+					TxState = DATA_BITS;
+				}
+				break;
 		}
 	}
 
@@ -496,7 +496,7 @@ void ChipUSART8251::PeripheralSetRxC(bool state)
 
 	if (!SyncMode) { // Asynchronous mode
 		if (--RxFactorCounter > 0)
-		 return;
+			return;
 		RxFactorCounter = Factor;
 	}
 
@@ -509,9 +509,9 @@ void ChipUSART8251::PeripheralSetRxC(bool state)
 						SyncDetected(true);
 					else
 						PrepareSyncRx(true, false);
-					}
+				}
 				else {
-					if ((bool)(RxShift & 1) == RxD) {
+					if ((bool) (RxShift & 1) == RxD) {
 						RxShift >>= 1;
 						if (RxBitCounter == 0)
 							SyncDetected(true);
@@ -553,6 +553,7 @@ void ChipUSART8251::PeripheralSetRxC(bool state)
 				}
 				else {
 					if (SyncMode) {
+						CharReceived();
 						if (((RxState & SYNC_MASK) == SYNC_CHAR1 && RxShift == SyncChar1)
 						 || ((RxState & SYNC_MASK) == SYNC_CHAR2 && RxShift == SyncChar2))
 							SyncDetected(false);

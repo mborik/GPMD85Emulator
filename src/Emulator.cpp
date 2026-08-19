@@ -1707,9 +1707,8 @@ void TEmulator::ConnectMouse602(bool init)
 		}
 
 		mouse602connected = (
-			Settings->CurrentModel->type != CM_ALFA &&
-			Settings->CurrentModel->type != CM_ALFA2 &&
-			Settings->CurrentModel->type != CM_MATO
+			Settings->CurrentModel->type <= CM_V3 ||
+			Settings->CurrentModel->type == CM_C2717
 		) ? mouse602enabled : false;
 
 		if (mouse602connected) {
@@ -1748,9 +1747,8 @@ void TEmulator::ConnectPMD32(bool init)
 		}
 
 		if (cpu && ifGpio && Settings->PMD32->connected && (
-			Settings->CurrentModel->type != CM_ALFA &&
-			Settings->CurrentModel->type != CM_ALFA2 &&
-			Settings->CurrentModel->type != CM_MATO
+			Settings->CurrentModel->type <= CM_V3 ||
+			Settings->CurrentModel->type == CM_C2717
 		)) {
 			Settings->Joystick->GPIO0->connected = false;
 

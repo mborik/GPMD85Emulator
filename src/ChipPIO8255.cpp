@@ -27,7 +27,7 @@
  */
 ChipPIO8255::ChipPIO8255(bool reset)
 {
-	if (reset == true)
+	if (reset)
 		ChipReset(true);
 	else
 		ClearAllNotifyFunctions();
@@ -61,7 +61,7 @@ void ChipPIO8255::ClearAllNotifyFunctions()
  */
 void ChipPIO8255::ChipReset(bool clearNotifyFunc)
 {
-	if (clearNotifyFunc == true)
+	if (clearNotifyFunc)
 		ClearAllNotifyFunctions();
 
 	// set all of ports of mode 0
@@ -88,9 +88,9 @@ int ChipPIO8255::GetChipState(BYTE *buffer)
 		*(buffer + 2) = OutLatchB;
 		*(buffer + 3) = OutLatchA;
 		*(buffer + 4) = (BYTE) (
-			((InteAin == true) ? 1 : 0) |
-			((InteAout == true) ? 2 : 0) |
-			((InteB == true) ? 4 : 0)
+			(InteAin ? 1 : 0) |
+			(InteAout ? 2 : 0) |
+			(InteB ? 4 : 0)
 		);
 	}
 
@@ -292,10 +292,10 @@ void ChipPIO8255::CpuWrite(TPIOPort dest, BYTE val)
 
 				if (inte) {
 					OutLatchC &= ~INTRA_MASK; // INTRA=0
-					if ((InteAin == true
+					if ((InteAin
 						&& (InBufferC & _STBA_MASK) == _STBA_MASK
 						&& (OutLatchC & IBFA_MASK) == IBFA_MASK)
-						|| (InteAout == true
+						|| (InteAout
 							&& (InBufferC & _ACKA_MASK) == _ACKA_MASK
 							&& (OutLatchC & _OBFA_MASK) == _OBFA_MASK)) {
 						OutLatchC |= INTRA_MASK; // INTRA=1
@@ -307,7 +307,7 @@ void ChipPIO8255::CpuWrite(TPIOPort dest, BYTE val)
 					inte = true;
 					InteB = (val & 1);
 					OutLatchC &= ~INTRB_MASK; // INTRB=0
-					if (InteB == true) {
+					if (InteB) {
 						if (((CWR & PORTB_INP) == PORTB_INP
 							&& (InBufferC & _STBB_MASK) == _STBB_MASK
 							&& (OutLatchC & IBFB_MASK) == IBFB_MASK)
@@ -550,7 +550,7 @@ void ChipPIO8255::PeripheralWriteByte(TPIOPort dest, BYTE val)
 					}
 					else if ((InBufferC & _STBB_MASK) == 0 && (val & _STBB_MASK) == _STBB_MASK) {
 						// /STB  __--
-						if (InteB == true && (OutLatchC & IBFB_MASK) == IBFB_MASK)
+						if (InteB && (OutLatchC & IBFB_MASK) == IBFB_MASK)
 							OutLatchC |= INTRB_MASK;
 						else
 							OutLatchC &= ~INTRB_MASK;
@@ -565,7 +565,7 @@ void ChipPIO8255::PeripheralWriteByte(TPIOPort dest, BYTE val)
 					}
 					else if ((InBufferC & _ACKB_MASK) == 0 && (val & _ACKB_MASK) == _ACKB_MASK) {
 						// /ACK  __--
-						if (InteB == true && (OutLatchC & _OBFB_MASK) == _OBFB_MASK)
+						if (InteB && (OutLatchC & _OBFB_MASK) == _OBFB_MASK)
 							OutLatchC |= INTRB_MASK;
 						else
 							OutLatchC &= ~INTRB_MASK;
@@ -575,8 +575,7 @@ void ChipPIO8255::PeripheralWriteByte(TPIOPort dest, BYTE val)
 
 			if ((CWR & GA_MODE) != GA_MODE0) {
 				// input
-				if ((CWR & GA_MODE) == GA_MODE2
-						|| (CWR & (GA_MODE | PORTA_DIR)) == (GA_MODE1 | PORTA_INP)) {
+				if ((CWR & GA_MODE) == GA_MODE2 || (CWR & (GA_MODE | PORTA_DIR)) == (GA_MODE1 | PORTA_INP)) {
 					if ((InBufferC & _STBA_MASK) == _STBA_MASK && (val & _STBA_MASK) == 0) {
 						// /STB  --__
 						InLatchA = InBufferA;
@@ -585,7 +584,7 @@ void ChipPIO8255::PeripheralWriteByte(TPIOPort dest, BYTE val)
 					}
 					else if ((InBufferC & _STBA_MASK) == 0 && (val & _STBA_MASK) == _STBA_MASK) {
 						// /STB  __--
-						if (InteAin == true && (OutLatchC & IBFA_MASK) == IBFA_MASK)
+						if (InteAin && (OutLatchC & IBFA_MASK) == IBFA_MASK)
 							OutLatchC |= INTRA_MASK;
 						else
 							OutLatchC &= ~INTRA_MASK;
@@ -593,8 +592,7 @@ void ChipPIO8255::PeripheralWriteByte(TPIOPort dest, BYTE val)
 				}
 
 				// output
-				if ((CWR & GA_MODE) == GA_MODE2
-						|| (CWR & (GA_MODE | PORTA_DIR)) == (GA_MODE1 | PORTA_OUT)) {
+				if ((CWR & GA_MODE) == GA_MODE2 || (CWR & (GA_MODE | PORTA_DIR)) == (GA_MODE1 | PORTA_OUT)) {
 					if ((InBufferC & _ACKA_MASK) == _ACKA_MASK && (val & _ACKA_MASK) == 0) {
 						// /ACK  --__
 						OutLatchC |= _OBFA_MASK;
@@ -602,7 +600,7 @@ void ChipPIO8255::PeripheralWriteByte(TPIOPort dest, BYTE val)
 					}
 					else if ((InBufferC & _ACKA_MASK) == 0 && (val & _ACKA_MASK) == _ACKA_MASK) {
 						// /ACK  __--
-						if (InteAout == true && (OutLatchC & _OBFA_MASK) == _OBFA_MASK)
+						if (InteAout && (OutLatchC & _OBFA_MASK) == _OBFA_MASK)
 							OutLatchC |= INTRA_MASK;
 						else
 							OutLatchC &= ~INTRA_MASK;
@@ -669,9 +667,9 @@ BYTE ChipPIO8255::PeripheralReadByte(TPIOPort src)
 	switch (src) {
 		case PP_PortA :
 			if ((CWR & GA_MODE) == GA_MODE2) {
-				if ((InBufferC & _OBFA_MASK) == 0)
+				if ((OutLatchC & _OBFA_MASK) == 0)
 					ret = OutLatchA;
-				else if ((InBufferC & IBFA_MASK) == 0)
+				else if ((OutLatchC & IBFA_MASK) == 0)
 					ret = InBufferA;
 				else
 					ret = 0xFF;
@@ -708,7 +706,7 @@ BYTE ChipPIO8255::PeripheralReadByte(TPIOPort src)
 				ret |= (BYTE)(InBufferC & 0xF0); // PCH - input
 			else if ((CWR & (GA_MODE | PORTA_DIR)) == (GA_MODE1 | PORTA_OUT)) {
 				ret |= (BYTE)(OutLatchC & 0x88); // OBFA, INTRA - output
-				ret |= (BYTE)(InBufferC & 0x70); // ACKA - input
+				ret |= (BYTE)(InBufferC & 0x40); // ACKA - input
 				if ((CWR & (GA_MODE | PORTCH_DIR)) == (GA_MODE1 | PORTCH_OUT))
 					ret |= (BYTE) (OutLatchC & 0x30); // PC5, PC4 - output
 				else if ((CWR & (GA_MODE | PORTCH_DIR)) == (GA_MODE1 | PORTCH_INP))

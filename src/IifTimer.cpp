@@ -160,15 +160,11 @@ void IifTimer::Mouse602Clock(TPITCounter counter, bool outState)
 //---------------------------------------------------------------------------
 void IifTimer::EnableMouse602(bool enable)
 {
-	if (IsPMD85())
-		mouse602 = enable;
-	else
-		mouse602 = false;
-
+	mouse602 = (IsPMD85() && model == CM_C2717) ? enable : false;
 	if (mouse602)
-		Counters[1].OnOutChange.connect(this, &IifTimer::Mouse602Clock);
+		Counters[1].OnOutChange2.connect(this, &IifTimer::Mouse602Clock);
 	else
-		Counters[1].OnOutChange.disconnect_all();
+		Counters[1].OnOutChange2.disconnect_all();
 }
 //---------------------------------------------------------------------------
 void IifTimer::EnableMIF85(bool enable, Mif85 *_mif85)
