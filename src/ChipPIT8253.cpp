@@ -45,7 +45,7 @@ ChipPIT8253::ChipPIT8253()
 		Counters[ii].Out = false;
 
 		Counters[ii].OnOutChange.disconnect_all();
-		Counters[ii].OnOutChange2.disconnect_all();
+		Counters[ii].OnOutChange602.disconnect_all();
 	}
 }
 //---------------------------------------------------------------------------
@@ -213,7 +213,7 @@ void ChipPIT8253::CpuWrite(TPITCounter dest, BYTE val)
 
 				if (oldOut != Counters[cnt].Out) {
 					Counters[cnt].OnOutChange(dest, Counters[cnt].Out);
-					Counters[cnt].OnOutChange2(dest, Counters[cnt].Out);
+					Counters[cnt].OnOutChange602(dest, Counters[cnt].Out);
 				}
 
 				Counters[cnt].CwrWritten = false;
@@ -244,7 +244,7 @@ void ChipPIT8253::CpuWrite(TPITCounter dest, BYTE val)
 
 				if (oldOut != Counters[cnt].Out) {
 					Counters[cnt].OnOutChange((TPITCounter) cnt, Counters[cnt].Out);
-					Counters[cnt].OnOutChange2((TPITCounter) cnt, Counters[cnt].Out);
+					Counters[cnt].OnOutChange602((TPITCounter) cnt, Counters[cnt].Out);
 				}
 
 				Counters[cnt].CwrWritten = true;
@@ -357,7 +357,7 @@ void ChipPIT8253::PeripheralSetGate(TPITCounter counter, bool state)
 
 	if (oldOut != Counters[cnt].Out) {
 		Counters[cnt].OnOutChange(counter, Counters[cnt].Out);
-		Counters[cnt].OnOutChange2(counter, Counters[cnt].Out);
+		Counters[cnt].OnOutChange602(counter, Counters[cnt].Out);
 	}
 }
 //---------------------------------------------------------------------------
@@ -499,7 +499,7 @@ void ChipPIT8253::PeripheralSetClock(TPITCounter counter, bool state)
 
 	if (oldOut != Counters[cnt].Out) {
 		Counters[cnt].OnOutChange(counter, Counters[cnt].Out);
-		Counters[cnt].OnOutChange2(counter, Counters[cnt].Out);
+		Counters[cnt].OnOutChange602(counter, Counters[cnt].Out);
 	}
 }
 //---------------------------------------------------------------------------

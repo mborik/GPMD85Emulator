@@ -162,9 +162,9 @@ void IifTimer::EnableMouse602(bool enable)
 {
 	mouse602 = (IsPMD85() && model == CM_C2717) ? enable : false;
 	if (mouse602)
-		Counters[1].OnOutChange2.connect(this, &IifTimer::Mouse602Clock);
+		Counters[1].OnOutChange602.connect(this, &IifTimer::Mouse602Clock);
 	else
-		Counters[1].OnOutChange2.disconnect_all();
+		Counters[1].OnOutChange602.disconnect(this);
 }
 //---------------------------------------------------------------------------
 void IifTimer::EnableMIF85(bool enable, Mif85 *_mif85)
