@@ -514,7 +514,7 @@ void TEmulator::CpuTimerCallback()
 		}
 
 		// switch PMD 85-3 to compatibility mode
-		if (pc == 0xE04C && model == CM_V3 && compatibilityMode)
+		if (pc == 0xE04C && model == CM_V3 && compatibilityMode && !memory->IsAllRAM())
 			cpu->SetPC(0xFFF0);
 
 		// tape flash loading - ROM entry-point mappings
@@ -1548,12 +1548,16 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 	if (model == CM_MATO)
 		cpu->TCyclesListeners.connect((IifTapeMato *) ifTape, &IifTapeMato::TapeClockService);
 	else {
+		IifTapePMD85 *tapeDevice = (IifTapePMD85 *) ifTape;
+
 		// pin tape interface signal to timer
-		if (model != CM_V1 && model != CM_ALFA)
-			ifTimer->Counters[((model == CM_C2717) ? 0 : 1)].OnOutChange.connect((IifTapePMD85 *) ifTape, &IifTapePMD85::TapeClockService23);
+		if (model != CM_V1 && model != CM_ALFA) {
+			int cnt = (model == CM_C2717) ? 0 : 1;
+			ifTimer->Counters[cnt].OnOutChange.connect(tapeDevice, &IifTapePMD85::TapeClockService23);
+		}
 
 		// pin tape interface signal to CPU
-		cpu->TCyclesListeners.connect((IifTapePMD85 *) ifTape, &IifTapePMD85::TapeClockService123);
+		cpu->TCyclesListeners.connect(tapeDevice, &IifTapePMD85::TapeClockService123);
 	}
 
 	if (model == CM_V2A || model == CM_V3) {
