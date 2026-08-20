@@ -36,6 +36,16 @@ ROM = \
 	sach1.rmm \
 	wurmi.rmm
 
+if EMSCRIPTEN
+bin_SCRIPTS = .emcpy
+CLEANFILES = $(bin_SCRIPTS)
+.emcpy:
+	@echo "Copying ROM files to WASM storage/rom/"
+	@mkdir -p ../storage/rom
+	@cp $(ROM) ../storage/rom/
+	@touch $@
+endif
+
 pkgdata_DATA = $(ROM)
 
 EXTRA_DIST = $(ROM) README.md

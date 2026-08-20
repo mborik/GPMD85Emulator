@@ -34,6 +34,12 @@
 # executable
 /GPMD85emu
 
+# WebAssembly & Emscripten
+*.wasm
+/storage
+/GPMD85emu.js
+/GPMD85emu.data
+
 # autoconf
 /autom4te.cache
 /autoscan.log

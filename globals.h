@@ -189,6 +189,25 @@ enum TDebugListSource { MEM, HL, DE, BC, AF, SP, PC };
 // screen offsets of top-left -> bottom-right corner
 typedef struct TDrawRegion { WORD tl, br; } TDrawRegion;
 //-----------------------------------------------------------------------------
+#ifdef __EMSCRIPTEN__
+	// WebAssembly modifications using emscripten
+	#include <emscripten.h>
+	#include <functional>
+	static std::function<void()> EmMainLoopRef;
+	static std::function<bool()> EmCheckBlockingRef;
+	inline void EmMainLoopImpl() { EmMainLoopRef(); }
+	inline bool EmCheckBlocking() { return EmCheckBlockingRef(); }
+	inline void EmResetBlocking() { EmCheckBlockingRef = [] { return true; }; }
+	inline void EmSetBlocking(std::function<bool()> checker) {
+		EmCheckBlockingRef = checker;
+	}
+	inline void EmRegisterMainLoop(std::function<void()> loop) {
+		EmMainLoopRef = loop;
+		emscripten_set_main_loop(EmMainLoopImpl, CPU_TIMER_INTERVAL, true);
+	}
+	inline void EmExitMainLoop() { emscripten_cancel_main_loop(); }
+#endif
+//-----------------------------------------------------------------------------
 static char msgbuffer[1024];
 //-----------------------------------------------------------------------------
 inline void error(const char *ns, const char *msg, ...)

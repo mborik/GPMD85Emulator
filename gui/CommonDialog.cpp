@@ -117,8 +117,14 @@ void UserInterface::AboutDialog()
 	DWORD nextTick;
 	SDL_Event event;
 
+#ifdef __EMSCRIPTEN__
+	EmSetBlocking([&] { return (i == 0); });
+	EmExitMainLoop();
+	EmRegisterMainLoop([&] {
+#else
 	while (i) {
 		nextTick = SDL_GetTicks() + CPU_TIMER_INTERVAL;
+#endif
 
 		while (SDL_PollEvent(&event)) {
 			switch (event.type) {
@@ -149,9 +155,13 @@ void UserInterface::AboutDialog()
 			}
 		}
 
+#ifdef __EMSCRIPTEN__
+	});
+#else
 		while (SDL_GetTicks() < nextTick)
 			SDL_Delay(1);
 	}
+#endif
 
 	defaultSurface = LockSurface(defaultTexture);
 
@@ -168,6 +178,10 @@ void UserInterface::AboutDialog()
 
 	SDL_Delay(GPU_TIMER_INTERVAL);
 	needRelease = true;
+
+#ifdef __EMSCRIPTEN__
+	EmResetBlocking();
+#endif
 }
 //-----------------------------------------------------------------------------
 BYTE UserInterface::QueryDialog(const char *title, bool save)
