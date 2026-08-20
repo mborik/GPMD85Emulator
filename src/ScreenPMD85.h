@@ -77,6 +77,8 @@ public:
 	void RefreshDisplay();
 	void FillBuffer(BYTE *videoRam, bool needRedraw = true);
 
+	ImVec2 GetScreenSize() { return ImVec2((float) screenWidth, (float) screenHeight); }
+
 private:
 	SDL_Texture *scanlinerTexture;
 	SDL_Texture *screenTexture;

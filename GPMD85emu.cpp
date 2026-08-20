@@ -15,9 +15,26 @@
 	along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 //-----------------------------------------------------------------------------
+#define GL_GLEXT_PROTOTYPES
+#include "custom_imconfig.h"
+#include "imgui.h"
+#include "imgui_internal.h"
+#include "imgui_memory_editor.h"
+#include "imgui_impl_sdl2.h"
+#include "imgui_impl_opengl3.h"
+#include "portable-file-dialogs.h"
+#include <iostream>
+#include <fstream>
+//-----------------------------------------------------------------------------
 #include "ArgvParser.h"
 #include "CommonUtils.h"
 #include "Emulator.h"
+//-----------------------------------------------------------------------------
+#ifdef IMGUI_IMPL_OPENGL_ES2
+#  include "SDL_opengles2.h"
+#else
+#  include "SDL_opengl.h"
+#endif
 //-----------------------------------------------------------------------------
 int main(int argc, char** argv)
 {
@@ -34,12 +51,15 @@ int main(int argc, char** argv)
 	PathApplication = getcwd(NULL, PATH_MAX);
 	PathResources = (char *) malloc(strlen(DIR_RESOURCES) + 1);
 	PathAppConfig = (char *) malloc(strlen(PathUserHome) + 16);
+	PathGuiConfig = (char *) malloc(strlen(PathUserHome) + 32);
 	strcpy(PathResources, DIR_RESOURCES);
 	sprintf(PathAppConfig, "%s%c.%s", PathUserHome, DIR_DELIMITER, PACKAGE_TARNAME);
+	sprintf(PathGuiConfig, "%s%c.%s/imgui.conf", PathUserHome, DIR_DELIMITER, PACKAGE_TARNAME);
 
 	debug("",   "Resource path: %s", PathResources);
 	debug(NULL, "Application path: %s", PathApplication);
 	debug(NULL, "Application config path: %s", PathAppConfig);
+	debug(NULL, "GUI config path: %s", PathGuiConfig);
 
 	if (stat(PathAppConfig, &filestat) != 0)
 		mkdir(PathAppConfig, 0755);
@@ -48,8 +68,56 @@ int main(int argc, char** argv)
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER | SDL_INIT_TIMER | SDL_INIT_EVENTS) < 0)
 		error("", "Couldn't initialize SDL:\n\t%s", SDL_GetError());
 
+	// Decide GL+GLSL versions
+#if defined(IMGUI_IMPL_OPENGL_ES2)
+	// GL ES 2.0 + GLSL 100 (WebGL 1.0)
+	const char* glsl_version = "#version 100";
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+#elif defined(IMGUI_IMPL_OPENGL_ES3)
+	// GL ES 3.0 + GLSL 300 es (WebGL 2.0)
+	const char* glsl_version = "#version 300 es";
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+#elif defined(__APPLE__)
+	// GL 3.2 Core + GLSL 150
+	const char* glsl_version = "#version 150";
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG); // Always required on Mac
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+#else
+	// GL 3.0 + GLSL 130
+	const char* glsl_version = "#version 130";
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+#endif
+
+	// From 2.0.18: Enable native IME.
+#ifdef SDL_HINT_IME_SHOW_UI
+	SDL_SetHint(SDL_HINT_IME_SHOW_UI, "1");
+#endif
+
 	SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_JOY_CONS, "1");
 	SDL_SetHint(SDL_HINT_GAMECONTROLLER_USE_BUTTON_LABELS, "0");
+
+	// Create window with graphics context
+	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+	SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+
+	SDL_WindowFlags window_flags = (SDL_WindowFlags) (
+		SDL_WINDOW_OPENGL |
+		SDL_WINDOW_RESIZABLE |
+		SDL_WINDOW_ALLOW_HIGHDPI |
+		SDL_WINDOW_MAXIMIZED
+	);
 
 	SDL_DisplayMode desktop;
 	if (SDL_GetDesktopDisplayMode(0, &desktop) != 0)
@@ -66,29 +134,41 @@ int main(int argc, char** argv)
 	gdc.format = desktop.format;
 	gdc.window = SDL_CreateWindow(PACKAGE_NAME,
 			SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 256, 256,
-			SDL_WINDOW_HIDDEN);
+			window_flags);
 
 	if (!gdc.window)
 		error("", "Couldn't initialize window:\n\t%s", SDL_GetError());
 
 	gdc.windowID = SDL_GetWindowID(gdc.window);
+	gdc.context = SDL_GL_CreateContext(gdc.window);
+	if (!gdc.context)
+		error("", "Couldn't initialize OpenGL context:\n\t%s", SDL_GetError());
 
-	DWORD renderFlags = SDL_RENDERER_ACCELERATED;
-#ifndef SOFTRENDER
-	if (argv_config.softrender)
-#endif
-		renderFlags = SDL_RENDERER_SOFTWARE;
+	SDL_GL_MakeCurrent(gdc.window, gdc.context);
+	SDL_GL_SetSwapInterval(1); // Enable vsync
 
-	debug(NULL, "Creating %s 2D rendering context...",
-		(renderFlags == SDL_RENDERER_SOFTWARE) ? "software" : "accelerated");
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void) io;
+	io.IniFilename = PathGuiConfig;
 
-	gdc.renderer = SDL_CreateRenderer(gdc.window, -1, renderFlags);
+	ImGuiStyle& style = ImGui::GetStyle();
+	style.ScaleAllSizes(1.0f);
+	style.FontScaleDpi = 1.0f;
+	style.FontSizeBase = 13.0f;
+	ImVec4 background = ImVec4(0.1f, 0.1f, 0.1f, 1.00f);
 
-	if (!gdc.renderer)
-		error("", "Couldn't initialize renderer:\n\t%s", SDL_GetError());
+	io.Fonts->AddFontDefaultBitmap();
 
-	SDL_RenderSetScale(gdc.renderer, 1, 1);
-	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, 0);
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+	// Setup Dear ImGui style
+	ImGui::StyleColorsDark();
+
+	// Setup Platform/Renderer backends
+	ImGui_ImplSDL2_InitForOpenGL(gdc.window, gdc.context);
+	ImGui_ImplOpenGL3_Init(glsl_version);
 
 	SDL_Surface *icon = SDL_LoadBMP(LocateResource("icon.bmp"));
 	if (icon) {
@@ -106,13 +186,6 @@ int main(int argc, char** argv)
 	Emulator->ProcessSettings(-1);
 	Emulator->ProcessArgvOptions(true);
 
-	if (Settings->Screen->position.x >= 0 || Settings->Screen->position.y >= 0)
-		SDL_SetWindowPosition(gdc.window,
-				Settings->Screen->position.x, Settings->Screen->position.y);
-
-	SDL_ShowWindow(gdc.window);
-	SDL_Delay(WEAK_REFRESH_TIME);
-
 	debug("", "Starting %d FPS refresh timer", GPU_FRAMES_PER_SEC);
 	Emulator->BaseTimer = SDL_AddTimer(GPU_TIMER_INTERVAL, FormMain_BaseTimerCallback, Emulator);
 	Emulator->ActionPlayPause(true);
@@ -129,13 +202,16 @@ int main(int argc, char** argv)
 		nextTick = SDL_GetTicks() + CPU_TIMER_INTERVAL;
 
 		while (SDL_PollEvent(&event)) {
+			ImGui_ImplSDL2_ProcessEvent(&event);
+
 			switch (event.type) {
+				case SDL_QUIT:
+					Emulator->isActive = false;
+					break;
 				case SDL_KEYUP:
 				case SDL_KEYDOWN:
-					if (!GUI->InMenu() && event.key.repeat != 0)
+					if (event.key.repeat != 0)
 						break;
-					/* no break */
-				case SDL_QUIT:
 					memcpy(kb, SDL_GetKeyboardState(NULL), SDL_NUM_SCANCODES);
 					kb[SDL_SCANCODE_NUMLOCKCLEAR] = kb[SDL_SCANCODE_CAPSLOCK] = kb[SDL_SCANCODE_SCROLLLOCK] = 0;
 					if (event.type == SDL_QUIT)
@@ -181,20 +257,6 @@ int main(int argc, char** argv)
 					Emulator->ActionMouseState(event.motion.x, event.motion.y);
 					break;
 
-				case SDL_WINDOWEVENT:
-					if (event.window.windowID == gdc.windowID) {
-						if (event.window.event == SDL_WINDOWEVENT_EXPOSED) {
-							Emulator->RefreshDisplay();
-						}
-						else if (Settings->pauseOnFocusLost && (
-								event.window.event == SDL_WINDOWEVENT_FOCUS_GAINED ||
-								event.window.event == SDL_WINDOWEVENT_FOCUS_LOST)) {
-
-							Emulator->ActionPlayPause((event.window.event == SDL_WINDOWEVENT_FOCUS_GAINED));
-						}
-					}
-					break;
-
 				case SDL_CONTROLLERDEVICEADDED:
 				case SDL_CONTROLLERDEVICEREMOVED:
 					Emulator->ActionJoyControllers(NULL, true);
@@ -214,12 +276,26 @@ int main(int argc, char** argv)
 
 		Emulator->CpuTimerCallback();
 
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplSDL2_NewFrame();
+		ImGui::NewFrame();
+
+		ImGui::SetNextWindowSize(Emulator->GetScreenSize(), ImGuiCond_Always);
+		ImGui::Begin("Emulator", NULL, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+//		ImGui::Image((ImTextureID) Emulator->Screen->GetScreenTexture(), Emulator->Screen->GetScreenSize());
+		ImGui::End();
+
+		ImGui::Render();
+
+		glViewport(0, 0, (int) io.DisplaySize.x, (int) io.DisplaySize.y);
+		glClearColor(background.x * background.w, background.y * background.w, background.z * background.w, background.w);
+		glClear(GL_COLOR_BUFFER_BIT);
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+		SDL_GL_SwapWindow(gdc.window);
+
 		while (SDL_GetTicks() < nextTick)
 			SDL_Delay(1);
 	}
-
-	SDL_GetWindowPosition(gdc.window,
-			&Settings->Screen->position.x, &Settings->Screen->position.y);
 
 	SDL_HideWindow(gdc.window);
 	debug("", "Main CPU loop terminated");
@@ -229,7 +305,11 @@ int main(int argc, char** argv)
 
 	delete Emulator;
 
-	SDL_DestroyRenderer(gdc.renderer);
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui_ImplSDL2_Shutdown();
+	ImGui::DestroyContext();
+
+	SDL_GL_DeleteContext(gdc.context);
 	SDL_DestroyWindow(gdc.window);
 	SDL_Quit();
 
