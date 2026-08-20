@@ -23,6 +23,7 @@
 extern struct TGraphicsDeviceContext {
 	SDL_Window *window;
 	SDL_Renderer *renderer;
+	SDL_GLContext context;
 	DWORD windowID;
 	DWORD format;
 	int freq;
@@ -33,6 +34,7 @@ extern struct TGraphicsDeviceContext {
 extern struct stat filestat;
 
 extern char *PathAppConfig;
+extern char *PathGuiConfig;
 extern char *PathApplication;
 extern char *PathResources;
 extern char *PathUserHome;

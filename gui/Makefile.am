@@ -1,22 +1,25 @@
 # GPMD85emu automake
 # mborik, 02/2012, 08/2026
 
-AUTOMAKE_OPTIONS = foreign
+AUTOMAKE_OPTIONS = foreign subdir-objects
 EXTRA_DIST = update-submodules.sh
 
 AM_CPPFLAGS = \
 	-DIMGUI_USER_CONFIG='"$(srcdir)/custom_imconfig.h"' \
+	-I$(srcdir)/.. \
+	-I$(srcdir)/../saa \
+	-I$(srcdir)/../src \
 	-I$(srcdir)/imgui \
 	@libSDL_CFLAGS@
 
-noinst_LIBRARIES = libimgui.a
+noinst_LIBRARIES = libGPMD85emu_gui.a
 
-libimgui_a_SOURCES = \
+libGPMD85emu_gui_a_SOURCES = \
 	custom_imconfig.h \
 	imgui/backends/imgui_impl_sdl2.cpp \
 	imgui/backends/imgui_impl_sdl2.h \
-	imgui/backends/imgui_impl_sdlrenderer2.cpp \
-	imgui/backends/imgui_impl_sdlrenderer2.h \
+	imgui/backends/imgui_impl_opengl3.cpp \
+	imgui/backends/imgui_impl_opengl3.h \
 	imgui/imconfig.h \
 	imgui/imgui.cpp \
 	imgui/imgui.h \
@@ -29,4 +32,19 @@ libimgui_a_SOURCES = \
 	imgui/imstb_truetype.h \
 	imgui/misc/cpp/imgui_raii.h \
 	imgui/misc/cpp/imgui_stdlib.cpp \
-	imgui/misc/cpp/imgui_stdlib.h
+	imgui/misc/cpp/imgui_stdlib.h \
+	imgui_memory_editor.h \
+	portable-file-dialogs.h \
+	CommonDialog.cpp \
+	DebugWindow.cpp \
+	EditDialog.cpp \
+	Menu.cpp \
+	FileSelector.cpp \
+	StatusBar.cpp \
+	TapeDialog.cpp \
+	UserInterface.cpp \
+	UserInterfaceData.cpp
+
+noinst_HEADERS = \
+	UserInterface.h \
+	UserInterfaceData.h

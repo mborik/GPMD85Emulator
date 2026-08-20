@@ -58,6 +58,7 @@ class TEmulator : public sigslot::has_slots<>
 		TEmulator();
 		virtual ~TEmulator();
 		inline void RefreshDisplay() { video->RefreshDisplay(); }
+		inline ImVec2 GetScreenSize() { return video->GetScreenSize(); }
 
 		void ProcessArgvOptions(bool memModifiers = false);
 		void ProcessSettings(BYTE filter);

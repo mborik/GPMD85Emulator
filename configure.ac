@@ -3,15 +3,16 @@
 
 AC_PREREQ([2.59])
 AC_INIT([GPMD85emulator], [0.14.2608], [mborik@users.sourceforge.net],
-        [gpmd85emu], [https://github.com/mborik/GPMD85Emulator])
+		[gpmd85emu], [https://github.com/mborik/GPMD85Emulator])
 AC_CONFIG_SRCDIR([GPMD85emu.cpp])
 
 AM_INIT_AUTOMAKE([foreign])
 AC_CONFIG_HEADERS([config.h])
 AC_DEFINE_UNQUOTED([PACKAGE_YEAR], "`date +%Y`",
-                   [Define to the build year of this package.])
+				   [Define to the build year of this package.])
 
 # Checks for programs:
+AC_CANONICAL_HOST
 AC_PROG_RANLIB
 AC_PROG_CXX
 AC_PROG_CC
@@ -99,6 +100,29 @@ PKG_CHECK_MODULES([libSDL], [sdl2],, [
 		], AC_MSG_ERROR([SDL2 header not found]))
 	], AC_MSG_ERROR([SDL2 library not found]))
 ])
+
+libGL_LIBS=""
+libGL_CFLAGS=""
+
+case "${host_os}" in
+	darwin*)
+		# macOS: Use native Apple Framework
+		AC_MSG_CHECKING([for OpenGL framework])
+		libGL_LIBS="-framework OpenGL"
+		libGL_CFLAGS="-framework OpenGL -I{includedir}/OpenGL"
+		AC_MSG_RESULT([yes])
+		;;
+	*)
+		AC_CHECK_LIB([GL], [glClear], [
+			libGL_LIBS="-lGL"
+			libGL_CFLAGS="-I{includedir}/GL"
+		], [
+			AC_MSG_ERROR([OpenGL library not found.])
+		])
+		;;
+esac
+AC_SUBST(libGL_LIBS)
+AC_SUBST(libGL_CFLAGS)
 
 AC_SUBST(CXXFLAGS)
 AC_SUBST(CFLAGS)

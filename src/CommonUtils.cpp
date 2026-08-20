@@ -22,6 +22,7 @@ struct TGraphicsDeviceContext gdc;
 struct stat filestat;
 //-----------------------------------------------------------------------------
 char *PathAppConfig = NULL;
+char *PathGuiConfig = NULL;
 char *PathApplication = NULL;
 char *PathResources = NULL;
 char *PathUserHome = NULL;

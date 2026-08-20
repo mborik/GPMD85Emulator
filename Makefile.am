@@ -17,11 +17,15 @@ AM_CPPFLAGS = \
 	-I$(srcdir)/saa \
 	-I$(srcdir)/src \
 	-I$(srcdir)/gui \
+	-I$(srcdir)/gui/imgui \
+	-I$(srcdir)/gui/imgui/backends \
 	@libSDL_CFLAGS@ \
+	@libGL_CFLAGS@ \
 	@resDir_CFLAGS@
 
 GPMD85emu_LDADD = \
 	@libSDL_LIBS@ \
+	@libGL_LIBS@ \
 	src/libGPMD85emu_core.a \
 	gui/libGPMD85emu_gui.a \
 	saa/libSAASound.a

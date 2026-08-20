@@ -187,6 +187,7 @@ void ScreenPMD85::RefreshDisplay()
 		return;
 
 	PrepareScreen();
+/*
 	SDL_RenderCopy(gdc.renderer, screenTexture, NULL, screenRect);
 
 	if (scanlinerMode)
@@ -197,6 +198,7 @@ void ScreenPMD85::RefreshDisplay()
 		SDL_RenderCopy(gdc.renderer, GUI->defaultTexture, NULL, screenRect);
 
 	SDL_RenderPresent(gdc.renderer);
+*/
 	SDL_UnlockMutex(displayModeMutex);
 }
 //---------------------------------------------------------------------------
@@ -205,7 +207,7 @@ void ScreenPMD85::FillBuffer(BYTE *videoRam, bool needRedraw)
 	// test if there is something to draw and we're not locked in another thread...
 	if (!(videoRam && needRedraw && SDL_TryLockMutex(displayModeMutex) == 0))
 		return;
-
+/*
 	bool colorace = (colorProfile == CP_COLORACE);
 	int i, w, h = bufferHeight, c2717 = (width384mode ? 0 : 0x40);
 	BYTE a[4] = { pAttr[0], pAttr[1], pAttr[2], pAttr[3] }, b, c, d, e;
@@ -242,6 +244,7 @@ void ScreenPMD85::FillBuffer(BYTE *videoRam, bool needRedraw)
 	}
 
 	SDL_UnlockTexture(screenTexture);
+*/
 	SDL_UnlockMutex(displayModeMutex);
 }
 //---------------------------------------------------------------------------
@@ -329,7 +332,7 @@ void ScreenPMD85::InitVideoMode(TDisplayMode reqDispMode, bool reqWidth384)
 		debug("Screen", "Full-screen mode: %dx%d -> viewport: %dx%d",
 				screenWidth, screenHeight, screenRect->w, screenRect->h);
 
-		SDL_SetWindowFullscreen(gdc.window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+//		SDL_SetWindowFullscreen(gdc.window, SDL_WINDOW_FULLSCREEN_DESKTOP);
 	}
 	else {
 		screenRect->x = borderSize;
@@ -343,10 +346,10 @@ void ScreenPMD85::InitVideoMode(TDisplayMode reqDispMode, bool reqWidth384)
 		debug("Screen", "Windowed mode: %dx%d -> viewport: %dx%d",
 				screenWidth, screenHeight, screenRect->w, screenRect->h);
 
-		SDL_SetWindowFullscreen(gdc.window, 0);
-		SDL_SetWindowSize(gdc.window, screenWidth, screenHeight);
+//		SDL_SetWindowFullscreen(gdc.window, 0);
+//		SDL_SetWindowSize(gdc.window, screenWidth, screenHeight);
 	}
-
+/*
 	SDL_Event event;
 	int waitForResize = WEAK_REFRESH_TIME;
 	while (--waitForResize > 0) {
@@ -384,11 +387,13 @@ void ScreenPMD85::InitVideoMode(TDisplayMode reqDispMode, bool reqWidth384)
 	PrepareScreen();
 
 	SDL_RenderPresent(gdc.renderer);
+*/
 	SDL_UnlockMutex(displayModeMutex);
 }
 //-----------------------------------------------------------------------------
 void ScreenPMD85::PrepareScreen()
 {
+/*
 	SDL_SetRenderDrawColor(gdc.renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
 	SDL_RenderClear(gdc.renderer);
 
@@ -410,6 +415,7 @@ void ScreenPMD85::PrepareScreen()
 	}
 
 	delete r;
+*/
 }
 //-----------------------------------------------------------------------------
 void ScreenPMD85::PrepareScanliner()
@@ -421,7 +427,7 @@ void ScreenPMD85::PrepareScanliner()
 	--reqDispMode;
 	if (reqDispMode != scanlinerMode) {
 		scanlinerMode = reqDispMode;
-
+/*
 		if (scanlinerTexture)
 			SDL_DestroyTexture(scanlinerTexture);
 		scanlinerTexture = NULL;
@@ -439,6 +445,7 @@ void ScreenPMD85::PrepareScanliner()
 
 			SDL_SetTextureBlendMode(scanlinerTexture, SDL_BLENDMODE_BLEND);
 		}
+*/
 	}
 	else if (!reqDispMode) {
 		scanlinerMode = 0;
@@ -471,9 +478,11 @@ void ScreenPMD85::PrepareScanliner()
 			return;
 	}
 
+/*
 	SDL_LockTexture(scanlinerTexture, NULL, (void **) &pixels, &pitch);
 	(*scanlinerFn) (pixels, pitch >> 2, sclGrading, bufferWidth, bufferHeight);
 	SDL_UnlockTexture(scanlinerTexture);
+*/
 }
 //-----------------------------------------------------------------------------
 scanlinerMethodPrototype(point2x)

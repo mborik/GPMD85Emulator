@@ -19,6 +19,7 @@
 #define USERINTERFACE_H_
 //-----------------------------------------------------------------------------
 #include "globals.h"
+#include "imgui/imgui.h"
 //-----------------------------------------------------------------------------
 #define SCHR_ERROR     127
 #define SCHR_NAVIGATOR 128
