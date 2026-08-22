@@ -37,7 +37,7 @@
 class Mouse602 : public PeripheralDevice, public sigslot::has_slots<>
 {
 public:
-	Mouse602(int size, int offsetX, int offsetY);
+	Mouse602(int size, int offsetX = 0, int offsetY = 0);
 
 	virtual void WriteToDevice(BYTE port, BYTE val, int ticks);
 	virtual BYTE ReadFromDevice(BYTE port, int ticks);

@@ -66,6 +66,7 @@ class TSettings
 			TDisplayMode size;
 			TDisplayMode realsize;
 			SDL_Point position;
+			SDL_Point windowSize;
 			THalfPassMode halfPass;
 			bool lcdMode;
 			TColorProfile colorProfile;

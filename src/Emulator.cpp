@@ -286,13 +286,6 @@ void TEmulator::ProcessSettings(BYTE filter)
 		video->SetDisplayMode(Settings->Screen->size, Settings->Screen->border);
 		int multiplier = video->GetMultiplier();
 		Settings->Screen->realsize = (TDisplayMode) multiplier;
-
-		if (mouse602)
-			mouse602->SetMouseArea(
-				multiplier,
-				video->GetScreenOffsetX(),
-				video->GetScreenOffsetY()
-			);
 	}
 
 	if (filter & PS_SCREEN_MODE) {
@@ -1716,11 +1709,7 @@ void TEmulator::ConnectMouse602(bool init)
 		) ? mouse602enabled : false;
 
 		if (mouse602connected) {
-			mouse602 = new Mouse602(
-				video->GetMultiplier(),
-				video->GetScreenOffsetX(),
-				video->GetScreenOffsetY()
-			);
+			mouse602 = new Mouse602(video->GetMultiplier());
 
 			mouse602->SetHideCursor(Settings->Mouse->hideCursor);
 			cpu->AddDevice(MOUSE_ADR, MOUSE_MASK, mouse602, true);

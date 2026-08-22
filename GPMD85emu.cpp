@@ -19,10 +19,10 @@
 #include "custom_imconfig.h"
 #include "imgui.h"
 #include "imgui_internal.h"
-#include "imgui_memory_editor.h"
+// #include "imgui_memory_editor.h"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_opengl3.h"
-#include "portable-file-dialogs.h"
+// #include "portable-file-dialogs.h"
 #include <iostream>
 #include <fstream>
 //-----------------------------------------------------------------------------
@@ -115,8 +115,7 @@ int main(int argc, char** argv)
 	SDL_WindowFlags window_flags = (SDL_WindowFlags) (
 		SDL_WINDOW_OPENGL |
 		SDL_WINDOW_RESIZABLE |
-		SDL_WINDOW_ALLOW_HIGHDPI |
-		SDL_WINDOW_MAXIMIZED
+		SDL_WINDOW_HIDDEN
 	);
 
 	SDL_DisplayMode desktop;
@@ -159,9 +158,7 @@ int main(int argc, char** argv)
 	ImVec4 background = ImVec4(0.1f, 0.1f, 0.1f, 1.00f);
 
 	io.Fonts->AddFontDefaultBitmap();
-
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
 	// Setup Dear ImGui style
 	ImGui::StyleColorsDark();
@@ -185,6 +182,12 @@ int main(int argc, char** argv)
 	Emulator = new TEmulator();
 	Emulator->ProcessSettings(-1);
 	Emulator->ProcessArgvOptions(true);
+
+	if (Settings->Screen->position.x >= 0 || Settings->Screen->position.y >= 0)
+		SDL_SetWindowPosition(gdc.window, Settings->Screen->position.x, Settings->Screen->position.y);
+	if (Settings->Screen->windowSize.x >= 0 || Settings->Screen->windowSize.y >= 0)
+		SDL_SetWindowSize(gdc.window, Settings->Screen->windowSize.x, Settings->Screen->windowSize.y);
+	SDL_ShowWindow(gdc.window);
 
 	debug("", "Starting %d FPS refresh timer", GPU_FRAMES_PER_SEC);
 	Emulator->BaseTimer = SDL_AddTimer(GPU_TIMER_INTERVAL, FormMain_BaseTimerCallback, Emulator);
@@ -275,16 +278,42 @@ int main(int argc, char** argv)
 			waitForRelease = false;
 
 		Emulator->CpuTimerCallback();
+		Emulator->RefreshDisplay();
 
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplSDL2_NewFrame();
 		ImGui::NewFrame();
 
-		ImGui::SetNextWindowSize(Emulator->GetScreenSize(), ImGuiCond_Always);
-		ImGui::Begin("Emulator", NULL, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
-//		ImGui::Image((ImTextureID) Emulator->Screen->GetScreenTexture(), Emulator->Screen->GetScreenSize());
-		ImGui::End();
+		ImGui::SetNextWindowSize(Emulator->video->GetWindowSize(), ImGuiCond_Always);
+		ImGui::Begin(PACKAGE_NAME, NULL,
+			ImGuiWindowFlags_NoTitleBar |
+			ImGuiWindowFlags_NoResize |
+			ImGuiWindowFlags_NoCollapse |
+			ImGuiWindowFlags_NoScrollbar |
+			ImGuiWindowFlags_NoScrollWithMouse
+		);
 
+		ImVec2 screen_size = Emulator->video->GetScreenSize();
+		ImVec2 border_offset = Emulator->video->GetBorderOffset();
+		ImVec2 emulator_size = Emulator->video->GetScreenSize() / Emulator->video->GetMultiplier();
+
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
+
+		ImRect winRect(
+			window->DC.CursorPos - style.WindowPadding,
+			window->DC.CursorPos - style.WindowPadding + Emulator->video->GetWindowSize()
+		);
+		ImRect emuRect(
+			window->DC.CursorPos - style.WindowPadding + border_offset,
+			window->DC.CursorPos - style.WindowPadding + border_offset + screen_size
+		);
+
+		window->DrawList->AddRectFilled(winRect.Min, winRect.Max, ImGui::GetColorU32(ImVec4(0.0f, 0.0f, 0.0f, 1.00f)));
+		window->DrawList->AddCallback(ImGui::GetPlatformIO().DrawCallback_SetSamplerNearest);
+		window->DrawList->AddImage(Emulator->video->GetScreenTexture(), emuRect.Min, emuRect.Max);
+		window->DrawList->AddImage(Emulator->video->GetScalerTexture(), emuRect.Min, emuRect.Max);
+
+		ImGui::End();
 		ImGui::Render();
 
 		glViewport(0, 0, (int) io.DisplaySize.x, (int) io.DisplaySize.y);
@@ -296,6 +325,11 @@ int main(int argc, char** argv)
 		while (SDL_GetTicks() < nextTick)
 			SDL_Delay(1);
 	}
+
+	SDL_GetWindowPosition(gdc.window,
+			&Settings->Screen->position.x, &Settings->Screen->position.y);
+	SDL_GetWindowSize(gdc.window,
+			&Settings->Screen->windowSize.x, &Settings->Screen->windowSize.y);
 
 	SDL_HideWindow(gdc.window);
 	debug("", "Main CPU loop terminated");

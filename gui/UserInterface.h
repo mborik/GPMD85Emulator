@@ -66,15 +66,9 @@
 #define STATUSBAR_SPACING 14
 #define STATUSBAR_HEIGHT  20
 //-----------------------------------------------------------------------------
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
 #define SDL_PIXELFORMAT_DEFAULT SDL_PIXELFORMAT_ABGR8888
 #define SDL_DEFAULT_MASK_QUAD 0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff
 #define DWORD_COLOR_ENTRY(R, G, B) SDL_FOURCC(R, G, B, 0xff)
-#else
-#define SDL_PIXELFORMAT_DEFAULT SDL_PIXELFORMAT_RGBA8888
-#define SDL_DEFAULT_MASK_QUAD 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000
-#define DWORD_COLOR_ENTRY(R, G, B) SDL_FOURCC(0xff, B, G, R)
-#endif
 //-----------------------------------------------------------------------------
 typedef struct _GUI_MENU_ENTRY {
 	TMenuItemType type;

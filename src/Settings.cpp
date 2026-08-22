@@ -355,6 +355,8 @@ TSettings::TSettings(bool userCfg)
 
 	Screen->position.x = cfgGetIntValue(n, "pos-x", -1, &(Screen->position.x));
 	Screen->position.y = cfgGetIntValue(n, "pos-y", -1, &(Screen->position.y));
+	Screen->windowSize.x = cfgGetIntValue(n, "width", -1, &(Screen->windowSize.x));
+	Screen->windowSize.y = cfgGetIntValue(n, "height", -1, &(Screen->windowSize.y));
 
 	Screen->size = DM_NORMAL;
 	if ((m = cfgGetLine(n, "size")) != NULL) {

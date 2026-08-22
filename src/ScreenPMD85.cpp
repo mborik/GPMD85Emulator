@@ -14,21 +14,38 @@
 	You should have received a copy of the GNU General Public License
 	along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-//---------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+#define GL_GLEXT_PROTOTYPES
+#include "custom_imconfig.h"
+#include "imgui.h"
+#include "imgui_internal.h"
+#include "imgui_impl_sdl2.h"
+#include "imgui_impl_opengl3.h"
+//-----------------------------------------------------------------------------
 #include "CommonUtils.h"
 #include "ScreenPMD85.h"
 #include "Emulator.h"
 //-----------------------------------------------------------------------------
+#ifdef IMGUI_IMPL_OPENGL_ES2
+#  include "SDL_opengles2.h"
+#else
+#  include "SDL_opengl.h"
+#endif
+//-----------------------------------------------------------------------------
 ScreenPMD85::ScreenPMD85(TDisplayMode dispMode, int border)
 {
-	scanlinerTexture = NULL;
-	screenTexture = NULL;
+	screenPixelBuffer = NULL;
+	scanlinerPixelBuffer = NULL;
+
+	glGenTextures(1, &screenTexture);
+	glGenTextures(1, &scanlinerTexture);
+
 	screenRect = NULL;
 	palette = NULL;
 
 	blinkState = false;
 	blinkingEnabled = false;
-	halfPass = HP_OFF;
+	halfPass = HP_50;
 	lcdMode = false;
 
 	scanlinerMode = 0;
@@ -47,9 +64,9 @@ ScreenPMD85::~ScreenPMD85()
 	SDL_LockMutex(displayModeMutex);
 	ReleaseVideoMode();
 
-	if (scanlinerTexture) {
-		SDL_DestroyTexture(scanlinerTexture);
-		scanlinerTexture = NULL;
+	if (scanlinerPixelBuffer) {
+		delete[] scanlinerPixelBuffer;
+		scanlinerPixelBuffer = NULL;
 	}
 
 	SDL_UnlockMutex(displayModeMutex);
@@ -72,11 +89,11 @@ void ScreenPMD85::ReleaseVideoMode()
 	}
 	if (screenRect) {
 		delete screenRect;
-		screenTexture = NULL;
+		screenRect = NULL;
 	}
-	if (screenTexture) {
-		SDL_DestroyTexture(screenTexture);
-		screenTexture = NULL;
+	if (screenPixelBuffer) {
+		delete[] screenPixelBuffer;
+		screenPixelBuffer = NULL;
 	}
 }
 //-----------------------------------------------------------------------------
@@ -186,19 +203,11 @@ void ScreenPMD85::RefreshDisplay()
 	if (SDL_TryLockMutex(displayModeMutex) != 0)
 		return;
 
-	PrepareScreen();
-/*
-	SDL_RenderCopy(gdc.renderer, screenTexture, NULL, screenRect);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	glBindTexture(GL_TEXTURE_2D, screenTexture);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, bufferWidth, bufferHeight, GL_RGBA, GL_UNSIGNED_BYTE, screenPixelBuffer);
+	glBindTexture(GL_TEXTURE_2D, 0);
 
-	if (scanlinerMode)
-		SDL_RenderCopy(gdc.renderer, scanlinerTexture, NULL, screenRect);
-
-	GUI->RedrawStatusBar();
-	if (GUI->InMenu())
-		SDL_RenderCopy(gdc.renderer, GUI->defaultTexture, NULL, screenRect);
-
-	SDL_RenderPresent(gdc.renderer);
-*/
 	SDL_UnlockMutex(displayModeMutex);
 }
 //---------------------------------------------------------------------------
@@ -207,17 +216,16 @@ void ScreenPMD85::FillBuffer(BYTE *videoRam, bool needRedraw)
 	// test if there is something to draw and we're not locked in another thread...
 	if (!(videoRam && needRedraw && SDL_TryLockMutex(displayModeMutex) == 0))
 		return;
-/*
+
 	bool colorace = (colorProfile == CP_COLORACE);
-	int i, w, h = bufferHeight, c2717 = (width384mode ? 0 : 0x40);
+	int i, w = bufferWidth * sizeof(DWORD), h = bufferHeight, c2717 = (width384mode ? 0 : 0x40);
 	BYTE a[4] = { pAttr[0], pAttr[1], pAttr[2], pAttr[3] }, b, c, d, e;
 
 	if (blinkingEnabled && blinkState)
 		a[2] = a[3] = 0;
 
 	DWORD *ptr;
-	BYTE *dst;
-	SDL_LockTexture(screenTexture, NULL, (void **) &dst, &w);
+	BYTE *dst = screenPixelBuffer;
 
 	while (h--) {
 		ptr = (DWORD *) dst;
@@ -243,8 +251,6 @@ void ScreenPMD85::FillBuffer(BYTE *videoRam, bool needRedraw)
 		videoRam += 64;
 	}
 
-	SDL_UnlockTexture(screenTexture);
-*/
 	SDL_UnlockMutex(displayModeMutex);
 }
 //---------------------------------------------------------------------------
@@ -316,173 +322,100 @@ void ScreenPMD85::InitVideoMode(TDisplayMode reqDispMode, bool reqWidth384)
 	bufferWidth  = (reqWidth384) ? 384 : 288;
 	bufferHeight = 256;
 
-	screenRect = new SDL_Rect;
+	windowWidth  = screenWidth + (borderSize * 2);
+	windowHeight = screenHeight + (borderSize * 2);
 
-	if (dispMode == DM_FULLSCREEN) {
-		screenRect->w = screenWidth;
-		screenRect->h = screenHeight;
+	debug("Screen", "Windowed mode: %dx%d -> viewport: %dx%d",
+			screenWidth, screenHeight, windowWidth, windowHeight);
 
-		screenHeight += STATUSBAR_HEIGHT;
-		screenRect->x = (gdc.w - screenWidth) / 2;
-		screenRect->y = (gdc.h - screenHeight) / 2;
+	screenPixelBuffer = new BYTE[bufferWidth * bufferHeight * sizeof(DWORD)];
+	if (!screenPixelBuffer)
+		error("Screen", "Unable to create screen pixel buffer!");
 
-		screenWidth   = gdc.w;
-		screenHeight  = gdc.h;
-
-		debug("Screen", "Full-screen mode: %dx%d -> viewport: %dx%d",
-				screenWidth, screenHeight, screenRect->w, screenRect->h);
-
-//		SDL_SetWindowFullscreen(gdc.window, SDL_WINDOW_FULLSCREEN_DESKTOP);
-	}
-	else {
-		screenRect->x = borderSize;
-		screenRect->y = borderSize;
-		screenRect->w = screenWidth;
-		screenRect->h = screenHeight;
-
-		screenWidth  += (borderSize * 2);
-		screenHeight += (borderSize * 2) + STATUSBAR_HEIGHT;
-
-		debug("Screen", "Windowed mode: %dx%d -> viewport: %dx%d",
-				screenWidth, screenHeight, screenRect->w, screenRect->h);
-
-//		SDL_SetWindowFullscreen(gdc.window, 0);
-//		SDL_SetWindowSize(gdc.window, screenWidth, screenHeight);
-	}
-/*
-	SDL_Event event;
-	int waitForResize = WEAK_REFRESH_TIME;
-	while (--waitForResize > 0) {
-		if (SDL_PollEvent(&event) &&
-			event.type == SDL_WINDOWEVENT &&
-			event.window.windowID == gdc.windowID &&
-			event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
-				break;
-
-		SDL_Delay(1);
-	}
-
-	if (SDL_RenderSetLogicalSize(gdc.renderer, screenWidth, screenHeight) != 0)
-		error("Screen", "Unable to change screen resolution\n%s", SDL_GetError());
-	SDL_RenderSetViewport(gdc.renderer, NULL);
-
-	screenTexture = SDL_CreateTexture(gdc.renderer, SDL_PIXELFORMAT_DEFAULT,
-			SDL_TEXTUREACCESS_STREAMING, bufferWidth, bufferHeight);
-	if (!screenTexture)
-		error("Screen", "Unable to create screen texture\n%s", SDL_GetError());
-
-	int midOfStatus = SDL_max(1,
-			(screenHeight - screenRect->h - screenRect->y - STATUSBAR_HEIGHT) / 2);
-
-	GUI->statusRect = new SDL_Rect(*screenRect);
-	GUI->statusRect->x += STATUSBAR_SPACING;
-	GUI->statusRect->y += screenRect->h + midOfStatus;
-	GUI->statusRect->w -= (2 * STATUSBAR_SPACING);
-	GUI->statusRect->h  = STATUSBAR_HEIGHT;
-
-	GUI->InitStatusBarTexture();
-	GUI->InitDefaultTexture(bufferWidth, bufferHeight);
+	glBindTexture(GL_TEXTURE_2D, screenTexture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, bufferWidth, bufferHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, screenPixelBuffer);
+	glBindTexture(GL_TEXTURE_2D, 0);
 
 	PrepareScanliner();
 	PrepareScreen();
 
-	SDL_RenderPresent(gdc.renderer);
-*/
 	SDL_UnlockMutex(displayModeMutex);
 }
 //-----------------------------------------------------------------------------
 void ScreenPMD85::PrepareScreen()
 {
-/*
-	SDL_SetRenderDrawColor(gdc.renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
-	SDL_RenderClear(gdc.renderer);
-
-	SDL_Rect *r = new SDL_Rect(*screenRect);
-	SDL_SetRenderDrawColor(gdc.renderer, 16, 16, 16, SDL_ALPHA_OPAQUE);
-
-	if (dispMode == DM_FULLSCREEN || borderSize > 0) {
-		int i = GetMultiplier() * 2;
-		r->x -= i;
-		r->y -= i;
-		r->w += i * 2;
-		r->h += i * 2;
-
-		SDL_RenderDrawRect(gdc.renderer, r);
-	}
-	else {
-		int y = screenHeight - STATUSBAR_HEIGHT;
-		SDL_RenderDrawLine(gdc.renderer, r->x, y, r->x + r->w, y);
-	}
-
-	delete r;
-*/
 }
 //-----------------------------------------------------------------------------
 void ScreenPMD85::PrepareScanliner()
 {
 	int reqDispMode = (int) dispMode;
+	int multiplier = GetMultiplier();
 	if (!reqDispMode) // DM_FULLSCREEN
-		reqDispMode = GetMultiplier();
+		reqDispMode = multiplier;
 
 	--reqDispMode;
 	if (reqDispMode != scanlinerMode) {
 		scanlinerMode = reqDispMode;
-/*
-		if (scanlinerTexture)
-			SDL_DestroyTexture(scanlinerTexture);
-		scanlinerTexture = NULL;
 
-		if (!scanlinerMode || (halfPass == HP_OFF && !lcdMode)) {
+		if (scanlinerPixelBuffer)
+			delete[] scanlinerPixelBuffer;
+		scanlinerPixelBuffer = NULL;
+
+		if (!scanlinerMode || (halfPass == HP_OFF && !lcdMode))
 			scanlinerMode = 0;
-			return;
-		}
-		else {
-			scanlinerTexture = SDL_CreateTexture(gdc.renderer,
-					SDL_PIXELFORMAT_DEFAULT, SDL_TEXTUREACCESS_STREAMING,
-					screenRect->w, screenRect->h);
-			if (!scanlinerTexture)
-				warning("Screen", "Unable to create scanliner texture\n%s", SDL_GetError());
 
-			SDL_SetTextureBlendMode(scanlinerTexture, SDL_BLENDMODE_BLEND);
-		}
-*/
+		int scanlinerBufferSize = (screenWidth * screenHeight) * sizeof(DWORD);
+		scanlinerPixelBuffer = new BYTE[scanlinerBufferSize];
+		if (!scanlinerPixelBuffer)
+			error("Screen", "Unable to create scanliner pixel buffer!");
+
+		memset(scanlinerPixelBuffer, 0, scanlinerBufferSize);
+
+		glBindTexture(GL_TEXTURE_2D, scanlinerTexture);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, screenWidth, screenHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, scanlinerPixelBuffer);
 	}
-	else if (!reqDispMode) {
+	else if (!reqDispMode)
 		scanlinerMode = 0;
-		return;
+
+	if (scanlinerMode) {
+		int q = (lcdMode ? 5 : (int) halfPass);
+		DWORD *sclGrading;
+		scanlinerMethod scanlinerFn;
+
+		switch (reqDispMode) {
+			case 1:
+				scanlinerFn = &point2x;
+				sclGrading = ((DWORD *) &scanliner->x2) + q * 4;
+				break;
+			case 2:
+				scanlinerFn = &point3x;
+				sclGrading = ((DWORD *) &scanliner->x3) + q * 9;
+				break;
+			case 3:
+				scanlinerFn = &point4x;
+				sclGrading = ((DWORD *) &scanliner->x4) + q * 16;
+				break;
+			case 4:
+				scanlinerFn = &point5x;
+				sclGrading = ((DWORD *) &scanliner->x5) + q * 25;
+				break;
+			default:
+				warning("Screen", "Invalid size for scanline blitter");
+				return;
+		}
+
+		DWORD *pixels = (DWORD *) scanlinerPixelBuffer;
+		(*scanlinerFn) (pixels, screenWidth, sclGrading, bufferWidth, bufferHeight);
 	}
 
-	int pitch, q = (lcdMode ? 5 : (int) halfPass);
-	DWORD *pixels, *sclGrading;
-	scanlinerMethod scanlinerFn;
-
-	switch (reqDispMode) {
-		case 1:
-			scanlinerFn = &point2x;
-			sclGrading = ((DWORD *) &scanliner->x2) + q * 4;
-			break;
-		case 2:
-			scanlinerFn = &point3x;
-			sclGrading = ((DWORD *) &scanliner->x3) + q * 9;
-			break;
-		case 3:
-			scanlinerFn = &point4x;
-			sclGrading = ((DWORD *) &scanliner->x4) + q * 16;
-			break;
-		case 4:
-			scanlinerFn = &point5x;
-			sclGrading = ((DWORD *) &scanliner->x5) + q * 25;
-			break;
-		default:
-			warning("Screen", "Invalid size for scanline blitter");
-			return;
-	}
-
-/*
-	SDL_LockTexture(scanlinerTexture, NULL, (void **) &pixels, &pitch);
-	(*scanlinerFn) (pixels, pitch >> 2, sclGrading, bufferWidth, bufferHeight);
-	SDL_UnlockTexture(scanlinerTexture);
-*/
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	glBindTexture(GL_TEXTURE_2D, scanlinerTexture);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, screenWidth, screenHeight, GL_RGBA, GL_UNSIGNED_BYTE, scanlinerPixelBuffer);
+	glBindTexture(GL_TEXTURE_2D, 0);
 }
 //-----------------------------------------------------------------------------
 scanlinerMethodPrototype(point2x)
@@ -625,16 +558,12 @@ scanlinerMethodPrototype(point5x)
 //-----------------------------------------------------------------------------
 void ScreenPMD85::InitScanliners()
 {
-	SDL_PixelFormat *fmt = SDL_AllocFormat(SDL_PIXELFORMAT_DEFAULT);
-
 	// create a opacity grading palette entries for scanliners...
-	DWORD _E = SDL_MapRGBA(fmt, 0, 0, 0,   0); // transparent
-	DWORD _D = SDL_MapRGBA(fmt, 0, 0, 0,  64); // 75%
-	DWORD _C = SDL_MapRGBA(fmt, 0, 0, 0, 128); // 50%
-	DWORD _B = SDL_MapRGBA(fmt, 0, 0, 0, 192); // 25%
-	DWORD _A = SDL_MapRGBA(fmt, 0, 0, 0, 255); // opaque
-
-	SDL_FreeFormat(fmt);
+	DWORD _E = SDL_FOURCC(0, 0, 0,   0); // transparent
+	DWORD _D = SDL_FOURCC(0, 0, 0,  64); // 75%
+	DWORD _C = SDL_FOURCC(0, 0, 0, 128); // 50%
+	DWORD _B = SDL_FOURCC(0, 0, 0, 192); // 25%
+	DWORD _A = SDL_FOURCC(0, 0, 0, 255); // opaque
 
 	static const SCANLINER_DEF sc = {
 // one point is overlaid with four-dot square with HalfPass or LCD emulation

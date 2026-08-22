@@ -64,7 +64,7 @@ public:
 	inline void ToggleBlinkStatus() { blinkState = !blinkState; }
 	inline bool GetBlinkStatus() { return blinkState; }
 
-	inline int GetMultiplier() { return screenRect->h / bufferHeight; }
+	inline int GetMultiplier() { return screenWidth / bufferWidth; }
 	inline int GetScreenOffsetX() { return screenRect->x; }
 	inline int GetScreenOffsetY() { return screenRect->y; }
 
@@ -77,17 +77,26 @@ public:
 	void RefreshDisplay();
 	void FillBuffer(BYTE *videoRam, bool needRedraw = true);
 
+	ImVec2 GetBorderOffset() { return ImVec2((float) borderSize, (float) borderSize); }
+	ImVec2 GetWindowSize() { return ImVec2((float) windowWidth, (float) windowHeight); }
 	ImVec2 GetScreenSize() { return ImVec2((float) screenWidth, (float) screenHeight); }
+	ImTextureID GetScreenTexture() { return (ImTextureID) (intptr_t) screenTexture; }
+	ImTextureID GetScalerTexture() { return (ImTextureID) (intptr_t) scanlinerTexture; }
 
 private:
-	SDL_Texture *scanlinerTexture;
-	SDL_Texture *screenTexture;
+	BYTE *screenPixelBuffer;
+	uint screenTexture;
+	BYTE *scanlinerPixelBuffer;
+	uint scanlinerTexture;
+
 	SDL_Rect *screenRect;
 	SDL_mutex *displayModeMutex;
 
 	int borderSize;
 	int bufferWidth;
 	int bufferHeight;
+	int windowWidth;
+	int windowHeight;
 	int screenWidth;
 	int screenHeight;
 
