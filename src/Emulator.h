@@ -58,7 +58,6 @@ class TEmulator : public sigslot::has_slots<>
 		TEmulator();
 		virtual ~TEmulator();
 		inline void RefreshDisplay() { video->RefreshDisplay(); }
-		inline ImVec2 GetScreenSize() { return video->GetScreenSize(); }
 
 		void ProcessArgvOptions(bool memModifiers = false);
 		void ProcessSettings(BYTE filter);
@@ -94,6 +93,9 @@ class TEmulator : public sigslot::has_slots<>
 		void ActionHideCursor(bool hide = false);
 		int  ActionJoyControllers(SDL_GameController ***controllers = NULL, bool refresh = false);
 
+		// access to ScreenPMD85 class
+		ScreenPMD85 *video;
+
 	private:
 		bool inmenu;
 		SDL_Event exposeEvent;
@@ -101,7 +103,6 @@ class TEmulator : public sigslot::has_slots<>
 		int cpuUsage;
 		ChipCpu8080 *cpu;
 		ChipMemory  *memory;
-		ScreenPMD85 *video;
 		SoundDriver *sound;
 
 		SystemPIO   *systemPIO;
