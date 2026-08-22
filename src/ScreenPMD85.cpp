@@ -323,7 +323,7 @@ void ScreenPMD85::InitVideoMode(TDisplayMode reqDispMode, bool reqWidth384)
 	bufferHeight = 256;
 
 	windowWidth  = screenWidth + (borderSize * 2);
-	windowHeight = screenHeight + (borderSize * 2);
+	windowHeight = screenHeight + (borderSize * 2) + STATUSBAR_HEIGHT;
 
 	debug("Screen", "Windowed mode: %dx%d -> viewport: %dx%d",
 			screenWidth, screenHeight, windowWidth, windowHeight);

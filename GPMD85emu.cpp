@@ -59,7 +59,7 @@ int main(int argc, char** argv)
 	debug("",   "Resource path: %s", PathResources);
 	debug(NULL, "Application path: %s", PathApplication);
 	debug(NULL, "Application config path: %s", PathAppConfig);
-	debug(NULL, "GUI config path: %s", PathGuiConfig);
+	debug(NULL, "ImGui config path: %s", PathGuiConfig);
 
 	if (stat(PathAppConfig, &filestat) != 0)
 		mkdir(PathAppConfig, 0755);
@@ -155,13 +155,15 @@ int main(int argc, char** argv)
 	style.ScaleAllSizes(1.0f);
 	style.FontScaleDpi = 1.0f;
 	style.FontSizeBase = 13.0f;
-	ImVec4 background = ImVec4(0.1f, 0.1f, 0.1f, 1.00f);
+	style.FrameRounding = 0.0f;
+	ImVec4 background = style.Colors[ImGuiCol_WindowBg];
 
 	io.Fonts->AddFontDefaultBitmap();
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
 	// Setup Dear ImGui style
 	ImGui::StyleColorsDark();
+	style.Colors[ImGuiCol_TitleBgActive] = style.Colors[ImGuiCol_MenuBarBg];
 
 	// Setup Platform/Renderer backends
 	ImGui_ImplSDL2_InitForOpenGL(gdc.window, gdc.context);
@@ -284,9 +286,10 @@ int main(int argc, char** argv)
 		ImGui_ImplSDL2_NewFrame();
 		ImGui::NewFrame();
 
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 		ImGui::SetNextWindowSize(Emulator->video->GetWindowSize(), ImGuiCond_Always);
+		ImGui::SetNextWindowFocus();
 		ImGui::Begin(PACKAGE_NAME, NULL,
-			ImGuiWindowFlags_NoTitleBar |
 			ImGuiWindowFlags_NoResize |
 			ImGuiWindowFlags_NoCollapse |
 			ImGuiWindowFlags_NoScrollbar |
@@ -300,12 +303,12 @@ int main(int argc, char** argv)
 		ImGuiWindow* window = ImGui::GetCurrentWindow();
 
 		ImRect winRect(
-			window->DC.CursorPos - style.WindowPadding,
-			window->DC.CursorPos - style.WindowPadding + Emulator->video->GetWindowSize()
+			window->DC.CursorPos,
+			window->DC.CursorPos + Emulator->video->GetWindowSize()
 		);
 		ImRect emuRect(
-			window->DC.CursorPos - style.WindowPadding + border_offset,
-			window->DC.CursorPos - style.WindowPadding + border_offset + screen_size
+			window->DC.CursorPos + border_offset,
+			window->DC.CursorPos + border_offset + screen_size
 		);
 
 		window->DrawList->AddRectFilled(winRect.Min, winRect.Max, ImGui::GetColorU32(ImVec4(0.0f, 0.0f, 0.0f, 1.00f)));
@@ -313,7 +316,12 @@ int main(int argc, char** argv)
 		window->DrawList->AddImage(Emulator->video->GetScreenTexture(), emuRect.Min, emuRect.Max);
 		window->DrawList->AddImage(Emulator->video->GetScalerTexture(), emuRect.Min, emuRect.Max);
 
+		ImGui::InvisibleButton("Screen", screen_size + (border_offset * 2), ImGuiButtonFlags_MouseButtonMask_);
+		GUI->RedrawStatusBar(border_offset.x);
+
 		ImGui::End();
+		ImGui::PopStyleVar(1);
+
 		ImGui::Render();
 
 		glViewport(0, 0, (int) io.DisplaySize.x, (int) io.DisplaySize.y);
@@ -347,6 +355,7 @@ int main(int argc, char** argv)
 	SDL_DestroyWindow(gdc.window);
 	SDL_Quit();
 
+	free(PathGuiConfig);
 	free(PathResources);
 	free(PathAppConfig);
 	free(PathApplication);
