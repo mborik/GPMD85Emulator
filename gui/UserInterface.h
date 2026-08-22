@@ -62,9 +62,7 @@
 #define GUI_COLOR_STATTAP_BG 34
 #define GUI_COLOR_STATTAP_FG 35
 //-----------------------------------------------------------------------------
-#define STATUSBAR_ICON    10
-#define STATUSBAR_SPACING 14
-#define STATUSBAR_HEIGHT  20
+#define STATUSBAR_HEIGHT  48
 //-----------------------------------------------------------------------------
 #define SDL_PIXELFORMAT_DEFAULT SDL_PIXELFORMAT_ABGR8888
 #define SDL_DEFAULT_MASK_QUAD 0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff
@@ -150,8 +148,7 @@ class UserInterface : public sigslot::has_slots<>
 		void MenuCloseAll();
 		void MenuHandleKey(WORD key);
 
-		void InitStatusBarTexture();
-		void RedrawStatusBar();
+		void RedrawStatusBar(float horizontalPadding = 0.0f);
 		void SetLedState(int led);
 		void SetIconState(int icon);
 		void SetComputerModel(TComputerModel model);
@@ -203,6 +200,7 @@ class UserInterface : public sigslot::has_slots<>
 		GUI_SURFACE *LockSurface(SDL_Texture *texture);
 		void UnlockSurface(SDL_Texture *texture, GUI_SURFACE *surface);
 
+		void SetButtonColor(int icon);
 		void PutPixel(GUI_SURFACE *s, int x, int y, BYTE col);
 		void PrintChar(GUI_SURFACE *s, int x, int y, BYTE col, BYTE ch);
 		void PrintText(GUI_SURFACE *s, int x, int y, BYTE col, const char *msg);

@@ -108,14 +108,18 @@ case "${host_os}" in
 	darwin*)
 		# macOS: Use native Apple Framework
 		AC_MSG_CHECKING([for OpenGL framework])
-		libGL_LIBS="-framework OpenGL"
-		libGL_CFLAGS="-framework OpenGL -I{includedir}/OpenGL"
+		libGL_LIBS="-Wl,-framework,OpenGL"
 		AC_MSG_RESULT([yes])
+		AC_CHECK_HEADERS([OpenGL/gl.h], [
+			libGL_CFLAGS="-I{includedir}/OpenGL"
+		], [AC_MSG_ERROR([OpenGL headers not found])])
 		;;
 	*)
 		AC_CHECK_LIB([GL], [glClear], [
 			libGL_LIBS="-lGL"
-			libGL_CFLAGS="-I{includedir}/GL"
+			AC_CHECK_HEADERS([GL/gl.h], [
+				libGL_CFLAGS="-I{includedir}/GL"
+			], [AC_MSG_ERROR([OpenGL headers not found])])
 		], [
 			AC_MSG_ERROR([OpenGL library not found.])
 		])

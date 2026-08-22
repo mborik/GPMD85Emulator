@@ -18,93 +18,153 @@
 #include "UserInterface.h"
 #include "Emulator.h"
 //-----------------------------------------------------------------------------
-void UserInterface::InitStatusBarTexture()
+/**
+ * Add `ArrowButtonEx` to missing `ImGui` public definitions.
+ */
+namespace ImGui
 {
-	statusTexture = SDL_CreateTexture(gdc.renderer, SDL_PIXELFORMAT_DEFAULT,
-			SDL_TEXTUREACCESS_STREAMING, statusRect->w, statusRect->h);
-	if (!statusTexture)
-		error("GUI", "Unable to create statusTexture\n%s", SDL_GetError());
-
-	void *pixels;
-	int pitch;
-
-	SDL_LockTexture(statusTexture, NULL, &pixels, &pitch);
-	memset(pixels, 0, pitch * STATUSBAR_HEIGHT);
-	SDL_UnlockTexture(statusTexture);
+IMGUI_API bool ArrowButtonEx(const char* str_id, ImGuiDir dir, ImVec2 size, ImGuiButtonFlags flags);
 }
 //-----------------------------------------------------------------------------
-void UserInterface::RedrawStatusBar()
+void UserInterface::RedrawStatusBar(float horizontalPadding)
 {
-	SDL_Rect *r = new SDL_Rect, *s = new SDL_Rect;
-
-	r->x = statusRect->w - (3 * STATUSBAR_SPACING);
-	r->y = ((STATUSBAR_HEIGHT - STATUSBAR_ICON) / 2);
-	r->w = r->h = s->w = s->h = STATUSBAR_ICON;
-
-	GUI_SURFACE *statusSurface = LockSurface(statusTexture);
-
-//	control LEDs on right side...
-	s->y = 0;
-	s->x = (ledState & 1) ? STATUSBAR_ICON : 0;
-	BlitToSurface(icons, s, statusSurface, r);
-
-	r->x += STATUSBAR_SPACING;
-	s->x = (ledState & 2) ? (2 * STATUSBAR_ICON) : 0;
-	BlitToSurface(icons, s, statusSurface, r);
-
-	r->x += STATUSBAR_SPACING;
-	s->x = (ledState & 4) ? (3 * STATUSBAR_ICON) : 0;
-	BlitToSurface(icons, s, statusSurface, r);
-
-//	tape/disk icon...
-	r->x -= (4 * STATUSBAR_SPACING);
-	if (iconState) {
-		s->x = (iconState * STATUSBAR_ICON) + (3 * STATUSBAR_ICON);
-		BlitToSurface(icons, s, statusSurface, r);
-	}
-	else
-		DrawRectangle(statusSurface, r->x, r->y, r->w, r->h, 0);
-
-	delete s;
-
-	int tapProgressWidth = r->x - STATUSBAR_SPACING;
-	static char status[40] = "";
+	static const char *driveLetters[] = {"A", "B", "C", "D"};
 	static BYTE pauseBlinker = 0;
 
-//	status text, cpu meter and blinking pause...
-	r->x = 0;
-	r->y++;
+	const ImVec2 buttonSize = ImVec2(14.0f, 14.0f);
+	const float statusWidth = 150.0f;
+	const float iconsWidth = buttonSize.x * 6;
+	float width = ImGui::GetContentRegionAvail().x - (horizontalPadding * 2);
+	float progressWidth = width - statusWidth - iconsWidth;
+	float sameLine = horizontalPadding;
 
-	PrintText(statusSurface, r->x, r->y, 0, status);
+	ImGui::BeginGroup();
+	if (horizontalPadding > 0.0f) {
+		ImGui::SetNextItemWidth(horizontalPadding);
+		ImGui::TextUnformatted("");
+		ImGui::SameLine(sameLine);
+	}
+
+	sameLine += statusWidth;
+	ImGui::SetNextItemWidth(statusWidth);
+
+//	status text, cpu meter and blinking pause...
 	if (statusPercentage < 0) {
-		sprintf(status, "PAUSED");
-		PrintText(statusSurface, r->x, r->y,
-				(pauseBlinker < 10) ? GUI_COLOR_STAT_PAUSE : 0, status);
+		ImVec4 color(0.875f, 0.1f, 0.3f, (pauseBlinker < 10) ? 1.0f : 0.1f);
+		ImGui::PushStyleColor(ImGuiCol_Text, color);
+		ImGui::TextUnformatted("PAUSED");
+		ImGui::PopStyleColor();
 
 		if (pauseBlinker++ >= 16)
 			pauseBlinker = 0;
 	}
 	else if (statusPercentage > 0) {
-		sprintf(status, "%sFPS:%d CPU:%d%%", computerModel, statusFPS, statusPercentage);
-		PrintText(statusSurface, r->x, r->y, GUI_COLOR_STAT_TEXT, status);
+		ImGui::TextDisabled("%sFPS:%d CPU:%d%%", computerModel, statusFPS, statusPercentage);
 	}
+	else {
+		ImGui::TextUnformatted("");
+	}
+
+	ImGui::SameLine(sameLine);
+	ImGui::SetNextItemWidth(progressWidth);
+	sameLine += progressWidth + buttonSize.x;
 
 //	tape progress bar...
-	r->x = (r->x + (20 * 6) + STATUSBAR_SPACING);
-	r->y += 3;
-	r->w = tapProgressWidth - r->x;
-
 	TTapeBrowser::TProgressBar *progress = TapeBrowser->ProgressBar;
-	DrawRectangle(statusSurface, r->x, r->y, r->w, 2, *progress->Active ? GUI_COLOR_STATTAP_BG : 0);
-	if (*progress->Active) {
-		DrawRectangle(statusSurface, r->x, r->y,
-				((double) r->w / progress->Max) * progress->Position, 2, GUI_COLOR_STATTAP_FG);
+	if (progressWidth > 0.0f && *progress->Active) {
+		ImGui::PushID("##progress");
+		ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.16f, 0.4f, 0.2f, 1.0f));
+		ImGui::ProgressBar(((float) progress->Position / (float) progress->Max), ImVec2(progressWidth, 6.0f), "");
+		ImGui::PopStyleColor();
+		ImGui::PopID();
+	}
+	else
+		ImGui::TextUnformatted("");
+
+	ImGui::SameLine(sameLine);
+	sameLine += buttonSize.x + 8.0f;
+
+	ImGui::BeginDisabled();
+
+//	tape/disk icon...
+	SetButtonColor(iconState);
+	ImGui::PushFont(NULL, 10.0f);
+	ImGui::PushID("##device");
+
+	switch (iconState) {
+		case 1: case 5:
+			ImGui::Button(driveLetters[0], buttonSize);
+			break;
+		case 2: case 6:
+			ImGui::Button(driveLetters[1], buttonSize);
+			break;
+		case 3: case 7:
+			ImGui::Button(driveLetters[2], buttonSize);
+			break;
+		case 4: case 8:
+			ImGui::Button(driveLetters[3], buttonSize);
+			break;
+		case 9: case 10:
+			ImGui::ArrowButtonEx("::tapeicon", ImGuiDir_Right, buttonSize, 0);
+			break;
+		default:
+			ImGui::InvisibleButton("::noicon", buttonSize);
+			break;
 	}
 
-	delete r;
+	ImGui::PopID();
+	ImGui::PopFont();
+	ImGui::PopStyleColor(3);
 
-	UnlockSurface(statusTexture, statusSurface);
-	SDL_RenderCopy(gdc.renderer, statusTexture, NULL, statusRect);
+//	control LEDs on right side...
+	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 12.0f);
+
+	for (BYTE mask = 1, btn = 1; btn < 4; mask <<= 1, btn++) {
+		ImGui::SameLine(sameLine);
+		sameLine += buttonSize.x + 2.0f;
+
+		ImGui::PushID(btn);
+		SetButtonColor((ledState & mask) ? btn + 10 : 0);
+		ImGui::Button("", buttonSize);
+		ImGui::PopStyleColor(3);
+		ImGui::PopID();
+	}
+
+	ImGui::PopStyleVar(1);
+	ImGui::EndDisabled();
+	ImGui::EndGroup();
+}
+//-----------------------------------------------------------------------------
+void UserInterface::SetButtonColor(int icon)
+{
+	static const ImVec4 blue(0.25f, 0.25f, 0.5f, 1.0f);
+	static const ImVec4 red(0.75f, 0.0f, 0.0f, 1.0f);
+	static const ImVec4 yellow(0.75f, 0.75f, 0.0f, 1.0f);
+	static const ImVec4 grey(0.5f, 0.5f, 0.5f, 1.0f);
+
+	ImVec4 result;
+	switch (icon) {
+		case 11:
+			result = yellow;
+			break;
+		case 5: case 6: case 7: case 8: case 10: case 12:
+			result = red;
+			break;
+		case 1: case 2: case 3: case 4: case 13:
+			result = blue;
+			break;
+		case 9:
+			result = grey;
+			break;
+		default:
+			result = grey;
+			result.w = 0.2f;
+			break;
+	}
+
+	ImGui::PushStyleColor(ImGuiCol_Button, result);
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, result);
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, result);
 }
 //-----------------------------------------------------------------------------
 void UserInterface::SetLedState(int led)
@@ -161,13 +221,13 @@ void UserInterface::SetComputerModel(TComputerModel model)
 		case CM_V3:
 			modelName = "M3"; break;
 		case CM_ALFA:
-			modelName = "\2141"; break;
+			modelName = "a1"; break;
 		case CM_ALFA2:
-			modelName = "\2142"; break;
+			modelName = "a2"; break;
 		case CM_C2717:
-			modelName = "C\215\216\217"; break;
+			modelName = "C2717"; break;
 		case CM_MATO:
-			modelName = "Ma\213o"; break;
+			modelName = "Mato"; break;
 		default:
 			break;
 	}
