@@ -17,14 +17,7 @@
 //-----------------------------------------------------------------------------
 #include "UserInterface.h"
 #include "Emulator.h"
-//-----------------------------------------------------------------------------
-/**
- * Add `ArrowButtonEx` to missing `ImGui` public definitions.
- */
-namespace ImGui
-{
-IMGUI_API bool ArrowButtonEx(const char* str_id, ImGuiDir dir, ImVec2 size, ImGuiButtonFlags flags);
-}
+#include "imgui/imgui_internal.h"
 //-----------------------------------------------------------------------------
 void UserInterface::RedrawStatusBar(float horizontalPadding)
 {
