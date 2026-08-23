@@ -1,5 +1,5 @@
 /*	Menu.cpp: Part of GUI rendering class: Menu drawing and handling
-	Copyright (c) 2011-2018 Martin Borik <mborik@users.sourceforge.net>
+	Copyright (c) 2011-2026 Martin Borik <mborik@users.sourceforge.net>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -17,330 +17,357 @@
 //-----------------------------------------------------------------------------
 #include "UserInterface.h"
 #include "Emulator.h"
+#include "imgui/imgui_internal.h"
+//-----------------------------------------------------------------------------
+#define MOD_KEY(k) "\u00A4+" k
+#define MOD_SHIFT(k) "\u00A4\u0088+" k
 //-----------------------------------------------------------------------------
 void UserInterface::DrawMenu(void *data)
 {
-	GUI_MENU_ENTRY *ptr;
-	int widthLeft = 0, widthRight = 0, height = 0, i, k;
-	const char *wrk;
+	/* TBD */
+	if (data) return;
 
-	cMenu_leftMargin = 0;
-	cMenu_data = (GUI_MENU_ENTRY *) data;
-
-	for (i = 0, ptr = &cMenu_data[1]; ptr->type != MENU_END; i++, ptr++) {
-		if (i == cMenu_hilite && (ptr->type == MI_SEPARATOR || ptr->type == MI_FIXED))
-			cMenu_hilite++;
-
-		if (ptr->type == MI_SEPARATOR) {
-			height += GUI_CONST_SEPARATOR;
-			continue;
+	if (ImGui::BeginMainMenuBar()) {
+		if (ImGui::BeginMenu("File")) {
+			if (ImGui::MenuItem("New Tape")) { }
+			if (ImGui::MenuItem("Open Tape\u0085", MOD_KEY("F2"))) { }
+			if (ImGui::MenuItem("Save Tape\u0085", MOD_SHIFT("F2"))) { }
+			if (ImGui::MenuItem("Tape Browser\u0085", MOD_KEY("T"))) { }
+			ImGui::Separator();
+			if (ImGui::MenuItem("Disk Images\u0085", MOD_KEY("F6"))) { }
+			ImGui::Separator();
+			if (ImGui::MenuItem("Open Snapshot\u0085", MOD_KEY("F7"))) { }
+			if (ImGui::MenuItem("Create Snapshot\u0085", MOD_SHIFT("F7"))) { }
+			ImGui::Separator();
+			if (ImGui::MenuItem("Load to Memory\u0085", MOD_KEY("F11"))) { }
+			if (ImGui::MenuItem("Save Memory\u0085", MOD_SHIFT("F11"))) { }
+			ImGui::Separator();
+			if (ImGui::MenuItem("Save Screenshot\u0085")) { }
+			ImGui::Separator();
+			if (ImGui::MenuItem("About", MOD_SHIFT("F1"))) { }
+			if (ImGui::MenuItem("Quit", MOD_KEY("F4"))) {
+				Emulator->isActive = false;
+			}
+			ImGui::EndMenu();
 		}
-		else if (ptr->type == MI_CHECKBOX || ptr->type == MI_RADIO)
-			cMenu_leftMargin = GUI_CONST_CHK_MARGIN;
+		if (ImGui::BeginMenu("Display")) {
+			if (ImGui::BeginMenu("Screen Size")) {
+				if (ImGui::MenuItem("100%", MOD_KEY("1")), Settings->Screen->size == DM_NORMAL) {
+					Settings->Screen->size = DM_NORMAL;
+					uiSetChanges |= PS_SCREEN_SIZE;
+				}
+				if (ImGui::MenuItem("200%", MOD_KEY("2")), Settings->Screen->size == DM_DOUBLESIZE) {
+					Settings->Screen->size = DM_DOUBLESIZE;
+					uiSetChanges |= PS_SCREEN_SIZE;
+				}
+				if (ImGui::MenuItem("300%", MOD_KEY("3")), Settings->Screen->size == DM_TRIPLESIZE) {
+					Settings->Screen->size = DM_TRIPLESIZE;
+					uiSetChanges |= PS_SCREEN_SIZE;
+				}
+				if (ImGui::MenuItem("400%", MOD_KEY("4")), Settings->Screen->size == DM_QUADRUPLESIZE) {
+					Settings->Screen->size = DM_QUADRUPLESIZE;
+					uiSetChanges |= PS_SCREEN_SIZE;
+				}
+				if (ImGui::MenuItem("500%", MOD_KEY("5")), Settings->Screen->size == DM_QUINTUPLESIZE) {
+					Settings->Screen->size = DM_QUINTUPLESIZE;
+					uiSetChanges |= PS_SCREEN_SIZE;
+				}
+				if (ImGui::MenuItem("Fullscreen", MOD_KEY("F"), Settings->Screen->size == DM_FULLSCREEN, false)) { }
+				ImGui::Separator();
+				if (ImGui::BeginMenu("Border Size")) {
+					if (ImGui::SliderInt("##border", &Settings->Screen->border, 0, 9,
+						"%d", ImGuiSliderFlags_AlwaysClamp)) {
 
-		height += GUI_CONST_ITEM_SIZE;
-
-		k = (strlen(ptr->text) * fontWidth) +
-			((ptr->type == MI_SUBMENU) ?
-				(fontWidth + fontWidth) :
-				((ptr->type == MI_DIALOG) ? fontWidth : 0));
-
-		if (widthLeft < k)
-			widthLeft = k;
-
-		k = 0;
-		if ((wrk = ptr->hotkey) != NULL) {
-			if (wrk[0] == '^') {
-				k += GUI_CONST_HOTKEYCHAR;
-				wrk++;
+						uiSetChanges |= PS_SCREEN_SIZE;
+					}
+					ImGui::EndMenu();
+				}
+				ImGui::EndMenu();
 			}
 
-			k += (strlen(wrk) * fontWidth) +
-				((menuStack[menuStackLevel].type != GUI_TYPE_TAPE_POPUP) ?
-						GUI_CONST_HOTKEYCHAR : 0);
-		}
-
-		if (ptr->detail) {
-			wrk = ptr->detail(ptr);
-			if (wrk) {
-				const char *lastDot = NULL;
-				int len = strlen(wrk);
-
-				if (len > 15)
-					lastDot = strrchr(wrk, '.');
-				int max = SDL_min(15, len);
-				if (lastDot)
-					max = SDL_min(max, lastDot - wrk);
-
-				k += ++max * fontWidth;
+			ImGui::Separator();
+			if (ImGui::BeginMenu("Color Mode")) {
+				if (ImGui::MenuItem("Monochromatic", MOD_KEY("M"), Settings->Screen->colorProfile == CP_MONO)) {
+					Settings->Screen->colorProfile = CP_MONO;
+					uiSetChanges |= PS_SCREEN_MODE;
+				}
+				if (ImGui::MenuItem("Standard", MOD_KEY("M"), Settings->Screen->colorProfile == CP_STANDARD)) {
+					Settings->Screen->colorProfile = CP_STANDARD;
+					uiSetChanges |= PS_SCREEN_MODE;
+				}
+				if (ImGui::MenuItem("Color", MOD_KEY("C"), Settings->Screen->colorProfile == CP_COLOR)) {
+					Settings->Screen->colorProfile = CP_COLOR;
+					uiSetChanges |= PS_SCREEN_MODE;
+				}
+				if (ImGui::MenuItem("ColorAce\u0099", MOD_KEY("C"), Settings->Screen->colorProfile == CP_COLORACE)) {
+					Settings->Screen->colorProfile = CP_COLORACE;
+					uiSetChanges |= PS_SCREEN_MODE;
+				}
+				ImGui::Separator();
+				if (ImGui::BeginMenu("Color Palette", Settings->Screen->colorProfile == CP_COLOR)) {
+					if (ImGui::MenuItem("RGBM", NULL, Settings->Screen->colorPalette == CL_RGB)) {
+						Settings->Screen->colorPalette = CL_RGB;
+						uiSetChanges |= PS_SCREEN_MODE;
+					}
+					if (ImGui::MenuItem("VideoOut", NULL, Settings->Screen->colorPalette == CL_VIDEO)) {
+						Settings->Screen->colorPalette = CL_VIDEO;
+						uiSetChanges |= PS_SCREEN_MODE;
+					}
+					if (ImGui::MenuItem("Custom Colors", NULL, Settings->Screen->colorPalette == CL_DEFINED)) {
+						Settings->Screen->colorPalette = CL_DEFINED;
+						uiSetChanges |= PS_SCREEN_MODE;
+					}
+					// TODO attribute submenus
+					ImGui::EndMenu();
+				}
+				ImGui::EndMenu();
 			}
+			if (ImGui::BeginMenu("Scanliner")) {
+				if (ImGui::MenuItem("LCD Emulation", MOD_KEY("L"), Settings->Screen->lcdMode)) {
+					Settings->Screen->lcdMode = true;
+					Settings->Screen->halfPass = HP_OFF;
+					uiSetChanges |= PS_SCREEN_MODE;
+				}
+				if (ImGui::MenuItem("Half-Pass 0%", MOD_KEY("6"), Settings->Screen->halfPass == HP_0)) {
+					Settings->Screen->lcdMode = false;
+					Settings->Screen->halfPass = HP_0;
+					uiSetChanges |= PS_SCREEN_MODE;
+				}
+				if (ImGui::MenuItem("Half-Pass 25%", MOD_KEY("7"), Settings->Screen->halfPass == HP_25)) {
+					Settings->Screen->lcdMode = false;
+					Settings->Screen->halfPass = HP_25;
+					uiSetChanges |= PS_SCREEN_MODE;
+				}
+				if (ImGui::MenuItem("Half-Pass 50%", MOD_KEY("8"), Settings->Screen->halfPass == HP_50)) {
+					Settings->Screen->lcdMode = false;
+					Settings->Screen->halfPass = HP_50;
+					uiSetChanges |= PS_SCREEN_MODE;
+				}
+				if (ImGui::MenuItem("Half-Pass 75%", MOD_KEY("9"), Settings->Screen->halfPass == HP_75)) {
+					Settings->Screen->lcdMode = false;
+					Settings->Screen->halfPass = HP_75;
+					uiSetChanges |= PS_SCREEN_MODE;
+				}
+				if (ImGui::MenuItem("Pixel Precise", MOD_KEY("0"), Settings->Screen->halfPass == HP_OFF)) {
+					Settings->Screen->lcdMode = false;
+					Settings->Screen->halfPass = HP_OFF;
+					uiSetChanges |= PS_SCREEN_MODE;
+				}
+				ImGui::EndMenu();
+			}
+			ImGui::EndMenu();
 		}
+		if (ImGui::BeginMenu("Emulation")) {
+			if (ImGui::MenuItem("Debugger\u0085", MOD_KEY("F12"), false, false)) { }
+			if (ImGui::MenuItem("Pause", MOD_KEY("F3"), Settings->isPaused)) {
+				Settings->isPaused = !Settings->isPaused;
+			}
+			if (ImGui::BeginMenu("Speed")) {
+				float speedValue = (Settings->emulationSpeed * 100.0f);
+				if (ImGui::SliderFloat("##speed", &speedValue, 10.0f, 1000.0f, "%.0f%%",
+					ImGuiSliderFlags_Logarithmic | ImGuiSliderFlags_AlwaysClamp)) {
 
-		if (widthRight < k)
-			widthRight = k;
+					Settings->emulationSpeed = ((double) speedValue / 100.0f);
+				}
+				ImGui::EndMenu();
+			}
+			ImGui::Separator();
+			if (ImGui::MenuItem("Reset", MOD_KEY("F5"))) {
+				uiCallback.connect(Emulator, &TEmulator::ActionReset);
+				uiSetChanges |= PS_CLOSEALL;
+			}
+			if (ImGui::MenuItem("Hard Restart", MOD_SHIFT("F5"))) {
+				uiCallback.connect(Emulator, &TEmulator::ActionHardReset);
+				uiSetChanges |= PS_CLOSEALL;
+			}
+			ImGui::Separator();
+			if (ImGui::BeginMenu("Sound")) {
+				if (ImGui::MenuItem("Mute", MOD_KEY("F8"), Settings->Sound->mute)) {
+					Settings->Sound->mute = !Settings->Sound->mute;
+					uiSetChanges |= PS_SOUND;
+				}
+				if (ImGui::BeginMenu("Volume", !Settings->Sound->mute)) {
+					ImGui::SliderInt("##volume", &Settings->Sound->volume, 2, 127,
+						"%d", ImGuiSliderFlags_AlwaysClamp);
+					ImGui::EndMenu();
+				}
+				ImGui::EndMenu();
+			}
+			if (ImGui::BeginMenu("Keyboard")) {
+				if (ImGui::MenuItem("Swap Z/Y Keys", NULL, &Settings->Keyboard->changeZY)) {
+					uiSetChanges |= PS_CONTROLS;
+				}
+				if (ImGui::MenuItem("Use Numeric Keypad", NULL, &Settings->Keyboard->useNumpad)) {
+					uiSetChanges |= PS_CONTROLS;
+				}
+				if (ImGui::MenuItem("Extended Control Keys", "on Mato",
+					&Settings->Keyboard->useMatoCtrl, Settings->CurrentModel->type == CM_MATO)) {
+
+					uiSetChanges |= PS_CONTROLS;
+				}
+				ImGui::EndMenu();
+			}
+			ImGui::Separator();
+			if (ImGui::MenuItem("Save Settings", NULL, false, !Settings->fixedSettings)) {
+				Settings->storeSettings();
+			}
+			if (ImGui::MenuItem("Autosave on Exit", NULL, Settings->autosaveSettings, !Settings->fixedSettings)) {
+				Settings->autosaveSettings = !Settings->autosaveSettings;
+			}
+			ImGui::EndMenu();
+		}
+		if (ImGui::BeginMenu("Machine")) {
+			bool accessibleForPMD85 = Settings->CurrentModel->type <= CM_V3;
+			char *currentFile = new char[FILENAME_MAX + 2];
+
+			ImGui::SeparatorText("Computer Model");
+			DrawMenuMachineItem("PMD 85-1", CM_V1);
+			DrawMenuMachineItem("PMD 85-2", CM_V2);
+			DrawMenuMachineItem("PMD 85-2A", CM_V2A);
+			DrawMenuMachineItem("PMD 85-3", CM_V3);
+			DrawMenuMachineItem("Didaktik Alfa", CM_ALFA);
+			DrawMenuMachineItem("Didaktik Alfa 2", CM_ALFA2);
+			DrawMenuMachineItem("Consul 2717", CM_C2717);
+			DrawMenuMachineItem("Mato", CM_MATO);
+
+			ImGui::SeparatorText("Memory Configuration");
+			ImGui::PushItemFlag(ImGuiItemFlags_AutoClosePopups, false);
+
+			sprintf(currentFile, "[%s]", ExtractFileName(Settings->CurrentModel->romFile));
+			if (ImGui::MenuItem("System ROM File\u0085", currentFile)) { }
+
+			if ((Settings->CurrentModel->type <= CM_V2A) &&
+				ImGui::MenuItem("Split 8kB ROM", "on 8000/A000", Settings->CurrentModel->romSplit8kMode)) {
+
+				Settings->CurrentModel->romSplit8kMode = !Settings->CurrentModel->romSplit8kMode;
+				uiSetChanges |= PS_MACHINE;
+			}
+			if ((Settings->CurrentModel->type == CM_V3) &&
+				ImGui::MenuItem("Compatibility Mode", "JUMP FFF0", Settings->CurrentModel->compatibilityMode)) {
+
+				Settings->CurrentModel->compatibilityMode = !Settings->CurrentModel->compatibilityMode;
+				uiSetChanges |= PS_MACHINE;
+			}
+			if ((Settings->CurrentModel->type == CM_V2A || Settings->CurrentModel->type == CM_V3) &&
+				ImGui::MenuItem("256kB Memory Expansion", NULL, Settings->CurrentModel->ramExpansion256k)) {
+
+				Settings->CurrentModel->ramExpansion256k = !Settings->CurrentModel->ramExpansion256k;
+				uiSetChanges |= PS_MACHINE;
+			}
+			if ((Settings->CurrentModel->type == CM_MATO) &&
+				ImGui::MenuItem("Fix AllRAM 64kB Mode", NULL, Settings->CurrentModel->matoAllRAM64k)) {
+
+				Settings->CurrentModel->matoAllRAM64k = !Settings->CurrentModel->matoAllRAM64k;
+				uiSetChanges |= PS_MACHINE;
+			}
+
+			ImGui::Separator();
+
+			if (ImGui::MenuItem("ROM Module Inserted", NULL,
+				accessibleForPMD85 ? Settings->CurrentModel->romModuleInserted : false, accessibleForPMD85)) {
+
+				Settings->CurrentModel->romModuleInserted = !Settings->CurrentModel->romModuleInserted;
+				uiSetChanges |= PS_MACHINE | PS_PERIPHERALS;
+			}
+			if (ImGui::BeginMenu("ROM Module Package", Settings->CurrentModel->romModuleInserted)) {
+				const char *name = Settings->CurrentModel->romModule->name;
+				for (int i = 0; i < Settings->romPackagesCount; i++) {
+					if (ImGui::RadioButton(Settings->RomPackages[i]->name,
+							(strcmp(Settings->RomPackages[i]->name, name) == 0))) {
+
+						Settings->CurrentModel->romModule = Settings->RomPackages[i];
+						uiSetChanges |= PS_MACHINE | PS_PERIPHERALS;
+					}
+				}
+				ImGui::EndMenu();
+			}
+			bool itemAccessible = accessibleForPMD85 && Settings->CurrentModel->romModuleInserted;
+			if (ImGui::MenuItem("Mega ROM Module Type", NULL,
+				itemAccessible ? Settings->CurrentModel->megaModuleEnabled : false, itemAccessible)) {
+
+				Settings->CurrentModel->megaModuleEnabled = !Settings->CurrentModel->megaModuleEnabled;
+				uiSetChanges |= PS_MACHINE | PS_PERIPHERALS;
+			}
+			char *mrmFile = Settings->CurrentModel->mrmFile ? currentFile : NULL;
+			if (mrmFile)
+				sprintf(currentFile, "[%s]", ExtractFileName(Settings->CurrentModel->mrmFile));
+			if (ImGui::MenuItem("Mega ROM Module Image\u0085", mrmFile, false, itemAccessible)) { }
+			ImGui::PopItemFlag();
+
+			itemAccessible = accessibleForPMD85 || Settings->CurrentModel->type == CM_V3;
+			ImGui::SeparatorText("Peripherals");
+			if (ImGui::BeginMenu("Joystick 4004/482")) {
+				// TODO joysticks are too complex :/
+				ImGui::TextDisabled("TODO");
+				ImGui::EndMenu();
+			}
+			if (ImGui::BeginMenu("Mouse 602", itemAccessible)) {
+				bool state = Settings->Mouse->type == MT_M602;
+				if (ImGui::MenuItem("Connected", NULL, &state)) {
+					Settings->Mouse->type = state ? MT_M602 : MT_NONE;
+					uiSetChanges |= PS_PERIPHERALS;
+				}
+				ImGui::Separator();
+				ImGui::MenuItem("Hide Mouse Cursor", NULL, &Settings->Mouse->hideCursor);
+				ImGui::EndMenu();
+			}
+			ImGui::Separator();
+			if (ImGui::BeginMenu("PMD 32 Disk Drive", itemAccessible)) {
+				bool state = Settings->PMD32->connected;
+				if (ImGui::MenuItem("Connected", NULL, &state)) {
+					Settings->PMD32->connected = state;
+					uiSetChanges |= PS_PERIPHERALS;
+				}
+				ImGui::Separator();
+				if (ImGui::MenuItem("Mount Disk Images\u0085", NULL, false, state)) { }
+				ImGui::Separator();
+				if (ImGui::MenuItem("Extended Commands", NULL, state)) {
+					Settings->PMD32->extraCommands = !Settings->PMD32->extraCommands;
+					uiSetChanges |= PS_PERIPHERALS;
+				}
+				char *sdRoot = Settings->PMD32->sdRoot ? currentFile : NULL;
+				if (sdRoot)
+					sprintf(currentFile, "[%s]", ExtractFileName(Settings->PMD32->sdRoot));
+				if (ImGui::MenuItem("Virtual SD-Card Directory\u0085", sdRoot, false,
+					state && Settings->PMD32->extraCommands)) { }
+
+				ImGui::EndMenu();
+			}
+			ImGui::Separator();
+
+			if (ImGui::MenuItem("MIF 85 Sound Interface", NULL,
+				accessibleForPMD85 ? Settings->Sound->ifMIF85 : false, accessibleForPMD85)) {
+
+				Settings->Sound->ifMIF85 = !Settings->Sound->ifMIF85;
+				uiSetChanges |= PS_PERIPHERALS;
+			}
+
+			delete [] currentFile;
+			ImGui::EndMenu();
+		}
+		ImGui::EndMainMenuBar();
 	}
+}
+//-----------------------------------------------------------------------------
+void UserInterface::DrawMenuMachineItem(const char *name, TComputerModel model)
+{
+	if (ImGui::RadioButton(name, Settings->CurrentModel->type == model)) {
+		for (int i = 0; i < Settings->modelsCount; i++) {
+			if (Settings->AllModels[i]->type == model) {
+				Settings->CurrentModel = Settings->AllModels[i];
+				break;
+			}
+		}
 
-	cMenu_count = (ptr - &cMenu_data[1]);
-
-	k = cMenu_leftMargin + widthLeft + fontWidth + widthRight;
-	if ((int) (strlen(cMenu_data->text) * fontWidth) > k)
-		k = strlen(cMenu_data->text) * fontWidth;
-
-	cMenu_rect->w = (2 * GUI_CONST_BORDER) + k;
-	cMenu_rect->h = (3 * GUI_CONST_BORDER) + height;
-	cMenu_rect->x = (frameWidth  - cMenu_rect->w) / 2;
-	cMenu_rect->y = (frameHeight - cMenu_rect->h) / 2;
-
-	if (menuStack[menuStackLevel].type == GUI_TYPE_TAPE_POPUP)
-		cMenu_rect->x = (cMenu_rect->x * 2) - 1;
-
-	GUI_SURFACE *defaultSurface = LockSurface(defaultTexture);
-
-	DrawDialogWithBorder(defaultSurface, cMenu_rect->x, cMenu_rect->y, cMenu_rect->w, cMenu_rect->h);
-	PrintTitle(defaultSurface, cMenu_rect->x, cMenu_rect->y + 1, cMenu_rect->w, GUI_COLOR_BACKGROUND, cMenu_data->text);
-	DrawMenuItems(defaultSurface);
-
-	UnlockSurface(defaultTexture, defaultSurface);
+		uiSetChanges |= PS_MACHINE | PS_CLOSEALL;
+	}
 }
 //-----------------------------------------------------------------------------
 void UserInterface::DrawMenuItems(GUI_SURFACE *s)
 {
-	bool needUnlock = false;
-	if (s == NULL) {
-		s = LockSurface(defaultTexture);
-		needUnlock = true;
-	}
-
-	GUI_MENU_ENTRY *ptr;
-	SDL_Rect *r = new SDL_Rect(*cMenu_rect);
-	const char *wrk;
-
-	r->x++;
-	r->y += (2 * GUI_CONST_BORDER);
-	r->w -= 2;
-
-	for (int mx, my, i = 0; i < cMenu_count; i++) {
-		ptr = &cMenu_data[i + 1];
-		my = r->y + 2;
-
-		if (ptr->type == MI_SEPARATOR) {
-			DrawLineH(s, r->x + 2, my, r->w - 4, GUI_COLOR_SEPARATOR);
-			r->y += GUI_CONST_SEPARATOR;
-		}
-		else {
-			mx = r->x + 7;
-
-			DrawRectangle(s, r->x, r->y, r->w, GUI_CONST_ITEM_SIZE,
-				(i == cMenu_hilite) ? GUI_COLOR_HIGHLIGHT : GUI_COLOR_BACKGROUND);
-			PrintFormatted(s, mx + cMenu_leftMargin, my,
-				(ptr->enabled) ? GUI_COLOR_FOREGROUND : GUI_COLOR_DISABLED,
-				"%s%s", ptr->text, ((ptr->type == MI_SUBMENU) ? " \200" :
-					((ptr->type == MI_DIALOG) ? "\205" : "")));
-
-			if (ptr->type == MI_CHECKBOX && ptr->action >= 0x8000) {
-				PrintCheck(s, mx, my + 1,
-					((ptr->enabled) ? GUI_COLOR_HOTKEY : GUI_COLOR_DISABLED),
-					SCHR_LOCKER, ptr->state);
-			}
-			else if (ptr->type == MI_CHECKBOX) {
-				PrintCheck(s, mx, my + 1,
-					((ptr->enabled) ? GUI_COLOR_CHECKED : GUI_COLOR_DISABLED),
-					SCHR_CHECK, ptr->state);
-			}
-			else if (ptr->type == MI_RADIO) {
-				PrintCheck(s, mx, my + 1,
-					((ptr->enabled) ? GUI_COLOR_CHECKED : GUI_COLOR_DISABLED),
-					SCHR_RADIO, ptr->state);
-			}
-
-			mx += r->w - 12;
-			if ((wrk = ptr->hotkey) != NULL) {
-				BYTE c = (ptr->enabled) ? GUI_COLOR_HOTKEY : GUI_COLOR_DISABLED;
-				char hkchr = (menuStack[menuStackLevel].type != GUI_TYPE_TAPE_POPUP) ?
-						(char) SCHR_HOTKEY : ' ';
-
-				mx -= GUI_CONST_HOTKEYCHAR + (strlen(wrk) * 6);
-				if (wrk[0] == '^') {
-					wrk++;
-					mx += GUI_CONST_HOTKEYCHAR - (GUI_CONST_HOTKEYCHAR - 6);
-
-					PrintChar(s, mx - GUI_CONST_HOTKEYCHAR, my, c, hkchr);
-					PrintChar(s, mx, my, c, SCHR_SHIFT);
-				}
-				else
-					PrintChar(s, mx, my, c, hkchr);
-
-				PrintText(s, mx + GUI_CONST_HOTKEYCHAR, my, c, wrk);
-			}
-			else if (ptr->detail) {
-				wrk = ptr->detail(ptr);
-				if (wrk) {
-					const char *lastDot = NULL;
-					int len = strlen(wrk);
-
-					if (len > 15)
-						lastDot = strrchr(wrk, '.');
-					int max = SDL_min(15, len);
-					if (lastDot)
-						max = SDL_min(max, lastDot - wrk);
-
-					mx -= (max + 2) * 6;
-					if (len > 15)
-						PrintFormatted(s, (mx -= 6), my, GUI_COLOR_DISABLED, "[%.*s\205]", max, wrk);
-					else
-						PrintFormatted(s, mx, my, GUI_COLOR_DISABLED, "[%s]", wrk);
-				}
-			}
-
-			r->y += GUI_CONST_ITEM_SIZE;
-		}
-	}
-
-	if (needUnlock)
-		UnlockSurface(defaultTexture, s);
-
-	delete r;
 }
 //-----------------------------------------------------------------------------
 void UserInterface::KeyhandlerMenu(WORD key)
 {
-	GUI_MENU_ENTRY *ptr = &cMenu_data[cMenu_hilite + 1];
-	bool change = false;
-
-	switch (key) {
-		case SDL_SCANCODE_F4 | KM_ALT:
-			Emulator->ActionExit();
-			MenuCloseAll();
-			return;
-
-		case SDL_SCANCODE_ESCAPE:
-			MenuClose();
-			return;
-
-		case SDL_SCANCODE_SPACE:
-			if (ptr->enabled && ptr->type == MI_CHECKBOX
-			 && ptr->action >= 0x8000)
-				ptr->action |= 0x4000; // ... and continue in ENTER section...
-			else
-				break;
-
-		case SDL_SCANCODE_RETURN:
-		case SDL_SCANCODE_KP_ENTER:
-			if (ptr->enabled) {
-				needRelease = true;
-
-				if (ptr->type == MI_SUBMENU && ptr->submenu)
-					MenuOpen(GUI_TYPE_MENU, ptr->submenu);
-				else if (ptr->callback) {
-					if (ptr->callback(ptr)) {
-						if (uiSetChanges & PS_CLOSEALL)
-							MenuCloseAll();
-						else
-							MenuClose();
-						return;
-					}
-					else if (menuStack[menuStackLevel].type == GUI_TYPE_TAPE_POPUP) {
-						MenuClose();
-						KeyhandlerTapeDialog(ptr->action);
-						return;
-					}
-					else if (cMenu_data)
-						change = true;
-					else
-						return;
-				}
-			}
-			break;
-
-		case SDL_SCANCODE_BACKSPACE:
-		case SDL_SCANCODE_LEFT:
-			if (menuStackLevel > 0)
-				MenuClose();
-
-			needRelease = true;
-			return;
-
-		case SDL_SCANCODE_RIGHT:
-			if (ptr->enabled && ptr->type == MI_SUBMENU && ptr->submenu)
-				MenuOpen(GUI_TYPE_MENU, ptr->submenu);
-
-			needRelease = true;
-			return;
-
-		case SDL_SCANCODE_UP:
-			cMenu_hilite--;
-			if (cMenu_hilite < 0)
-				cMenu_hilite += cMenu_count;
-
-			while ((&cMenu_data[cMenu_hilite + 1])->type & (MI_FIXED | MI_SEPARATOR)) {
-				cMenu_hilite--;
-				if (cMenu_hilite < 0)
-					cMenu_hilite += cMenu_count;
-			}
-
-			change = true;
-			break;
-
-		case SDL_SCANCODE_DOWN:
-			cMenu_hilite++;
-			if (cMenu_hilite >= cMenu_count)
-				cMenu_hilite -= cMenu_count;
-
-			while ((&cMenu_data[cMenu_hilite + 1])->type & (MI_FIXED | MI_SEPARATOR)) {
-				cMenu_hilite++;
-				if (cMenu_hilite >= cMenu_count)
-					cMenu_hilite -= cMenu_count;
-			}
-
-			change = true;
-			break;
-
-		case SDL_SCANCODE_HOME:
-		case SDL_SCANCODE_PAGEUP:
-			cMenu_hilite = 0;
-			needRelease = true;
-			change = true;
-			break;
-
-		case SDL_SCANCODE_END:
-		case SDL_SCANCODE_PAGEDOWN:
-			cMenu_hilite = (cMenu_count - 1);
-			needRelease = true;
-			change = true;
-			break;
-
-		default:
-			break;
-	}
-
-	if (change) {
-		DrawMenuItems();
-		return;
-	}
-
-	for (ptr = &cMenu_data[1]; ptr->type != MENU_END; ptr++) {
-		if (ptr->enabled && key == ptr->key) {
-			if (ptr->type == MI_SUBMENU && ptr->submenu)
-				MenuOpen(GUI_TYPE_MENU, ptr->submenu);
-			else if (ptr->callback) {
-				if (ptr->callback(ptr)) {
-					if (uiSetChanges & PS_CLOSEALL)
-						MenuCloseAll();
-					else
-						MenuClose();
-				}
-				else if (menuStack[menuStackLevel].type == GUI_TYPE_TAPE_POPUP) {
-					MenuClose();
-					KeyhandlerTapeDialog(ptr->action);
-					return;
-				}
-				else if (cMenu_data) {
-					DrawMenuItems();
-				}
-			}
-
-			break;
-		}
-	}
 }
 //-----------------------------------------------------------------------------

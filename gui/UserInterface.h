@@ -138,11 +138,14 @@ class UserInterface : public sigslot::has_slots<>
 		inline void SetLineHeight(BYTE l) { fontLineHeight = (l > 0) ? l : (fontHeight + 1); }
 		inline bool InMenu() { return (menuStackLevel >= 0); }
 
+		void DrawMenu(void *data = NULL);
+
 		void AboutDialog();
 		BYTE QueryDialog(const char *title, bool save);
 		void MessageBox(const char *text, ...);
 		BYTE EditBox(const char *title, const char *description, char *buffer, BYTE maxLength, bool decimal);
 
+		// TBD
 		void MenuOpen(GUI_MENU_TYPE type, void *data = NULL);
 		void MenuClose();
 		void MenuCloseAll();
@@ -216,8 +219,9 @@ class UserInterface : public sigslot::has_slots<>
 		void DrawDebugFrame(GUI_SURFACE *s, int x, int y, int w, int h);
 		void PrintCheck(GUI_SURFACE *s, int x, int y, BYTE col, BYTE ch, bool state);
 
+		void DrawMenuMachineItem(const char *name, TComputerModel model);
+		/* TBD remove */
 		void DrawMenuItems(GUI_SURFACE *s = NULL);
-		void DrawMenu(void *data);
 		void DrawFileSelectorItems(GUI_SURFACE *s = NULL);
 		void DrawFileSelector(bool update = true);
 		void DrawTapeDialogItems(GUI_SURFACE *s = NULL);

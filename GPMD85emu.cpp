@@ -234,34 +234,6 @@ int main(int argc, char** argv)
 						k = 4;
 					break;
 
-				case SDL_MOUSEBUTTONUP:
-				case SDL_MOUSEBUTTONDOWN:
-					switch (event.button.button) {
-						case SDL_BUTTON_LEFT:
-							Emulator->ActionMouseState(
-								event.button.x, event.button.y,
-								event.button.state == SDL_PRESSED ? 1 : -1
-							);
-							break;
-						case SDL_BUTTON_RIGHT:
-							Emulator->ActionMouseState(
-								event.button.x, event.button.y, 0,
-								event.button.state == SDL_PRESSED ? 1 : -1
-							);
-							break;
-						case SDL_BUTTON_MIDDLE:
-							Emulator->ActionMouseState(
-								event.button.x, event.button.y, 0, 0,
-								event.button.state == SDL_PRESSED ? 1 : -1
-							);
-							break;
-					}
-					break;
-
-				case SDL_MOUSEMOTION:
-					Emulator->ActionMouseState(event.motion.x, event.motion.y);
-					break;
-
 				case SDL_CONTROLLERDEVICEADDED:
 				case SDL_CONTROLLERDEVICEREMOVED:
 					Emulator->ActionJoyControllers(NULL, true);
@@ -286,14 +258,16 @@ int main(int argc, char** argv)
 		ImGui_ImplSDL2_NewFrame();
 		ImGui::NewFrame();
 
+		GUI->DrawMenu();
+
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 		ImGui::SetNextWindowSize(Emulator->video->GetWindowSize(), ImGuiCond_Always);
-		ImGui::SetNextWindowFocus();
 		ImGui::Begin(PACKAGE_NAME, NULL,
 			ImGuiWindowFlags_NoResize |
 			ImGuiWindowFlags_NoCollapse |
 			ImGuiWindowFlags_NoScrollbar |
-			ImGuiWindowFlags_NoScrollWithMouse
+			ImGuiWindowFlags_NoScrollWithMouse |
+			ImGuiWindowFlags_NoBringToFrontOnFocus
 		);
 
 		ImVec2 screen_size = Emulator->video->GetScreenSize();
