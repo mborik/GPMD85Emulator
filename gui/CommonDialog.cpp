@@ -258,7 +258,7 @@ BYTE UserInterface::QueryDialog(const char *title, bool save)
 					}
 
 					if (change) {
-						DrawMenuItems();
+						// DrawMenuItems();
 						break;
 					}
 

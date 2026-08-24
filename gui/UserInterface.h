@@ -219,9 +219,10 @@ class UserInterface : public sigslot::has_slots<>
 		void DrawDebugFrame(GUI_SURFACE *s, int x, int y, int w, int h);
 		void PrintCheck(GUI_SURFACE *s, int x, int y, BYTE col, BYTE ch, bool state);
 
-		void DrawMenuMachineItem(const char *name, TComputerModel model);
-		/* TBD remove */
-		void DrawMenuItems(GUI_SURFACE *s = NULL);
+		void MachineMenuItem(const char *name, TComputerModel model);
+		void AttributeMenuItems(bool enabled);
+		void DiskImagesMenu();
+
 		void DrawFileSelectorItems(GUI_SURFACE *s = NULL);
 		void DrawFileSelector(bool update = true);
 		void DrawTapeDialogItems(GUI_SURFACE *s = NULL);
@@ -231,7 +232,7 @@ class UserInterface : public sigslot::has_slots<>
 		void DrawDebugWidgetStack(GUI_SURFACE *s, SDL_Rect *r);
 		void DrawDebugWidgetBreaks(GUI_SURFACE *s, SDL_Rect *r);
 		void DrawDebugWindow();
-		void KeyhandlerMenu(WORD key);
+
 		void KeyhandlerFileSelector(WORD key);
 		void KeyhandlerFileSelectorCallback(char *fileName);
 		int  KeyhandlerFileSelectorSearch(int from = 0);
