@@ -11,12 +11,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
 
     - name: install dependencies
       run: |
         sudo apt update -y
-        sudo apt install -y build-essential autoconf autotools-dev pkg-config libsdl2-dev
+        sudo apt install -y build-essential autoconf autotools-dev pkg-config libsdl2-dev libgl1-mesa-dev
 
     - name: autoreconf
       run: autoreconf -vfi
@@ -25,4 +27,4 @@ jobs:
       run: ./configure
 
     - name: make
-      run: make -j6
+      run: make
