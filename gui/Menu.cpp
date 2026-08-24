@@ -27,14 +27,22 @@ void UserInterface::DrawMenu(void *data)
 	/* TBD */
 	if (data) return;
 
+	static bool diskImagesMenuOpen = false;
+	if (diskImagesMenuOpen) {
+		ImGui::Begin("DiskImagesMenu", &diskImagesMenuOpen,
+			ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize);
+		DiskImagesMenu();
+		ImGui::End();
+	}
+
 	if (ImGui::BeginMainMenuBar()) {
 		if (ImGui::BeginMenu("File")) {
 			if (ImGui::MenuItem("New Tape")) { }
 			if (ImGui::MenuItem("Open Tape\u0085", MOD_KEY("F2"))) { }
 			if (ImGui::MenuItem("Save Tape\u0085", MOD_SHIFT("F2"))) { }
-			if (ImGui::MenuItem("Tape Browser\u0085", MOD_KEY("T"))) { }
+			if (ImGui::MenuItem("Tape Browser", MOD_KEY("T"))) { }
 			ImGui::Separator();
-			if (ImGui::MenuItem("Disk Images\u0085", MOD_KEY("F6"))) { }
+			ImGui::MenuItem("Disk Images", MOD_KEY("F6"), &diskImagesMenuOpen);
 			ImGui::Separator();
 			if (ImGui::MenuItem("Open Snapshot\u0085", MOD_KEY("F7"))) { }
 			if (ImGui::MenuItem("Create Snapshot\u0085", MOD_SHIFT("F7"))) { }
@@ -44,7 +52,7 @@ void UserInterface::DrawMenu(void *data)
 			ImGui::Separator();
 			if (ImGui::MenuItem("Save Screenshot\u0085")) { }
 			ImGui::Separator();
-			if (ImGui::MenuItem("About", MOD_SHIFT("F1"))) { }
+			if (ImGui::MenuItem("About\u0085", MOD_SHIFT("F1"))) { }
 			if (ImGui::MenuItem("Quit", MOD_KEY("F4"))) {
 				Emulator->isActive = false;
 			}
@@ -87,6 +95,7 @@ void UserInterface::DrawMenu(void *data)
 
 			ImGui::Separator();
 			if (ImGui::BeginMenu("Color Mode")) {
+				ImGui::PushItemFlag(ImGuiItemFlags_AutoClosePopups, false);
 				if (ImGui::MenuItem("Monochromatic", MOD_KEY("M"), Settings->Screen->colorProfile == CP_MONO)) {
 					Settings->Screen->colorProfile = CP_MONO;
 					uiSetChanges |= PS_SCREEN_MODE;
@@ -117,9 +126,11 @@ void UserInterface::DrawMenu(void *data)
 						Settings->Screen->colorPalette = CL_DEFINED;
 						uiSetChanges |= PS_SCREEN_MODE;
 					}
-					// TODO attribute submenus
+					ImGui::Separator();
+					AttributeMenuItems(Settings->Screen->colorPalette == CL_DEFINED);
 					ImGui::EndMenu();
 				}
+				ImGui::PopItemFlag();
 				ImGui::EndMenu();
 			}
 			if (ImGui::BeginMenu("Scanliner")) {
@@ -221,14 +232,14 @@ void UserInterface::DrawMenu(void *data)
 			char *currentFile = new char[FILENAME_MAX + 2];
 
 			ImGui::SeparatorText("Computer Model");
-			DrawMenuMachineItem("PMD 85-1", CM_V1);
-			DrawMenuMachineItem("PMD 85-2", CM_V2);
-			DrawMenuMachineItem("PMD 85-2A", CM_V2A);
-			DrawMenuMachineItem("PMD 85-3", CM_V3);
-			DrawMenuMachineItem("Didaktik Alfa", CM_ALFA);
-			DrawMenuMachineItem("Didaktik Alfa 2", CM_ALFA2);
-			DrawMenuMachineItem("Consul 2717", CM_C2717);
-			DrawMenuMachineItem("Mato", CM_MATO);
+			MachineMenuItem("PMD 85-1", CM_V1);
+			MachineMenuItem("PMD 85-2", CM_V2);
+			MachineMenuItem("PMD 85-2A", CM_V2A);
+			MachineMenuItem("PMD 85-3", CM_V3);
+			MachineMenuItem("Didaktik Alfa", CM_ALFA);
+			MachineMenuItem("Didaktik Alfa 2", CM_ALFA2);
+			MachineMenuItem("Consul 2717", CM_C2717);
+			MachineMenuItem("Mato", CM_MATO);
 
 			ImGui::SeparatorText("Memory Configuration");
 			ImGui::PushItemFlag(ImGuiItemFlags_AutoClosePopups, false);
@@ -319,10 +330,7 @@ void UserInterface::DrawMenu(void *data)
 					uiSetChanges |= PS_PERIPHERALS;
 				}
 				ImGui::Separator();
-				if (ImGui::MenuItem("Mount Disk Images\u0085", NULL, false, state)) { }
-				ImGui::Separator();
-				if (ImGui::MenuItem("Extended Commands", NULL, state)) {
-					Settings->PMD32->extraCommands = !Settings->PMD32->extraCommands;
+				if (ImGui::MenuItem("Extended Commands", NULL, &Settings->PMD32->extraCommands, state)) {
 					uiSetChanges |= PS_PERIPHERALS;
 				}
 				char *sdRoot = Settings->PMD32->sdRoot ? currentFile : NULL;
@@ -330,6 +338,9 @@ void UserInterface::DrawMenu(void *data)
 					sprintf(currentFile, "[%s]", ExtractFileName(Settings->PMD32->sdRoot));
 				if (ImGui::MenuItem("Virtual SD-Card Directory\u0085", sdRoot, false,
 					state && Settings->PMD32->extraCommands)) { }
+
+				ImGui::Separator();
+				DiskImagesMenu();
 
 				ImGui::EndMenu();
 			}
@@ -349,7 +360,7 @@ void UserInterface::DrawMenu(void *data)
 	}
 }
 //-----------------------------------------------------------------------------
-void UserInterface::DrawMenuMachineItem(const char *name, TComputerModel model)
+void UserInterface::MachineMenuItem(const char *name, TComputerModel model)
 {
 	if (ImGui::RadioButton(name, Settings->CurrentModel->type == model)) {
 		for (int i = 0; i < Settings->modelsCount; i++) {
@@ -363,11 +374,107 @@ void UserInterface::DrawMenuMachineItem(const char *name, TComputerModel model)
 	}
 }
 //-----------------------------------------------------------------------------
-void UserInterface::DrawMenuItems(GUI_SURFACE *s)
+void UserInterface::AttributeMenuItems(bool enabled)
 {
+	static const char *colorNames[] = {
+		"BLACK", "MAROON", "GREEN", "OLIVE",
+		"NAVY", "PURPLE", "TEAL", "GRAY",
+		"SILVER", "RED", "LIME", "YELLOW",
+		"BLUE", "FUCHSIA", "AQUA", "WHITE"
+	};
+
+	int colors[4] = { 0, 0, 0, 0 };
+	switch (Settings->Screen->colorPalette) {
+		case CL_RGB:
+			colors[0] = TColor::LIME;
+			colors[1] = TColor::RED;
+			colors[2] = TColor::BLUE;
+			colors[3] = TColor::FUCHSIA;
+			break;
+
+		case CL_VIDEO:
+			colors[0] = TColor::WHITE;
+			colors[1] = TColor::LIME;
+			colors[2] = TColor::RED;
+			colors[3] = TColor::MAROON;
+			break;
+
+		case CL_DEFINED:
+			colors[0] = Settings->Screen->attr00;
+			colors[1] = Settings->Screen->attr01;
+			colors[2] = Settings->Screen->attr10;
+			colors[3] = Settings->Screen->attr11;
+			break;
+	}
+
+	float sz = ImGui::GetTextLineHeight();
+	char* attrName = new char[16];
+
+	for (int n = 0; n < 4; n++) {
+		sprintf(attrName, "Attribute %d%d", (n & 2) >> 1, n & 1);
+		ImVec2 p = ImGui::GetCursorScreenPos();
+		ImGui::GetWindowDrawList()->AddRectFilled(p, ImVec2(p.x + sz, p.y + sz),
+			(ImU32) globalPalette[colors[n]]);
+		ImGui::Dummy(ImVec2(sz, sz));
+		ImGui::SameLine();
+		if (ImGui::BeginMenu(attrName, enabled)) {
+			for (int i = 0; i < 16; i++) {
+				ImVec2 p = ImGui::GetCursorScreenPos();
+				ImGui::GetWindowDrawList()->AddRectFilled(p, ImVec2(p.x + sz, p.y + sz), (ImU32) globalPalette[i]);
+				ImGui::Dummy(ImVec2(sz, sz));
+				ImGui::SameLine();
+				ImGui::MenuItem(colorNames[i], NULL, colors[n] == i);
+			}
+			ImGui::EndMenu();
+		}
+	}
 }
 //-----------------------------------------------------------------------------
-void UserInterface::KeyhandlerMenu(WORD key)
+void UserInterface::DiskImagesMenu()
 {
+	static char path[FILENAME_MAX];
+	ImVec4 bbase, hover;
+
+	auto DiskImagesMenuItem = [&](TSettings::SetPMD32Drive drive, char letter) {
+		const char *imagePath = ExtractFileName(drive.image);
+		sprintf(path, "Drive%c\t%c: %s", letter, letter, imagePath ? imagePath : "[empty]");
+		path[6] = '\0';
+
+		ImGui::PushID(path);
+		ImGui::SetNextItemAllowOverlap();
+		ImGui::MenuItem(path + 7);
+		ImGui::SameLine();
+
+		bbase = imagePath ? ImColor::HSV(0.6f, 0.7f, 0.8f) : ImColor::HSV(0.5f, 0.2f, 0.2f);
+		hover = imagePath ? ImColor::HSV(0.6f, 0.9f, 1.0f) : ImColor::HSV(0.5f, 0.2f, 0.5f);
+		ImGui::PushStyleColor(ImGuiCol_Button, bbase);
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, hover);
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, hover);
+
+		if (ImGui::SmallButton("Eject")) {
+			drive.image = NULL;
+			uiSetChanges |= PS_PERIPHERALS;
+		}
+
+		bbase = drive.writeProtect ? ImColor::HSV(0.0f, 0.6f, 0.6f) : ImColor::HSV(0.5f, 0.2f, 0.2f);
+		hover = drive.writeProtect ? ImColor::HSV(0.0f, 0.8f, 0.8f) : ImColor::HSV(0.5f, 0.2f, 0.5f);
+		ImGui::PushStyleColor(ImGuiCol_Button, bbase);
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, hover);
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, hover);
+
+		ImGui::SameLine();
+		if (ImGui::SmallButton("WP")) {
+			drive.writeProtect = !drive.writeProtect;
+			uiSetChanges |= PS_PERIPHERALS;
+		}
+
+		ImGui::PopStyleColor(6);
+		ImGui::PopID();
+	};
+
+	DiskImagesMenuItem(Settings->PMD32->driveA, 'A');
+	DiskImagesMenuItem(Settings->PMD32->driveB, 'B');
+	DiskImagesMenuItem(Settings->PMD32->driveC, 'C');
+	DiskImagesMenuItem(Settings->PMD32->driveD, 'D');
 }
 //-----------------------------------------------------------------------------
