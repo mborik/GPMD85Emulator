@@ -46,7 +46,7 @@
 #include "UserInterface.h"
 #include "SoundDriver.h"
 //-----------------------------------------------------------------------------
-class TEmulator : public sigslot::has_slots<>
+class TEmulator
 {
 	public:
 		bool isActive;
@@ -96,7 +96,7 @@ class TEmulator : public sigslot::has_slots<>
 		// access to ScreenPMD85 class
 		ScreenPMD85 *video;
 
-		sigslot::signal0<> actionCallback;
+		sigslot::signal<> actionCallback;
 
 	private:
 		bool inmenu;

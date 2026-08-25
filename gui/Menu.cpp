@@ -189,11 +189,11 @@ void UserInterface::DrawMenu()
 			}
 			ImGui::Separator();
 			if (ImGui::MenuItem("Reset", MOD_KEY("F5"))) {
-				uiCallback.connect(Emulator, &TEmulator::ActionReset);
+				uiCallback.connect(&TEmulator::ActionReset, Emulator);
 				uiSetChanges |= PS_CLOSEALL;
 			}
 			if (ImGui::MenuItem("Hard Restart", MOD_SHIFT("F5"))) {
-				uiCallback.connect(Emulator, &TEmulator::ActionHardReset);
+				uiCallback.connect(&TEmulator::ActionHardReset, Emulator);
 				uiSetChanges |= PS_CLOSEALL;
 			}
 			ImGui::Separator();

@@ -738,14 +738,14 @@ bool ccb_emu_speed(GUI_MENU_ENTRY *ptr)
 //-----------------------------------------------------------------------------
 bool ccb_emu_reset(GUI_MENU_ENTRY *ptr)
 {
-	GUI->uiCallback.connect(Emulator, &TEmulator::ActionReset);
+	GUI->uiCallback.connect(&TEmulator::ActionReset, Emulator);
 	GUI->uiSetChanges |= PS_CLOSEALL;
 	return true;
 }
 //-----------------------------------------------------------------------------
 bool ccb_emu_hardreset(GUI_MENU_ENTRY *ptr)
 {
-	GUI->uiCallback.connect(Emulator, &TEmulator::ActionHardReset);
+	GUI->uiCallback.connect(&TEmulator::ActionHardReset, Emulator);
 	GUI->uiSetChanges |= PS_CLOSEALL;
 	return true;
 }
@@ -1135,14 +1135,14 @@ bool ccb_blk_exec(GUI_MENU_ENTRY *ptr)
 //-----------------------------------------------------------------------------
 bool ccb_tapebrowser(GUI_MENU_ENTRY *ptr)
 {
-	GUI->uiCallback.connect(Emulator, &TEmulator::ActionTapeBrowser);
+	GUI->uiCallback.connect(&TEmulator::ActionTapeBrowser, Emulator);
 	GUI->uiSetChanges |= PS_CLOSEALL;
 	return true;
 }
 //-----------------------------------------------------------------------------
 bool ccb_debugger(GUI_MENU_ENTRY *ptr)
 {
-	GUI->uiCallback.connect(Emulator, &TEmulator::ActionDebugger);
+	GUI->uiCallback.connect(&TEmulator::ActionDebugger, Emulator);
 	GUI->uiSetChanges |= PS_CLOSEALL;
 	return true;
 }

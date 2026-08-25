@@ -254,7 +254,7 @@ void UserInterface::KeyhandlerTapeDialog(WORD key)
 				change = true;
 			}
 			else {
-				uiCallback.connect(Emulator, &TEmulator::ActionTapePlayStop);
+				uiCallback.connect(&TEmulator::ActionTapePlayStop, Emulator);
 				uiSetChanges |= PS_CLOSEALL;
 				MenuCloseAll();
 			}

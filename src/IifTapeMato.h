@@ -22,7 +22,7 @@
 #include "IifTape.h"
 #include "SystemPIO.h"
 //---------------------------------------------------------------------------
-class IifTapeMato : public IifTape, public sigslot::has_slots<> {
+class IifTapeMato : public IifTape {
 	public:
 		IifTapeMato(SystemPIO *systemPIO);
 		void TapeClockService(int ticks, int dur);

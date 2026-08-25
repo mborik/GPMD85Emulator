@@ -24,8 +24,8 @@
 IifTapePMD85::IifTapePMD85(TComputerModel model, TTapeIfType ifType)
 	: IifTape(model, ifType), ChipUSART8251()
 {
-	OnRtsSet.connect(this, &IifTapePMD85::FnOnRtsSet);
-	OnTxRChange.connect(this, &IifTapePMD85::FnOnTxRChange);
+	OnRtsSet.connect(&IifTapePMD85::FnOnRtsSet, this);
+	OnTxRChange.connect(&IifTapePMD85::FnOnTxRChange, this);
 
 	tapeTicks = 0;
 	tapeClkState = true;
@@ -42,7 +42,7 @@ IifTapePMD85::IifTapePMD85(TComputerModel model, TTapeIfType ifType)
 void IifTapePMD85::ResetDevice(int ticks)
 {
 	ChipReset(false);
-	TapeCommand(CMD_STOP, NULL);
+	TapeCommand(CMD_STOP, nullptr);
 }
 //---------------------------------------------------------------------------
 void IifTapePMD85::WriteToDevice(BYTE port, BYTE value, int ticks)
@@ -164,7 +164,7 @@ void IifTapePMD85::FnOnTxRChange()
 //						ok = false;
 //					else
 //					{
-						TapeCommand(CMD_PRE_SAVE, NULL);
+						TapeCommand(CMD_PRE_SAVE, nullptr);
 						*((WORD *)buff) = 63;
 						WORD len = (WORD)(*((WORD *)(buff + 54)) + 2);
 						*((WORD *)(buff + txByteCounter)) = len;
@@ -184,7 +184,7 @@ void IifTapePMD85::FnOnTxRChange()
 //					debug("<- CRC BODY -> %02X", crc);
 //					if (crc == val)
 //					{
-						TapeCommand(CMD_SAVE, NULL);
+						TapeCommand(CMD_SAVE, nullptr);
 						tapeTxState = TP_TX_WAIT_EB;
 						txByteCounter = 2;
 						txTickCounter = TC_EB_MAX;
@@ -248,7 +248,7 @@ void IifTapePMD85::TapeClockService123(int ticks, int dur)
 				if (--txTickCounter == 0) {
 					if (txByteCounter > 2) {
 						*((WORD *) buff) = (WORD)(txByteCounter - 2);
-						TapeCommand(CMD_SAVE, NULL);
+						TapeCommand(CMD_SAVE, nullptr);
 					}
 					InitTapeTx();
 				}
@@ -291,11 +291,11 @@ void IifTapePMD85::TapeClockService123(int ticks, int dur)
 					if (data != NULL && (PeripheralReadRxR() == false || rxTickCounter == 0)) {
 						rxTickCounter = TC_BYTE_CLOCK;
 						PeripheralWriteByte(*data++);
-						TapeCommand(CMD_PROGRESS, NULL);
+						TapeCommand(CMD_PROGRESS, nullptr);
 						if (--dataLen == 0) {
 							tapeRxState = TP_RX_IDLE;
 							data = NULL;
-							TapeCommand(CMD_NEXT, NULL);
+							TapeCommand(CMD_NEXT, nullptr);
 						}
 					}
 					return;
@@ -345,12 +345,12 @@ void IifTapePMD85::TapeClockService123(int ticks, int dur)
 
 			case TP_RX_STOP :
 				if (--rxTickCounter == 0) {
-					TapeCommand(CMD_PROGRESS, NULL);
+					TapeCommand(CMD_PROGRESS, nullptr);
 					if (--dataLen == 0) {
 						if (head) {
 							tapeRxState = TP_RX_IDLE;
 							data = NULL;
-							TapeCommand(CMD_NEXT, NULL);
+							TapeCommand(CMD_NEXT, nullptr);
 						}
 						else {
 							tapeRxState = TP_RX_TAIL;
@@ -370,7 +370,7 @@ void IifTapePMD85::TapeClockService123(int ticks, int dur)
 				if (--rxTickCounter == 0) {
 					tapeRxState = TP_RX_IDLE;
 					data = NULL;
-					TapeCommand(CMD_NEXT, NULL);
+					TapeCommand(CMD_NEXT, nullptr);
 				}
 				break;
 		}

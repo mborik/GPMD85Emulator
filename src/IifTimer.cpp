@@ -36,9 +36,9 @@ IifTimer::IifTimer(TComputerModel model, ChipCpu8080 *_cpu) : ChipPIT8253()
 	PeripheralSetClock(CT_2, stateRtc);
 
 	if (model == CM_C2717)
-		Counters[1].OnOutChange.connect(this, &IifTimer::CT2Clock);
+		Counters[1].OnOutChange.connect(&IifTimer::CT2Clock, this);
 	else
-		Counters[0].OnOutChange.connect(this, &IifTimer::Timer0OutChange);
+		Counters[0].OnOutChange.connect(&IifTimer::Timer0OutChange, this);
 }
 //---------------------------------------------------------------------------
 void IifTimer::WriteToDevice(BYTE port, BYTE value, int ticks)
@@ -162,7 +162,7 @@ void IifTimer::EnableMouse602(bool enable)
 {
 	mouse602 = (IsPMD85() || model == CM_C2717) ? enable : false;
 	if (mouse602)
-		Counters[1].OnOutChange602.connect(this, &IifTimer::Mouse602Clock);
+		Counters[1].OnOutChange602.connect(&IifTimer::Mouse602Clock, this);
 	else
 		Counters[1].OnOutChange602.disconnect(this);
 }

@@ -109,8 +109,7 @@ typedef bool _Bool;
 #define UNUSED_VARIABLE
 #endif
 //-----------------------------------------------------------------------------
-#define SIGSLOT_DEFAULT_MT_POLICY single_threaded
-#include "sigslot.h"
+#include "sigslot.hpp"
 //-----------------------------------------------------------------------------
 #include "SDL.h"
 #ifdef SDL_MAX_SINT32

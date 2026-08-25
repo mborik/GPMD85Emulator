@@ -136,7 +136,7 @@ void ChipPIO8255::SetChipState(BYTE *buffer)
 void ChipPIO8255::NotifyOnWritePortC(BYTE oldVal, BYTE newVal)
 {
 	BYTE val = oldVal ^ newVal;
-	if (val && OnCpuWriteC.isset())
+	if (val && OnCpuWriteC.slot_count())
 		OnCpuWriteC();
 	else {
 		BYTE maskCH = 0xF0;
@@ -146,9 +146,9 @@ void ChipPIO8255::NotifyOnWritePortC(BYTE oldVal, BYTE newVal)
 			maskCL = 0x07;
 		}
 
-		if ((val & maskCH) && OnCpuWriteCH.isset())
+		if (val & maskCH)
 			OnCpuWriteCH();
-		if ((val & maskCL) && OnCpuWriteCL.isset())
+		if (val & maskCL)
 			OnCpuWriteCL();
 	}
 }
@@ -434,7 +434,7 @@ BYTE ChipPIO8255::CpuRead(TPIOPort src)
 			break;
 
 		case PP_PortC :
-			if (OnCpuReadCH.isset() || OnCpuReadCL.isset()) {
+			if (OnCpuReadCH.slot_count() || OnCpuReadCL.slot_count()) {
 				// Mode 0, input
 				if ((CWR & (GA_MODE | PORTCH_DIR)) == (GA_MODE0 | PORTCH_INP))
 					OnCpuReadCH();
@@ -442,7 +442,7 @@ BYTE ChipPIO8255::CpuRead(TPIOPort src)
 				if ((CWR & (GB_MODE | PORTCL_DIR)) == (GB_MODE0 | PORTCL_INP))
 					OnCpuReadCL();
 			}
-			else if (OnCpuReadC.isset()) {
+			else if (OnCpuReadC.slot_count()) {
 				// Mode 0, input
 				if ((CWR & (GB_MODE | PORTCL_DIR)) == (GB_MODE0 | PORTCL_INP)
 				 || (CWR & (GA_MODE | PORTCH_DIR)) == (GA_MODE0 | PORTCH_INP))

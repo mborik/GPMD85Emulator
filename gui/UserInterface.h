@@ -83,7 +83,7 @@ typedef struct _GUI_MENU_ENTRY {
 	WORD action;  // action value
 } GUI_MENU_ENTRY;
 //-----------------------------------------------------------------------------
-class UserInterface : public sigslot::has_slots<>
+class UserInterface
 {
 	public:
 		enum GUI_MENU_TYPE {
@@ -107,7 +107,7 @@ class UserInterface : public sigslot::has_slots<>
 			char **extFilter;
 			BYTE itemsOnPage;
 			BYTE tag;
-			sigslot::signal2<char *, BYTE *> callback;
+			sigslot::signal<char *, BYTE *> callback;
 		} GUI_FILESELECTOR_DATA;
 
 		typedef struct GUI_TAPEDIALOG_DATA {
@@ -122,14 +122,14 @@ class UserInterface : public sigslot::has_slots<>
 		bool needRelease;
 		BYTE uiSetChanges;
 		BYTE uiQueryState;
-		sigslot::signal0<> uiCallback;
+		sigslot::signal<> uiCallback;
 
 		DWORD globalPalette[256];
 		SDL_Texture *defaultTexture;
 
 		GUI_FILESELECTOR_DATA *fileSelector;
 		GUI_TAPEDIALOG_DATA *tapeDialog;
-		sigslot::signal2<char *, BYTE *> editBoxValidator;
+		sigslot::signal<char *, BYTE *> editBoxValidator;
 
 		UserInterface();
 		virtual ~UserInterface();

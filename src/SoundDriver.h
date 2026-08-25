@@ -21,7 +21,7 @@
 //---------------------------------------------------------------------------
 #include "globals.h"
 //---------------------------------------------------------------------------
-class SoundDriver : public sigslot::has_slots<>
+class SoundDriver
 {
 	public:
 		SoundDriver(char totalAmpl);

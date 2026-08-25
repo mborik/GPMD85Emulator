@@ -819,7 +819,7 @@ bool TEmulator::TestHotkeys()
 				break;
 
 			case SDL_SCANCODE_F1:	// ABOUT
-				actionCallback.connect(this, &TEmulator::ActionAbout);
+				actionCallback.connect(&TEmulator::ActionAbout, this);
 				break;
 
 			case SDL_SCANCODE_F2:	// LOAD/SAVE TAPE
@@ -848,7 +848,7 @@ bool TEmulator::TestHotkeys()
 				break;
 
 			case SDL_SCANCODE_F6:	// DISK IMAGES
-				actionCallback.connect(this, &TEmulator::ActionDiskImages);
+				actionCallback.connect(&TEmulator::ActionDiskImages, this);
 				break;
 
 			case SDL_SCANCODE_F7:	// LOAD/SAVE SNAPSHOT
@@ -992,7 +992,7 @@ void TEmulator::ActionTapeLoad(bool import)
 	GUI->fileSelector->title = tape_title;
 	GUI->fileSelector->extFilter = (char **) tape_filter;
 	GUI->fileSelector->callback.disconnect_all();
-	GUI->fileSelector->callback.connect(this, &TEmulator::InsertTape);
+	GUI->fileSelector->callback.connect(&TEmulator::InsertTape, this);
 
 	char *recentFile = import ? TapeBrowser->orgTapeFile : Settings->TapeBrowser->fileName;
 	if (recentFile) {
@@ -1019,7 +1019,7 @@ void TEmulator::ActionTapeSave()
 	GUI->fileSelector->title = "SAVE TAPE FILE (*.ptp)";
 	GUI->fileSelector->extFilter = (char **) tape_filter;
 	GUI->fileSelector->callback.disconnect_all();
-	GUI->fileSelector->callback.connect(this, &TEmulator::SaveTape);
+	GUI->fileSelector->callback.connect(&TEmulator::SaveTape, this);
 
 	char *recentFile = Settings->TapeBrowser->fileName;
 	if (recentFile) {
@@ -1051,7 +1051,7 @@ void TEmulator::ActionPMD32LoadDisk(int drive)
 	GUI->fileSelector->title = "OPEN PMD 32 DISK FILE (*.p32)";
 	GUI->fileSelector->extFilter = (char **) p32_filter;
 	GUI->fileSelector->callback.disconnect_all();
-	GUI->fileSelector->callback.connect(this, &TEmulator::InsertPMD32Disk);
+	GUI->fileSelector->callback.connect(&TEmulator::InsertPMD32Disk, this);
 	pmd32workdrive = drive;
 
 	char *fileName = NULL;
@@ -1096,7 +1096,7 @@ void TEmulator::ActionSnapLoad()
 	GUI->fileSelector->title = "OPEN SNAPSHOT FILE (*.psn)";
 	GUI->fileSelector->extFilter = (char **) snap_filter;
 	GUI->fileSelector->callback.disconnect_all();
-	GUI->fileSelector->callback.connect(this, &TEmulator::ProcessSnapshot);
+	GUI->fileSelector->callback.connect(&TEmulator::ProcessSnapshot, this);
 
 	char *recentFile = Settings->Snapshot->fileName;
 	if (recentFile) {
@@ -1123,7 +1123,7 @@ void TEmulator::ActionSnapSave()
 	GUI->fileSelector->title = "SAVE SNAPSHOT FILE (*.psn)";
 	GUI->fileSelector->extFilter = (char **) snap_filter;
 	GUI->fileSelector->callback.disconnect_all();
-	GUI->fileSelector->callback.connect(this, &TEmulator::PrepareSnapshot);
+	GUI->fileSelector->callback.connect(&TEmulator::PrepareSnapshot, this);
 
 	char *recentFile = Settings->Snapshot->fileName;
 	if (recentFile) {
@@ -1154,7 +1154,7 @@ void TEmulator::ActionROMLoad()
 	GUI->fileSelector->title = "SELECT ROM FILE (*.rom)";
 	GUI->fileSelector->extFilter = (char **) rom_filter;
 	GUI->fileSelector->callback.disconnect_all();
-	GUI->fileSelector->callback.connect(this, &TEmulator::ChangeROMFile);
+	GUI->fileSelector->callback.connect(&TEmulator::ChangeROMFile, this);
 
 	if (fileName) {
 		char *file = LocateROM(fileName);
@@ -1191,7 +1191,7 @@ void TEmulator::ActionMegaRomLoad()
 	GUI->fileSelector->title = "SELECT ROM MODULE FILE (*.mrm, *.rmm)";
 	GUI->fileSelector->extFilter = (char **) mrm_filter;
 	GUI->fileSelector->callback.disconnect_all();
-	GUI->fileSelector->callback.connect(this, &TEmulator::ChangeMegaRomFile);
+	GUI->fileSelector->callback.connect(&TEmulator::ChangeMegaRomFile, this);
 
 	if (fileName) {
 		char *file = LocateROM(fileName);
@@ -1223,7 +1223,7 @@ void TEmulator::ActionRawFile(bool save)
 	GUI->fileSelector->title = "SELECT RAW FILE";
 	GUI->fileSelector->extFilter = NULL;
 	GUI->fileSelector->callback.disconnect_all();
-	GUI->fileSelector->callback.connect(this, &TEmulator::SelectRawFile);
+	GUI->fileSelector->callback.connect(&TEmulator::SelectRawFile, this);
 
 	char *recentFile = Settings->MemoryBlock->fileName;
 	if (recentFile) {
@@ -1476,12 +1476,12 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 
 	// System PIO
 	systemPIO = new SystemPIO(model, memory);
-	systemPIO->PrepareSample.connect(sound, &SoundDriver::PrepareSample);
+	systemPIO->PrepareSample.connect(&SoundDriver::PrepareSample, sound);
 	cpu->AddDevice(SYSTEM_PIO_ADR, SYSTEM_PIO_MASK, systemPIO, true);
 
 	if (model != CM_MATO) {
 		// Sound - 1kHz and 4kHz frequencies
-		cpu->TCyclesListeners.connect(systemPIO, &SystemPIO::SoundService);
+		cpu->TCyclesListeners.connect(&SystemPIO::SoundService, systemPIO);
 
 		// GPIO interface
 		ifGpio = new IifGPIO();
@@ -1493,7 +1493,7 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 		// Timer interface
 		ifTimer = new IifTimer(model, cpu);
 		cpu->AddDevice(IIF_TIMER_ADR, IIF_TIMER_MASK, ifTimer, false);
-		cpu->TCyclesListeners.connect(ifTimer, &IifTimer::ITimerService);
+		cpu->TCyclesListeners.connect(&IifTimer::ITimerService, ifTimer);
 	}
 
 	// Tape interface
@@ -1502,7 +1502,7 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 	else
 		ifTape = new IifTapePMD85(model, tapeIfType);
 
-	ifTape->PrepareSample.connect(sound, &SoundDriver::PrepareSample);
+	ifTape->PrepareSample.connect(&SoundDriver::PrepareSample, sound);
 	TapeBrowser->SetIfTape(ifTape);
 
 	// set proper tape interface ports in CPU
@@ -1515,18 +1515,18 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 	}
 
 	if (model == CM_MATO)
-		cpu->TCyclesListeners.connect((IifTapeMato *) ifTape, &IifTapeMato::TapeClockService);
+		cpu->TCyclesListeners.connect(&IifTapeMato::TapeClockService, (IifTapeMato *) ifTape);
 	else {
 		IifTapePMD85 *tapeDevice = (IifTapePMD85 *) ifTape;
 
 		// pin tape interface signal to timer
 		if (model != CM_V1 && model != CM_ALFA) {
 			int cnt = (model == CM_C2717) ? 0 : 1;
-			ifTimer->Counters[cnt].OnOutChange.connect(tapeDevice, &IifTapePMD85::TapeClockService23);
+			ifTimer->Counters[cnt].OnOutChange.connect(&IifTapePMD85::TapeClockService23, tapeDevice);
 		}
 
 		// pin tape interface signal to CPU
-		cpu->TCyclesListeners.connect(tapeDevice, &IifTapePMD85::TapeClockService123);
+		cpu->TCyclesListeners.connect(&IifTapePMD85::TapeClockService123, tapeDevice);
 	}
 
 	if (model == CM_V2A || model == CM_V3) {
@@ -1689,7 +1689,7 @@ void TEmulator::ConnectMouse602(bool init)
 
 			mouse602->SetHideCursor(Settings->Mouse->hideCursor);
 			cpu->AddDevice(MOUSE_ADR, MOUSE_MASK, mouse602, true);
-			cpu->TCyclesListeners.connect(mouse602, &Mouse602::MouseService);
+			cpu->TCyclesListeners.connect(&Mouse602::MouseService, mouse602);
 
 			if (ifTimer)
 				ifTimer->EnableMouse602(true);
@@ -1722,7 +1722,7 @@ void TEmulator::ConnectPMD32(bool init)
 			Settings->Joystick->GPIO0->connected = false;
 
 			pmd32 = new Pmd32(ifGpio);
-			cpu->TCyclesListeners.connect(pmd32, &Pmd32::Disk32Service);
+			cpu->TCyclesListeners.connect(&Pmd32::Disk32Service, pmd32);
 
 			pmd32connected = true;
 		}
@@ -2119,7 +2119,7 @@ void TEmulator::InsertTape(char *fileName, BYTE *flag)
 		strcpy(Settings->TapeBrowser->fileName, fileName);
 	}
 
-	GUI->uiCallback.connect(this, &TEmulator::ActionTapeBrowser);
+	GUI->uiCallback.connect(&TEmulator::ActionTapeBrowser, this);
 }
 //---------------------------------------------------------------------------
 void TEmulator::SaveTape(char *fileName, BYTE *flag)

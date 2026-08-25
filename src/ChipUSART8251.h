@@ -179,7 +179,7 @@ enum TUSARTPin { UP_TXD, UP_TXR, UP_TXE, UP_RXR, UP_DTR, UP_RTS, UP_SYN, UP_BRK 
 #define SYNC_CHAR1    64
 #define SYNC_CHAR2    128
 //-----------------------------------------------------------------------------
-class ChipUSART8251 : public sigslot::has_slots<>
+class ChipUSART8251
 {
 public:
 	// constructor
@@ -191,25 +191,25 @@ public:
 	BYTE CpuRead(TUSARTReg src);
 
 	// notification functions settings
-	sigslot::signal0<> OnTxDChange;
-	sigslot::signal0<> OnTxRChange;
-	sigslot::signal0<> OnTxEChange;
-	sigslot::signal0<> OnRxRChange;
-	sigslot::signal0<> OnDtrChange;
-	sigslot::signal0<> OnRtsChange;
-	sigslot::signal0<> OnSynDetChange;
-	sigslot::signal0<> OnBrkDetChange;
+	sigslot::signal<> OnTxDChange;
+	sigslot::signal<> OnTxRChange;
+	sigslot::signal<> OnTxEChange;
+	sigslot::signal<> OnRxRChange;
+	sigslot::signal<> OnDtrChange;
+	sigslot::signal<> OnRtsChange;
+	sigslot::signal<> OnSynDetChange;
+	sigslot::signal<> OnBrkDetChange;
 
-	sigslot::signal0<> OnTxDSet;
-	sigslot::signal0<> OnTxRSet;
-	sigslot::signal0<> OnTxESet;
-	sigslot::signal0<> OnRxRSet;
-	sigslot::signal0<> OnDtrSet;
-	sigslot::signal0<> OnRtsSet;
-	sigslot::signal0<> OnSynDetSet;
-	sigslot::signal0<> OnBrkDetSet;
+	sigslot::signal<> OnTxDSet;
+	sigslot::signal<> OnTxRSet;
+	sigslot::signal<> OnTxESet;
+	sigslot::signal<> OnRxRSet;
+	sigslot::signal<> OnDtrSet;
+	sigslot::signal<> OnRtsSet;
+	sigslot::signal<> OnSynDetSet;
+	sigslot::signal<> OnBrkDetSet;
 
-	sigslot::signal1<bool> OnCwrWrite;
+	sigslot::signal<bool> OnCwrWrite;
 
 	int GetChipState(BYTE *buffer);
 	void SetChipState(BYTE *buffer);

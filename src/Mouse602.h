@@ -34,7 +34,7 @@
 #define M602_XAXIS_MASK 12
 #define M602_YAXIS_MASK 3
 //---------------------------------------------------------------------------
-class Mouse602 : public PeripheralDevice, public sigslot::has_slots<>
+class Mouse602 : public PeripheralDevice
 {
 public:
 	Mouse602(int size, int offsetX = 0, int offsetY = 0);

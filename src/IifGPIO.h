@@ -40,10 +40,10 @@ public:
 	virtual void WriteToDevice(BYTE port, BYTE value, int ticks);
 	virtual BYTE ReadFromDevice(BYTE port, int ticks);
 
-	sigslot::signal0<> OnBeforeResetA;
-	sigslot::signal0<> OnBeforeResetB;
-	sigslot::signal0<> OnAfterResetA;
-	sigslot::signal0<> OnAfterResetB;
+	sigslot::signal<> OnBeforeResetA;
+	sigslot::signal<> OnBeforeResetB;
+	sigslot::signal<> OnAfterResetA;
+	sigslot::signal<> OnAfterResetB;
 
 	void WriteByte(TPIOPort dest, BYTE val);
 	BYTE ReadByte(TPIOPort src);

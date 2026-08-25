@@ -39,7 +39,7 @@ GPMD85emu_SOURCES = \
 	GPMD85emu.cpp
 
 noinst_HEADERS = \
-	sigslot.h \
+	sigslot.hpp \
 	globals.h \
 	config.h
 

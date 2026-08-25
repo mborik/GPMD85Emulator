@@ -64,7 +64,7 @@ public:
 	void inline SetMatoTapeIn(bool _matoTapeIn)
 		{ matoTapeIn = _matoTapeIn; }
 
-	sigslot::signal3<int, bool, int> PrepareSample;
+	sigslot::signal<int, bool, int> PrepareSample;
 
 	BYTE ledState;
 	BYTE width384;

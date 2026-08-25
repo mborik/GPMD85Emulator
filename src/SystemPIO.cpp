@@ -26,13 +26,13 @@ SystemPIO::SystemPIO(TComputerModel model, ChipMemory *memory) : ChipPIO8255(fal
 	PrepareSample.disconnect_all();
 
 	if (model == CM_MATO)
-		OnCpuReadC.connect(this, &SystemPIO::ReadKeyboardC);
+		OnCpuReadC.connect(&SystemPIO::ReadKeyboardC, this);
 
-	OnCpuReadB.connect(this, &SystemPIO::ReadKeyboardB);
-	OnCpuWriteCL.connect(this, &SystemPIO::WriteSound);
+	OnCpuReadB.connect(&SystemPIO::ReadKeyboardB, this);
+	OnCpuWriteCL.connect(&SystemPIO::WriteSound, this);
 
 	if (model != CM_MATO)
-		OnCpuWriteCH.connect(this, &SystemPIO::WritePaging);
+		OnCpuWriteCH.connect(&SystemPIO::WritePaging, this);
 
 	ledState = 0;
 	width384 = 0;
