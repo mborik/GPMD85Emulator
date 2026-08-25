@@ -819,7 +819,10 @@ bool TEmulator::TestHotkeys()
 				break;
 
 			case SDL_SCANCODE_F1:	// ABOUT
-				actionCallback.connect(&TEmulator::ActionAbout, this);
+				actionCallback.connect([&]() {
+					GUI->MenuOpen(UserInterface::GUI_TYPE_ABOUT);
+					actionCallback.disconnect_all();
+				});
 				break;
 
 			case SDL_SCANCODE_F2:	// LOAD/SAVE TAPE
@@ -891,32 +894,32 @@ bool TEmulator::TestHotkeys()
 	return false;
 }
 //---------------------------------------------------------------------------
-void TEmulator::ActionAbout()
-{
-	GUI->MenuOpen(UserInterface::GUI_TYPE_ABOUT);
-}
-//---------------------------------------------------------------------------
 void TEmulator::ActionExit()
 {
-	ActionPlayPause(false, false);
-
 	if (TapeBrowser->tapeChanged) {
-		BYTE result = GUI->QueryDialog("SAVE TAPE CHANGES?", true);
-		if (result == GUI_QUERY_SAVE) {
-			ActionTapeSave();
-			return;
-		}
-		else if (result != GUI_QUERY_DONTSAVE) {
-			GUI->MenuCloseAll();
-			ActionPlayPause(!Settings->isPaused, false);
-			return;
-		}
+		GUI->uiQueryCallback.connect([&](TMenuQueryType result) {
+			if (result == GUI_QUERY_SAVE) {
+				ActionTapeSave();
+			}
+			else if (result == GUI_QUERY_DONTSAVE) {
+				isActive = false;
+			}
+
+			GUI->uiQueryCallback.disconnect_all();
+		});
+
+		GUI->QueryDialog("Tape Changed", "Save changes and exit?", true);
 	}
+	else {
+		GUI->uiQueryCallback.connect([&](TMenuQueryType result) {
+			if (result == GUI_QUERY_YES)
+				isActive = false;
 
-	if (GUI->QueryDialog("REALLY EXIT?", false) == GUI_QUERY_YES)
-		isActive = false;
+			GUI->uiQueryCallback.disconnect_all();
+		});
 
-	ActionPlayPause(!Settings->isPaused, false);
+		GUI->QueryDialog("Exit", "Do you really want to exit?", false);
+	}
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionDebugger()
@@ -943,33 +946,34 @@ void TEmulator::ActionTapePlayStop()
 //---------------------------------------------------------------------------
 void TEmulator::ActionTapeNew()
 {
-	ActionPlayPause(false, false);
-
-	BYTE result = GUI_QUERY_DONTSAVE;
 	if (TapeBrowser->tapeChanged) {
-		result = GUI->QueryDialog("SAVE TAPE CHANGES?", true);
-		if (result == GUI_QUERY_SAVE) {
-			GUI->MenuCloseAll();
-			ActionTapeSave();
-			return;
-		}
-	}
+		GUI->uiQueryCallback.connect([&](TMenuQueryType result) {
+			if (result == GUI_QUERY_SAVE) {
+				ActionTapeSave();
+			}
+			else if (result == GUI_QUERY_DONTSAVE) {
+				TapeBrowser->SetNewTape();
+				delete [] Settings->TapeBrowser->fileName;
+				Settings->TapeBrowser->fileName = NULL;
+			}
 
-	if (result == GUI_QUERY_DONTSAVE) {
+			GUI->uiQueryCallback.disconnect_all();
+		});
+
+		GUI->QueryDialog("Tape Changed", "Save changes before creating a new one?", true);
+	}
+	else {
 		TapeBrowser->SetNewTape();
 		delete [] Settings->TapeBrowser->fileName;
 		Settings->TapeBrowser->fileName = NULL;
-		GUI->MenuCloseAll();
 	}
-
-	ActionPlayPause(!Settings->isPaused, false);
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionTapeLoad(bool import)
 {
 	static const char *tape_filter[] = { "ptp", "pmd", NULL };
 	static char tape_title[32] = "";
-
+/*
 	ActionPlayPause(false, false);
 
 	if (!import && TapeBrowser->tapeChanged) {
@@ -984,7 +988,7 @@ void TEmulator::ActionTapeLoad(bool import)
 			return;
 		}
 	}
-
+*/
 	sprintf(tape_title, "%s TAPE FILE (*.ptp, *.pmd)", (import ? "IMPORT" : "OPEN"));
 
 	GUI->fileSelector->tag = (BYTE) import;

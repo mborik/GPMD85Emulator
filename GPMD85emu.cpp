@@ -276,14 +276,13 @@ int main(int argc, char** argv)
 		ImGui_ImplSDL2_NewFrame();
 		ImGui::NewFrame();
 
-		Emulator->actionCallback();
-		Emulator->actionCallback.disconnect_all();
-
 		GUI->DrawMenu();
 		GUI->AboutDialog();
+		GUI->DrawQueryDialog();
 		GUI->DiskImagesDialog();
 		GUI->DrawEmulatorWindow();
 
+		Emulator->actionCallback();
 		ImGui::Render();
 
 		glViewport(0, 0, (int) io.DisplaySize.x, (int) io.DisplaySize.y);
