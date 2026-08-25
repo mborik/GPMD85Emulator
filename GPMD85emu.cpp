@@ -191,32 +191,41 @@ int main(int argc, char** argv)
 		SDL_SetWindowSize(gdc.window, Settings->Screen->windowSize.x, Settings->Screen->windowSize.y);
 	SDL_ShowWindow(gdc.window);
 
-	debug("", "Starting %d FPS refresh timer", GPU_FRAMES_PER_SEC);
-	Emulator->BaseTimer = SDL_AddTimer(GPU_TIMER_INTERVAL, FormMain_BaseTimerCallback, Emulator);
 	Emulator->ActionPlayPause(true);
 
-	DWORD nextTick;
+	Uint64 lastTime = SDL_GetPerformanceCounter(), currentTime;
+	double cpuAccumulator = 0.0, baseAccumulator = 0.0, deltaTime;
+
 	SDL_Event event;
 	int i = 0, j, k = 0;
 	BYTE *kb = Emulator->keyBuffer;
 	bool waitForRelease = false;
 
-	debug("", "Starting main CPU %dHz loop", CPU_FRAMES_PER_SEC);
+	debug("", "Starting main CPU %dHz loop and %d FPS refresh timer",
+		CPU_FRAMES_PER_SEC, GPU_FRAMES_PER_SEC);
 
 	while (Emulator->isActive) {
-		nextTick = SDL_GetTicks() + CPU_TIMER_INTERVAL;
+		currentTime = SDL_GetPerformanceCounter();
+		deltaTime = (double)((currentTime - lastTime) * 1000) / (double) SDL_GetPerformanceFrequency();
+		lastTime = currentTime;
+
+		if (deltaTime > 100.0)
+			deltaTime = 100.0;
+
+		cpuAccumulator += deltaTime;
+		baseAccumulator += deltaTime;
 
 		while (SDL_PollEvent(&event)) {
 			ImGui_ImplSDL2_ProcessEvent(&event);
 
 			switch (event.type) {
-				case SDL_QUIT:
-					Emulator->isActive = false;
-					break;
 				case SDL_KEYUP:
 				case SDL_KEYDOWN:
-					if (event.key.repeat != 0)
-						break;
+					if ((io.WantCaptureKeyboard && GUI->InMenu()) ||
+						(!GUI->InMenu() && event.key.repeat != 0))
+							break;
+					/* no break */
+				case SDL_QUIT:
 					memcpy(kb, SDL_GetKeyboardState(NULL), SDL_NUM_SCANCODES);
 					kb[SDL_SCANCODE_NUMLOCKCLEAR] = kb[SDL_SCANCODE_CAPSLOCK] = kb[SDL_SCANCODE_SCROLLLOCK] = 0;
 					if (event.type == SDL_QUIT)
@@ -251,50 +260,29 @@ int main(int argc, char** argv)
 		else
 			waitForRelease = false;
 
-		Emulator->CpuTimerCallback();
-		Emulator->RefreshDisplay();
+		while (cpuAccumulator >= CPU_TIMER_INTERVAL) {
+			Emulator->CpuTimerCallback();
+			cpuAccumulator -= CPU_TIMER_INTERVAL;
+		}
+
+		while (baseAccumulator >= GPU_TIMER_INTERVAL) {
+			Emulator->BaseTimerCallback();
+			Emulator->RefreshDisplay();
+
+			baseAccumulator -= GPU_TIMER_INTERVAL;
+		}
 
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplSDL2_NewFrame();
 		ImGui::NewFrame();
 
+		Emulator->actionCallback();
+		Emulator->actionCallback.disconnect_all();
+
 		GUI->DrawMenu();
-
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-		ImGui::SetNextWindowSize(Emulator->video->GetWindowSize(), ImGuiCond_Always);
-		ImGui::Begin(PACKAGE_NAME, NULL,
-			ImGuiWindowFlags_NoResize |
-			ImGuiWindowFlags_NoCollapse |
-			ImGuiWindowFlags_NoScrollbar |
-			ImGuiWindowFlags_NoScrollWithMouse |
-			ImGuiWindowFlags_NoBringToFrontOnFocus
-		);
-
-		ImVec2 screen_size = Emulator->video->GetScreenSize();
-		ImVec2 border_offset = Emulator->video->GetBorderOffset();
-		ImVec2 emulator_size = Emulator->video->GetScreenSize() / Emulator->video->GetMultiplier();
-
-		ImGuiWindow* window = ImGui::GetCurrentWindow();
-
-		ImRect winRect(
-			window->DC.CursorPos,
-			window->DC.CursorPos + Emulator->video->GetWindowSize()
-		);
-		ImRect emuRect(
-			window->DC.CursorPos + border_offset,
-			window->DC.CursorPos + border_offset + screen_size
-		);
-
-		window->DrawList->AddRectFilled(winRect.Min, winRect.Max, ImGui::GetColorU32(ImVec4(0.0f, 0.0f, 0.0f, 1.00f)));
-		window->DrawList->AddCallback(ImGui::GetPlatformIO().DrawCallback_SetSamplerNearest);
-		window->DrawList->AddImage(Emulator->video->GetScreenTexture(), emuRect.Min, emuRect.Max);
-		window->DrawList->AddImage(Emulator->video->GetScalerTexture(), emuRect.Min, emuRect.Max);
-
-		ImGui::InvisibleButton("Screen", screen_size + (border_offset * 2), ImGuiButtonFlags_MouseButtonMask_);
-		GUI->RedrawStatusBar(border_offset.x);
-
-		ImGui::End();
-		ImGui::PopStyleVar(1);
+		GUI->AboutDialog();
+		GUI->DiskImagesDialog();
+		GUI->DrawEmulatorWindow();
 
 		ImGui::Render();
 
@@ -303,9 +291,6 @@ int main(int argc, char** argv)
 		glClear(GL_COLOR_BUFFER_BIT);
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 		SDL_GL_SwapWindow(gdc.window);
-
-		while (SDL_GetTicks() < nextTick)
-			SDL_Delay(1);
 	}
 
 	SDL_GetWindowPosition(gdc.window,
@@ -314,10 +299,7 @@ int main(int argc, char** argv)
 			&Settings->Screen->windowSize.x, &Settings->Screen->windowSize.y);
 
 	SDL_HideWindow(gdc.window);
-	debug("", "Main CPU loop terminated");
-
-	SDL_RemoveTimer(Emulator->BaseTimer);
-	SDL_Delay(WEAK_REFRESH_TIME);
+	debug("", "Main loop terminated");
 
 	delete Emulator;
 

@@ -51,8 +51,6 @@ class TEmulator : public sigslot::has_slots<>
 	public:
 		bool isActive;
 		bool isRunning;
-
-		SDL_TimerID BaseTimer;
 		BYTE keyBuffer[SDL_NUM_SCANCODES];
 
 		TEmulator();
@@ -67,6 +65,7 @@ class TEmulator : public sigslot::has_slots<>
 		void CpuTimerCallback();
 		bool TestHotkeys();
 
+		void ActionAbout();
 		void ActionExit();
 		void ActionDebugger();
 		void ActionTapeBrowser();
@@ -74,6 +73,7 @@ class TEmulator : public sigslot::has_slots<>
 		void ActionTapeNew();
 		void ActionTapeLoad(bool import = false);
 		void ActionTapeSave();
+		void ActionDiskImages();
 		void ActionPMD32LoadDisk(int drive);
 		void ActionSnapLoad();
 		void ActionSnapSave();
@@ -96,11 +96,12 @@ class TEmulator : public sigslot::has_slots<>
 		// access to ScreenPMD85 class
 		ScreenPMD85 *video;
 
+		sigslot::signal0<> actionCallback;
+
 	private:
 		bool inmenu;
-		SDL_Event exposeEvent;
+		int  cpuUsage;
 
-		int cpuUsage;
 		ChipCpu8080 *cpu;
 		ChipMemory  *memory;
 		SoundDriver *sound;
@@ -152,11 +153,5 @@ extern TSettings *Settings;
 extern TDebugger *Debugger;
 extern TTapeBrowser *TapeBrowser;
 extern UserInterface *GUI;
-//-----------------------------------------------------------------------------
-inline DWORD FormMain_BaseTimerCallback(DWORD interval, void *param)
-{
-	((TEmulator *) param)->BaseTimerCallback();
-	return interval;
-}
 //-----------------------------------------------------------------------------
 #endif

@@ -88,6 +88,8 @@ class UserInterface : public sigslot::has_slots<>
 	public:
 		enum GUI_MENU_TYPE {
 			GUI_TYPE_MENU,              // General menu
+			GUI_TYPE_ABOUT,             // About modal dialog
+			GUI_TYPE_DISKIMAGES,        // Disk images dialog
 			GUI_TYPE_FILESELECTOR,      // File selector
 			GUI_TYPE_TAPEBROWSER,       // Tape-browser
 			GUI_TYPE_TAPE_POPUP,        // Tape-browser popup menu
@@ -124,8 +126,6 @@ class UserInterface : public sigslot::has_slots<>
 
 		DWORD globalPalette[256];
 		SDL_Texture *defaultTexture;
-		SDL_Texture *statusTexture;
-		SDL_Rect *statusRect;
 
 		GUI_FILESELECTOR_DATA *fileSelector;
 		GUI_TAPEDIALOG_DATA *tapeDialog;
@@ -133,23 +133,24 @@ class UserInterface : public sigslot::has_slots<>
 
 		UserInterface();
 		virtual ~UserInterface();
-		void InitDefaultTexture(int width, int height);
 
-		inline void SetLineHeight(BYTE l) { fontLineHeight = (l > 0) ? l : (fontHeight + 1); }
-		inline bool InMenu() { return (menuStackLevel >= 0); }
+		inline bool InMenu() { return isMenuHovered; }
+		inline bool InEmulatorWindow() { return isEmulatorWindowFocused; }
 
-		void DrawMenu(void *data = NULL);
+		bool OnMenuLeave();
 
+		void DrawEmulatorWindow();
+		void DrawMenu();
+
+		void DiskImagesDialog();
 		void AboutDialog();
 		BYTE QueryDialog(const char *title, bool save);
 		void MessageBox(const char *text, ...);
 		BYTE EditBox(const char *title, const char *description, char *buffer, BYTE maxLength, bool decimal);
 
-		// TBD
 		void MenuOpen(GUI_MENU_TYPE type, void *data = NULL);
 		void MenuClose();
 		void MenuCloseAll();
-		void MenuHandleKey(WORD key);
 
 		void RedrawStatusBar(float horizontalPadding = 0.0f);
 		void SetLedState(int led);
@@ -164,6 +165,11 @@ class UserInterface : public sigslot::has_slots<>
 		int statusPercentage;
 		int statusFPS;
 		char computerModel[8];
+
+		bool isMenuHovered;
+		bool isEmulatorWindowFocused;
+		bool dialogDiskImagesOpened;
+		bool dialogAboutOpened;
 
 		BYTE *fontData;
 		BYTE  fontWidth;
@@ -197,13 +203,15 @@ class UserInterface : public sigslot::has_slots<>
 		SDL_Rect *cMenu_rect;
 		int cMenu_leftMargin, cMenu_count, cMenu_hilite;
 
-		GUI_SURFACE *LoadImgToSurface(const char *file);
-		void BlitToSurface(GUI_SURFACE *src, const SDL_Rect *srcRect, GUI_SURFACE *dst, const SDL_Rect *dstRect);
-
 		GUI_SURFACE *LockSurface(SDL_Texture *texture);
 		void UnlockSurface(SDL_Texture *texture, GUI_SURFACE *surface);
 
 		void SetButtonColor(int icon);
+		void MachineMenuItem(const char *name, TComputerModel model);
+		void AttributeMenuItems(bool enabled);
+		void DiskImagesMenuItems();
+
+	/* OBSOLETE TBD { */
 		void PutPixel(GUI_SURFACE *s, int x, int y, BYTE col);
 		void PrintChar(GUI_SURFACE *s, int x, int y, BYTE col, BYTE ch);
 		void PrintText(GUI_SURFACE *s, int x, int y, BYTE col, const char *msg);
@@ -218,10 +226,6 @@ class UserInterface : public sigslot::has_slots<>
 		void DrawDialogWithBorder(GUI_SURFACE *s, int x, int y, int w, int h);
 		void DrawDebugFrame(GUI_SURFACE *s, int x, int y, int w, int h);
 		void PrintCheck(GUI_SURFACE *s, int x, int y, BYTE col, BYTE ch, bool state);
-
-		void MachineMenuItem(const char *name, TComputerModel model);
-		void AttributeMenuItems(bool enabled);
-		void DiskImagesMenu();
 
 		void DrawFileSelectorItems(GUI_SURFACE *s = NULL);
 		void DrawFileSelector(bool update = true);
@@ -239,6 +243,7 @@ class UserInterface : public sigslot::has_slots<>
 		bool KeyhandlerFileSelectorSearchClean();
 		void KeyhandlerTapeDialog(WORD key);
 		void KeyhandlerDebugWindow(WORD key);
+	/* } */
 };
 //-----------------------------------------------------------------------------
 #endif
