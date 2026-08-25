@@ -51,6 +51,11 @@ UserInterface::UserInterface()
 	dialogAboutOpened = false;
 	dialogDiskImagesOpened = false;
 
+	queryDialogTitle = NULL;
+	queryDialogMessage = NULL;
+	queryDialogSaveType = false;
+	queryDialogShouldOpen = false;
+
 	uiSetChanges = 0;
 	uiQueryState = GUI_QUERY_CANCEL;
 }

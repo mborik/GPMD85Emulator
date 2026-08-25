@@ -58,8 +58,8 @@ void UserInterface::DrawMenu()
 			if (ImGui::MenuItem("About\u0085", MOD_KEY("F1"))) {
 				MenuOpen(GUI_TYPE_ABOUT);
 			}
-			if (ImGui::MenuItem("Quit", MOD_KEY("F4"))) {
-				Emulator->isActive = false;
+			if (ImGui::MenuItem("Exit", MOD_KEY("F4"))) {
+				Emulator->ActionExit();
 			}
 			ImGui::EndMenu();
 		}

@@ -65,7 +65,6 @@ class TEmulator
 		void CpuTimerCallback();
 		bool TestHotkeys();
 
-		void ActionAbout();
 		void ActionExit();
 		void ActionDebugger();
 		void ActionTapeBrowser();

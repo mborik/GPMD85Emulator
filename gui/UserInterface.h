@@ -123,6 +123,7 @@ class UserInterface
 		BYTE uiSetChanges;
 		BYTE uiQueryState;
 		sigslot::signal<> uiCallback;
+		sigslot::signal<TMenuQueryType> uiQueryCallback;
 
 		DWORD globalPalette[256];
 		SDL_Texture *defaultTexture;
@@ -141,10 +142,10 @@ class UserInterface
 
 		void DrawEmulatorWindow();
 		void DrawMenu();
-
 		void DiskImagesDialog();
 		void AboutDialog();
-		BYTE QueryDialog(const char *title, bool save);
+		void QueryDialog(const char *title, const char *message, bool save);
+		void DrawQueryDialog();
 		void MessageBox(const char *text, ...);
 		BYTE EditBox(const char *title, const char *description, char *buffer, BYTE maxLength, bool decimal);
 
@@ -202,6 +203,11 @@ class UserInterface
 		GUI_MENU_ENTRY *cMenu_data;
 		SDL_Rect *cMenu_rect;
 		int cMenu_leftMargin, cMenu_count, cMenu_hilite;
+
+		const char *queryDialogTitle;
+		const char *queryDialogMessage;
+		bool queryDialogSaveType;
+		bool queryDialogShouldOpen;
 
 		GUI_SURFACE *LockSurface(SDL_Texture *texture);
 		void UnlockSurface(SDL_Texture *texture, GUI_SURFACE *surface);

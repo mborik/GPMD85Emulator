@@ -516,11 +516,12 @@ void UserInterface::KeyhandlerFileSelectorCallback(char *fileName)
 	if ((fileSelector->type == GUI_FS_BASESAVE
 	  || fileSelector->type == GUI_FS_SNAPSAVE)
 	  && FileExists(fileSelector->path)) {
-
+/*
 		if (QueryDialog("OVERWRITE?", false) != GUI_QUERY_YES) {
 			*ptr = '\0';
 			return;
 		}
+*/
 	}
 
 	fileSelector->callback(fileSelector->path, &ret);
