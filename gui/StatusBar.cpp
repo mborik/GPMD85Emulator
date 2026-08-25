@@ -30,6 +30,7 @@ void UserInterface::RedrawStatusBar(float horizontalPadding)
 	float width = ImGui::GetContentRegionAvail().x - (horizontalPadding * 2);
 	float progressWidth = width - statusWidth - iconsWidth;
 	float sameLine = horizontalPadding;
+	const ImVec2 progressBarSize = ImVec2(progressWidth, 3.0f);
 
 	ImGui::BeginGroup();
 	if (horizontalPadding > 0.0f) {
@@ -62,17 +63,21 @@ void UserInterface::RedrawStatusBar(float horizontalPadding)
 	ImGui::SetNextItemWidth(progressWidth);
 	sameLine += progressWidth + buttonSize.x;
 
+	ImGui::BeginGroup();
+	ImGui::Dummy(progressBarSize);
+
 //	tape progress bar...
 	TTapeBrowser::TProgressBar *progress = TapeBrowser->ProgressBar;
 	if (progressWidth > 0.0f && *progress->Active) {
 		ImGui::PushID("##progress");
+		ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.1f, 0.1f, 0.1f, 0.5f));
 		ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.16f, 0.4f, 0.2f, 1.0f));
-		ImGui::ProgressBar(((float) progress->Position / (float) progress->Max), ImVec2(progressWidth, 6.0f), "");
-		ImGui::PopStyleColor();
+		ImGui::ProgressBar(((float) progress->Position / (float) progress->Max), progressBarSize, "");
+		ImGui::PopStyleColor(2);
 		ImGui::PopID();
 	}
-	else
-		ImGui::TextUnformatted("");
+
+	ImGui::EndGroup();
 
 	ImGui::SameLine(sameLine);
 	sameLine += buttonSize.x + 8.0f;
@@ -81,6 +86,7 @@ void UserInterface::RedrawStatusBar(float horizontalPadding)
 
 //	tape/disk icon...
 	SetButtonColor(iconState);
+	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
 	ImGui::PushFont(NULL, 10.0f);
 	ImGui::PushID("##device");
 
@@ -123,7 +129,7 @@ void UserInterface::RedrawStatusBar(float horizontalPadding)
 		ImGui::PopID();
 	}
 
-	ImGui::PopStyleVar(1);
+	ImGui::PopStyleVar(2);
 	ImGui::EndDisabled();
 	ImGui::EndGroup();
 }

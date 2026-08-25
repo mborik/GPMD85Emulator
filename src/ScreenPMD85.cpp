@@ -75,14 +75,6 @@ ScreenPMD85::~ScreenPMD85()
 //-----------------------------------------------------------------------------
 void ScreenPMD85::ReleaseVideoMode()
 {
-	if (GUI->statusRect) {
-		delete GUI->statusRect;
-		GUI->statusTexture = NULL;
-	}
-	if (GUI->statusTexture) {
-		SDL_DestroyTexture(GUI->statusTexture);
-		GUI->statusTexture = NULL;
-	}
 	if (GUI->defaultTexture) {
 		SDL_DestroyTexture(GUI->defaultTexture);
 		GUI->defaultTexture = NULL;

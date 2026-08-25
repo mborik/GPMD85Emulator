@@ -22,27 +22,30 @@
 #define MOD_KEY(k) "\u00A4+" k
 #define MOD_SHIFT(k) "\u00A4\u0088+" k
 //-----------------------------------------------------------------------------
-void UserInterface::DrawMenu(void *data)
+bool UserInterface::OnMenuLeave()
 {
-	/* TBD */
-	if (data) return;
+	static bool wasInMenu = false;
 
-	static bool diskImagesMenuOpen = false;
-	if (diskImagesMenuOpen) {
-		ImGui::Begin("DiskImagesMenu", &diskImagesMenuOpen,
-			ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize);
-		DiskImagesMenu();
-		ImGui::End();
-	}
+	bool isCurrentlyInMenu = InMenu();
+	bool hasLeft = (wasInMenu && !isCurrentlyInMenu);
 
+	wasInMenu = isCurrentlyInMenu;
+
+	return hasLeft;
+}
+//-----------------------------------------------------------------------------
+void UserInterface::DrawMenu()
+{
 	if (ImGui::BeginMainMenuBar()) {
+		isMenuHovered = ImGui::IsWindowFocused(ImGuiHoveredFlags_ChildWindows);
+
 		if (ImGui::BeginMenu("File")) {
 			if (ImGui::MenuItem("New Tape")) { }
 			if (ImGui::MenuItem("Open Tape\u0085", MOD_KEY("F2"))) { }
 			if (ImGui::MenuItem("Save Tape\u0085", MOD_SHIFT("F2"))) { }
 			if (ImGui::MenuItem("Tape Browser", MOD_KEY("T"))) { }
 			ImGui::Separator();
-			ImGui::MenuItem("Disk Images", MOD_KEY("F6"), &diskImagesMenuOpen);
+			ImGui::MenuItem("Disk Images", MOD_KEY("F6"), &dialogDiskImagesOpened);
 			ImGui::Separator();
 			if (ImGui::MenuItem("Open Snapshot\u0085", MOD_KEY("F7"))) { }
 			if (ImGui::MenuItem("Create Snapshot\u0085", MOD_SHIFT("F7"))) { }
@@ -52,7 +55,9 @@ void UserInterface::DrawMenu(void *data)
 			ImGui::Separator();
 			if (ImGui::MenuItem("Save Screenshot\u0085")) { }
 			ImGui::Separator();
-			if (ImGui::MenuItem("About\u0085", MOD_SHIFT("F1"))) { }
+			if (ImGui::MenuItem("About\u0085", MOD_KEY("F1"))) {
+				MenuOpen(GUI_TYPE_ABOUT);
+			}
 			if (ImGui::MenuItem("Quit", MOD_KEY("F4"))) {
 				Emulator->isActive = false;
 			}
@@ -108,7 +113,7 @@ void UserInterface::DrawMenu(void *data)
 					Settings->Screen->colorProfile = CP_COLOR;
 					uiSetChanges |= PS_SCREEN_MODE;
 				}
-				if (ImGui::MenuItem("ColorAce\u0099", MOD_KEY("C"), Settings->Screen->colorProfile == CP_COLORACE)) {
+				if (ImGui::MenuItem("ColorAce", MOD_KEY("C"), Settings->Screen->colorProfile == CP_COLORACE)) {
 					Settings->Screen->colorProfile = CP_COLORACE;
 					uiSetChanges |= PS_SCREEN_MODE;
 				}
@@ -293,7 +298,7 @@ void UserInterface::DrawMenu(void *data)
 				ImGui::EndMenu();
 			}
 			bool itemAccessible = accessibleForPMD85 && Settings->CurrentModel->romModuleInserted;
-			if (ImGui::MenuItem("Mega ROM Module Type", NULL,
+			if (ImGui::MenuItem("ROM MEGAmodule", NULL,
 				itemAccessible ? Settings->CurrentModel->megaModuleEnabled : false, itemAccessible)) {
 
 				Settings->CurrentModel->megaModuleEnabled = !Settings->CurrentModel->megaModuleEnabled;
@@ -302,7 +307,7 @@ void UserInterface::DrawMenu(void *data)
 			char *mrmFile = Settings->CurrentModel->mrmFile ? currentFile : NULL;
 			if (mrmFile)
 				sprintf(currentFile, "[%s]", ExtractFileName(Settings->CurrentModel->mrmFile));
-			if (ImGui::MenuItem("Mega ROM Module Image\u0085", mrmFile, false, itemAccessible)) { }
+			if (ImGui::MenuItem("ROM MEGAmodule Image\u0085", mrmFile, false, itemAccessible)) { }
 			ImGui::PopItemFlag();
 
 			itemAccessible = accessibleForPMD85 || Settings->CurrentModel->type == CM_V3;
@@ -340,7 +345,7 @@ void UserInterface::DrawMenu(void *data)
 					state && Settings->PMD32->extraCommands)) { }
 
 				ImGui::Separator();
-				DiskImagesMenu();
+				DiskImagesMenuItems();
 
 				ImGui::EndMenu();
 			}
@@ -370,7 +375,7 @@ void UserInterface::MachineMenuItem(const char *name, TComputerModel model)
 			}
 		}
 
-		uiSetChanges |= PS_MACHINE | PS_CLOSEALL;
+		uiSetChanges |= PS_MACHINE;
 	}
 }
 //-----------------------------------------------------------------------------
@@ -430,7 +435,7 @@ void UserInterface::AttributeMenuItems(bool enabled)
 	}
 }
 //-----------------------------------------------------------------------------
-void UserInterface::DiskImagesMenu()
+void UserInterface::DiskImagesMenuItems()
 {
 	static char path[FILENAME_MAX];
 	ImVec4 bbase, hover;

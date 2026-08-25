@@ -41,11 +41,6 @@ TEmulator::TEmulator()
 	cpuUsage = 0;
 
 	SDL_zero(keyBuffer);
-	SDL_zero(exposeEvent);
-	exposeEvent.type = SDL_WINDOWEVENT;
-	exposeEvent.window.type = SDL_WINDOWEVENT;
-	exposeEvent.window.event = SDL_WINDOWEVENT_EXPOSED;
-	exposeEvent.window.windowID = gdc.windowID;
 
 	model = CM_UNKNOWN;
 	romChanged = false;
@@ -435,6 +430,24 @@ void TEmulator::BaseTimerCallback()
 		blinkCounter += (thisTime - lastTick);
 
 	if (isRunning) {
+		// GUI->uiSetChanges is bit-map of setting changes for ProcessSettings()
+		if (GUI->OnMenuLeave()) {
+			isRunning = false;
+
+			// if we leaving menu and uiSetChanges is set, apply settings change
+			// PS_CLOSEALL is special flag that will be cleared but callback will be executed
+			if (GUI->uiSetChanges) {
+				ProcessSettings(GUI->uiSetChanges);
+				GUI->uiSetChanges = 0;
+			}
+
+			// menu leaving callback was executed
+			GUI->uiCallback();
+			GUI->uiCallback.disconnect_all();
+
+			isRunning = true;
+		}
+
 		if (joystick)
 			joystick->ScanJoy(keyBuffer);
 
@@ -463,7 +476,7 @@ void TEmulator::BaseTimerCallback()
 
 	// status bar FPS and CPU indicators
 	if (thisTime >= nextTick) {
-		int perc = GUI->InMenu() - 1; // -> false = -1, true = 0 ;)
+		int perc = -1;
 		if (!Settings->isPaused)
 			perc = (cpuUsage * 100.0f) / (float) (thisTime - (nextTick - MEASURE_PERIOD));
 
@@ -474,8 +487,6 @@ void TEmulator::BaseTimerCallback()
 		cpuUsage = 0;
 		frames = 0;
 	}
-
-	SDL_PushEvent(&exposeEvent);
 
 	lastTick = thisTime;
 	frames++;
@@ -695,52 +706,12 @@ bool TEmulator::TestHotkeys()
 			break;
 	}
 
-	// menu keyboard handling and interaction of result
-	// GUI->uiSetChanges is bit-map of setting changes for ProcessSettings()
-	if (GUI->InMenu()) {
-		GUI->MenuHandleKey(key);
-
-		// special flag that close all menu windows
-		if (GUI->uiSetChanges & PS_CLOSEALL)
-			key = SDL_SCANCODE_ESCAPE;
-
-		// if we leave menu and uiSetChanges is set, apply settings change
-		if (!GUI->InMenu() && key == SDL_SCANCODE_ESCAPE) {
-			if (GUI->uiSetChanges) {
-				ProcessSettings(GUI->uiSetChanges);
-				GUI->uiSetChanges = 0;
-			}
-
-			// perform full redraw of the screen...
-			video->FillBuffer(memory->GetVramPointer());
-
-			// menu leaving callback was executed
-			GUI->uiCallback();
-			GUI->uiCallback.disconnect_all();
-
-			// callback can popup new window,
-			// so we test again if we are in menu;
-			// if not, we run emulation back to previous state
-			if (!GUI->InMenu()) {
-				ActionPlayPause(!Settings->isPaused, false);
-				return true;
-			}
-		}
-
-		// send flag to main loop, if we need to release all keys
-		bool ret = GUI->needRelease;
-		GUI->needRelease = false;
-		return ret;
-	}
+	if (GUI->InMenu())
+		return false;
 
 	// keyboard handling in emulation (hotkeys)
 	if (key & KM_ALT) {
 		i = key & 0x01FF;
-
-		if (key & KM_SHIFT && i == SDL_SCANCODE_F1) {
-			GUI->AboutDialog();
-			return true;
-		}
 
 		switch (i) {
 			case SDL_SCANCODE_1:	// SCREEN SIZE 1x1
@@ -847,9 +818,8 @@ bool TEmulator::TestHotkeys()
 				ActionTapeBrowser();
 				break;
 
-			case SDL_SCANCODE_F1:	// MAIN MENU
-				ActionPlayPause(false, false);
-				GUI->MenuOpen(UserInterface::GUI_TYPE_MENU);
+			case SDL_SCANCODE_F1:	// ABOUT
+				actionCallback.connect(this, &TEmulator::ActionAbout);
 				break;
 
 			case SDL_SCANCODE_F2:	// LOAD/SAVE TAPE
@@ -878,8 +848,7 @@ bool TEmulator::TestHotkeys()
 				break;
 
 			case SDL_SCANCODE_F6:	// DISK IMAGES
-				ActionPlayPause(false, false);
-				GUI->MenuOpen(UserInterface::GUI_TYPE_MENU, gui_p32_images_menu);
+				actionCallback.connect(this, &TEmulator::ActionDiskImages);
 				break;
 
 			case SDL_SCANCODE_F7:	// LOAD/SAVE SNAPSHOT
@@ -894,7 +863,6 @@ bool TEmulator::TestHotkeys()
 				break;
 
 			case SDL_SCANCODE_F9:	// MODEL SELECT/MEMORY MENU
-				ActionPlayPause(false, false);
 				if (key & KM_SHIFT)
 					GUI->MenuOpen(UserInterface::GUI_TYPE_MENU, gui_mem_menu);
 				else
@@ -903,13 +871,11 @@ bool TEmulator::TestHotkeys()
 
 			case SDL_SCANCODE_F10:	// PERIPHERALS
 				if (Settings->CurrentModel->type != CM_MATO) {
-					ActionPlayPause(false, false);
 					GUI->MenuOpen(UserInterface::GUI_TYPE_MENU, gui_pers_menu);
 				}
 				break;
 
 			case SDL_SCANCODE_F11:	// MEMORY BLOCK READ/WRITE
-				ActionPlayPause(false, false);
 				if (key & KM_SHIFT)
 					GUI->MenuOpen(UserInterface::GUI_TYPE_MENU, gui_memblock_write_menu);
 				else
@@ -923,6 +889,11 @@ bool TEmulator::TestHotkeys()
 	}
 
 	return false;
+}
+//---------------------------------------------------------------------------
+void TEmulator::ActionAbout()
+{
+	GUI->MenuOpen(UserInterface::GUI_TYPE_ABOUT);
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionExit()
@@ -1063,6 +1034,11 @@ void TEmulator::ActionTapeSave()
 		strcpy(GUI->fileSelector->path, PathApplication);
 
 	GUI->MenuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
+}
+//---------------------------------------------------------------------------
+void TEmulator::ActionDiskImages()
+{
+	GUI->MenuOpen(UserInterface::GUI_TYPE_DISKIMAGES);
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionPMD32LoadDisk(int drive)
