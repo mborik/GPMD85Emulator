@@ -46,11 +46,11 @@ bool IifTape::GetTapeByte(BYTE *byte)
 {
 	if (data && tapeRxState == TP_RX_DATA) {
 		*byte = *data++;
-		TapeCommand(CMD_PROGRESS, NULL);
+		TapeCommand(CMD_PROGRESS, nullptr);
 		if (--dataLen == 0) {
 			tapeRxState = TP_RX_IDLE;
 			data = NULL;
-			TapeCommand(CMD_NEXT, NULL);
+			TapeCommand(CMD_NEXT, nullptr);
 		}
 		else
 			rxTickCounter = TC_NO_BYTE;
@@ -91,7 +91,7 @@ void IifTape::AcceptTapeBlock(WORD len)
 		if (dataLen == 0) {
 			tapeRxState = TP_RX_IDLE;
 			data = NULL;
-			TapeCommand(CMD_NEXT, NULL);
+			TapeCommand(CMD_NEXT, nullptr);
 		}
 		else
 			rxTickCounter = TC_NO_BYTE;

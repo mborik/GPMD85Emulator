@@ -84,7 +84,7 @@ enum TPIOPortBit { PP_Bit0 = 0, PP_Bit1, PP_Bit2, PP_Bit3, PP_Bit4, PP_Bit5, PP_
 #define INTEB         PP_Bit2         // Interrupt enable B - status
 #define INTEB_MASK    (1 << INTEB)
 //---------------------------------------------------------------------------
-class ChipPIO8255 : public sigslot::has_slots<>
+class ChipPIO8255
 {
 public:
 	// constructor
@@ -94,20 +94,20 @@ public:
 	void SetChipState(BYTE *buffer);
 
 	// notification functions
-	sigslot::signal0<> OnCpuReadA;
-	sigslot::signal0<> OnCpuReadB;
-	sigslot::signal0<> OnCpuReadC;
-	sigslot::signal0<> OnCpuReadCH;
-	sigslot::signal0<> OnCpuReadCL;
+	sigslot::signal<> OnCpuReadA;
+	sigslot::signal<> OnCpuReadB;
+	sigslot::signal<> OnCpuReadC;
+	sigslot::signal<> OnCpuReadCH;
+	sigslot::signal<> OnCpuReadCL;
 
-	sigslot::signal0<> OnCpuWriteA;
-	sigslot::signal0<> OnCpuWriteB;
-	sigslot::signal0<> OnCpuWriteC;
-	sigslot::signal0<> OnCpuWriteCH;
-	sigslot::signal0<> OnCpuWriteCL;
+	sigslot::signal<> OnCpuWriteA;
+	sigslot::signal<> OnCpuWriteB;
+	sigslot::signal<> OnCpuWriteC;
+	sigslot::signal<> OnCpuWriteCH;
+	sigslot::signal<> OnCpuWriteCL;
 
-	sigslot::signal0<> OnCpuReadCWR;
-	sigslot::signal1<BYTE> OnCpuWriteCWR;
+	sigslot::signal<> OnCpuReadCWR;
+	sigslot::signal<BYTE> OnCpuWriteCWR;
 
 protected:
 	// CPU state

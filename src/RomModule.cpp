@@ -21,7 +21,7 @@ RomModule::RomModule() : ChipPIO8255(false)
 {
 	RomPack = new BYTE[ROM_PACK_SIZE];
 	memset(RomPack, 0xFF, ROM_PACK_SIZE);
-	OnCpuReadA.connect(this, &RomModule::ReadFromRom);
+	OnCpuReadA.connect(&RomModule::ReadFromRom, this);
 }
 //---------------------------------------------------------------------------
 RomModule::~RomModule()

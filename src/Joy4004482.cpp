@@ -50,8 +50,8 @@ void Joy4004482::Connect()
 
 	joyCnt = 0;
 	if (settings->GPIO0->connected && settings->GPIO1->connected) {
-		pio->OnCpuReadA.connect(this, &Joy4004482::ReadJoy0);
-		pio->OnCpuReadB.connect(this, &Joy4004482::ReadJoy1);
+		pio->OnCpuReadA.connect(&Joy4004482::ReadJoy0, this);
+		pio->OnCpuReadB.connect(&Joy4004482::ReadJoy1, this);
 
 		joy[0].map = settings->GPIO0;
 		joy[1].map = settings->GPIO1;
@@ -61,12 +61,12 @@ void Joy4004482::Connect()
 			sameDev = true;
 	}
 	else if (settings->GPIO0->connected) {
-		pio->OnCpuReadA.connect(this, &Joy4004482::ReadJoy0);
+		pio->OnCpuReadA.connect(&Joy4004482::ReadJoy0, this);
 		joy[0].map = settings->GPIO0;
 		joyCnt = 1;
 	}
 	else if (settings->GPIO1->connected) {
-		pio->OnCpuReadB.connect(this, &Joy4004482::ReadJoy1);
+		pio->OnCpuReadB.connect(&Joy4004482::ReadJoy1, this);
 		joy[0].map = settings->GPIO1;
 		joyCnt = 1;
 	}

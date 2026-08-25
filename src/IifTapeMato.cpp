@@ -65,7 +65,7 @@ void IifTapeMato::TapeClockService(int ticks, int dur)
 
 		case TP_TX_BODY :
 			txByteCounter = txBodyEnd;
-			TapeCommand(CMD_SAVE, NULL);
+			TapeCommand(CMD_SAVE, nullptr);
 			tapeTxState = TP_TX_WAIT_HEAD;
 			txByteCounter = 0;
 			break;
@@ -90,7 +90,7 @@ void IifTapeMato::TapeClockService(int ticks, int dur)
 			}
 			else if (--counter == 0) {
 				if (tapeRxState == TP_RX_LEADER) {
-					TapeCommand(CMD_PROGRESS, NULL);
+					TapeCommand(CMD_PROGRESS, nullptr);
 					tapeRxState = TP_RX_BYTE;
 					byte = 0x55;
 					counter = -2;
@@ -98,7 +98,7 @@ void IifTapeMato::TapeClockService(int ticks, int dur)
 //					debug("block: %d", (int) dataLen);
 				}
 				else if (tapeRxState == TP_RX_BLOCK_END) {
-					TapeCommand(CMD_NEXT, NULL);
+					TapeCommand(CMD_NEXT, nullptr);
 					tapeRxState = TP_RX_IDLE;
 				}
 				else {
@@ -146,7 +146,7 @@ void IifTapeMato::TapeClockService(int ticks, int dur)
 				tapeRxStateNext = TP_RX_BYTE;
 			}
 			else if (--counter == 0) {
-				TapeCommand(CMD_PROGRESS, NULL);
+				TapeCommand(CMD_PROGRESS, nullptr);
 				tapeRxState = TP_RX_BLOCK;
 			}
 			else {
@@ -160,7 +160,7 @@ void IifTapeMato::TapeClockService(int ticks, int dur)
 				if (head) {
 					counter = -1;
 					data = NULL;
-					TapeCommand(CMD_NEXT, NULL);
+					TapeCommand(CMD_NEXT, nullptr);
 					tapeRxState = TP_RX_TAIL;
 //					debug("block: %d", (int) dataLen);
 				}

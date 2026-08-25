@@ -123,7 +123,7 @@ void TTapeBrowser::FreeAllBlocks()
 void TTapeBrowser::SetIfTape(IifTape *ifTape)
 {
 	this->ifTape = ifTape;
-	ifTape->TapeCommand.connect(this, &TTapeBrowser::TapeCommand);
+	ifTape->TapeCommand.connect(&TTapeBrowser::TapeCommand, this);
 }
 //---------------------------------------------------------------------------
 BYTE TTapeBrowser::SetTapeFileName(char *fn)

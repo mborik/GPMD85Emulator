@@ -94,8 +94,8 @@ class IifTape {
 	public:
 		IifTape(TComputerModel model, TTapeIfType ifType);
 
-		sigslot::signal2<int, bool *> TapeCommand;
-		sigslot::signal3<int, bool, int> PrepareSample;
+		sigslot::signal<int, bool *> TapeCommand;
+		sigslot::signal<int, bool, int> PrepareSample;
 
 		int GetTapeIcon();
 

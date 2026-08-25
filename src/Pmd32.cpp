@@ -21,8 +21,8 @@
 Pmd32::Pmd32(IifGPIO *pio)
 {
 	this->pio = pio;
-	pio->OnBeforeResetA.connect(this, &Pmd32::BeforeReset);
-	pio->OnAfterResetA.connect(this, &Pmd32::AfterReset);
+	pio->OnBeforeResetA.connect(&Pmd32::BeforeReset, this);
+	pio->OnAfterResetA.connect(&Pmd32::AfterReset, this);
 
 	for (int ii = 0; ii < NUM_DRIVES; ii++) {
 		drives[ii].filePath = NULL;
@@ -102,8 +102,8 @@ void Pmd32::BeforeReset()
 //---------------------------------------------------------------------------
 void Pmd32::AfterReset()
 {
-	pio->OnCpuWriteCWR.connect(this, &Pmd32::OnSetMode2);
-	pio->OnCpuWriteCH.connect(this, &Pmd32::OnHandshake);
+	pio->OnCpuWriteCWR.connect(&Pmd32::OnSetMode2, this);
+	pio->OnCpuWriteCH.connect(&Pmd32::OnHandshake, this);
 
 	diskTicks = 0;
 	diskState = IDLE_STATE;

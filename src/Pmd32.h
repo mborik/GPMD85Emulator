@@ -87,7 +87,7 @@
 
 #define SDROOT_IMAGES_DEF_FILE  "images.cfg"
 //---------------------------------------------------------------------------
-class Pmd32 : public sigslot::has_slots<>
+class Pmd32
 {
 	public:
 		Pmd32(IifGPIO *pio);

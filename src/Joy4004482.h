@@ -33,7 +33,7 @@
 #define JOY_AXES_MAX_VAL 32767
 #define JOY_AXES_RANGE   (JOY_AXES_MAX_VAL - JOY_AXES_MIN_VAL)
 //---------------------------------------------------------------------------
-class Joy4004482 : public sigslot::has_slots<>
+class Joy4004482
 {
 public:
 	Joy4004482(IifGPIO *pio, TSettings::SetJoystick* settings);

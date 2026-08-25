@@ -56,7 +56,7 @@ enum TPITCounter { CT_0 = 0, CT_1, CT_2, CT_CWR };
 #define STAT_GATE   0x20
 #define STAT_CLK    0x10
 //---------------------------------------------------------------------------
-class ChipPIT8253 : public sigslot::has_slots<>
+class ChipPIT8253
 {
 private:
 	typedef struct
@@ -81,8 +81,8 @@ private:
 		bool Triggered;
 		bool Counting;
 
-		sigslot::signal2<TPITCounter, bool> OnOutChange;
-		sigslot::signal2<TPITCounter, bool> OnOutChange602;
+		sigslot::signal<TPITCounter, bool> OnOutChange;
+		sigslot::signal<TPITCounter, bool> OnOutChange602;
 	} COUNTER;
 
 public:

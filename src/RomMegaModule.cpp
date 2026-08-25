@@ -26,7 +26,7 @@ RomMegaModule::RomMegaModule()
 	RomPack = RomPages[0];
 	for (int i = 1; i < MEGA_MODULE_MAX_PAGES; i++)
 		RomPages[i] = NULL;
-	OnCpuReadA.connect(this, &RomMegaModule::ReadFromRom);
+	OnCpuReadA.connect(&RomMegaModule::ReadFromRom, this);
 }
 //---------------------------------------------------------------------------
 RomMegaModule::~RomMegaModule()

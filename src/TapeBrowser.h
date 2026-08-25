@@ -6,7 +6,7 @@
 #include "IifTape.h"
 #include "Settings.h"
 //---------------------------------------------------------------------------
-class TTapeBrowser : public sigslot::has_slots<>
+class TTapeBrowser
 {
 	public:
 #pragma pack(push, 1)

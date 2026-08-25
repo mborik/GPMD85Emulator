@@ -42,7 +42,7 @@
 #define TR4N3N3       10
 #define TR4N1          5
 //---------------------------------------------------------------------------
-class ChipCpu8080 : public sigslot::has_slots<> {
+class ChipCpu8080 {
 public:
 	ChipCpu8080(ChipMemory *mem);
 	virtual ~ChipCpu8080();
@@ -58,7 +58,7 @@ public:
 	void RemoveDevice(BYTE portAddr);
 
 	// "Fi2TTL" listeners
-	sigslot::signal2<int, int> TCyclesListeners;
+	sigslot::signal<int, int> TCyclesListeners;
 
 	// interupt controller
 	void SetInterruptController(InterruptController *intCtrl);
