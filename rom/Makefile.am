@@ -1,5 +1,4 @@
-# GPMD85emu automake
-# mborik, 10/2011
+# GPMD85emu automake by mborik
 
 AUTOMAKE_OPTIONS = foreign
 ROM = \

@@ -1,5 +1,4 @@
-# GPMD85emu automake
-# mborik, 10/2011, 02/2012, 01/2018, 06/2024
+# GPMD85emu automake by mborik
 
 AUTOMAKE_OPTIONS = foreign
 AM_CPPFLAGS = \

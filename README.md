@@ -1,51 +1,54 @@
 # GPMD85Emulator
-- multiplatform GNU/GPL emulator of the Tesla PMD 85, an 8-bit personal
-  micro-computer produced in 80s of 20th century in former Czechoslovakia
+- Open-source, multi-platform emulator of the Tesla PMD 85,
+  an 8-bit personal microcomputer produced in 1980s in former Czechoslovakia
 
-> Notice that GPMD85Emulator is not aimed to build and run on Windows,
-> because there is our much better and feature-rich PMD 85 Emulator
+> Notice: GPMD85Emulator is not intended to be built and run on Microsoft Windows,
+> because there is a much better and more feature-rich **PMD 85 emulator**
 > specifically for this platform (https://pmd85.borik.net/wiki/Emulator)
 
 ## AUTHORS:
 - **mborik** _[Martin Bórik]_
-  - leader programmer of this *nix port based on SDL
+  - lead programmer of this *nix port
 - **rombor** _[Roman Bórik]_
-  - original Windows code and emulation of CPU and chips
+  - original Windows code and emulation core
 - **ub880d**
   - support developer, maintainer, tester
 - **mikezt/zeroteam**
-  - quick-search in file-selector, bugfixing and testing
+  - quick-search in the file-selector, bugfixing and testing
 - **a8jan**
   - implementantion of Mega ROM Module, 5x5 scaler, support
-
-### SPECIAL THANKS FOR THE SUPPORT:
-- **ikon/SinDiKat**
-  - translation of comments sk>en, testing and support
-- **Cizo/SinDiKat**
-  - testing and support
 - **Staon**
-  - fixing compatibility bug in file-selector's ScanDir
+  - fixed a compatibility bug in the file selector
+- **Cizo/SinDiKat**
+  - bugfixing, testing and support
+- **ikon/SinDiKat**
+  - testing and support
 
 ## REQUIRED LIBRARIES:
-- **SDL - Simple DirectMedia Library** _(v2.0.x)_
+- **SDL2 - Simple DirectMedia Library** _(v2.0.x)_
+- **OpenGL - Open Graphics Library** _(v2.1 or higher)_
+
+## INCORPORATED LIBRARIES:
+- **SAASound** by Dave Hooper & Simon Owen, [see license](saa/LICENCE)
+- **Dear ImGui** by Omar Cornut, [see license](gui/imgui/LICENSE.txt)
+- **sigslot** by Pierre-Antoine Lacaze, [see source](sigslot.hpp)
 
 ## HOTKEYS:
 - function `[f]` keys are any of Alt, Win, Mac or Meta keys
-- main menu appear with `[f]+F1` or with the "menu key"
-- for start/stop of tape emulator use `[f]+P` hotkey
+- e.g. for start/stop of tape emulator, use `[f]+P` hotkey
 
 ## INSTALLATION:
-- check [installation guide](INSTALL.md) for prerequisites.
+- check [installation guide](INSTALL.md) for prerequisites
+- clone with all submodules with `git clone --recurse-submodules [url]`
 - generate configuration scripts with `autoreconf -vfi`
-  _(you will need autotools package)_
+  _(you should have the autotools package installed)_
 - run script `./configure`
-- then `make` to build
-- _(optional)_ install to the system dirs with `sudo make install`
+- then run `make` to build
+- _(optional)_ install into system dirs with `sudo make install`
 
 ## CONFIGURATION PARAMETERS:
-- to enable debug mode use `./configure --enable-debug`
-- omit all trace messages with `./configure --disable-trace` (size optimization)
-- to use software 2D rendering context instead of accelerated use `./configure --with-soft-render`
+- to enable debug mode, use `./configure --enable-debug`
+- to disable all trace messages, use `./configure --disable-trace` (size optimization)
 
 ## COMMAND-LINE ARGUMENTS:
 - `-h`, `--help`
@@ -100,5 +103,3 @@
   --- load memory block
 - `-ptr`, `--memblock-address` `{WORD}`
   --- load memory block at given address
-- `-soft`, `--soft-render`
-  --- use software renderer instead of accelerated

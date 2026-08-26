@@ -1,18 +1,23 @@
 /*	RomModule.cpp: Class for emulation of plugged ROM module
 	Copyright (c) 2006 Roman Borik <pmd85emu@gmail.com>
 
-	This program is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
+	Permission is hereby granted, free of charge, to any person obtaining
+	a copy of this software and associated documentation files (the "Software"),
+	to deal in the Software without restriction, including without limitation
+	the rights to use, copy, modify, merge, publish, distribute, sublicense,
+	and/or sell copies of the Software, and to permit persons to whom
+	the Software is furnished to do so, subject to the following conditions:
 
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
+	The above copyright notice and this permission notice shall be included
+	in all copies or substantial portions of the Software.
 
-	You should have received a copy of the GNU General Public License
-	along with this program. If not, see <http://www.gnu.org/licenses/>.
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+	OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+	THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES
+	OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+	ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
+	OR OTHER DEALINGS IN THE SOFTWARE.
 */
 //---------------------------------------------------------------------------
 #include "RomModule.h"
@@ -27,13 +32,13 @@ RomModule::RomModule() : ChipPIO8255(false)
 RomModule::~RomModule()
 {
 	if (RomPack)
-		delete RomPack;
+		delete [] RomPack;
 }
 //---------------------------------------------------------------------------
-// metody zdedene z triedy PeripheralDevice
+// methods inherited from the PeripheralDevice class
 //---------------------------------------------------------------------------
 /**
- * Metoda je volana procesorom pri jeho resete.
+ * Method is called by the processor during its reset.
  */
 void RomModule::ResetDevice(int ticks)
 {
@@ -41,7 +46,7 @@ void RomModule::ResetDevice(int ticks)
 }
 //---------------------------------------------------------------------------
 /**
- * Metoda je volana procesorom pri zapise na porty PIO RomModulu.
+ * Method is called by the processor when writing to the PIO ports of the RomModule.
  */
 void RomModule::WriteToDevice(BYTE port, BYTE value, int ticks)
 {
@@ -65,7 +70,7 @@ void RomModule::WriteToDevice(BYTE port, BYTE value, int ticks)
 }
 //---------------------------------------------------------------------------
 /**
- * Metoda je volana procesorom pri citani z portov PIO RomModulu.
+ * Method is called by the processor when reading from the PIO ports of the RomModule.
  */
 BYTE RomModule::ReadFromDevice(BYTE port, int ticks)
 {
