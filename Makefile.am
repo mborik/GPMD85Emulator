@@ -18,6 +18,7 @@ AM_CPPFLAGS = \
 	-I$(srcdir)/gui \
 	-I$(srcdir)/gui/imgui \
 	-I$(srcdir)/gui/imgui/backends \
+	-I$(srcdir)/gui/imgui-mods \
 	@libSDL_CFLAGS@ \
 	@libGL_CFLAGS@ \
 	@resDir_CFLAGS@

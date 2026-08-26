@@ -4,8 +4,6 @@ AUTOMAKE_OPTIONS = foreign
 AM_CPPFLAGS = \
 	-I$(srcdir)/.. \
 	-I$(srcdir)/../gui \
-	-I$(srcdir)/../gui/imgui \
-	-I$(srcdir)/../gui/imgui/backends \
 	-I$(srcdir)/../saa \
 	@libSDL_CFLAGS@
 
