@@ -1,5 +1,4 @@
-# GPMD85emu automake
-# mborik, 02/2012, 08/2026
+# GPMD85emu automake by mborik
 
 AUTOMAKE_OPTIONS = foreign subdir-objects
 EXTRA_DIST = update-submodules.sh

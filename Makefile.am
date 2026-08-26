@@ -1,5 +1,4 @@
-# GPMD85emu automake
-# mborik, 10/2011-02/2012, 01/2018-11/2019
+# GPMD85emu automake by mborik
 
 AUTOMAKE_OPTIONS = foreign
 bin_PROGRAMS = GPMD85emu
@@ -44,7 +43,7 @@ noinst_HEADERS = \
 	config.h
 
 EXTRA_DIST = \
-	AUTHORS \
+	AUTHORS.md \
 	INSTALL.md \
-	README.md \
-	ChangeLog
+	LICENSE.md \
+	README.md

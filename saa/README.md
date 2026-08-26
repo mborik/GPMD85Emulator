@@ -1,6 +1,6 @@
 # SAASound
 
-- Email: Dave Hooper <dave@beermex.com>
+- Email: Dave Hooper <dave@beermex.com>, Simon Owen <simon@simonowen.com>
 - Homepage: https://github.com/stripwax/SAASound
 
 SAASound is a software emulation library for the Philips SAA-1099 sound chip device (popular in computing and gaming devices in the late 1980's / early 1990's).  Development of SAA SOUND began around 1996 with completion around 1999 and active development ending around 2001 (aside from an update in 2004 to address an issue with frequency generator SYNC behaviour that was exploited to generate digital audio in a demo from Fred 59 magazine, which was failing to be emulated correctly!)

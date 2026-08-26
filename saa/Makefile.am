@@ -1,5 +1,4 @@
-# SAASound automake
-# mborik, 11/2019
+# SAASound automake by mborik
 
 AUTOMAKE_OPTIONS = foreign
 noinst_LIBRARIES = libSAASound.a
