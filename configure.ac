@@ -88,6 +88,10 @@ libGL_CFLAGS=""
 
 case "${host_os}" in
 	darwin*)
+		# macOS: Set minimum deployment target to 10.15 if not already set
+		if [[ "$CXXFLAGS" != *"-mmacosx-version-min"* ]]; then
+			CXXFLAGS="$CXXFLAGS -mmacosx-version-min=10.15"
+		fi
 		# macOS: Use native Apple Framework
 		AC_MSG_CHECKING([for OpenGL framework])
 		libGL_LIBS="-Wl,-framework,OpenGL"
@@ -110,6 +114,71 @@ esac
 AC_SUBST(libGL_LIBS)
 AC_SUBST(libGL_CFLAGS)
 
+#-------------------------------
+AC_LANG_PUSH([C++])
+
+# Force C++17 standard for Clang and GCC
+AC_MSG_CHECKING([whether $CXX supports C++17 standard])
+CXXFLAGS="$CXXFLAGS -std=c++17"
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+    #if __cplusplus < 201703L
+    #error "Not C++17"
+    #endif
+]], [[]])], [
+    AC_MSG_RESULT([yes])
+], [
+    AC_MSG_RESULT([no])
+    AC_MSG_ERROR([C++17 compiler is required to build this project.])
+])
+
+# Check for std::filesystem support (C++17)
+AC_CACHE_CHECK([for std::filesystem], [ax_cv_std_filesystem], [
+	AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+		#include <filesystem>
+	]], [[
+		std::filesystem::path p("/tmp");
+	]])], [ax_cv_std_filesystem=yes], [ax_cv_std_filesystem=no])
+])
+
+# If std::filesystem is not available, check for std::experimental::filesystem
+if test "x$ax_cv_std_filesystem" = "xno" && test "x$clang" = "xno"; then
+	LIBS_save="$LIBS"
+	LIBS="$LIBS -lstdc++fs"
+	AC_CACHE_CHECK([for std::filesystem with -lstdc++fs], [ax_cv_std_filesystem_lib], [
+		AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+			#include <filesystem>
+		]], [[
+			std::filesystem::path p("/tmp");
+		]])], [ax_cv_std_filesystem_lib=yes], [ax_cv_std_filesystem_lib=no])
+	])
+	if test "x$ax_cv_std_filesystem_lib" = "xyes"; then
+		ax_cv_std_filesystem=yes
+	else
+		LIBS="$LIBS_save"
+	fi
+fi
+
+# Define checks into config.h
+if test "x$ax_cv_std_filesystem" = "xyes"; then
+	AC_DEFINE([HAVE_STD_FILESYSTEM], [1], [Define to 1 if you have std::filesystem])
+else
+	AC_CACHE_CHECK([for std::experimental::filesystem], [ax_cv_std_experimental_filesystem], [
+		AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+			#include <experimental/filesystem>
+		]], [[
+			std::experimental::filesystem::path p("/tmp");
+		]])], [ax_cv_std_experimental_filesystem=yes], [ax_cv_std_experimental_filesystem=no])
+	])
+
+	if test "x$ax_cv_std_experimental_filesystem" = "xyes"; then
+		AC_DEFINE([HAVE_STD_EXPERIMENTAL_FILESYSTEM], [1], [Define to 1 if you have std::experimental::filesystem])
+	else
+		AC_MSG_ERROR([C++17 std::filesystem is required but not found. On macOS, ensure your deployment target is set correctly.])
+	fi
+fi
+
+AC_LANG_POP([C++])
+
 AC_SUBST(CXXFLAGS)
 AC_SUBST(CFLAGS)
 AC_SUBST(DEBUG)
@@ -127,16 +196,10 @@ AC_STRUCT_DIRENT_D_TYPE
 AC_HEADER_STDBOOL
 AC_C_BIGENDIAN
 AC_C_INLINE
-
-# NOTICE: In case of compile error with missing malloc() / realloc() functions,
-#         you can try to set enviroment variables 'ac_cv_func_malloc_0_nonnull'
-#         and 'ac_cv_func_realloc_0_nonnull' to 'yes' and reconfigure.
-AC_FUNC_MALLOC
-AC_FUNC_REALLOC
 AC_FUNC_ERROR_AT_LINE
 
 # Checks for standard library functions:
-AC_CHECK_FUNCS([memset mkdir strstr strtol strcasecmp strrchr])
+AC_CHECK_FUNCS([memset mkdir rmdir stat strstr strtol strcasecmp strrchr])
 
 AC_CONFIG_FILES([\
 	Makefile \

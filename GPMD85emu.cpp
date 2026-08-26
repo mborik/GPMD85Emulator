@@ -21,13 +21,11 @@
 */
 //-----------------------------------------------------------------------------
 #define GL_GLEXT_PROTOTYPES
-#include "custom_imconfig.h"
+#include "imconfig_mod.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_opengl3.h"
-#include <iostream>
-#include <fstream>
 //-----------------------------------------------------------------------------
 #include "ArgvParser.h"
 #include "CommonUtils.h"
@@ -52,9 +50,9 @@ int main(int argc, char** argv)
 
 	PathUserHome = SDL_getenv("HOME");
 	PathApplication = getcwd(NULL, PATH_MAX);
-	PathResources = (char *) malloc(strlen(DIR_RESOURCES) + 1);
-	PathAppConfig = (char *) malloc(strlen(PathUserHome) + 16);
-	PathGuiConfig = (char *) malloc(strlen(PathUserHome) + 32);
+	PathResources = new char[strlen(DIR_RESOURCES) + 1];
+	PathAppConfig = new char[strlen(PathUserHome) + 16];
+	PathGuiConfig = new char[strlen(PathUserHome) + 32];
 	strcpy(PathResources, DIR_RESOURCES);
 	sprintf(PathAppConfig, "%s%c.%s", PathUserHome, DIR_DELIMITER, PACKAGE_TARNAME);
 	sprintf(PathGuiConfig, "%s%c.%s/imgui.conf", PathUserHome, DIR_DELIMITER, PACKAGE_TARNAME);
@@ -313,9 +311,9 @@ int main(int argc, char** argv)
 	SDL_DestroyWindow(gdc.window);
 	SDL_Quit();
 
-	free(PathGuiConfig);
-	free(PathResources);
-	free(PathAppConfig);
+	delete [] PathGuiConfig;
+	delete [] PathResources;
+	delete [] PathAppConfig;
 	free(PathApplication);
 
 	return EXIT_SUCCESS;

@@ -20,17 +20,11 @@
 	OR OTHER DEALINGS IN THE SOFTWARE.
 */
 //-----------------------------------------------------------------------------
-#define GL_GLEXT_PROTOTYPES
-#include "custom_imconfig.h"
-#include "imgui.h"
-#include "imgui_internal.h"
-#include "imgui_impl_sdl2.h"
-#include "imgui_impl_opengl3.h"
-//-----------------------------------------------------------------------------
 #include "CommonUtils.h"
 #include "ScreenPMD85.h"
 #include "Emulator.h"
 //-----------------------------------------------------------------------------
+#define GL_GLEXT_PROTOTYPES
 #ifdef IMGUI_IMPL_OPENGL_ES2
 #  include "SDL_opengles2.h"
 #else
