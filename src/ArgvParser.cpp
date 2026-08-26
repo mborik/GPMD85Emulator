@@ -59,7 +59,6 @@ struct TCmdLineArguments argv_config = {
 	NULL,   /* --snap */
 	NULL,   /* --memblock */
 	NOVAL,  /* --memblock-address */
-	false,  /* --soft-render */
 };
 TCmdLineSwitch switches[] = {
 	{ "-h",   "--help", VAR_BOOL, (void *) &argv_config.help,
@@ -114,8 +113,6 @@ TCmdLineSwitch switches[] = {
 				"load memory block", SWPAR("\"filename.bin\"") },
 	{ "-ptr", "--memblock-address", VAR_INT, (void *) &argv_config.memstart,
 				"load memory block at given address", SWPAR("{WORD}") },
-	{ "-soft", "--soft-render", VAR_BOOL, (void *) &argv_config.softrender,
-				"use software renderer instead of accelerated", SWPAR(NULL) },
 };
 TCmdLineSwitches cmdline = { switches, 27 };
 //-----------------------------------------------------------------------------

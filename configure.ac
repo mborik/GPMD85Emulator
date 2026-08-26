@@ -68,23 +68,6 @@ if test "x$trace" = "xno" -a "x$debug" = "xno"; then
 fi
 AC_MSG_RESULT([${trace}])
 
-# Check if we have software renderer:
-AC_MSG_CHECKING([gpmd85emu: Software renderer])
-AC_ARG_WITH([soft-render],
-	AS_HELP_STRING([--with-soft-render], [init software renderer, default: no]),
-	[case "${withval}" in
-		yes) softrender=yes ;;
-		no)  softrender=no  ;;
-		*)   AC_MSG_ERROR([bad value ${withval} for --with-soft-render]) ;;
-	esac],
-	[softrender=no]
-)
-if test "x$softrender" = "xyes"; then
-	CXXFLAGS+=" -DSOFTRENDER"
-	CFLAGS+=" -DSOFTRENDER"
-fi
-AC_MSG_RESULT([${softrender}])
-
 resDir_CFLAGS=" -DDIR_RESOURCES=\"\\\""$\{pkgdatadir}"\\\"\""
 AC_SUBST(resDir_CFLAGS)
 
