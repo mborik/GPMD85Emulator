@@ -47,15 +47,11 @@ public:
 	virtual void WriteToDevice(BYTE port, BYTE val, int ticks);
 	virtual BYTE ReadFromDevice(BYTE port, int ticks);
 
-	void SetMouseArea(int size, int offsetX, int offsetY);
+	void SetMouseArea(int size, int offsetX = 0, int offsetY = 0);
 	void SetMouseState(int x, int y, int leftBtn, int rightBtn, int middleBtn);
 	void MouseService(int ticks, int dur);
 
-	inline void SetHideCursor(bool hide) { hideCursor = hide; }
-	inline bool GetHideCursor() { return hideCursor; }
-
 protected:
-	bool hideCursor;
 	int  screenSize;
 	int  offsetX;
 	int  offsetY;

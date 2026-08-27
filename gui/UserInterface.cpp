@@ -121,6 +121,32 @@ void UserInterface::DrawEmulatorWindow()
 	window->DrawList->AddImage(Emulator->video->GetScalerTexture(), emuRect.Min, emuRect.Max);
 
 	ImGui::InvisibleButton("Screen", screen_size + (border_offset * 2), ImGuiButtonFlags_MouseButtonMask_);
+	if (ImGui::IsItemHovered()) {
+		ImGui::SetMouseCursor(Settings->Mouse->hideCursor ? ImGuiMouseCursor_None : ImGuiMouseCursor_Arrow);
+
+		int leftBtn = 0, rightBtn = 0, middleBtn = 0;
+		ImVec2 mousePos = ImGui::GetMousePos();
+		if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
+			leftBtn = 1;
+		else if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+			leftBtn = -1;
+		if (ImGui::IsMouseDown(ImGuiMouseButton_Right))
+			rightBtn = 1;
+		else if (ImGui::IsMouseReleased(ImGuiMouseButton_Right))
+			rightBtn = -1;
+		if (ImGui::IsMouseDown(ImGuiMouseButton_Middle))
+			middleBtn = 1;
+		else if (ImGui::IsMouseReleased(ImGuiMouseButton_Middle))
+			middleBtn = -1;
+
+		Emulator->ActionMouseState(
+			(int) mousePos.x, (int) mousePos.y,
+			leftBtn, rightBtn, middleBtn
+		);
+	}
+	else
+		ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
+
 	RedrawStatusBar(border_offset.x);
 
 	ImGui::End();
