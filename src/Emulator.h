@@ -88,10 +88,9 @@ class TEmulator
 
 		void ActionReset();
 		void ActionHardReset();
-		void ActionSound(BYTE action);
+		void ActionSound(bool currentState);
 		void ActionPlayPause();
 		void ActionPlayPause(bool play, bool globalChange = true);
-		void ActionSpeedChange();
 		void ActionSizeChange(int mode);
 		void ActionMouseState(int x, int y, int leftBtn = 0, int rightBtn = 0, int middleBtn = 0);
 		int  ActionJoyControllers(SDL_GameController ***controllers = NULL, bool refresh = false);

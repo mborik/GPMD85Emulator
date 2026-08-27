@@ -24,7 +24,6 @@
 #include "ArgvParser.h"
 #include "CommonUtils.h"
 #include "Emulator.h"
-#include "UserInterfaceData.h"
 //-----------------------------------------------------------------------------
 TEmulator *Emulator;
 //-----------------------------------------------------------------------------
@@ -705,7 +704,7 @@ bool TEmulator::TestHotkeys()
 			break;
 
 		case SDL_SCANCODE_APPLICATION:
-			key = KM_ALT | SDL_SCANCODE_F1;
+			key = KM_ALT | SDL_SCANCODE_F9;
 			break;
 
 		case SDL_SCANCODE_PAUSE:
@@ -788,7 +787,6 @@ bool TEmulator::TestHotkeys()
 				break;
 
 			case SDL_SCANCODE_F:	// FULL-SCREEN
-			case SDL_SCANCODE_RETURN:
 				if (Settings->Screen->size == DM_FULLSCREEN)
 					ActionSizeChange((int) Settings->Screen->realsize);
 				else
@@ -831,7 +829,7 @@ bool TEmulator::TestHotkeys()
 
 			case SDL_SCANCODE_F1:	// ABOUT
 				actionCallback.connect([&]() {
-					GUI->MenuOpen(UserInterface::GUI_TYPE_ABOUT);
+					GUI->Execute(GE_ABOUT);
 					actionCallback.disconnect_all();
 				});
 				break;
@@ -844,10 +842,7 @@ bool TEmulator::TestHotkeys()
 				break;
 
 			case SDL_SCANCODE_F3:	// PLAY/PAUSE
-				if (key & KM_SHIFT)
-					ActionSpeedChange();
-				else
-					ActionPlayPause();
+				ActionPlayPause();
 				break;
 
 			case SDL_SCANCODE_F4:	// EXIT
@@ -863,7 +858,7 @@ bool TEmulator::TestHotkeys()
 
 			case SDL_SCANCODE_F6:	// DISK IMAGES
 				actionCallback.connect([&]() {
-					GUI->MenuOpen(UserInterface::GUI_TYPE_DISKIMAGES);
+					GUI->Execute(GE_DISKIMAGES);
 					actionCallback.disconnect_all();
 				});
 				return true;
@@ -873,31 +868,27 @@ bool TEmulator::TestHotkeys()
 					ActionSnapSave();
 				else
 					ActionSnapLoad();
-				break;
+				return true;
 
 			case SDL_SCANCODE_F8:	// SOUND ON/OFF
-				ActionSound((key & KM_SHIFT) ? -1 : Settings->Sound->mute);
+				ActionSound(Settings->Sound->mute);
 				break;
 
-			case SDL_SCANCODE_F9:	// MODEL SELECT/MEMORY MENU
-				if (key & KM_SHIFT)
-					GUI->MenuOpen(UserInterface::GUI_TYPE_MENU, gui_mem_menu);
-				else
-					GUI->MenuOpen(UserInterface::GUI_TYPE_MENU, gui_machine_menu);
-				break;
+			case SDL_SCANCODE_F9:	// MACHINE MENU
+				actionCallback.connect([&]() {
+					GUI->Execute(GE_MACHINE);
+					actionCallback.disconnect_all();
+				});
+				return true;
 
-			case SDL_SCANCODE_F10:	// PERIPHERALS
-				if (Settings->CurrentModel->type != CM_MATO) {
-					GUI->MenuOpen(UserInterface::GUI_TYPE_MENU, gui_pers_menu);
-				}
-				break;
-
-			case SDL_SCANCODE_F11:	// MEMORY BLOCK READ/WRITE
-				if (key & KM_SHIFT)
-					GUI->MenuOpen(UserInterface::GUI_TYPE_MENU, gui_memblock_write_menu);
-				else
-					GUI->MenuOpen(UserInterface::GUI_TYPE_MENU, gui_memblock_read_menu);
-				break;
+			case SDL_SCANCODE_F11: {	// MEMORY BLOCK READ/WRITE
+				bool write = (key & KM_SHIFT);
+				actionCallback.connect([&, write]() {
+					GUI->Execute(write ? GE_MEMBLOCK_WRITE : GE_MEMBLOCK_READ);
+					actionCallback.disconnect_all();
+				});
+				return true;
+			}
 
 			case SDL_SCANCODE_F12:	// DEBUGGER
 				ActionDebugger();
@@ -939,13 +930,13 @@ void TEmulator::ActionExit()
 void TEmulator::ActionDebugger()
 {
 	ActionPlayPause(false, false);
-	GUI->MenuOpen(UserInterface::GUI_TYPE_DEBUGGER);
+	GUI->Execute(GE_DEBUGGER);
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionTapeBrowser()
 {
 	ActionPlayPause(false, false);
-	GUI->MenuOpen(UserInterface::GUI_TYPE_TAPEBROWSER);
+	GUI->Execute(GE_TAPEBROWSER);
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionTapePlayStop()
@@ -1204,27 +1195,18 @@ void TEmulator::ActionHardReset()
 	ActionPlayPause(!Settings->isPaused, false);
 }
 //---------------------------------------------------------------------------
-void TEmulator::ActionSound(BYTE action)
+void TEmulator::ActionSound(bool currentState)
 {
-	if (action == 0) {
+	if (!currentState) {
 		sound->SoundMute();
 		Settings->Sound->mute = true;
 	}
-	else if (action == 1) {
+	else {
 		sound->SoundOn();
 		Settings->Sound->mute = false;
 	}
-	else {
-		ActionPlayPause(false, false);
 
-		ccb_snd_volume(NULL);
-		if (GUI->uiSetChanges & PS_SOUND) {
-			sound->SoundOn();
-			Settings->Sound->mute = false;
-		}
-
-		ActionPlayPause(!Settings->isPaused, false);
-	}
+	GUI->uiSetChanges |= PS_SOUND;
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionPlayPause()
@@ -1262,13 +1244,6 @@ void TEmulator::ActionSizeChange(int mode)
 		Settings->Screen->realsize = (TDisplayMode) video->GetMultiplier();
 	}
 
-	ActionPlayPause(!Settings->isPaused, false);
-}
-//---------------------------------------------------------------------------
-void TEmulator::ActionSpeedChange()
-{
-	ActionPlayPause(false, false);
-	ccb_emu_speed(NULL);
 	ActionPlayPause(!Settings->isPaused, false);
 }
 //---------------------------------------------------------------------------

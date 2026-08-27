@@ -327,7 +327,7 @@ void UserInterface::KeyhandlerTapeDialog(WORD key)
 		case SDL_SCANCODE_RETURN:
 		case SDL_SCANCODE_KP_ENTER:
 			needRelease = true;
-			MenuOpen(GUI_TYPE_TAPE_POPUP);
+			Execute(GE_TAPE_POPUP);
 			break;
 
 		case SDL_SCANCODE_LEFT:
