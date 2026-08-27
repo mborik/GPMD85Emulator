@@ -103,19 +103,6 @@ class UserInterface
 			GUI_TYPE_POKE               // Poke dialog
 		};
 
-		typedef struct GUI_FILESELECTOR_DATA {
-			TFileSelectType type;
-			const char *title;
-			char path[MAX_PATH];
-			char search[22];
-			int  count;
-			char **dirEntries;
-			char **extFilter;
-			BYTE itemsOnPage;
-			BYTE tag;
-			sigslot::signal<char *, BYTE *> callback;
-		} GUI_FILESELECTOR_DATA;
-
 		typedef struct GUI_TAPEDIALOG_DATA {
 			int  count;
 			char **entries;
@@ -157,17 +144,21 @@ class UserInterface
 		void DrawQueryDialog();
 		void DrawFileSelector();
 		void DrawDiskImagesDialog();
+		void DrawTapeDialog(bool update = true);
+		void DrawDebugWindow();
 		void DrawEmulatorWindow();
 
 		void QueryDialog(const char *title, const char *message, bool save);
 		void MessageBox(const char *text, ...);
-		BYTE EditBox(const char *title, const char *description, char *buffer, BYTE maxLength, bool decimal);
 		void FileSelector(
 			TFileSelectType type,
 			const char *title, const char *recentFile,
 			const std::vector<std::string> &filter = {".*"},
 			bool fallbackToResourceDir = false
 		);
+
+		// TBD
+		inline BYTE EditBox(const char *title, const char *description, char *buffer, BYTE maxLength, bool decimal) { return 0; }
 
 		void MenuOpen(GUI_MENU_TYPE type, void *data = NULL);
 		void MenuClose();
@@ -193,38 +184,6 @@ class UserInterface
 		bool dialogDiskImagesOpened;
 		bool dialogAboutOpened;
 
-		BYTE *fontData;
-		BYTE  fontWidth;
-		BYTE  fontHeight;
-		BYTE  fontLineHeight;
-		BYTE  maxCharsOnScreen;
-
-		DWORD frameLength;
-		WORD  frameWidth;
-		WORD  frameHeight;
-
-		// based on SDL_Surface
-		typedef struct GUI_SURFACE {
-			DWORD format;
-			int   w, h;
-			int   pitch;
-			BYTE *pixels;
-		} GUI_SURFACE;
-
-		GUI_SURFACE *icons;
-
-		short menuStackLevel;
-		struct GUI_MENU_STACK {
-			GUI_MENU_TYPE type;
-			void *data;
-			int hilite;
-			BYTE *frame;
-		} menuStack[8];
-
-		GUI_MENU_ENTRY *cMenu_data;
-		SDL_Rect *cMenu_rect;
-		int cMenu_leftMargin, cMenu_count, cMenu_hilite;
-
 		TFileSelectType fileSelectorType;
 		ImGui::FileBrowser *fileSelector;
 		char *fileSelectorPath;
@@ -235,41 +194,15 @@ class UserInterface
 		bool queryDialogSaveType;
 		bool queryDialogShouldOpen;
 
-		GUI_SURFACE *LockSurface(SDL_Texture *texture);
-		void UnlockSurface(SDL_Texture *texture, GUI_SURFACE *surface);
-
 		void SetButtonColor(int icon);
 		void MachineMenuItem(const char *name, TComputerModel model);
 		void AttributeMenuItems(bool enabled = false);
 		void DiskImagesMenuItems(bool inMenu = false);
-
-	/* OBSOLETE TBD { */
-		void PutPixel(GUI_SURFACE *s, int x, int y, BYTE col);
-		void PrintChar(GUI_SURFACE *s, int x, int y, BYTE col, BYTE ch);
-		void PrintText(GUI_SURFACE *s, int x, int y, BYTE col, const char *msg);
-		void PrintTitle(GUI_SURFACE *s, int x, int y, int w, BYTE col, const char *msg);
-		void PrintFormatted(GUI_SURFACE *s, int x, int y, BYTE col, const char *msg, ...);
-		void PrintRightAlign(GUI_SURFACE *s, int x, int y, BYTE col, const char *msg, ...);
-		void DrawLineH(GUI_SURFACE *s, int x, int y, int len, BYTE col);
-		void DrawLineV(GUI_SURFACE *s, int x, int y, int len, BYTE col);
-		void DrawRectangle(GUI_SURFACE *s, int x, int y, int w, int h, BYTE col);
-		void DrawOutline(GUI_SURFACE *s, int x, int y, int w, int h, BYTE col);
-		void DrawOutlineRounded(GUI_SURFACE *s, int x, int y, int w, int h, BYTE col);
-		void DrawDialogWithBorder(GUI_SURFACE *s, int x, int y, int w, int h);
-		void DrawDebugFrame(GUI_SURFACE *s, int x, int y, int w, int h);
-		void PrintCheck(GUI_SURFACE *s, int x, int y, BYTE col, BYTE ch, bool state);
-
-		void DrawTapeDialogItems(GUI_SURFACE *s = NULL);
-		void DrawTapeDialog(bool update = true);
-		void DrawDebugWidgetDisass(GUI_SURFACE *s, SDL_Rect *r, bool full);
-		void DrawDebugWidgetRegs(GUI_SURFACE *s, SDL_Rect *r);
-		void DrawDebugWidgetStack(GUI_SURFACE *s, SDL_Rect *r);
-		void DrawDebugWidgetBreaks(GUI_SURFACE *s, SDL_Rect *r);
-		void DrawDebugWindow();
-
-		void KeyhandlerTapeDialog(WORD key);
-		void KeyhandlerDebugWindow(WORD key);
-	/* } */
+		void DrawTapeDialogItems();
+		void DrawDebugWidgetDisass(bool full);
+		void DrawDebugWidgetRegs();
+		void DrawDebugWidgetStack();
+		void DrawDebugWidgetBreaks();
 };
 //-----------------------------------------------------------------------------
 #endif
