@@ -24,7 +24,7 @@
 #include "Emulator.h"
 #include "imgui/imgui_internal.h"
 //-----------------------------------------------------------------------------
-void UserInterface::DiskImagesDialog()
+void UserInterface::DrawDiskImagesDialog()
 {
 	if (dialogDiskImagesOpened) {
 		ImGui::Begin("Disk Images", &dialogDiskImagesOpened,
@@ -34,7 +34,7 @@ void UserInterface::DiskImagesDialog()
 	}
 }
 //-----------------------------------------------------------------------------
-void UserInterface::AboutDialog()
+void UserInterface::DrawAboutDialog()
 {
 	static bool showAboutDialog = false;
 

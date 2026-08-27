@@ -43,22 +43,45 @@ void UserInterface::DrawMenu()
 {
 	if (ImGui::BeginMainMenuBar()) {
 		isMenuHovered = ImGui::IsWindowFocused(ImGuiHoveredFlags_ChildWindows);
+		isAnyPopupWindowFocused = ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopup);
 
 		if (ImGui::BeginMenu("File")) {
-			if (ImGui::MenuItem("New Tape")) { }
-			if (ImGui::MenuItem("Open Tape\u0085", MOD_KEY("F2"))) { }
-			if (ImGui::MenuItem("Save Tape\u0085", MOD_SHIFT("F2"))) { }
+			if (ImGui::MenuItem("New Tape")) {
+				uiCallback.connect(&TEmulator::ActionTapeNew, Emulator);
+				uiSetChanges |= PS_CLOSEALL;
+			}
+			if (ImGui::MenuItem("Open Tape\u0085", MOD_KEY("F2"))) {
+				Emulator->ActionTapeLoad(false);
+			}
+			if (ImGui::MenuItem("Save Tape\u0085", MOD_SHIFT("F2"))) {
+				Emulator->ActionTapeSave();
+			}
 			if (ImGui::MenuItem("Tape Browser", MOD_KEY("T"))) { }
+
 			ImGui::Separator();
 			ImGui::MenuItem("Disk Images", MOD_KEY("F6"), &dialogDiskImagesOpened);
+
 			ImGui::Separator();
-			if (ImGui::MenuItem("Open Snapshot\u0085", MOD_KEY("F7"))) { }
-			if (ImGui::MenuItem("Create Snapshot\u0085", MOD_SHIFT("F7"))) { }
+			if (ImGui::MenuItem("Open Snapshot\u0085", MOD_KEY("F7"))) {
+				Emulator->ActionSnapLoad();
+			}
+			if (ImGui::MenuItem("Create Snapshot\u0085", MOD_SHIFT("F7"))) {
+				Emulator->ActionSnapSave();
+			}
+			if (ImGui::BeginMenu("Snapshot Options")) {
+				ImGui::MenuItem("Debug Immediately After Load", NULL, &Settings->Snapshot->dontRunOnLoad);
+				ImGui::Separator();
+				ImGui::MenuItem("Save Compressed", NULL, &Settings->Snapshot->saveCompressed);
+				ImGui::MenuItem("Include ROM in Snapshot", NULL, &Settings->Snapshot->saveWithMonitor);
+				ImGui::EndMenu();
+			}
+
 			ImGui::Separator();
 			if (ImGui::MenuItem("Load to Memory\u0085", MOD_KEY("F11"))) { }
 			if (ImGui::MenuItem("Save Memory\u0085", MOD_SHIFT("F11"))) { }
 			ImGui::Separator();
 			if (ImGui::MenuItem("Save Screenshot\u0085")) { }
+
 			ImGui::Separator();
 			if (ImGui::MenuItem("About\u0085", MOD_KEY("F1"))) {
 				MenuOpen(GUI_TYPE_ABOUT);
@@ -68,6 +91,7 @@ void UserInterface::DrawMenu()
 			}
 			ImGui::EndMenu();
 		}
+
 		if (ImGui::BeginMenu("Display")) {
 			if (ImGui::BeginMenu("Screen Size")) {
 				if (ImGui::MenuItem("100%", MOD_KEY("1")), Settings->Screen->size == DM_NORMAL) {
@@ -178,6 +202,7 @@ void UserInterface::DrawMenu()
 			}
 			ImGui::EndMenu();
 		}
+
 		if (ImGui::BeginMenu("Emulation")) {
 			if (ImGui::MenuItem("Debugger\u0085", MOD_KEY("F12"), false, false)) { }
 			if (ImGui::MenuItem("Pause", MOD_KEY("F3"), Settings->isPaused)) {
@@ -237,9 +262,10 @@ void UserInterface::DrawMenu()
 			}
 			ImGui::EndMenu();
 		}
+
 		if (ImGui::BeginMenu("Machine")) {
 			bool accessibleForPMD85 = Settings->CurrentModel->type <= CM_V3;
-			char *currentFile = new char[FILENAME_MAX + 2];
+			char *currentFile = new char[MAX_PATH + 2];
 
 			ImGui::SeparatorText("Computer Model");
 			MachineMenuItem("PMD 85-1", CM_V1);
@@ -255,7 +281,9 @@ void UserInterface::DrawMenu()
 			ImGui::PushItemFlag(ImGuiItemFlags_AutoClosePopups, false);
 
 			sprintf(currentFile, "[%s]", ExtractFileName(Settings->CurrentModel->romFile));
-			if (ImGui::MenuItem("System ROM File\u0085", currentFile)) { }
+			if (ImGui::MenuItem("System ROM File\u0085", currentFile)) {
+				Emulator->ActionROMLoad();
+			}
 
 			if ((Settings->CurrentModel->type <= CM_V2A) &&
 				ImGui::MenuItem("Split 8kB ROM", "on 8000/A000", Settings->CurrentModel->romSplit8kMode)) {
@@ -283,7 +311,6 @@ void UserInterface::DrawMenu()
 			}
 
 			ImGui::Separator();
-
 			if (ImGui::MenuItem("ROM Module Inserted", NULL,
 				accessibleForPMD85 ? Settings->CurrentModel->romModuleInserted : false, accessibleForPMD85)) {
 
@@ -302,6 +329,7 @@ void UserInterface::DrawMenu()
 				}
 				ImGui::EndMenu();
 			}
+
 			bool itemAccessible = accessibleForPMD85 && Settings->CurrentModel->romModuleInserted;
 			if (ImGui::MenuItem("ROM MEGAmodule", NULL,
 				itemAccessible ? Settings->CurrentModel->megaModuleEnabled : false, itemAccessible)) {
@@ -309,10 +337,16 @@ void UserInterface::DrawMenu()
 				Settings->CurrentModel->megaModuleEnabled = !Settings->CurrentModel->megaModuleEnabled;
 				uiSetChanges |= PS_MACHINE | PS_PERIPHERALS;
 			}
-			char *mrmFile = Settings->CurrentModel->mrmFile ? currentFile : NULL;
-			if (mrmFile)
-				sprintf(currentFile, "[%s]", ExtractFileName(Settings->CurrentModel->mrmFile));
-			if (ImGui::MenuItem("ROM MEGAmodule Image\u0085", mrmFile, false, itemAccessible)) { }
+
+			if (itemAccessible && Settings->CurrentModel->megaModuleEnabled) {
+				char *mrmFile = Settings->CurrentModel->mrmFile ? currentFile : NULL;
+				if (mrmFile)
+					sprintf(currentFile, "[%s]", ExtractFileName(Settings->CurrentModel->mrmFile));
+				if (ImGui::MenuItem("ROM MEGAmodule Image\u0085", mrmFile)) {
+					Emulator->ActionMegaRomLoad();
+				}
+			}
+
 			ImGui::PopItemFlag();
 
 			itemAccessible = accessibleForPMD85 || Settings->CurrentModel->type == CM_V3;
@@ -332,6 +366,7 @@ void UserInterface::DrawMenu()
 				ImGui::MenuItem("Hide Mouse Cursor", NULL, &Settings->Mouse->hideCursor);
 				ImGui::EndMenu();
 			}
+
 			ImGui::Separator();
 			if (ImGui::BeginMenu("PMD 32 Disk Drive", itemAccessible)) {
 				bool state = Settings->PMD32->connected;
@@ -350,12 +385,12 @@ void UserInterface::DrawMenu()
 					state && Settings->PMD32->extraCommands)) { }
 
 				ImGui::Separator();
-				DiskImagesMenuItems();
+				DiskImagesMenuItems(true);
 
 				ImGui::EndMenu();
 			}
-			ImGui::Separator();
 
+			ImGui::Separator();
 			if (ImGui::MenuItem("MIF 85 Sound Interface", NULL,
 				accessibleForPMD85 ? Settings->Sound->ifMIF85 : false, accessibleForPMD85)) {
 
@@ -440,20 +475,27 @@ void UserInterface::AttributeMenuItems(bool enabled)
 	}
 }
 //-----------------------------------------------------------------------------
-void UserInterface::DiskImagesMenuItems()
+void UserInterface::DiskImagesMenuItems(bool inMenu)
 {
-	static char path[FILENAME_MAX];
+	static char buf[256];
 	ImVec4 bbase, hover;
+	static TSettings::SetPMD32Drive *drives[4] = {
+		&Settings->PMD32->driveA,
+		&Settings->PMD32->driveB,
+		&Settings->PMD32->driveC,
+		&Settings->PMD32->driveD
+	};
 
-	auto DiskImagesMenuItem = [&](TSettings::SetPMD32Drive drive, char letter) {
-		const char *imagePath = ExtractFileName(drive.image);
-		sprintf(path, "Drive%c\t%c: %s", letter, letter, imagePath ? imagePath : "[empty]");
-		path[6] = '\0';
+	for (char i = 0, letter = 'A'; i < 4; i++, letter++) {
+		TSettings::SetPMD32Drive *drive = drives[i];
+		const char *imagePath = ExtractFileName(drive->image);
+		sprintf(buf, "Drive%c  %c: %s", letter, letter, imagePath ? imagePath : "[empty]");
+		buf[6] = '\0';
 
-		ImGui::PushID(path);
+		ImGui::PushID(buf);
 		ImGui::SetNextItemAllowOverlap();
-		ImGui::MenuItem(path + 7);
-		ImGui::SameLine();
+		if (ImGui::MenuItem(buf + 8))
+			Emulator->ActionPMD32LoadDisk((int) i + 1);
 
 		bbase = imagePath ? ImColor::HSV(0.6f, 0.7f, 0.8f) : ImColor::HSV(0.5f, 0.2f, 0.2f);
 		hover = imagePath ? ImColor::HSV(0.6f, 0.9f, 1.0f) : ImColor::HSV(0.5f, 0.2f, 0.5f);
@@ -461,30 +503,32 @@ void UserInterface::DiskImagesMenuItems()
 		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, hover);
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, hover);
 
-		if (ImGui::SmallButton("Eject")) {
-			drive.image = NULL;
-			uiSetChanges |= PS_PERIPHERALS;
+		ImGui::SameLine();
+		sprintf(buf, "Eject##%c", letter);
+		if (ImGui::SmallButton(buf) && imagePath) {
+			delete [] drive->image;
+			drive->image = NULL;
+			uiCallback.connect(&TEmulator::ActionPMD32Update, Emulator);
+			uiSetChanges |= PS_CLOSEALL;
 		}
 
-		bbase = drive.writeProtect ? ImColor::HSV(0.0f, 0.6f, 0.6f) : ImColor::HSV(0.5f, 0.2f, 0.2f);
-		hover = drive.writeProtect ? ImColor::HSV(0.0f, 0.8f, 0.8f) : ImColor::HSV(0.5f, 0.2f, 0.5f);
+		bbase = drive->writeProtect ? ImColor::HSV(0.0f, 0.6f, 0.6f) : ImColor::HSV(0.5f, 0.2f, 0.2f);
+		hover = drive->writeProtect ? ImColor::HSV(0.0f, 0.8f, 0.8f) : ImColor::HSV(0.5f, 0.2f, 0.5f);
 		ImGui::PushStyleColor(ImGuiCol_Button, bbase);
 		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, hover);
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, hover);
 
 		ImGui::SameLine();
-		if (ImGui::SmallButton("WP")) {
-			drive.writeProtect = !drive.writeProtect;
-			uiSetChanges |= PS_PERIPHERALS;
+		sprintf(buf, "WP##%c", letter);
+		if (ImGui::SmallButton("WP") && imagePath) {
+			drive->writeProtect = !drive->writeProtect;
+			uiCallback.connect(&TEmulator::ActionPMD32Update, Emulator);
+			uiSetChanges |= PS_CLOSEALL;
 		}
 
 		ImGui::PopStyleColor(6);
 		ImGui::PopID();
 	};
 
-	DiskImagesMenuItem(Settings->PMD32->driveA, 'A');
-	DiskImagesMenuItem(Settings->PMD32->driveB, 'B');
-	DiskImagesMenuItem(Settings->PMD32->driveC, 'C');
-	DiskImagesMenuItem(Settings->PMD32->driveD, 'D');
 }
 //-----------------------------------------------------------------------------
