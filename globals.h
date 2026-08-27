@@ -174,7 +174,7 @@ enum TColor { BLACK = 0, MAROON, GREEN, OLIVE, NAVY, PURPLE, TEAL, GRAY, SILVER,
 enum TProcessSettingsMode { PS_MACHINE = 1, PS_SCREEN_SIZE = 2, PS_SCREEN_MODE = 4, PS_SOUND = 8, PS_CONTROLS = 16, PS_PERIPHERALS = 32, PS_CLOSEALL = 128 };
 enum TMenuItemType { MENU_END = -1, MI_TITLE = 0, MI_STANDARD, MI_SUBMENU, MI_DIALOG, MI_VALUE, MI_CHECKBOX, MI_RADIO, MI_FIXED = 16, MI_SEPARATOR = 32 };
 enum TMenuQueryType { GUI_QUERY_CANCEL = -1, GUI_QUERY_NO = 0, GUI_QUERY_YES, GUI_QUERY_SAVE, GUI_QUERY_DONTSAVE };
-enum TFileSelectType { GUI_FS_BASELOAD, GUI_FS_BASESAVE, GUI_FS_SNAPLOAD, GUI_FS_SNAPSAVE };
+enum TFileSelectType { GUI_FS_OPEN, GUI_FS_SAVE, GUI_FS_DIR };
 enum TDebugListType { DL_DUMP, DL_ASCII, DL_DISASM };
 enum TDebugListSource { MEM, HL, DE, BC, AF, SP, PC };
 //-----------------------------------------------------------------------------

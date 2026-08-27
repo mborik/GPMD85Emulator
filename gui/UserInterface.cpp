@@ -32,14 +32,6 @@ UserInterface::UserInterface()
 {
 	debug("GUI", "Initializing...");
 
-	fileSelector = new GUI_FILESELECTOR_DATA;
-	fileSelector->dirEntries = NULL;
-	fileSelector->extFilter = NULL;
-	fileSelector->title = NULL;
-	fileSelector->path[0] = '\0';
-	fileSelector->tag = 0;
-	fileSelector->callback.disconnect_all();
-
 	tapeDialog = new GUI_TAPEDIALOG_DATA;
 	tapeDialog->entries = NULL;
 	tapeDialog->count = 0;
@@ -61,6 +53,11 @@ UserInterface::UserInterface()
 	queryDialogSaveType = false;
 	queryDialogShouldOpen = false;
 
+	fileSelector = NULL;
+	fileSelectorPath = new char[PATH_MAX];
+	fileSelectorRecentPath = new char[PATH_MAX];
+	strcpy(fileSelectorRecentPath, PathApplication);
+
 	uiSetChanges = 0;
 	uiQueryState = GUI_QUERY_CANCEL;
 }
@@ -70,9 +67,16 @@ UserInterface::~UserInterface()
 	debug("GUI", "Uninitializing, freeing...");
 
 	if (fileSelector) {
-		ScanDir(NULL, &fileSelector->dirEntries, &fileSelector->count);
 		delete fileSelector;
 		fileSelector = NULL;
+	}
+	if (fileSelectorPath) {
+		delete[] fileSelectorPath;
+		fileSelectorPath = NULL;
+	}
+	if (fileSelectorRecentPath) {
+		delete[] fileSelectorRecentPath;
+		fileSelectorRecentPath = NULL;
 	}
 
 	if (tapeDialog) {

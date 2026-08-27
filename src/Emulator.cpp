@@ -247,9 +247,8 @@ void TEmulator::ProcessArgvOptions(bool memModifiers)
 		if (argv_config.snap) {
 			BYTE flag;
 			char *fileName = ComposeFilePath(argv_config.snap);
-			ProcessSnapshot(fileName, &flag);
 
-			if (flag != 0) {
+			if (!ProcessSnapshot(fileName)) {
 				delete [] fileName;
 				fileName = NULL;
 
@@ -411,7 +410,7 @@ void TEmulator::ProcessSettings(BYTE filter)
 		isActive = true;
 }
 //-----------------------------------------------------------------------------
-void TEmulator::BaseTimerCallback()
+void TEmulator::BaseTimerCallback(bool guiWantCapture)
 {
 	static DWORD blinkCounter = 0;
 	static DWORD lastTick = 0;
@@ -436,7 +435,10 @@ void TEmulator::BaseTimerCallback()
 
 	if (isRunning) {
 		// GUI->uiSetChanges is bit-map of setting changes for ProcessSettings()
-		if (GUI->OnMenuLeave()) {
+		if (GUI->OnMenuLeave())
+			GUI->uiSetChanges |= PS_CLOSEALL;
+
+		if (GUI->uiSetChanges) {
 			isRunning = false;
 
 			// if we leaving menu and uiSetChanges is set, apply settings change
@@ -457,7 +459,8 @@ void TEmulator::BaseTimerCallback()
 			joystick->ScanJoy(keyBuffer);
 
 		if (systemPIO) {
-			systemPIO->ScanKeyboard(keyBuffer);
+			if (!guiWantCapture) // GUI wants to capture keyboard input
+				systemPIO->ScanKeyboard(keyBuffer);
 
 			// detection of Consul 2717 extended screen mode 384x256...
 			BYTE flag = systemPIO->width384;
@@ -846,7 +849,7 @@ bool TEmulator::TestHotkeys()
 
 			case SDL_SCANCODE_F4:	// EXIT
 				ActionExit();
-				break;
+				return true;
 
 			case SDL_SCANCODE_F5:	// RESET
 				if (key & KM_SHIFT)
@@ -856,8 +859,11 @@ bool TEmulator::TestHotkeys()
 				break;
 
 			case SDL_SCANCODE_F6:	// DISK IMAGES
-				actionCallback.connect(&TEmulator::ActionDiskImages, this);
-				break;
+				actionCallback.connect([&]() {
+					GUI->MenuOpen(UserInterface::GUI_TYPE_DISKIMAGES);
+					actionCallback.disconnect_all();
+				});
+				return true;
 
 			case SDL_SCANCODE_F7:	// LOAD/SAVE SNAPSHOT
 				if (key & KM_SHIFT)
@@ -976,91 +982,68 @@ void TEmulator::ActionTapeNew()
 //---------------------------------------------------------------------------
 void TEmulator::ActionTapeLoad(bool import)
 {
-	static const char *tape_filter[] = { "ptp", "pmd", NULL };
 	static char tape_title[32] = "";
-/*
-	ActionPlayPause(false, false);
 
-	if (!import && TapeBrowser->tapeChanged) {
-		BYTE result = GUI->QueryDialog("SAVE TAPE CHANGES?", true);
-		if (result == GUI_QUERY_SAVE) {
-			ActionTapeSave();
-			return;
-		}
-		else if (result != GUI_QUERY_DONTSAVE) {
-			GUI->MenuCloseAll();
-			ActionPlayPause(!Settings->isPaused, false);
-			return;
-		}
+	auto lambdaActionTapeLoad = [&]() {
+		sprintf(tape_title, "%s tape file (*.ptp, *.pmd)", (import ? "Import" : "Open"));
+
+		const char *recentFile =
+			import ? TapeBrowser->orgTapeFile :
+			Settings->TapeBrowser->fileName;
+
+		GUI->uiFileSelectorCallback.connect(
+			[&](const char *fileName) {
+				if (fileName)
+					InsertTape(fileName, import);
+
+				GUI->uiSetChanges |= PS_CLOSEALL;
+				GUI->uiFileSelectorCallback.disconnect_all();
+			}
+		);
+
+		GUI->FileSelector(GUI_FS_OPEN, tape_title, recentFile, {".ptp", ".pmd"});
+	};
+
+	if (TapeBrowser->tapeChanged) {
+		GUI->uiQueryCallback.connect([&](TMenuQueryType result) {
+			if (result == GUI_QUERY_SAVE) {
+				ActionTapeSave();
+			}
+			else if (result == GUI_QUERY_DONTSAVE) {
+				lambdaActionTapeLoad();
+			}
+
+			GUI->uiQueryCallback.disconnect_all();
+		});
+
+		GUI->QueryDialog("Tape Changed", "Save changes before creating a new one?", true);
 	}
-*/
-	sprintf(tape_title, "%s TAPE FILE (*.ptp, *.pmd)", (import ? "IMPORT" : "OPEN"));
-
-	GUI->fileSelector->tag = (BYTE) import;
-	GUI->fileSelector->type = GUI_FS_BASELOAD;
-	GUI->fileSelector->title = tape_title;
-	GUI->fileSelector->extFilter = (char **) tape_filter;
-	GUI->fileSelector->callback.disconnect_all();
-	GUI->fileSelector->callback.connect(&TEmulator::InsertTape, this);
-
-	char *recentFile = import ? TapeBrowser->orgTapeFile : Settings->TapeBrowser->fileName;
-	if (recentFile) {
-		char *file = ComposeFilePath(recentFile);
-		strcpy(GUI->fileSelector->path, file);
-		delete [] file;
-
-		if (!TestDir(GUI->fileSelector->path, (char *) "..", NULL))
-			recentFile = NULL;
-	}
-	if (!recentFile)
-		strcpy(GUI->fileSelector->path, PathApplication);
-
-	GUI->MenuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
+	else
+		lambdaActionTapeLoad();
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionTapeSave()
 {
-	static const char *tape_filter[] = { "ptp", NULL };
+	GUI->uiFileSelectorCallback.connect(
+		[&](const char *fileName) {
+			if (fileName)
+				SaveTape(fileName);
 
-	ActionPlayPause(false, false);
+			GUI->uiSetChanges |= PS_CLOSEALL;
+			GUI->uiFileSelectorCallback.disconnect_all();
+		}
+	);
 
-	GUI->fileSelector->type = GUI_FS_BASESAVE;
-	GUI->fileSelector->title = "SAVE TAPE FILE (*.ptp)";
-	GUI->fileSelector->extFilter = (char **) tape_filter;
-	GUI->fileSelector->callback.disconnect_all();
-	GUI->fileSelector->callback.connect(&TEmulator::SaveTape, this);
-
-	char *recentFile = Settings->TapeBrowser->fileName;
-	if (recentFile) {
-		char *file = ComposeFilePath(recentFile);
-		strcpy(GUI->fileSelector->path, file);
-		delete [] file;
-
-		if (!TestDir(GUI->fileSelector->path, (char *) "..", NULL))
-			recentFile = NULL;
-	}
-	if (!recentFile)
-		strcpy(GUI->fileSelector->path, PathApplication);
-
-	GUI->MenuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
-}
-//---------------------------------------------------------------------------
-void TEmulator::ActionDiskImages()
-{
-	GUI->MenuOpen(UserInterface::GUI_TYPE_DISKIMAGES);
+	GUI->FileSelector(
+		GUI_FS_SAVE,
+		"Save tape file (*.ptp, *.pmd)",
+		Settings->TapeBrowser->fileName,
+		{".ptp", ".pmd"}
+	);
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionPMD32LoadDisk(int drive)
 {
-	static const char *p32_filter[] = { "p32", NULL };
-
-	ActionPlayPause(false, false);
-
-	GUI->fileSelector->type = GUI_FS_BASELOAD;
-	GUI->fileSelector->title = "OPEN PMD 32 DISK FILE (*.p32)";
-	GUI->fileSelector->extFilter = (char **) p32_filter;
-	GUI->fileSelector->callback.disconnect_all();
-	GUI->fileSelector->callback.connect(&TEmulator::InsertPMD32Disk, this);
 	pmd32workdrive = drive;
 
 	char *fileName = NULL;
@@ -1081,172 +1064,128 @@ void TEmulator::ActionPMD32LoadDisk(int drive)
 			break;
 	}
 
-	if (fileName) {
-		fileName = ComposeFilePath(fileName);
-		strcpy(GUI->fileSelector->path, fileName);
-		delete [] fileName;
+	GUI->uiFileSelectorCallback.connect(
+		[&](const char *fileName) {
+			if (fileName)
+				InsertPMD32Disk(fileName);
 
-		if (!TestDir(GUI->fileSelector->path, (char *) "..", NULL))
-			fileName = NULL;
-	}
-	if (!fileName)
-		strcpy(GUI->fileSelector->path, PathApplication);
+			GUI->uiSetChanges |= PS_CLOSEALL;
+			GUI->uiFileSelectorCallback.disconnect_all();
+		}
+	);
 
-	GUI->MenuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
+	GUI->FileSelector(
+		GUI_FS_OPEN,
+		"Open PMD 32 Disk File (*.p32)",
+		fileName,
+		{".p32"}
+	);
+}
+//---------------------------------------------------------------------------
+void TEmulator::ActionPMD32Update()
+{
+	ConnectPMD32(false);
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionSnapLoad()
 {
-	static const char *snap_filter[] = { "psn", NULL };
+	GUI->uiFileSelectorCallback.connect(
+		[&](const char *fileName) {
+			if (fileName)
+				ProcessSnapshot(fileName);
 
-	ActionPlayPause(false, false);
+			GUI->uiSetChanges |= PS_CLOSEALL;
+			GUI->uiFileSelectorCallback.disconnect_all();
+		}
+	);
 
-	GUI->fileSelector->type = GUI_FS_SNAPLOAD;
-	GUI->fileSelector->title = "OPEN SNAPSHOT FILE (*.psn)";
-	GUI->fileSelector->extFilter = (char **) snap_filter;
-	GUI->fileSelector->callback.disconnect_all();
-	GUI->fileSelector->callback.connect(&TEmulator::ProcessSnapshot, this);
-
-	char *recentFile = Settings->Snapshot->fileName;
-	if (recentFile) {
-		char *file = ComposeFilePath(recentFile);
-		strcpy(GUI->fileSelector->path, file);
-		delete [] file;
-
-		if (!TestDir(GUI->fileSelector->path, (char *) "..", NULL))
-			recentFile = NULL;
-	}
-	if (!recentFile)
-		strcpy(GUI->fileSelector->path, PathApplication);
-
-	GUI->MenuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
+	GUI->FileSelector(
+		GUI_FS_OPEN,
+		"Open snapshot file (*.psn)",
+		Settings->Snapshot->fileName,
+		{".psn"}
+	);
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionSnapSave()
 {
-	static const char *snap_filter[] = { "psn", NULL };
+	GUI->uiFileSelectorCallback.connect(
+		[&](const char *fileName) {
+			if (fileName)
+				PrepareSnapshot(fileName);
 
-	ActionPlayPause(false, false);
+			GUI->uiSetChanges |= PS_CLOSEALL;
+			GUI->uiFileSelectorCallback.disconnect_all();
+		}
+	);
 
-	GUI->fileSelector->type = GUI_FS_SNAPSAVE;
-	GUI->fileSelector->title = "SAVE SNAPSHOT FILE (*.psn)";
-	GUI->fileSelector->extFilter = (char **) snap_filter;
-	GUI->fileSelector->callback.disconnect_all();
-	GUI->fileSelector->callback.connect(&TEmulator::PrepareSnapshot, this);
-
-	char *recentFile = Settings->Snapshot->fileName;
-	if (recentFile) {
-		char *file = ComposeFilePath(recentFile);
-		strcpy(GUI->fileSelector->path, file);
-		delete [] file;
-
-		if (!TestDir(GUI->fileSelector->path, (char *) "..", NULL))
-			recentFile = NULL;
-	}
-	if (!recentFile)
-		strcpy(GUI->fileSelector->path, PathApplication);
-
-	GUI->MenuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
+	GUI->FileSelector(
+		GUI_FS_SAVE,
+		"Save snapshot file (*.psn)",
+		Settings->Snapshot->fileName,
+		{".psn"}
+	);
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionROMLoad()
 {
-	static const char *rom_filter[] = { "rom", "bin", NULL };
-	char *fileName;
+	GUI->uiFileSelectorCallback.connect(
+		[&](const char *fileName) {
+			if (fileName)
+				ChangeROMFile(fileName);
 
-	ActionPlayPause(false, false);
+			GUI->uiSetChanges |= PS_CLOSEALL;
+			GUI->uiFileSelectorCallback.disconnect_all();
+		}
+	);
 
-	fileName = Settings->CurrentModel->romFile;
-
-	GUI->fileSelector->tag = 0;
-	GUI->fileSelector->type = GUI_FS_BASELOAD;
-	GUI->fileSelector->title = "SELECT ROM FILE (*.rom)";
-	GUI->fileSelector->extFilter = (char **) rom_filter;
-	GUI->fileSelector->callback.disconnect_all();
-	GUI->fileSelector->callback.connect(&TEmulator::ChangeROMFile, this);
-
-	if (fileName) {
-		char *file = LocateROM(fileName);
-		if (file == NULL)
-			file = fileName;
-
-		strcpy(GUI->fileSelector->path, file);
-		if (!TestDir(GUI->fileSelector->path, (char *) "..", NULL))
-			fileName = NULL;
-	}
-	if (!fileName) {
-		if (stat(PathAppConfig, &filestat) == 0)
-			strcpy(GUI->fileSelector->path, PathAppConfig);
-		else if (stat(PathResources, &filestat) == 0)
-			strcpy(GUI->fileSelector->path, PathResources);
-		else
-			strcpy(GUI->fileSelector->path, PathApplication);
-	}
-
-	GUI->MenuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
+	GUI->FileSelector(
+		GUI_FS_OPEN,
+		"Select ROM file (*.rom)",
+		Settings->CurrentModel->romFile,
+		{".rom", ".bin"},
+		true
+	);
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionMegaRomLoad()
 {
-	static const char *mrm_filter[] = { "mrm", "rmm", "bin", NULL };
-	char *fileName;
+	GUI->uiFileSelectorCallback.connect(
+		[&](const char *fileName) {
+			if (fileName)
+				ChangeMegaRomFile(fileName);
 
-	ActionPlayPause(false, false);
+			GUI->uiSetChanges |= PS_CLOSEALL;
+			GUI->uiFileSelectorCallback.disconnect_all();
+		}
+	);
 
-	fileName = Settings->CurrentModel->mrmFile;
-
-	GUI->fileSelector->tag = 0;
-	GUI->fileSelector->type = GUI_FS_BASELOAD;
-	GUI->fileSelector->title = "SELECT ROM MODULE FILE (*.mrm, *.rmm)";
-	GUI->fileSelector->extFilter = (char **) mrm_filter;
-	GUI->fileSelector->callback.disconnect_all();
-	GUI->fileSelector->callback.connect(&TEmulator::ChangeMegaRomFile, this);
-
-	if (fileName) {
-		char *file = LocateROM(fileName);
-		if (file == NULL)
-			file = fileName;
-
-		strcpy(GUI->fileSelector->path, file);
-		if (!TestDir(GUI->fileSelector->path, (char *) "..", NULL))
-			fileName = NULL;
-	}
-	if (!fileName) {
-		if (stat(PathAppConfig, &filestat) == 0)
-			strcpy(GUI->fileSelector->path, PathAppConfig);
-		else if (stat(PathResources, &filestat) == 0)
-			strcpy(GUI->fileSelector->path, PathResources);
-		else
-			strcpy(GUI->fileSelector->path, PathApplication);
-	}
-
-	GUI->MenuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
+	GUI->FileSelector(
+		GUI_FS_OPEN,
+		"Select ROM module file (*.mrm, *.rmm)",
+		Settings->CurrentModel->mrmFile,
+		{".mrm", ".rmm", ".bin"},
+		true
+	);
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionRawFile(bool save)
 {
-	ActionPlayPause(false, false);
+	GUI->uiFileSelectorCallback.connect(
+		[&](const char *fileName) {
+			if (fileName)
+				SelectRawFile(fileName, save);
 
-	GUI->fileSelector->tag = (BYTE) save;
-	GUI->fileSelector->type = save ? GUI_FS_BASESAVE : GUI_FS_BASELOAD;
-	GUI->fileSelector->title = "SELECT RAW FILE";
-	GUI->fileSelector->extFilter = NULL;
-	GUI->fileSelector->callback.disconnect_all();
-	GUI->fileSelector->callback.connect(&TEmulator::SelectRawFile, this);
+			GUI->uiSetChanges |= PS_CLOSEALL;
+			GUI->uiFileSelectorCallback.disconnect_all();
+		}
+	);
 
-	char *recentFile = Settings->MemoryBlock->fileName;
-	if (recentFile) {
-		char *file = ComposeFilePath(recentFile);
-		strcpy(GUI->fileSelector->path, file);
-		delete [] file;
-
-		if (!TestDir(GUI->fileSelector->path, (char *) "..", NULL))
-			recentFile = NULL;
-	}
-	if (!recentFile)
-		strcpy(GUI->fileSelector->path, PathApplication);
-
-	GUI->MenuOpen(UserInterface::GUI_TYPE_FILESELECTOR);
+	GUI->FileSelector(
+		save ? GUI_FS_SAVE : GUI_FS_OPEN,
+		"Select raw file (*.*)",
+		Settings->MemoryBlock->fileName
+	);
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionReset()
@@ -1767,17 +1706,16 @@ void TEmulator::ConnectPMD32(bool init)
 	}
 }
 //---------------------------------------------------------------------------
-void TEmulator::ProcessSnapshot(char *fileName, BYTE *flag)
+bool TEmulator::ProcessSnapshot(const char *fileName)
 {
 	BYTE *buf  = new BYTE[SNAP_HEADER_LEN + 1];
 	BYTE *src  = new BYTE[SNAP_BLOCK_LEN];
 	BYTE *dest = new BYTE[SNAP_BLOCK_LEN];
 
 	TComputerModel oldModel = model, newModel;
-	int version, offset, len;
+	int flag = -1, version, offset, len;
 
 	do {
-		*flag = 0xFF;
 		if (ReadFromFile(fileName, 0, SNAP_HEADER_LEN, buf) != SNAP_HEADER_LEN)
 			break;
 
@@ -1815,7 +1753,7 @@ void TEmulator::ProcessSnapshot(char *fileName, BYTE *flag)
 				break;
 		}
 
-		*flag = 2;
+		flag = 1;
 		for (int i = 0; i < Settings->modelsCount; i++) {
 			if (Settings->AllModels[i]->type == newModel) {
 				Settings->CurrentModel = Settings->AllModels[i];
@@ -1910,13 +1848,13 @@ void TEmulator::ProcessSnapshot(char *fileName, BYTE *flag)
 			memory->PutMem(0xC000, dest, SNAP_BLOCK_LEN);
 		}
 
-		*flag = 0;
+		flag = 0;
 	} while (false);
 
-	if (*flag == 0xFF)
-		GUI->MessageBox("INVALID SNAPHOT FORMAT!");
-	else if (*flag == 2) {
-		GUI->MessageBox("CORRUPTED SNAPSHOT!");
+	if (flag < 0)
+		GUI->MessageBox("Invalid snaphot format!");
+	else if (flag > 0) {
+		GUI->MessageBox("Corrupted snapshot!");
 
 		for (int i = 0; i < Settings->modelsCount; i++) {
 			if (Settings->AllModels[i]->type == oldModel) {
@@ -1939,14 +1877,16 @@ void TEmulator::ProcessSnapshot(char *fileName, BYTE *flag)
 	delete [] dest;
 	delete [] src;
 	delete [] buf;
+
+	return (flag == 0);
 }
 //---------------------------------------------------------------------------
-void TEmulator::PrepareSnapshot(char *fileName, BYTE *flag)
+void TEmulator::PrepareSnapshot(const char *fileName)
 {
 	BYTE *buf  = new BYTE[SNAP_HEADER_LEN + 1];
 	BYTE *src  = new BYTE[SNAP_BLOCK_LEN];
 	BYTE *dest = new BYTE[SNAP_BLOCK_LEN];
-	int len, offset = SNAP_HEADER_LEN;
+	int flag = -1, len, offset = SNAP_HEADER_LEN;
 
 	memset(buf, 0, SNAP_HEADER_LEN);
 	memcpy(buf, "PSN", 3);
@@ -1974,11 +1914,10 @@ void TEmulator::PrepareSnapshot(char *fileName, BYTE *flag)
 	}
 
 	do {
-		*flag = 0xFF;
 		if (WriteToFile(fileName, 0, SNAP_HEADER_LEN, buf, true) < 0)
 			break;
 
-		*flag = 1;
+		flag = 1;
 
 		// ROM block
 		if (Settings->Snapshot->saveWithMonitor) {
@@ -2078,15 +2017,13 @@ void TEmulator::PrepareSnapshot(char *fileName, BYTE *flag)
 		if (WriteToFile(fileName, 0, SNAP_HEADER_LEN, buf, false) != SNAP_HEADER_LEN)
 			break;
 
-		*flag = 0;
+		flag = 0;
 	} while (false);
 
-	if (*flag == 0xFF)
-		GUI->MessageBox("CAN'T OPEN FILE FOR WRITING!");
-	else if (*flag == 1) {
-		GUI->MessageBox("ERROR WRITING FILE...\nSNAPSHOT WILL BE CORRUPTED!");
-		*flag = 0;
-	}
+	if (flag < 0)
+		GUI->MessageBox("Can't open file for writing!");
+	else if (flag > 1)
+		GUI->MessageBox("Error writing file!\nSnapshot could be corrupted!");
 	else {
 		if (Settings->Snapshot->fileName)
 			delete [] Settings->Snapshot->fileName;
@@ -2099,20 +2036,18 @@ void TEmulator::PrepareSnapshot(char *fileName, BYTE *flag)
 	delete [] buf;
 }
 //---------------------------------------------------------------------------
-void TEmulator::InsertTape(char *fileName, BYTE *flag)
+void TEmulator::InsertTape(const char *fileName, bool import)
 {
-	bool import = (bool) *flag;
+	// TODO refactor TapeBrowser input to const char *fileName
+	BYTE result = import ?
+		TapeBrowser->ImportFileName((char *) fileName) :
+		TapeBrowser->SetTapeFileName((char *) fileName);
 
-	if (import)
-		*flag = TapeBrowser->ImportFileName(fileName);
-	else
-		*flag = TapeBrowser->SetTapeFileName(fileName);
-
-	if (*flag == 0xFF)
-		GUI->MessageBox("FATAL ERROR!\nOR CAN'T OPEN FILE!");
-	else if (*flag == 1) {
-		GUI->MessageBox("CORRUPTED TAPE FORMAT!");
-		*flag = 0;
+	if (result == 0xFF)
+		GUI->MessageBox("Fatal error!\nCan't open file!");
+	else if (result == 1) {
+		GUI->MessageBox("Corrupted tape format!");
+		result = 0;
 	}
 
 	if (import) {
@@ -2131,15 +2066,16 @@ void TEmulator::InsertTape(char *fileName, BYTE *flag)
 	GUI->uiCallback.connect(&TEmulator::ActionTapeBrowser, this);
 }
 //---------------------------------------------------------------------------
-void TEmulator::SaveTape(char *fileName, BYTE *flag)
+void TEmulator::SaveTape(const char *fileName)
 {
-	*flag = TapeBrowser->SaveTape(fileName, NULL, true);
+	// TODO refactor TapeBrowser input to const char *fileName
+	BYTE flag = TapeBrowser->SaveTape((char *) fileName, NULL, true);
 
-	if (*flag == 0xFF)
-		GUI->MessageBox("FATAL ERROR!\nINVALID NAME OR EXTENSION,\nOR CAN'T OPEN FILE FOR WRITING!");
-	else if (*flag == 1) {
-		GUI->MessageBox("ERROR WRITING FILE...\nTAPE WILL BE CORRUPTED!");
-		*flag = 0;
+	if (flag == 0xFF)
+		GUI->MessageBox("Fatal Error!\nInvalid name, extension or can't open file for writing.");
+	else if (flag == 1) {
+		GUI->MessageBox("Error writing file. Tape will be corrupted.");
+		flag = 0;
 	}
 	else {
 		delete [] Settings->TapeBrowser->fileName;
@@ -2147,14 +2083,13 @@ void TEmulator::SaveTape(char *fileName, BYTE *flag)
 		strcpy(Settings->TapeBrowser->fileName, fileName);
 
 		int curr = TapeBrowser->currBlockIdx;
-		if (TapeBrowser->SetTapeFileName(fileName))
+		if (TapeBrowser->SetTapeFileName((char *) fileName))
 			TapeBrowser->currBlockIdx = curr;
 	}
 }
 //---------------------------------------------------------------------------
-void TEmulator::InsertPMD32Disk(char *fileName, BYTE *flag)
+void TEmulator::InsertPMD32Disk(const char *fileName)
 {
-	*flag = 1;
 	switch (pmd32workdrive) {
 		case 1:
 			delete [] Settings->PMD32->driveA.image;
@@ -2177,15 +2112,13 @@ void TEmulator::InsertPMD32Disk(char *fileName, BYTE *flag)
 			strcpy(Settings->PMD32->driveD.image, fileName);
 			break;
 		default:
-			*flag = 0xFF;
-			break;
+			return;
 	}
 
-	if (*flag == 1)
-		ConnectPMD32(false);
+	ConnectPMD32(false);
 }
 //---------------------------------------------------------------------------
-void TEmulator::ChangeROMFile(char *fileName, BYTE *flag)
+void TEmulator::ChangeROMFile(const char *fileName)
 {
 	char *ptr = (char *) AdaptFilePath(fileName, PathAppConfig);
 	if (ptr == fileName) {
@@ -2202,13 +2135,12 @@ void TEmulator::ChangeROMFile(char *fileName, BYTE *flag)
 	delete [] Settings->CurrentModel->romFile;
 	Settings->CurrentModel->romFile = new char[strlen(ptr) + 1];
 	strcpy(Settings->CurrentModel->romFile, ptr);
-	GUI->uiSetChanges |= PS_MACHINE;
+	GUI->uiSetChanges |= PS_MACHINE | PS_PERIPHERALS;
 
 	romChanged = true;
-	*flag = 1;
 }
 //---------------------------------------------------------------------------
-void TEmulator::ChangeMegaRomFile(char *fileName, BYTE *flag)
+void TEmulator::ChangeMegaRomFile(const char *fileName)
 {
 	char *ptr = (char *) AdaptFilePath(fileName, PathAppConfig);
 	if (ptr == fileName) {
@@ -2225,34 +2157,32 @@ void TEmulator::ChangeMegaRomFile(char *fileName, BYTE *flag)
 	delete [] Settings->CurrentModel->mrmFile;
 	Settings->CurrentModel->mrmFile = new char[strlen(ptr) + 1];
 	strcpy(Settings->CurrentModel->mrmFile, ptr);
-	GUI->uiSetChanges |= PS_MACHINE;
+	GUI->uiSetChanges |= PS_MACHINE | PS_PERIPHERALS;
 
 	romChanged = true;
-	*flag = 1;
 }
 //---------------------------------------------------------------------------
-void TEmulator::SelectRawFile(char *fileName, BYTE *flag)
+void TEmulator::SelectRawFile(const char *fileName, bool save)
 {
 	long int length = Settings->MemoryBlock->length;
-	bool save = (bool) *flag;
 	FILE *f = NULL;
+	bool checkOK = false;
 
-	*flag = 0xFF;
 	if (save)
-		*flag = 1;
+		checkOK = true;
 	else if ((f = fopen(fileName, "rb"))) {
 		if (fseek(f, 0, SEEK_END) == 0) {
 			length = ftell(f);
 			if (length > 0 && length < 65536)
-				*flag = 1;
+				checkOK = true;
 		}
 
 		fclose(f);
 		f = NULL;
 	}
 
-	if (*flag == 0xFF)
-		GUI->MessageBox("FATAL ERROR!\nINVALID LENGTH OR CAN'T OPEN FILE!");
+	if (!checkOK)
+		GUI->MessageBox("Fatal error!\nInvalid length or can't open file.");
 	else {
 		if (Settings->MemoryBlock->fileName)
 			delete [] Settings->MemoryBlock->fileName;

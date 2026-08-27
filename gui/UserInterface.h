@@ -25,6 +25,7 @@
 //-----------------------------------------------------------------------------
 #include "globals.h"
 #include "imgui/imgui.h"
+#include "imgui-mods/imgui_file_browser.h"
 //-----------------------------------------------------------------------------
 #define SCHR_ERROR     127
 #define SCHR_NAVIGATOR 128
@@ -129,11 +130,11 @@ class UserInterface
 		BYTE uiQueryState;
 		sigslot::signal<> uiCallback;
 		sigslot::signal<TMenuQueryType> uiQueryCallback;
+		sigslot::signal<char *> uiFileSelectorCallback;
 
 		DWORD globalPalette[256];
 		SDL_Texture *defaultTexture;
 
-		GUI_FILESELECTOR_DATA *fileSelector;
 		GUI_TAPEDIALOG_DATA *tapeDialog;
 		sigslot::signal<char *, BYTE *> editBoxValidator;
 
@@ -142,17 +143,31 @@ class UserInterface
 
 		inline bool InMenu() { return isMenuHovered; }
 		inline bool InEmulatorWindow() { return isEmulatorWindowFocused; }
+		inline bool InAnyWindowExceptEmulator() {
+			return
+				isMenuHovered ||
+				isAnyPopupWindowFocused ||
+				!isEmulatorWindowFocused;
+		}
 
 		bool OnMenuLeave();
 
-		void DrawEmulatorWindow();
 		void DrawMenu();
-		void DiskImagesDialog();
-		void AboutDialog();
-		void QueryDialog(const char *title, const char *message, bool save);
+		void DrawAboutDialog();
 		void DrawQueryDialog();
+		void DrawFileSelector();
+		void DrawDiskImagesDialog();
+		void DrawEmulatorWindow();
+
+		void QueryDialog(const char *title, const char *message, bool save);
 		void MessageBox(const char *text, ...);
 		BYTE EditBox(const char *title, const char *description, char *buffer, BYTE maxLength, bool decimal);
+		void FileSelector(
+			TFileSelectType type,
+			const char *title, const char *recentFile,
+			const std::vector<std::string> &filter = {".*"},
+			bool fallbackToResourceDir = false
+		);
 
 		void MenuOpen(GUI_MENU_TYPE type, void *data = NULL);
 		void MenuClose();
@@ -173,6 +188,7 @@ class UserInterface
 		char computerModel[8];
 
 		bool isMenuHovered;
+		bool isAnyPopupWindowFocused;
 		bool isEmulatorWindowFocused;
 		bool dialogDiskImagesOpened;
 		bool dialogAboutOpened;
@@ -209,6 +225,11 @@ class UserInterface
 		SDL_Rect *cMenu_rect;
 		int cMenu_leftMargin, cMenu_count, cMenu_hilite;
 
+		TFileSelectType fileSelectorType;
+		ImGui::FileBrowser *fileSelector;
+		char *fileSelectorPath;
+		char *fileSelectorRecentPath;
+
 		const char *queryDialogTitle;
 		const char *queryDialogMessage;
 		bool queryDialogSaveType;
@@ -219,8 +240,8 @@ class UserInterface
 
 		void SetButtonColor(int icon);
 		void MachineMenuItem(const char *name, TComputerModel model);
-		void AttributeMenuItems(bool enabled);
-		void DiskImagesMenuItems();
+		void AttributeMenuItems(bool enabled = false);
+		void DiskImagesMenuItems(bool inMenu = false);
 
 	/* OBSOLETE TBD { */
 		void PutPixel(GUI_SURFACE *s, int x, int y, BYTE col);
@@ -238,8 +259,6 @@ class UserInterface
 		void DrawDebugFrame(GUI_SURFACE *s, int x, int y, int w, int h);
 		void PrintCheck(GUI_SURFACE *s, int x, int y, BYTE col, BYTE ch, bool state);
 
-		void DrawFileSelectorItems(GUI_SURFACE *s = NULL);
-		void DrawFileSelector(bool update = true);
 		void DrawTapeDialogItems(GUI_SURFACE *s = NULL);
 		void DrawTapeDialog(bool update = true);
 		void DrawDebugWidgetDisass(GUI_SURFACE *s, SDL_Rect *r, bool full);
@@ -248,10 +267,6 @@ class UserInterface
 		void DrawDebugWidgetBreaks(GUI_SURFACE *s, SDL_Rect *r);
 		void DrawDebugWindow();
 
-		void KeyhandlerFileSelector(WORD key);
-		void KeyhandlerFileSelectorCallback(char *fileName);
-		int  KeyhandlerFileSelectorSearch(int from = 0);
-		bool KeyhandlerFileSelectorSearchClean();
 		void KeyhandlerTapeDialog(WORD key);
 		void KeyhandlerDebugWindow(WORD key);
 	/* } */

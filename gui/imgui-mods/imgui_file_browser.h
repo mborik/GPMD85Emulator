@@ -324,7 +324,7 @@ inline void ImGui::FileBrowser::SetTitle(std::string title)
     title_ = std::move(title);
 
     const std::string thisPtrStr = std::to_string(reinterpret_cast<size_t>(this));
-    openLabel_ = title_ + "##filebrowser_" + thisPtrStr;
+    openLabel_ = title_ /* + "##filebrowser_" + thisPtrStr */;
     openNewDirLabel_ = "new dir##new_dir_" + thisPtrStr;
 }
 

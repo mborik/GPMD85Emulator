@@ -165,6 +165,7 @@ int main(int argc, char** argv)
 	// Setup Dear ImGui style
 	ImGui::StyleColorsDark();
 	style.Colors[ImGuiCol_TitleBgActive] = style.Colors[ImGuiCol_MenuBarBg];
+	style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.5f);
 
 	// Setup Platform/Renderer backends
 	ImGui_ImplSDL2_InitForOpenGL(gdc.window, gdc.context);
@@ -222,9 +223,8 @@ int main(int argc, char** argv)
 			switch (event.type) {
 				case SDL_KEYUP:
 				case SDL_KEYDOWN:
-					if ((io.WantCaptureKeyboard && GUI->InMenu()) ||
-						(!GUI->InMenu() && event.key.repeat != 0))
-							break;
+					if (event.key.repeat != 0)
+						break;
 					/* no break */
 				case SDL_QUIT:
 					memcpy(kb, SDL_GetKeyboardState(NULL), SDL_NUM_SCANCODES);
@@ -267,9 +267,11 @@ int main(int argc, char** argv)
 		}
 
 		while (baseAccumulator >= GPU_TIMER_INTERVAL) {
-			Emulator->BaseTimerCallback();
-			Emulator->RefreshDisplay();
+			Emulator->BaseTimerCallback(
+				io.WantCaptureKeyboard && GUI->InAnyWindowExceptEmulator()
+			);
 
+			Emulator->RefreshDisplay();
 			baseAccumulator -= GPU_TIMER_INTERVAL;
 		}
 
@@ -278,9 +280,10 @@ int main(int argc, char** argv)
 		ImGui::NewFrame();
 
 		GUI->DrawMenu();
-		GUI->AboutDialog();
+		GUI->DrawAboutDialog();
 		GUI->DrawQueryDialog();
-		GUI->DiskImagesDialog();
+		GUI->DrawFileSelector();
+		GUI->DrawDiskImagesDialog();
 		GUI->DrawEmulatorWindow();
 
 		Emulator->actionCallback();

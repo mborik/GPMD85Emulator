@@ -66,7 +66,7 @@ class TEmulator
 		void ProcessSettings(BYTE filter);
 		bool ProcessRawFile(bool save);
 
-		void BaseTimerCallback();
+		void BaseTimerCallback(bool guiWantCapture = false);
 		void CpuTimerCallback();
 		bool TestHotkeys();
 
@@ -77,8 +77,8 @@ class TEmulator
 		void ActionTapeNew();
 		void ActionTapeLoad(bool import = false);
 		void ActionTapeSave();
-		void ActionDiskImages();
 		void ActionPMD32LoadDisk(int drive);
+		void ActionPMD32Update();
 		void ActionSnapLoad();
 		void ActionSnapSave();
 		void ActionRawFile(bool save);
@@ -142,14 +142,14 @@ class TEmulator
 		void ConnectMIF85(bool init);
 		void ConnectMouse602(bool init);
 		void ConnectPMD32(bool init);
-		void ProcessSnapshot(char *fileName, BYTE *flag);
-		void PrepareSnapshot(char *fileName, BYTE *flag);
-		void InsertTape(char *fileName, BYTE *flag);
-		void SaveTape(char *fileName, BYTE *flag);
-		void InsertPMD32Disk(char *fileName, BYTE *flag);
-		void ChangeROMFile(char *fileName, BYTE *flag);
-		void ChangeMegaRomFile(char *fileName, BYTE *flag);
-		void SelectRawFile(char *fileName, BYTE *flag);
+		bool ProcessSnapshot(const char *fileName);
+		void PrepareSnapshot(const char *fileName);
+		void InsertTape(const char *fileName, bool import);
+		void SaveTape(const char *fileName);
+		void InsertPMD32Disk(const char *fileName);
+		void ChangeROMFile(const char *fileName);
+		void ChangeMegaRomFile(const char *fileName);
+		void SelectRawFile(const char *fileName, bool save = false);
 };
 //---------------------------------------------------------------------------
 extern TEmulator *Emulator;

@@ -1154,7 +1154,7 @@ bool ccb_debugger(GUI_MENU_ENTRY *ptr)
 //-----------------------------------------------------------------------------
 bool ccb_about(GUI_MENU_ENTRY *ptr)
 {
-	GUI->AboutDialog();
+	GUI->DrawAboutDialog();
 	return false;
 }
 //-----------------------------------------------------------------------------
