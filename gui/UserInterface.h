@@ -27,82 +27,15 @@
 #include "imgui/imgui.h"
 #include "imgui-mods/imgui_file_browser.h"
 //-----------------------------------------------------------------------------
-#define SCHR_ERROR     127
-#define SCHR_NAVIGATOR 128
-#define SCHR_SCROLL_UP 129
-#define SCHR_SCROLL_DW 130
-#define SCHR_HOTKEY    131
-#define SCHR_SHIFT     132
-#define SCHR_BROWSE    133
-#define SCHR_DIRECTORY 134
-#define SCHR_CHECK     135
-#define SCHR_RADIO     136
-#define SCHR_LOCKER    137
-#define SCHR_STOP      138
-#define SCHR_LAST      144
-//-----------------------------------------------------------------------------
-#define GUI_CONST_BORDER     8
-#define GUI_CONST_ITEM_SIZE  11
-#define GUI_CONST_SEPARATOR  5
-#define GUI_CONST_CHK_MARGIN 14
-#define GUI_CONST_HOTKEYCHAR 10
-#define GUI_CONST_KEY_REPEAT 50
-#define GUI_CONST_TAPE_ITEMS 16
-//-----------------------------------------------------------------------------
-#define GUI_COLOR_SHADOW     16
-#define GUI_COLOR_BORDER     17
-#define GUI_COLOR_BACKGROUND 18
-#define GUI_COLOR_FOREGROUND 19
-#define GUI_COLOR_HIGHLIGHT  20
-#define GUI_COLOR_DISABLED   21
-#define GUI_COLOR_SEPARATOR  22
-#define GUI_COLOR_CHECKED    23
-#define GUI_COLOR_SMARTKEY   24
-#define GUI_COLOR_HOTKEY     25
-#define GUI_COLOR_DBG_BACK   26
-#define GUI_COLOR_DBG_TEXT   27
-#define GUI_COLOR_DBG_CURSOR 28
-#define GUI_COLOR_DBG_BORDER 29
-#define GUI_COLOR_STAT_TEXT  32
-#define GUI_COLOR_STAT_PAUSE 33
-#define GUI_COLOR_STATTAP_BG 34
-#define GUI_COLOR_STATTAP_FG 35
-//-----------------------------------------------------------------------------
 #define STATUSBAR_HEIGHT  48
 //-----------------------------------------------------------------------------
 #define SDL_PIXELFORMAT_DEFAULT SDL_PIXELFORMAT_ABGR8888
 #define SDL_DEFAULT_MASK_QUAD 0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff
 #define DWORD_COLOR_ENTRY(R, G, B) SDL_FOURCC(R, G, B, 0xff)
 //-----------------------------------------------------------------------------
-typedef struct _GUI_MENU_ENTRY {
-	TMenuItemType type;
-	const char *text;
-	const char *hotkey;
-	WORD key;
-
-	struct _GUI_MENU_ENTRY *submenu;
-	bool (*callback) (_GUI_MENU_ENTRY *ptr);
-	const char * (*detail) (_GUI_MENU_ENTRY *ptr);
-
-	bool enabled; // enabled/disabled item
-	bool state;   // checkbox/radio state
-	WORD action;  // action value
-} GUI_MENU_ENTRY;
-//-----------------------------------------------------------------------------
 class UserInterface
 {
 	public:
-		enum GUI_MENU_TYPE {
-			GUI_TYPE_MENU,              // General menu
-			GUI_TYPE_ABOUT,             // About modal dialog
-			GUI_TYPE_DISKIMAGES,        // Disk images dialog
-			GUI_TYPE_FILESELECTOR,      // File selector
-			GUI_TYPE_TAPEBROWSER,       // Tape-browser
-			GUI_TYPE_TAPE_POPUP,        // Tape-browser popup menu
-			GUI_TYPE_DEBUGGER,          // Debugger dialog
-			GUI_TYPE_POKE               // Poke dialog
-		};
-
 		typedef struct GUI_TAPEDIALOG_DATA {
 			int  count;
 			char **entries;
@@ -112,7 +45,8 @@ class UserInterface
 			} popup;
 		} GUI_TAPEBROWSER_DATA;
 
-		bool needRelease;
+		GUI_TAPEDIALOG_DATA *tapeDialog;
+
 		BYTE uiSetChanges;
 		BYTE uiQueryState;
 		sigslot::signal<> uiCallback;
@@ -120,10 +54,6 @@ class UserInterface
 		sigslot::signal<char *> uiFileSelectorCallback;
 
 		DWORD globalPalette[256];
-		SDL_Texture *defaultTexture;
-
-		GUI_TAPEDIALOG_DATA *tapeDialog;
-		sigslot::signal<char *, BYTE *> editBoxValidator;
 
 		UserInterface();
 		virtual ~UserInterface();
@@ -157,10 +87,7 @@ class UserInterface
 			bool fallbackToResourceDir = false
 		);
 
-		// TBD
-		inline BYTE EditBox(const char *title, const char *description, char *buffer, BYTE maxLength, bool decimal) { return 0; }
-
-		void MenuOpen(GUI_MENU_TYPE type, void *data = NULL);
+		void Execute(TGuiElementType type, void *data = NULL);
 		void MenuClose();
 		void MenuCloseAll();
 

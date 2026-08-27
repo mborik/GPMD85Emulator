@@ -22,7 +22,6 @@
 //-----------------------------------------------------------------------------
 #include "CommonUtils.h"
 #include "UserInterface.h"
-#include "UserInterfaceData.h"
 #include "Emulator.h"
 #include "imgui/imgui_internal.h"
 //-----------------------------------------------------------------------------
@@ -153,15 +152,15 @@ void UserInterface::DrawEmulatorWindow()
 	ImGui::PopStyleVar(1);
 }
 //-----------------------------------------------------------------------------
-void UserInterface::MenuOpen(GUI_MENU_TYPE type, void *data)
+void UserInterface::Execute(TGuiElementType type, void *data)
 {
 	switch (type) {
-		case GUI_TYPE_ABOUT:
+		case GE_ABOUT:
 			dialogAboutOpened = true;
 			ImGui::OpenPopup("About");
 			break;
 
-		case GUI_TYPE_DISKIMAGES:
+		case GE_DISKIMAGES:
 			dialogDiskImagesOpened = !dialogDiskImagesOpened;
 			break;
 

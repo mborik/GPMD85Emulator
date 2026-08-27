@@ -253,8 +253,8 @@ char *TDebugger::MakeDumpLine(WORD *addr)
 	adr = *addr;
 	for (i = 0; i < k; i++) {
 		ch = memory->ReadByte(adr++);
-		if (ch < 0x20 || ch > SCHR_ERROR)
-			ch = SCHR_ERROR;
+		if (ch < 0x20 || ch > 0x7F)
+			ch = 0x7F;
 		lineBuffer[j++] = (char) ch;
 	}
 

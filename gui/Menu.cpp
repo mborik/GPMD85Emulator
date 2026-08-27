@@ -84,7 +84,7 @@ void UserInterface::DrawMenu()
 
 			ImGui::Separator();
 			if (ImGui::MenuItem("About\u0085", MOD_KEY("F1"))) {
-				MenuOpen(GUI_TYPE_ABOUT);
+				Execute(GE_ABOUT);
 			}
 			if (ImGui::MenuItem("Exit", MOD_KEY("F4"))) {
 				Emulator->ActionExit();
@@ -344,6 +344,22 @@ void UserInterface::DrawMenu()
 					sprintf(currentFile, "[%s]", ExtractFileName(Settings->CurrentModel->mrmFile));
 				if (ImGui::MenuItem("ROM MEGAmodule Image\u0085", mrmFile)) {
 					Emulator->ActionMegaRomLoad();
+				}
+
+				ImGui::SetNextItemAllowOverlap();
+				ImGui::MenuItem("ROM MEGAmodule Page", "");
+				ImGui::SameLine(170.0f);
+				ImGui::SetNextItemWidth(80.0f);
+				int currentMrmPage = Emulator->ActionMegaModulePage();
+				if (ImGui::InputInt("##mrmPage", &currentMrmPage, 1, 16,
+					ImGuiInputTextFlags_CharsDecimal |
+					ImGuiInputTextFlags_EnterReturnsTrue)) {
+
+					if (currentMrmPage < 0)
+						currentMrmPage = 0;
+					else if (currentMrmPage >= MEGA_MODULE_MAX_PAGES)
+						currentMrmPage = MEGA_MODULE_MAX_PAGES - 1;
+					Emulator->ActionMegaModulePage(true, (BYTE) currentMrmPage);
 				}
 			}
 

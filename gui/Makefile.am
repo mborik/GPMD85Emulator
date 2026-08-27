@@ -16,12 +16,12 @@ noinst_LIBRARIES = libGPMD85emu_gui.a
 
 libGPMD85emu_gui_a_SOURCES = \
 	imgui-mods/imconfig_mod.h \
+	imgui/imgui.h \
 	imgui/backends/imgui_impl_sdl2.cpp \
 	imgui/backends/imgui_impl_sdl2.h \
 	imgui/backends/imgui_impl_opengl3.cpp \
 	imgui/backends/imgui_impl_opengl3.h \
 	imgui/imgui.cpp \
-	imgui/imgui.h \
 	imgui/imgui_draw.cpp \
 	imgui/imgui_internal.h \
 	imgui/imgui_tables.cpp \
@@ -34,15 +34,11 @@ libGPMD85emu_gui_a_SOURCES = \
 	imgui/misc/cpp/imgui_stdlib.h \
 	imgui-mods/imgui_memory_editor.h \
 	imgui-mods/imgui_file_browser.h \
+	UserInterface.h \
 	CommonDialog.cpp \
 	DebugWindow.cpp \
 	Menu.cpp \
 	FileSelector.cpp \
 	StatusBar.cpp \
 	TapeDialog.cpp \
-	UserInterface.cpp \
-	UserInterfaceData.cpp
-
-noinst_HEADERS = \
-	UserInterface.h \
-	UserInterfaceData.h
+	UserInterface.cpp
