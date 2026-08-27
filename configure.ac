@@ -88,23 +88,56 @@ libGL_CFLAGS=""
 
 case "${host_os}" in
 	darwin*)
-		# macOS: Set minimum deployment target to 10.15 if not already set
-		if [[ "$CXXFLAGS" != *"-mmacosx-version-min"* ]]; then
-			CXXFLAGS="$CXXFLAGS -mmacosx-version-min=10.15"
+		# Dynamic detection of default macOS deployment target from compiler
+		AC_MSG_CHECKING([default macOS deployment target from compiler])
+		AC_LANG_PUSH([C++])
+
+		# Compile and link a minimal conftest binary
+		AC_LINK_IFELSE([AC_LANG_PROGRAM([], [])], [
+			# Extract minos/sdk value from the generated binary using otool and awk
+			DETECTED_TARGET=$(otool -l conftest$EXEEXT | grep -A 2 "minos" | awk '/minos/ {print $2}')
+
+			# Fallback for older otool tools (older Xcode versions used LC_VERSION_MIN_MACOSX)
+			if test -z "$DETECTED_TARGET"; then
+				DETECTED_TARGET=$(otool -l conftest$EXEEXT | grep -A 3 "LC_VERSION_MIN_MACOSX" | awk '/version/ {print $2}')
+			fi
+		], [
+			DETECTED_TARGET=""
+		])
+		AC_LANG_POP([C++])
+
+		# macOS: fallback to safe 10.15 if otool fails
+		if test -n "$DETECTED_TARGET"; then
+			AC_MSG_RESULT([$DETECTED_TARGET])
+			DEFAULT_MACOS_TARGET="$DETECTED_TARGET"
+		else
+			AC_MSG_RESULT([unknown, using fallback 10.15])
+			DEFAULT_MACOS_TARGET="10.15"
 		fi
-		# macOS: Use native Apple Framework
+
+		# Set MACOSX_DEPLOYMENT_TARGET for the linker
+		if test -z "$MACOSX_DEPLOYMENT_TARGET"; then
+			export MACOSX_DEPLOYMENT_TARGET="$DEFAULT_MACOS_TARGET"
+		fi
+
+		# ... and finally write to CXXFLAGS for the compiler
+		if [[ "$CXXFLAGS" != *"-mmacosx-version-min"* ]]; then
+			CXXFLAGS="$CXXFLAGS -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET"
+		fi
+
+		# macOS: Use native Apple Framework for OpenGL
 		AC_MSG_CHECKING([for OpenGL framework])
 		libGL_LIBS="-Wl,-framework,OpenGL"
 		AC_MSG_RESULT([yes])
 		AC_CHECK_HEADERS([OpenGL/gl.h], [
-			libGL_CFLAGS="-I{includedir}/OpenGL"
+			libGL_CFLAGS="-I${includedir}/OpenGL"
 		], [AC_MSG_ERROR([OpenGL headers not found])])
 		;;
 	*)
 		AC_CHECK_LIB([GL], [glClear], [
-			libGL_LIBS="-lGL"
+			libGL_LIBS="-lGL -lGLU"
 			AC_CHECK_HEADERS([GL/gl.h], [
-				libGL_CFLAGS="-I{includedir}/GL"
+				libGL_CFLAGS="-I${includedir}/GL"
 			], [AC_MSG_ERROR([OpenGL headers not found])])
 		], [
 			AC_MSG_ERROR([OpenGL library not found.])
@@ -114,21 +147,20 @@ esac
 AC_SUBST(libGL_LIBS)
 AC_SUBST(libGL_CFLAGS)
 
-#-------------------------------
 AC_LANG_PUSH([C++])
 
 # Force C++17 standard for Clang and GCC
 AC_MSG_CHECKING([whether $CXX supports C++17 standard])
 CXXFLAGS="$CXXFLAGS -std=c++17"
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
-    #if __cplusplus < 201703L
-    #error "Not C++17"
-    #endif
+	#if __cplusplus < 201703L
+	#error "Not C++17"
+	#endif
 ]], [[]])], [
-    AC_MSG_RESULT([yes])
+	AC_MSG_RESULT([yes])
 ], [
-    AC_MSG_RESULT([no])
-    AC_MSG_ERROR([C++17 compiler is required to build this project.])
+	AC_MSG_RESULT([no])
+	AC_MSG_ERROR([C++17 compiler is required to build this project.])
 ])
 
 # Check for std::filesystem support (C++17)
