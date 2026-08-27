@@ -135,7 +135,7 @@ case "${host_os}" in
 		;;
 	*)
 		AC_CHECK_LIB([GL], [glClear], [
-			libGL_LIBS="-lGL -lGLU"
+			libGL_LIBS="-lGL"
 			AC_CHECK_HEADERS([GL/gl.h], [
 				libGL_CFLAGS="-I${includedir}/GL"
 			], [AC_MSG_ERROR([OpenGL headers not found])])
