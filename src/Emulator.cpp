@@ -285,6 +285,9 @@ void TEmulator::ProcessSettings(BYTE filter)
 		video->SetDisplayMode(Settings->Screen->size, Settings->Screen->border);
 		int multiplier = video->GetMultiplier();
 		Settings->Screen->realsize = (TDisplayMode) multiplier;
+
+		if (mouse602)
+			mouse602->SetMouseArea(multiplier);
 	}
 
 	if (filter & PS_SCREEN_MODE) {
@@ -1243,13 +1246,6 @@ void TEmulator::ActionPlayPause(bool play, bool globalChange)
 		sound->SoundOn();
 	else
 		sound->SoundMute();
-
-	if (play && mouse602 && mouse602->GetHideCursor()) {
-		SDL_ShowCursor(SDL_DISABLE);
-	}
-	else {
-		SDL_ShowCursor(SDL_ENABLE);
-	}
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionSizeChange(int mode)
@@ -1297,15 +1293,8 @@ int TEmulator::ActionMegaModulePage(bool set, BYTE page)
 //---------------------------------------------------------------------------
 void TEmulator::ActionMouseState(int x, int y, int leftBtn, int rightBtn, int middleBtn)
 {
-	if (!GUI->InMenu() && mouse602)
-		mouse602->SetMouseState(x, y, leftBtn, rightBtn, middleBtn);
-}
-//---------------------------------------------------------------------------
-void TEmulator::ActionHideCursor(bool hide)
-{
-	Settings->Mouse->hideCursor = hide;
 	if (mouse602)
-		mouse602->SetHideCursor(hide);
+		mouse602->SetMouseState(x, y, leftBtn, rightBtn, middleBtn);
 }
 //---------------------------------------------------------------------------
 int TEmulator::ActionJoyControllers(SDL_GameController ***controllers, bool refresh)
@@ -1635,7 +1624,6 @@ void TEmulator::ConnectMouse602(bool init)
 		if (mouse602connected) {
 			mouse602 = new Mouse602(video->GetMultiplier());
 
-			mouse602->SetHideCursor(Settings->Mouse->hideCursor);
 			cpu->AddDevice(MOUSE_ADR, MOUSE_MASK, mouse602, true);
 			cpu->TCyclesListeners.connect(&Mouse602::MouseService, mouse602);
 

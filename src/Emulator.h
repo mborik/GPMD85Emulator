@@ -94,7 +94,6 @@ class TEmulator
 		void ActionSpeedChange();
 		void ActionSizeChange(int mode);
 		void ActionMouseState(int x, int y, int leftBtn = 0, int rightBtn = 0, int middleBtn = 0);
-		void ActionHideCursor(bool hide = false);
 		int  ActionJoyControllers(SDL_GameController ***controllers = NULL, bool refresh = false);
 
 		// access to ScreenPMD85 class

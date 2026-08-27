@@ -26,7 +26,6 @@
 Mouse602::Mouse602(int size, int offsetX, int offsetY)
 {
 	SetMouseArea(size, offsetX, offsetY);
-	hideCursor = true;
 
 	posState = 0;
 	btnState = 0;

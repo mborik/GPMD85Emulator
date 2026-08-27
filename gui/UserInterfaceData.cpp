@@ -1050,7 +1050,7 @@ bool ccb_mouse_conn(GUI_MENU_ENTRY *ptr)
 //-----------------------------------------------------------------------------
 bool ccb_mouse_cursor(GUI_MENU_ENTRY *ptr)
 {
-	Emulator->ActionHideCursor(ptr->state = !ptr->state);
+	// Emulator->ActionHideCursor(ptr->state = !ptr->state);
 	return false;
 }
 //-----------------------------------------------------------------------------
