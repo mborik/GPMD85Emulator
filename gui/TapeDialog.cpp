@@ -28,7 +28,7 @@ void UserInterface::DrawTapeDialog(bool update)
 	if (update || tapeDialog->entries == NULL)
 		TapeBrowser->FillFileList(&tapeDialog->entries,
 				&tapeDialog->count, Settings->TapeBrowser->hex);
-
+/*
 	cMenu_data = NULL;
 	cMenu_leftMargin = cMenu_count = tapeDialog->count;
 	cMenu_hilite = TapeBrowser->currBlockIdx;
@@ -126,10 +126,12 @@ void UserInterface::DrawTapeDialog(bool update)
 	DrawTapeDialogItems(defaultSurface);
 
 	UnlockSurface(defaultTexture, defaultSurface);
+*/
 }
 //-----------------------------------------------------------------------------
-void UserInterface::DrawTapeDialogItems(GUI_SURFACE *s)
+void UserInterface::DrawTapeDialogItems()
 {
+/*
 	bool needUnlock = false;
 	if (s == NULL) {
 		s = LockSurface(defaultTexture);
@@ -186,8 +188,10 @@ void UserInterface::DrawTapeDialogItems(GUI_SURFACE *s)
 		UnlockSurface(defaultTexture, s);
 
 	delete r;
+*/
 }
 //-----------------------------------------------------------------------------
+/*
 void UserInterface::KeyhandlerTapeDialog(WORD key)
 {
 	int i = cMenu_hilite, prevLeftMargin = 0;
@@ -396,4 +400,5 @@ void UserInterface::KeyhandlerTapeDialog(WORD key)
 		DrawTapeDialogItems();
 	}
 }
+*/
 //-----------------------------------------------------------------------------

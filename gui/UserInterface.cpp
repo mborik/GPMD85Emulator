@@ -78,77 +78,11 @@ UserInterface::~UserInterface()
 		delete[] fileSelectorRecentPath;
 		fileSelectorRecentPath = NULL;
 	}
-
 	if (tapeDialog) {
 		TapeBrowser->FreeFileList(&tapeDialog->entries, &tapeDialog->count);
 		delete tapeDialog;
 		tapeDialog = NULL;
 	}
-}
-//-----------------------------------------------------------------------------
-UserInterface::GUI_SURFACE *UserInterface::LockSurface(SDL_Texture *texture)
-{
-	return NULL;
-}
-//-----------------------------------------------------------------------------
-void UserInterface::UnlockSurface(SDL_Texture *texture, GUI_SURFACE *surface)
-{
-}
-//-----------------------------------------------------------------------------
-void UserInterface::PutPixel(GUI_SURFACE *s, int x, int y, BYTE col)
-{
-}
-//-----------------------------------------------------------------------------
-void UserInterface::PrintChar(GUI_SURFACE *s, int x, int y, BYTE col, BYTE ch)
-{
-}
-//-----------------------------------------------------------------------------
-void UserInterface::PrintText(GUI_SURFACE *s, int x, int y, BYTE col, const char *msg)
-{
-}
-//-----------------------------------------------------------------------------
-void UserInterface::PrintFormatted(GUI_SURFACE *s, int x, int y, BYTE col, const char *msg, ...)
-{
-}
-//-----------------------------------------------------------------------------
-void UserInterface::PrintRightAlign(GUI_SURFACE *s, int x, int y, BYTE col, const char *msg, ...)
-{
-}
-//-----------------------------------------------------------------------------
-void UserInterface::PrintTitle(GUI_SURFACE *s, int x, int y, int w, BYTE col, const char *msg)
-{
-}
-//-----------------------------------------------------------------------------
-void UserInterface::DrawLineH(GUI_SURFACE *s, int x, int y, int len, BYTE col)
-{
-}
-//-----------------------------------------------------------------------------
-void UserInterface::DrawLineV(GUI_SURFACE *s, int x, int y, int len, BYTE col)
-{
-}
-//-----------------------------------------------------------------------------
-void UserInterface::DrawRectangle(GUI_SURFACE *s, int x, int y, int w, int h, BYTE col)
-{
-}
-//-----------------------------------------------------------------------------
-void UserInterface::DrawOutline(GUI_SURFACE *s, int x, int y, int w, int h, BYTE col)
-{
-}
-//-----------------------------------------------------------------------------
-void UserInterface::DrawOutlineRounded(GUI_SURFACE *s, int x, int y, int w, int h, BYTE col)
-{
-}
-//-----------------------------------------------------------------------------
-void UserInterface::DrawDialogWithBorder(GUI_SURFACE *s, int x, int y, int w, int h)
-{
-}
-//-----------------------------------------------------------------------------
-void UserInterface::DrawDebugFrame(GUI_SURFACE *s, int x, int y, int w, int h)
-{
-}
-//-----------------------------------------------------------------------------
-void UserInterface::PrintCheck(GUI_SURFACE *s, int x, int y, BYTE col, BYTE ch, bool state)
-{
 }
 //-----------------------------------------------------------------------------
 void UserInterface::DrawEmulatorWindow()

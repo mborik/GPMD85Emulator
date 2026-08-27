@@ -88,7 +88,7 @@ void UserInterface::DrawAboutDialog()
 		);
 
 		ImGui::SetItemDefaultFocus();
-		if (ImGui::Button("OK", ImVec2(button_width, 0))) {
+		if (ImGui::Button("OK", ImVec2(button_width, 0.0f))) {
 			ImGui::CloseCurrentPopup();
 			showAboutDialog = false;
 		}
@@ -132,28 +132,37 @@ void UserInterface::DrawQueryDialog()
 		ImGui::Spacing();
 
 		if (queryDialogSaveType) {
-			if (ImGui::Button("Save", ImVec2(100, 0))) {
+			if (ImGui::Button("Save", ImVec2(100.0f, 0.0f))) {
 				ImGui::CloseCurrentPopup();
 				uiQueryCallback(GUI_QUERY_SAVE);
 			}
 			ImGui::SameLine();
-			if (ImGui::Button("Don't Save", ImVec2(100, 0))) {
+			if (ImGui::Button("Don't Save", ImVec2(100.0f, 0.0f))) {
 				ImGui::CloseCurrentPopup();
 				uiQueryCallback(GUI_QUERY_DONTSAVE);
 			}
 			ImGui::SameLine();
-			if (ImGui::Button("Cancel", ImVec2(100, 0))) {
+			ImGui::SetItemDefaultFocus();
+			if (ImGui::Button("Cancel", ImVec2(100.0f, 0.0f))) {
 				ImGui::CloseCurrentPopup();
 				uiQueryCallback(GUI_QUERY_CANCEL);
 			}
 		}
-		else {
-			if (ImGui::Button("Yes", ImVec2(150, 0))) {
+		else if (queryDialogTitle && queryDialogTitle[0] != '\0') {
+			if (ImGui::Button("Yes", ImVec2(150.0f, 0.0f))) {
 				ImGui::CloseCurrentPopup();
 				uiQueryCallback(GUI_QUERY_YES);
 			}
 			ImGui::SameLine();
-			if (ImGui::Button("No", ImVec2(150, 0))) {
+			ImGui::SetItemDefaultFocus();
+			if (ImGui::Button("No", ImVec2(150.0f, 0.0f))) {
+				ImGui::CloseCurrentPopup();
+				uiQueryCallback(GUI_QUERY_NO);
+			}
+		}
+		else {
+			ImGui::SetItemDefaultFocus();
+			if (ImGui::Button("OK", ImVec2(200.0f, 0.0f))) {
 				ImGui::CloseCurrentPopup();
 				uiQueryCallback(GUI_QUERY_NO);
 			}
