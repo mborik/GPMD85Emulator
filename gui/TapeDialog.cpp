@@ -22,383 +22,295 @@
 //-----------------------------------------------------------------------------
 #include "UserInterface.h"
 #include "Emulator.h"
+#include "imgui/imgui_internal.h"
 //-----------------------------------------------------------------------------
-void UserInterface::DrawTapeDialog(bool update)
+void UserInterface::DrawTapeDialog()
 {
-	if (update || tapeDialog->entries == NULL)
-		TapeBrowser->FillFileList(&tapeDialog->entries,
-				&tapeDialog->count, Settings->TapeBrowser->hex);
-/*
-	cMenu_data = NULL;
-	cMenu_leftMargin = cMenu_count = tapeDialog->count;
-	cMenu_hilite = TapeBrowser->currBlockIdx;
-	if (cMenu_hilite < 0)
-		cMenu_hilite = 0;
+	if (TapeBrowser->shouldUpdateEntries || tapeDialogEntries.empty())
+		TapeBrowser->FillFileList(tapeDialogEntries);
 
-	while (cMenu_hilite < cMenu_leftMargin) {
-		cMenu_leftMargin -= GUI_CONST_TAPE_ITEMS;
-		if (cMenu_leftMargin < 0)
-			cMenu_leftMargin = 0;
-	}
+	if (dialogTapeBrowserOpened) {
+		ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+		ImGui::SetNextWindowPos(center, ImGuiCond_FirstUseEver, ImVec2(0.5f, 0.5f));
+		ImGui::SetNextWindowSize(ImVec2(320.0f, 480.0f), ImGuiCond_FirstUseEver);
+		ImGui::Begin("Tape Browser", &dialogTapeBrowserOpened,
+			TapeBrowser->tapeChanged ? ImGuiWindowFlags_UnsavedDocument : ImGuiWindowFlags_None);
 
-	if (cMenu_hilite >= (cMenu_leftMargin + GUI_CONST_TAPE_ITEMS))
-		cMenu_leftMargin = cMenu_hilite - GUI_CONST_TAPE_ITEMS + 1;
+		static char label[12];
+		static ImGuiSelectionBasicStorage selection;
+		bool hex = Settings->TapeBrowser->hex;
+		float sz = ImGui::GetFrameHeight();
 
-	cMenu_rect->w = GUI_CONST_BORDER + (31 * fontWidth) + GUI_CONST_BORDER;
-	cMenu_rect->h = (5 * GUI_CONST_BORDER) + (19 * GUI_CONST_ITEM_SIZE) + GUI_CONST_SEPARATOR;
-	cMenu_rect->x = (frameWidth  - cMenu_rect->w) / 2;
-	cMenu_rect->y = (frameHeight - cMenu_rect->h) / 2;
+		if (ImGui::BeginTable("TapeBrowserHeader", 2, ImGuiTableFlags_NoSavedSettings)) {
+			ImGui::TableSetupColumn("##hdr1", ImGuiTableColumnFlags_NoHide);
+			ImGui::TableSetupColumn("##hdr2", ImGuiTableColumnFlags_WidthFixed, 64.0f);
 
-	GUI_SURFACE *defaultSurface = LockSurface(defaultTexture);
+			static char *ptr = NULL;
+			if (Settings->TapeBrowser->fileName && !TapeBrowser->preparedForSave) {
+				ptr = strrchr(Settings->TapeBrowser->fileName, '/');
+				if (ptr)
+					ptr++;
+				else
+					ptr = Settings->TapeBrowser->fileName;
+			}
+			else
+				ptr = (char *) "[new tape]";
 
-	DrawDialogWithBorder(defaultSurface, cMenu_rect->x, cMenu_rect->y,
-		cMenu_rect->w, cMenu_rect->h);
-	PrintTitle(defaultSurface, cMenu_rect->x, cMenu_rect->y + 1,
-		cMenu_rect->w, GUI_COLOR_BACKGROUND, "TAPE BROWSER");
-	DrawLineH(defaultSurface, cMenu_rect->x + (GUI_CONST_BORDER / 2),
-		cMenu_rect->y + (3 * GUI_CONST_BORDER) +
-		(GUI_CONST_TAPE_ITEMS * GUI_CONST_ITEM_SIZE) + 6,
-		cMenu_rect->w - GUI_CONST_BORDER, GUI_COLOR_SEPARATOR);
+			ImGui::TableNextRow(ImGuiTableColumnFlags_WidthStretch, sz * 2.0f);
+			ImGui::TableNextColumn();
+			ImGui::TextUnformatted(ptr);
 
-	int mx = cMenu_rect->x + cMenu_rect->w - GUI_CONST_BORDER - 1,
-		my = cMenu_rect->y + cMenu_rect->h - 5 - (4 * fontLineHeight);
+			ImGui::TableNextColumn();
+			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 
-	PrintText(defaultSurface, mx - (10 * fontWidth), my,
-		GUI_COLOR_FOREGROUND, "MENU \aE\aN\aT\aE\aR");
+			static const char* hexItems[] = { "DEC", "HEX" };
+			static const char* autoStopItems[] = {
+				"Stop when the end is reached",
+				"Stop at the next header block",
+				"Stop at the block with the STOP marker"
+			};
 
-	PrintText(defaultSurface, mx - (6 * fontWidth) - GUI_CONST_HOTKEYCHAR,
-		my + fontLineHeight, GUI_COLOR_FOREGROUND,
-		(TapeBrowser->playing ? "STOP \a\203\aP" : "PLAY \a\203\aP"));
+			int hexdecIdx = (int) Settings->TapeBrowser->hex;
+			if (ImGui::SliderInt("##hexdec", &hexdecIdx, 0, 1, hexItems[hexdecIdx], ImGuiSelectableFlags_SpanAvailWidth))
+				Settings->TapeBrowser->hex = (bool) hexdecIdx;
 
-	mx = cMenu_rect->x + GUI_CONST_BORDER;
-	PrintText(defaultSurface, mx + GUI_CONST_CHK_MARGIN, my,
-		GUI_COLOR_FOREGROUND, "\aH HEX/DEC");
+			ImGui::TableNextRow(ImGuiTableColumnFlags_WidthStretch);
+			ImGui::TableNextColumn();
 
-	PrintCheck(defaultSurface, mx, my + fontLineHeight + 1, GUI_COLOR_CHECKED,
-		SCHR_CHECK, Settings->TapeBrowser->flash);
-	PrintText(defaultSurface, mx + GUI_CONST_CHK_MARGIN, my + fontLineHeight,
-		GUI_COLOR_FOREGROUND, "\aF FLASHLOAD");
+			float availableWidth = ImGui::GetContentRegionAvail().x;
+			ImGui::Dummy(ImVec2(availableWidth, 2.0f));
+			ImGui::TextUnformatted("Auto Stop:");
 
-	PrintCheck(defaultSurface, mx, my + (2 * fontLineHeight) + 1,
-		GUI_COLOR_CHECKED, SCHR_CHECK, Settings->TapeBrowser->monitoring);
-	PrintText(defaultSurface, mx + GUI_CONST_CHK_MARGIN, my + (2 * fontLineHeight),
-		GUI_COLOR_FOREGROUND, "\aO AUDIO-OUT");
-
-	PrintText(defaultSurface, mx + GUI_CONST_CHK_MARGIN,
-		my + (3 * fontLineHeight), GUI_COLOR_FOREGROUND,
-		"\aA AUTO-STOP:");
-
-	static char autostop[12];
-	switch (Settings->TapeBrowser->autoStop) {
-		default:
-		case AS_OFF:
-			strcpy(autostop, "END OF TAPE");
-			break;
-		case AS_NEXTHEAD:
-			strcpy(autostop, "NEXT HEADER");
-			break;
-		case AS_CURSOR:
-			strcpy(autostop, "STOP-CURSOR");
-			break;
-	}
-
-	PrintText(defaultSurface, mx + GUI_CONST_CHK_MARGIN + (13 * fontWidth),
-		my + (3 * fontLineHeight), GUI_COLOR_HOTKEY, autostop);
-
-	static char *ptr = NULL;
-	if (Settings->TapeBrowser->fileName && !TapeBrowser->preparedForSave) {
-		ptr = strrchr(Settings->TapeBrowser->fileName, '/');
-		if (ptr)
-			ptr++;
-		else
-			ptr = Settings->TapeBrowser->fileName;
-	}
-	else
-		ptr = (char *) "[NEW TAPE]";
-
-	my = cMenu_rect->y + GUI_CONST_ITEM_SIZE + 1;
-	PrintFormatted(defaultSurface, mx + GUI_CONST_HOTKEYCHAR, my,
-		GUI_COLOR_BORDER, ((strlen(ptr) > 28) ? "%.28s\205" : "%s"), ptr);
-
-	if (TapeBrowser->tapeChanged)
-		PrintChar(defaultSurface, mx, my, GUI_COLOR_CHECKED, '*');
-
-	DrawTapeDialogItems(defaultSurface);
-
-	UnlockSurface(defaultTexture, defaultSurface);
-*/
-}
-//-----------------------------------------------------------------------------
-void UserInterface::DrawTapeDialogItems()
-{
-/*
-	bool needUnlock = false;
-	if (s == NULL) {
-		s = LockSurface(defaultTexture);
-		needUnlock = true;
-	}
-
-	SDL_Rect *r = new SDL_Rect(*cMenu_rect);
-
-	r->x += GUI_CONST_BORDER;
-	r->y += (3 * GUI_CONST_BORDER) + 4;
-	r->w -= (2 * GUI_CONST_BORDER);
-
-	PrintChar(s, r->x + r->w, r->y - 1, (cMenu_leftMargin > 0)
-			? GUI_COLOR_BORDER : GUI_COLOR_BACKGROUND, SCHR_SCROLL_UP);
-
-	int i = cMenu_leftMargin, j = (cMenu_count) ? cMenu_hilite : -1;
-	for (; i < (cMenu_leftMargin + GUI_CONST_TAPE_ITEMS); i++) {
-		DrawRectangle(s, r->x - (GUI_CONST_BORDER / 2),
-			r->y - 2, r->w, GUI_CONST_ITEM_SIZE,
-			(i == j) ? GUI_COLOR_HIGHLIGHT : GUI_COLOR_BACKGROUND);
-
-		if (cMenu_count && i < cMenu_count) {
-			PrintChar(s, r->x, r->y, GUI_COLOR_FOREGROUND,
-				(i == TapeBrowser->stopBlockIdx) ? SCHR_STOP :
-				(i == TapeBrowser->currBlockIdx) ? SCHR_NAVIGATOR : ' ');
-
-			PrintText(s, r->x + GUI_CONST_HOTKEYCHAR, r->y,
-				GUI_COLOR_FOREGROUND, tapeDialog->entries[i]);
-
-			if (tapeDialog->entries[i][28])
-				DrawRectangle(s, r->x - (GUI_CONST_BORDER / 2),
-					r->y - 2, 2, GUI_CONST_ITEM_SIZE, GUI_COLOR_SMARTKEY);
-			if (tapeDialog->entries[i][29])
-				PrintChar(s, r->x + r->w - GUI_CONST_HOTKEYCHAR - 2,
-					r->y, GUI_COLOR_BORDER, tapeDialog->entries[i][29]);
+			int autoStopIdx = (int) Settings->TapeBrowser->autoStop;
+			ImGui::SetNextItemWidth(availableWidth);
+			if (ImGui::BeginCombo("##autostop", autoStopItems[autoStopIdx], ImGuiComboFlags_HeightSmall)) {
+				for (int n = 0; n < IM_COUNTOF(autoStopItems); n++) {
+					const bool is_selected = (autoStopIdx == n);
+					if (ImGui::Selectable(autoStopItems[n], is_selected))
+						Settings->TapeBrowser->autoStop = (TAutoStopType) (autoStopIdx = n);
+					if (is_selected)
+						ImGui::SetItemDefaultFocus();
+				}
+				ImGui::EndCombo();
+			}
+			ImGui::TableNextColumn();
+			ImGui::Checkbox("Audio", &Settings->TapeBrowser->monitoring);
+			ImGui::Checkbox("Flash", &Settings->TapeBrowser->flash);
+			ImGui::EndTable();
 		}
 
-		r->y += GUI_CONST_ITEM_SIZE;
-	}
+		ImGui::Separator();
 
-	PrintChar(s, r->x + r->w,
-		r->y - GUI_CONST_ITEM_SIZE + 2, (i < cMenu_count)
-			? GUI_COLOR_BORDER : GUI_COLOR_BACKGROUND, SCHR_SCROLL_DW);
+		if (ImGui::BeginTable("TapeBrowserPlayer", 2, ImGuiTableFlags_NoSavedSettings)) {
+			ImGui::TableSetupColumn("##btn", ImGuiTableColumnFlags_WidthFixed, 25.0f);
+			ImGui::TableSetupColumn("##progress", ImGuiTableColumnFlags_NoHide);
 
-	r->h = (GUI_CONST_TAPE_ITEMS * GUI_CONST_ITEM_SIZE) + (GUI_CONST_BORDER / 2);
-	r->y -= r->h - (GUI_CONST_BORDER / 4);
+			ImVec2 buttonSize(24.0f, 24.0f);
+			ImGui::TableNextRow(ImGuiTableColumnFlags_WidthStretch, buttonSize.y);
+			ImGui::TableNextColumn();
 
-	DrawLineV(s, r->x + GUI_CONST_HOTKEYCHAR + (14 * fontWidth),
-		r->y, r->h, GUI_COLOR_SEPARATOR);
-	DrawLineV(s, r->x + GUI_CONST_HOTKEYCHAR + (21 * fontWidth),
-		r->y, r->h, GUI_COLOR_SEPARATOR);
-
-	if (needUnlock)
-		UnlockSurface(defaultTexture, s);
-
-	delete r;
-*/
-}
-//-----------------------------------------------------------------------------
-/*
-void UserInterface::KeyhandlerTapeDialog(WORD key)
-{
-	int i = cMenu_hilite, prevLeftMargin = 0;
-	bool change = false;
-
-	switch (key) {
-		case SDL_SCANCODE_F1 | KM_ALT:
-			key = SDL_SCANCODE_APPLICATION;
-			break;
-		case SDL_SCANCODE_F4 | KM_ALT:
-			key = SDL_SCANCODE_POWER;
-			break;
-		default:
-			key &= (KM_ALT ^ 0xFFFF);
-			break;
-	}
-
-	switch (key) {
-		case SDL_SCANCODE_POWER:
-			Emulator->ActionExit();
-			MenuCloseAll();
-			return;
-
-		case SDL_SCANCODE_ESCAPE:
-			MenuClose();
-			return;
-
-		case SDL_SCANCODE_F:
-			prevLeftMargin = cMenu_leftMargin;
-			Settings->TapeBrowser->flash = !Settings->TapeBrowser->flash;
-			DrawTapeDialog(false);
-			change = true;
-			break;
-
-		case SDL_SCANCODE_O:
-			prevLeftMargin = cMenu_leftMargin;
-			Settings->TapeBrowser->monitoring = !Settings->TapeBrowser->monitoring;
-			DrawTapeDialog(false);
-			change = true;
-			break;
-
-		case SDL_SCANCODE_A:
-			prevLeftMargin = cMenu_leftMargin;
-			if (Settings->TapeBrowser->autoStop == AS_OFF)
-				Settings->TapeBrowser->autoStop = AS_NEXTHEAD;
-			else if (Settings->TapeBrowser->autoStop == AS_NEXTHEAD)
-				Settings->TapeBrowser->autoStop = AS_CURSOR;
-			else if (Settings->TapeBrowser->autoStop == AS_CURSOR)
-				Settings->TapeBrowser->autoStop = AS_OFF;
-			DrawTapeDialog(false);
-			change = true;
-			break;
-
-		case SDL_SCANCODE_H:
-			prevLeftMargin = cMenu_leftMargin;
-			Settings->TapeBrowser->hex = !Settings->TapeBrowser->hex;
-			DrawTapeDialog();
-			change = true;
-			break;
-
-		case SDL_SCANCODE_P:
-			needRelease = true;
-			if (!cMenu_count)
-				break;
-			if (TapeBrowser->playing) {
-				TapeBrowser->ActionStop();
-				prevLeftMargin = cMenu_leftMargin;
-				DrawTapeDialog();
-				change = true;
+			if (iconState >= 9) {
+				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 0.2f, 0.2f, 0.9f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 0.2f, 0.2f, 0.5f));
+				if (ImGui::Button("[]", buttonSize))
+					TapeBrowser->ActionStop();
+				ImGui::PopStyleColor(2);
 			}
 			else {
-				uiCallback.connect(&TEmulator::ActionTapePlayStop, Emulator);
-				uiSetChanges |= PS_CLOSEALL;
-				MenuCloseAll();
+				ImGui::PushStyleColor(ImGuiCol_Button, ImColor::HSV(0.35f, 1.0f, 0.6f, 0.9f).Value);
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImColor::HSV(0.35f, 1.0f, 0.6f, 0.5f).Value);
+				if (ImGui::ArrowButtonEx("Play", ImGuiDir_Right, buttonSize))
+					TapeBrowser->ActionPlay();
+				ImGui::PopStyleColor(2);
 			}
-			break;
 
-		case SDL_SCANCODE_END | KM_SHIFT:
-			needRelease = true;
-			if (!cMenu_count)
-				break;
-			if (i >= 0 && i != TapeBrowser->currBlockIdx) {
-				TapeBrowser->stopBlockIdx = i;
-				change = true;
-			}
-			break;
+			ImGui::TableNextColumn();
 
-		case SDL_SCANCODE_SPACE:
-			needRelease = true;
-			if (!cMenu_count)
-				break;
-			TapeBrowser->SetCurrentBlock(i);
-			change = true;
-			break;
+			const ImVec2 progressBarSize = ImVec2(ImGui::GetContentRegionAvail().x, buttonSize.y);
+			ImGui::PushID("##progress");
+			ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.1f, 0.1f, 0.1f, 0.5f));
+			ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.16f, 0.4f, 0.2f, 1.0f));
 
-		case SDL_SCANCODE_INSERT:
-			if (!cMenu_count)
-				break;
-			prevLeftMargin = cMenu_leftMargin;
-			TapeBrowser->ToggleSelection(i);
-			DrawTapeDialog();
-			if (i < (cMenu_count - 1))
-				i++;
-			change = true;
-			break;
+			if (iconState >= 9)
+				sprintf(label, Settings->TapeBrowser->hex ? "#%04X" : "%5d", TapeBrowser->ProgressBar->Position);
+			else
+				label[0] = '\0';
 
-		case SDL_SCANCODE_DELETE | KM_SHIFT:
-			needRelease = true;
-			if (!cMenu_count)
-				break;
-			prevLeftMargin = cMenu_leftMargin;
-			TapeBrowser->DeleteSelected(i);
-			DrawTapeDialog();
-			if (cMenu_count && i >= cMenu_count)
-				i = cMenu_count - 1;
-			change = true;
-			break;
+			ImGui::ProgressBar(
+				((float) TapeBrowser->ProgressBar->Position / (float) TapeBrowser->ProgressBar->Max),
+				progressBarSize, label
+			);
 
-		case SDL_SCANCODE_UP   | KM_SHIFT:
-			change = true;
-		case SDL_SCANCODE_DOWN | KM_SHIFT:
-			if (!cMenu_count)
-				break;
-			prevLeftMargin = cMenu_leftMargin;
-			TapeBrowser->MoveSelected(change, &i);
-			DrawTapeDialog();
-			if (prevLeftMargin > i)
-				prevLeftMargin = i;
-			change = true;
-			break;
+			ImGui::PopStyleColor(2);
+			ImGui::PopID();
 
-		case SDL_SCANCODE_APPLICATION:
-		case SDL_SCANCODE_RETURN:
-		case SDL_SCANCODE_KP_ENTER:
-			needRelease = true;
-			Execute(GE_TAPE_POPUP);
-			break;
-
-		case SDL_SCANCODE_LEFT:
-		case SDL_SCANCODE_PAGEUP:
-			if (i > 0) {
-				i -= GUI_CONST_TAPE_ITEMS;
-				if (i < 0)
-					i = 0;
-				change = true;
-			}
-			break;
-
-		case SDL_SCANCODE_RIGHT:
-		case SDL_SCANCODE_PAGEDOWN:
-			if (i < (cMenu_count - 1)) {
-				i += GUI_CONST_TAPE_ITEMS;
-				if (i >= cMenu_count)
-					i = (cMenu_count - 1);
-				change = true;
-			}
-			break;
-
-		case SDL_SCANCODE_UP:
-			if (i > 0) {
-				i--;
-				change = true;
-			}
-			break;
-
-		case SDL_SCANCODE_DOWN:
-			if (i < (cMenu_count - 1)) {
-				i++;
-				change = true;
-			}
-			break;
-
-		case SDL_SCANCODE_HOME:
-			i = 0;
-			needRelease = true;
-			change = true;
-			break;
-
-		case SDL_SCANCODE_END:
-			i = (cMenu_count - 1);
-			needRelease = true;
-			change = true;
-			break;
-
-		default:
-			break;
-	}
-
-	if (change) {
-		if (prevLeftMargin)
-			cMenu_leftMargin = prevLeftMargin;
-
-		if (i == cMenu_leftMargin - 1)
-			cMenu_leftMargin = i;
-
-		while (i < cMenu_leftMargin) {
-			cMenu_leftMargin -= GUI_CONST_TAPE_ITEMS;
-			if (cMenu_leftMargin < 0)
-				cMenu_leftMargin = 0;
+			ImGui::EndTable();
 		}
 
-		if (i >= (cMenu_leftMargin + GUI_CONST_TAPE_ITEMS))
-			cMenu_leftMargin = i - GUI_CONST_TAPE_ITEMS + 1;
+		ImGui::Separator();
 
-		cMenu_hilite = i;
-		DrawTapeDialogItems();
+		static ImGuiTableColumnFlags columnFlags =
+			ImGuiTableColumnFlags_NoReorder |
+			ImGuiTableColumnFlags_NoSort |
+			ImGuiTableColumnFlags_NoClip;
+
+		static ImGuiMultiSelectFlags selectionFlags =
+			ImGuiMultiSelectFlags_BoxSelect1d |
+			ImGuiMultiSelectFlags_NoSelectOnRightClick;
+
+		ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(4.0f, 0.0f));
+		if (ImGui::BeginTable("TapeBrowserItems", 5,
+			ImGuiTableFlags_BordersInnerV |
+			ImGuiTableFlags_ScrollY)) {
+
+			ImGui::TableSetupColumn("Cursor", columnFlags
+				| ImGuiTableColumnFlags_WidthFixed
+				| ImGuiTableColumnFlags_NoHeaderLabel, sz);
+			ImGui::TableSetupColumn("ID/T Header", columnFlags);
+			ImGui::TableSetupColumn("Start", columnFlags
+				| ImGuiTableColumnFlags_WidthFixed, 50.0f);
+			ImGui::TableSetupColumn("Length", columnFlags
+				| ImGuiTableColumnFlags_WidthFixed, 50.0f);
+			ImGui::TableSetupColumn("CRC Error", columnFlags
+				| ImGuiTableColumnFlags_WidthFixed
+				| ImGuiTableColumnFlags_NoHeaderLabel, 10.0f);
+			ImGui::TableSetupScrollFreeze(0, 1);
+
+			ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(4.0f, 8.0f));
+			ImGui::TableHeadersRow();
+			ImGui::PopStyleVar();
+
+			int count = tapeDialogEntries.size();
+			ImGuiMultiSelectIO* ms_io = ImGui::BeginMultiSelect(selectionFlags, selection.Size, count);
+			selection.ApplyRequests(ms_io);
+
+/* TODO: Implement external storage for selection...
+			ImGuiSelectionExternalStorage sel_adapter;
+			sel_adapter.UserData = (void*) TapeBrowser;
+			sel_adapter.AdapterSetItemSelected =
+				[](ImGuiSelectionExternalStorage* self, int idx, bool selected) {
+					TTapeBrowser* tapeBrowser = (TTapeBrowser *) self->UserData;
+					tapeBrowser->ForceSelection(idx, selected);
+				};
+			sel_adapter.ApplyRequests(ms_io);
+*/
+
+			for (int i = 0; i < count; ++i) {
+				const TTapeBrowser::TDialogItem &item = tapeDialogEntries[i];
+				sprintf(label, "##item%05d", i);
+
+				ImGui::TableNextRow();
+				ImGui::PushID(label);
+				ImGui::TableNextColumn();
+
+				bool wasClickedButton = false;
+				ImVec2 szVec(ImGui::GetFrameHeight(), ImGui::GetFrameHeight());
+				ImGuiButtonFlags buttonFlags = ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight;
+
+				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4());
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImColor::HSV(0.5f, 0.3f, 0.3f, 0.3f).Value);
+				if (i == TapeBrowser->currBlockIdx)
+					ImGui::ArrowButtonEx("##cursor", ImGuiDir_Right, szVec, buttonFlags);
+				else if (i == TapeBrowser->stopBlockIdx)
+					ImGui::ArrowButtonEx("##cursor", ImGuiDir_Up, szVec, buttonFlags);
+				else
+					ImGui::ButtonEx("##cursor", szVec, buttonFlags);
+
+				if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+					wasClickedButton = true;
+					if (i > TapeBrowser->currBlockIdx)
+						TapeBrowser->stopBlockIdx = i;
+				}
+				else if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
+					TapeBrowser->SetCurrentBlock(i);
+
+				ImGui::PopStyleColor(2);
+				ImGui::TableNextColumn();
+
+				ImGui::SetNextItemSelectionUserData(i);
+				ImGui::Selectable(item.name,
+					selection.Contains((ImGuiID) i),
+					ImGuiSelectableFlags_SpanAllColumns
+				);
+
+				if (!(tapeDialogEntries.empty() || wasClickedButton))
+					DrawTapeDialogContextMenu(selection, i, item);
+
+				ImGui::TableNextColumn();
+				if (item.start < 0)
+					ImGui::TextUnformatted("");
+				else
+					ImGui::TextAligned(1.0f, -FLT_MIN, (hex ? "#%04X" : "%5d"), item.start);
+
+				ImGui::TableNextColumn();
+				ImGui::TextAligned(1.0f, -FLT_MIN, (hex ? "#%04X" : "%5d"), item.length);
+
+				ImGui::TableNextColumn();
+				if (item.headCrcError)
+					ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "!");
+				else
+					ImGui::TextUnformatted("");
+
+				ImGui::PopID();
+			}
+
+			ms_io = ImGui::EndMultiSelect();
+			selection.ApplyRequests(ms_io);
+			ImGui::EndTable();
+		}
+
+		ImGui::PopStyleVar();
+		ImGui::End();
 	}
 }
+//-----------------------------------------------------------------------------
+void UserInterface::DrawTapeDialogContextMenu(
+	ImGuiSelectionBasicStorage &selection,
+	int &index, const TTapeBrowser::TDialogItem &item
+) {
+	static char buf[64];
+	bool noSelection = selection.Size == 0;
+
+	if (ImGui::BeginPopupContextItem("##ctxmnu", ImGuiPopupFlags_MouseButtonRight)) {
+		if (ImGui::MenuItem("Select all", NULL, false, selection.Size == tapeDialogEntries.size())) {
+			for (size_t i = 0; i < tapeDialogEntries.size(); i++)
+				selection.SetItemSelected((ImGuiID) i, true);
+		}
+		if (ImGui::MenuItem("Deselect all", NULL, false, noSelection))
+			selection.Clear();
+
+		ImGui::Separator();
+
+		if (ImGui::MenuItem("Set current tape position", NULL, index == TapeBrowser->currBlockIdx, index != TapeBrowser->currBlockIdx)) {
+			TapeBrowser->SetCurrentBlock(index);
+		}
+		if (ImGui::MenuItem("Set STOP Marker", NULL, index == TapeBrowser->stopBlockIdx,
+			index > TapeBrowser->currBlockIdx && index != TapeBrowser->stopBlockIdx
+		)) {
+			TapeBrowser->stopBlockIdx = index;
+		}
+		ImGui::Separator();
+
+		if (selection.Size > 0) {
+			sprintf(buf, "Delete %d selected block%s", selection.Size, (selection.Size > 1) ? "s" : "");
+			if (ImGui::MenuItem(buf)) {
+				void* it = NULL;
+				ImGuiID idx;
+				while (selection.GetNextSelectedItem(&it, &idx)) {
+					TapeBrowser->DeleteSelected((int) idx);
+				}
+				selection.Clear();
+			}
+		}
+		else {
+			if (ImGui::MenuItem("Delete current block"))
+				TapeBrowser->DeleteSelected(index);
+		}
+/*
+		ImGui::MenuItem("Move Block Up", NULL, false, false);
+		ImGui::MenuItem("Move Block Down", NULL, false, false);
 */
+		ImGui::EndPopup();
+	}
+}
 //-----------------------------------------------------------------------------

@@ -31,11 +31,6 @@ UserInterface::UserInterface()
 {
 	debug("GUI", "Initializing...");
 
-	tapeDialog = new GUI_TAPEDIALOG_DATA;
-	tapeDialog->entries = NULL;
-	tapeDialog->count = 0;
-	tapeDialog->popup.rect = NULL;
-
 	ledState = 0;
 	iconState = 0;
 	statusFPS = 0;
@@ -45,6 +40,7 @@ UserInterface::UserInterface()
 	isMenuHovered = false;
 	isEmulatorWindowFocused = false;
 	dialogAboutOpened = false;
+	dialogTapeBrowserOpened = false;
 	dialogDiskImagesOpened = false;
 
 	queryDialogTitle = NULL;
@@ -76,11 +72,6 @@ UserInterface::~UserInterface()
 	if (fileSelectorRecentPath) {
 		delete[] fileSelectorRecentPath;
 		fileSelectorRecentPath = NULL;
-	}
-	if (tapeDialog) {
-		TapeBrowser->FreeFileList(&tapeDialog->entries, &tapeDialog->count);
-		delete tapeDialog;
-		tapeDialog = NULL;
 	}
 }
 //-----------------------------------------------------------------------------
@@ -162,6 +153,10 @@ void UserInterface::Execute(TGuiElementType type, void *data)
 
 		case GE_DISKIMAGES:
 			dialogDiskImagesOpened = !dialogDiskImagesOpened;
+			break;
+
+		case GE_TAPEBROWSER:
+			dialogTapeBrowserOpened = !dialogTapeBrowserOpened;
 			break;
 
 		default:

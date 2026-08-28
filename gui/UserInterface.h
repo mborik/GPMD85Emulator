@@ -24,6 +24,7 @@
 #define USERINTERFACE_H_
 //-----------------------------------------------------------------------------
 #include "globals.h"
+#include "TapeBrowser.h"
 #include "imgui/imgui.h"
 #include "imgui-mods/imgui_file_browser.h"
 //-----------------------------------------------------------------------------
@@ -36,24 +37,13 @@
 class UserInterface
 {
 	public:
-		typedef struct GUI_TAPEDIALOG_DATA {
-			int  count;
-			char **entries;
-			struct {
-				SDL_Rect *rect;
-				int leftMargin, count, hilite;
-			} popup;
-		} GUI_TAPEBROWSER_DATA;
-
-		GUI_TAPEDIALOG_DATA *tapeDialog;
+		DWORD globalPalette[256];
 
 		BYTE uiSetChanges;
 		BYTE uiQueryState;
 		sigslot::signal<> uiCallback;
 		sigslot::signal<TMenuQueryType> uiQueryCallback;
 		sigslot::signal<char *> uiFileSelectorCallback;
-
-		DWORD globalPalette[256];
 
 		UserInterface();
 		virtual ~UserInterface();
@@ -68,13 +58,12 @@ class UserInterface
 		}
 
 		bool OnMenuLeave();
-
 		void DrawMenu();
 		void DrawAboutDialog();
 		void DrawQueryDialog();
 		void DrawFileSelector();
 		void DrawDiskImagesDialog();
-		void DrawTapeDialog(bool update = true);
+		void DrawTapeDialog();
 		void DrawDebugWindow();
 		void DrawEmulatorWindow();
 
@@ -108,6 +97,7 @@ class UserInterface
 		bool isMenuHovered;
 		bool isAnyPopupWindowFocused;
 		bool isEmulatorWindowFocused;
+		bool dialogTapeBrowserOpened;
 		bool dialogDiskImagesOpened;
 		bool dialogAboutOpened;
 
@@ -121,11 +111,17 @@ class UserInterface
 		bool queryDialogSaveType;
 		bool queryDialogShouldOpen;
 
+		std::vector<TTapeBrowser::TDialogItem> tapeDialogEntries;
+
 		void SetButtonColor(int icon);
 		void MachineMenuItem(const char *name, TComputerModel model);
 		void AttributeMenuItems(bool enabled = false);
 		void DiskImagesMenuItems(bool inMenu = false);
-		void DrawTapeDialogItems();
+		void DrawTapeDialogContextMenu(
+			ImGuiSelectionBasicStorage &selection,
+			int &index, const TTapeBrowser::TDialogItem &item
+		);
+
 		void DrawDebugWidgetDisass(bool full);
 		void DrawDebugWidgetRegs();
 		void DrawDebugWidgetStack();

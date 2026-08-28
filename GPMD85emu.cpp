@@ -280,6 +280,7 @@ int main(int argc, char** argv)
 		ImGui::NewFrame();
 
 		GUI->DrawMenu();
+		GUI->DrawTapeDialog();
 		GUI->DrawAboutDialog();
 		GUI->DrawQueryDialog();
 		GUI->DrawFileSelector();

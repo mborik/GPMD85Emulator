@@ -825,7 +825,7 @@ bool TEmulator::TestHotkeys()
 
 			case SDL_SCANCODE_T:	// TAPE BROWSER
 				ActionTapeBrowser();
-				break;
+				return true;
 
 			case SDL_SCANCODE_F1:	// ABOUT
 				actionCallback.connect([&]() {
@@ -935,8 +935,10 @@ void TEmulator::ActionDebugger()
 //---------------------------------------------------------------------------
 void TEmulator::ActionTapeBrowser()
 {
-	ActionPlayPause(false, false);
-	GUI->Execute(GE_TAPEBROWSER);
+	actionCallback.connect([&]() {
+		GUI->Execute(GE_TAPEBROWSER);
+		actionCallback.disconnect_all();
+	});
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionTapePlayStop()
@@ -2001,10 +2003,9 @@ void TEmulator::PrepareSnapshot(const char *fileName)
 //---------------------------------------------------------------------------
 void TEmulator::InsertTape(const char *fileName, bool import)
 {
-	// TODO refactor TapeBrowser input to const char *fileName
 	BYTE result = import ?
-		TapeBrowser->ImportFileName((char *) fileName) :
-		TapeBrowser->SetTapeFileName((char *) fileName);
+		TapeBrowser->ImportFileName(fileName) :
+		TapeBrowser->SetTapeFileName(fileName);
 
 	if (result == 0xFF)
 		GUI->MessageBox("Fatal error!\nCan't open file!");
