@@ -4,7 +4,7 @@
 //---------------------------------------------------------------------------
 #include "globals.h"
 #include "IifTape.h"
-#include "Settings.h"
+#include <vector>
 //---------------------------------------------------------------------------
 class TTapeBrowser
 {
@@ -45,6 +45,13 @@ class TTapeBrowser
 			int  total;
 		} TTapeSelection;
 
+		typedef struct TDialogItem {
+			char name[14];
+			int start;
+			int length;
+			bool headCrcError;
+		} TDialogItem;
+
 	private:
 		IifTape *ifTape;
 
@@ -61,7 +68,7 @@ class TTapeBrowser
 		bool  head;
 
 		void FreeAllBlocks();
-		BYTE ParseFile(char *fn, TAPE_BLOCK **blks, DWORD seek = 0);
+		int  ParseFile(const char *fn, TAPE_BLOCK **blks, DWORD seek = 0);
 		bool CheckCrc(BYTE *buff, int length, BYTE *goodCrc);
 		bool CheckHeader(BYTE *buff, TAPE_BLOCK *blk);
 		void DeleteBlock(int idx, TAPE_BLOCK *blk = NULL);
@@ -77,6 +84,7 @@ class TTapeBrowser
 		bool playing;
 		bool tapeChanged;
 		bool preparedForSave;
+		bool shouldUpdateEntries;
 
 		char *orgTapeFile;
 
@@ -88,8 +96,8 @@ class TTapeBrowser
 		TTapeSelection *Selection;
 
 		void SetIfTape(IifTape *ifTape);
-		BYTE SetTapeFileName(char *fn);
-		BYTE ImportFileName(char *fn);
+		int  SetTapeFileName(const char *fn);
+		int  ImportFileName(const char *fn);
 		void SetNewTape();
 		void ActionPlay();
 		void ActionStop();
@@ -99,8 +107,7 @@ class TTapeBrowser
 		void DeleteSelected(int idx);
 		void TapeCommand(int command, bool *result);
 		BYTE SaveTape(char *newFileName, TAPE_BLOCK *blks, bool asPTP);
-		void FillFileList(char ***data, int *items, bool hex = false);
-		void FreeFileList(char ***data, int *items);
+		void FillFileList(std::vector<TDialogItem> &data);
 };
 //---------------------------------------------------------------------------
 #endif

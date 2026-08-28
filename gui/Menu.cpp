@@ -56,7 +56,7 @@ void UserInterface::DrawMenu()
 			if (ImGui::MenuItem("Save Tape\u0085", MOD_SHIFT("F2"))) {
 				Emulator->ActionTapeSave();
 			}
-			if (ImGui::MenuItem("Tape Browser", MOD_KEY("T"))) { }
+			ImGui::MenuItem("Tape Browser", MOD_KEY("T"), &dialogTapeBrowserOpened);
 
 			ImGui::Separator();
 			ImGui::MenuItem("Disk Images", MOD_KEY("F6"), &dialogDiskImagesOpened);
