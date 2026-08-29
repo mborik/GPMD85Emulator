@@ -118,9 +118,10 @@ TCmdLineSwitches cmdline = { switches, 27 };
 //-----------------------------------------------------------------------------
 void IntroMessage()
 {
-	printf("\n= %s v%s ~ Copyright (c) %s ~ %s =", PACKAGE_NAME, VERSION, PACKAGE_YEAR, PACKAGE_URL);
-	printf("\n- This program comes with ABSOLUTELY NO WARRANTY. This is free software,");
-	printf("\n- and you are welcome to redistribute it under certain conditions.\n\n");
+	printf("\n= %s v%s ~ %s =", PACKAGE_NAME, VERSION, PACKAGE_URL);
+	printf("\n- Open-source multi-platform emulator of an 8-bit computer Tesla PMD 85.\n");
+	printf("\n- Copyright (c) 2011-%s Martin Bórik & contributors", PACKAGE_YEAR);
+	printf("\n- Distributed under the MIT License. See LICENSE.md for details.\n\n");
 }
 //-----------------------------------------------------------------------------
 bool ParseOptions(int *argc, char *(*argv[]))
