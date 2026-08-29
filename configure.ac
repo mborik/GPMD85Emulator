@@ -128,10 +128,8 @@ case "${host_os}" in
 		# macOS: Use native Apple Framework for OpenGL
 		AC_MSG_CHECKING([for OpenGL framework])
 		libGL_LIBS="-Wl,-framework,OpenGL"
+		libGL_CFLAGS=""
 		AC_MSG_RESULT([yes])
-		AC_CHECK_HEADERS([OpenGL/gl.h], [
-			libGL_CFLAGS="-I${includedir}/OpenGL"
-		], [AC_MSG_ERROR([OpenGL headers not found])])
 		;;
 	*)
 		AC_CHECK_LIB([GL], [glClear], [
@@ -146,6 +144,11 @@ case "${host_os}" in
 esac
 AC_SUBST(libGL_LIBS)
 AC_SUBST(libGL_CFLAGS)
+
+# Checks for dynamic linking library (safe fallback for linux)
+AC_SEARCH_LIBS([dlopen], [dl], [], [
+	AC_MSG_ERROR([Dynamic linking support (dlopen) is required but not found.])
+])
 
 AC_LANG_PUSH([C++])
 
