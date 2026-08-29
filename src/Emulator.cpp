@@ -436,23 +436,23 @@ void TEmulator::BaseTimerCallback(bool guiWantCapture)
 		blinkCounter += (thisTime - lastTick);
 
 	if (isRunning) {
-		// GUI->uiSetChanges is bit-map of setting changes for ProcessSettings()
+		// GUI->InvokeSettingsChange is bit-map of setting changes for ProcessSettings()
 		if (GUI->OnMenuLeave())
-			GUI->uiSetChanges |= PS_CLOSEALL;
+			GUI->InvokeSettingsChange |= PS_CLOSEALL;
 
-		if (GUI->uiSetChanges) {
+		if (GUI->InvokeSettingsChange) {
 			isRunning = false;
 
-			// if we leaving menu and uiSetChanges is set, apply settings change
+			// if we leaving menu and InvokeSettingsChange is set, apply settings change
 			// PS_CLOSEALL is special flag that will be cleared but callback will be executed
-			if (GUI->uiSetChanges) {
-				ProcessSettings(GUI->uiSetChanges);
-				GUI->uiSetChanges = 0;
+			if (GUI->InvokeSettingsChange) {
+				ProcessSettings(GUI->InvokeSettingsChange);
+				GUI->InvokeSettingsChange = 0;
 			}
 
 			// menu leaving callback was executed
-			GUI->uiCallback();
-			GUI->uiCallback.disconnect_all();
+			GUI->ProcessSettingsCallback();
+			GUI->ProcessSettingsCallback.disconnect_all();
 
 			isRunning = true;
 		}
@@ -785,14 +785,14 @@ bool TEmulator::TestHotkeys()
 				Settings->Screen->lcdMode = false;
 				Settings->Screen->halfPass = HP_OFF;
 				break;
-
+/*
 			case SDL_SCANCODE_F:	// FULL-SCREEN
 				if (Settings->Screen->size == DM_FULLSCREEN)
 					ActionSizeChange((int) Settings->Screen->realsize);
 				else
 					ActionSizeChange(0);
 				return true;
-
+*/
 			case SDL_SCANCODE_M:	// MONO/STANDARD MODES
 				if (video->GetColorProfile() == CP_STANDARD) {
 					video->SetColorProfile(CP_MONO);
@@ -902,7 +902,7 @@ bool TEmulator::TestHotkeys()
 void TEmulator::ActionExit()
 {
 	if (TapeBrowser->tapeChanged) {
-		GUI->uiQueryCallback.connect([&](TMenuQueryType result) {
+		GUI->QueryDialogCallback.connect([&](TMenuQueryType result) {
 			if (result == GUI_QUERY_SAVE) {
 				ActionTapeSave();
 			}
@@ -910,17 +910,17 @@ void TEmulator::ActionExit()
 				isActive = false;
 			}
 
-			GUI->uiQueryCallback.disconnect_all();
+			GUI->QueryDialogCallback.disconnect_all();
 		});
 
 		GUI->QueryDialog("Tape Changed", "Save changes and exit?", true);
 	}
 	else {
-		GUI->uiQueryCallback.connect([&](TMenuQueryType result) {
+		GUI->QueryDialogCallback.connect([&](TMenuQueryType result) {
 			if (result == GUI_QUERY_YES)
 				isActive = false;
 
-			GUI->uiQueryCallback.disconnect_all();
+			GUI->QueryDialogCallback.disconnect_all();
 		});
 
 		GUI->QueryDialog("Exit", "Do you really want to exit?", false);
@@ -954,7 +954,7 @@ void TEmulator::ActionTapePlayStop()
 void TEmulator::ActionTapeNew()
 {
 	if (TapeBrowser->tapeChanged) {
-		GUI->uiQueryCallback.connect([&](TMenuQueryType result) {
+		GUI->QueryDialogCallback.connect([&](TMenuQueryType result) {
 			if (result == GUI_QUERY_SAVE) {
 				ActionTapeSave();
 			}
@@ -964,7 +964,7 @@ void TEmulator::ActionTapeNew()
 				Settings->TapeBrowser->fileName = NULL;
 			}
 
-			GUI->uiQueryCallback.disconnect_all();
+			GUI->QueryDialogCallback.disconnect_all();
 		});
 
 		GUI->QueryDialog("Tape Changed", "Save changes before creating a new one?", true);
@@ -987,13 +987,13 @@ void TEmulator::ActionTapeLoad(bool import)
 			import ? TapeBrowser->orgTapeFile :
 			Settings->TapeBrowser->fileName;
 
-		GUI->uiFileSelectorCallback.connect(
+		GUI->FileSelectorCallback.connect(
 			[&](const char *fileName) {
 				if (fileName)
 					InsertTape(fileName, import);
 
-				GUI->uiSetChanges |= PS_CLOSEALL;
-				GUI->uiFileSelectorCallback.disconnect_all();
+				GUI->InvokeSettingsChange |= PS_CLOSEALL;
+				GUI->FileSelectorCallback.disconnect_all();
 			}
 		);
 
@@ -1001,7 +1001,7 @@ void TEmulator::ActionTapeLoad(bool import)
 	};
 
 	if (TapeBrowser->tapeChanged) {
-		GUI->uiQueryCallback.connect([&](TMenuQueryType result) {
+		GUI->QueryDialogCallback.connect([&](TMenuQueryType result) {
 			if (result == GUI_QUERY_SAVE) {
 				ActionTapeSave();
 			}
@@ -1009,7 +1009,7 @@ void TEmulator::ActionTapeLoad(bool import)
 				lambdaActionTapeLoad();
 			}
 
-			GUI->uiQueryCallback.disconnect_all();
+			GUI->QueryDialogCallback.disconnect_all();
 		});
 
 		GUI->QueryDialog("Tape Changed", "Save changes before creating a new one?", true);
@@ -1020,13 +1020,13 @@ void TEmulator::ActionTapeLoad(bool import)
 //---------------------------------------------------------------------------
 void TEmulator::ActionTapeSave()
 {
-	GUI->uiFileSelectorCallback.connect(
+	GUI->FileSelectorCallback.connect(
 		[&](const char *fileName) {
 			if (fileName)
 				SaveTape(fileName);
 
-			GUI->uiSetChanges |= PS_CLOSEALL;
-			GUI->uiFileSelectorCallback.disconnect_all();
+			GUI->InvokeSettingsChange |= PS_CLOSEALL;
+			GUI->FileSelectorCallback.disconnect_all();
 		}
 	);
 
@@ -1060,13 +1060,13 @@ void TEmulator::ActionPMD32LoadDisk(int drive)
 			break;
 	}
 
-	GUI->uiFileSelectorCallback.connect(
+	GUI->FileSelectorCallback.connect(
 		[&](const char *fileName) {
 			if (fileName)
 				InsertPMD32Disk(fileName);
 
-			GUI->uiSetChanges |= PS_CLOSEALL;
-			GUI->uiFileSelectorCallback.disconnect_all();
+			GUI->InvokeSettingsChange |= PS_CLOSEALL;
+			GUI->FileSelectorCallback.disconnect_all();
 		}
 	);
 
@@ -1085,13 +1085,13 @@ void TEmulator::ActionPMD32Update()
 //---------------------------------------------------------------------------
 void TEmulator::ActionSnapLoad()
 {
-	GUI->uiFileSelectorCallback.connect(
+	GUI->FileSelectorCallback.connect(
 		[&](const char *fileName) {
 			if (fileName)
 				ProcessSnapshot(fileName);
 
-			GUI->uiSetChanges |= PS_CLOSEALL;
-			GUI->uiFileSelectorCallback.disconnect_all();
+			GUI->InvokeSettingsChange |= PS_CLOSEALL;
+			GUI->FileSelectorCallback.disconnect_all();
 		}
 	);
 
@@ -1105,13 +1105,13 @@ void TEmulator::ActionSnapLoad()
 //---------------------------------------------------------------------------
 void TEmulator::ActionSnapSave()
 {
-	GUI->uiFileSelectorCallback.connect(
+	GUI->FileSelectorCallback.connect(
 		[&](const char *fileName) {
 			if (fileName)
 				PrepareSnapshot(fileName);
 
-			GUI->uiSetChanges |= PS_CLOSEALL;
-			GUI->uiFileSelectorCallback.disconnect_all();
+			GUI->InvokeSettingsChange |= PS_CLOSEALL;
+			GUI->FileSelectorCallback.disconnect_all();
 		}
 	);
 
@@ -1125,13 +1125,13 @@ void TEmulator::ActionSnapSave()
 //---------------------------------------------------------------------------
 void TEmulator::ActionROMLoad()
 {
-	GUI->uiFileSelectorCallback.connect(
+	GUI->FileSelectorCallback.connect(
 		[&](const char *fileName) {
 			if (fileName)
 				ChangeROMFile(fileName);
 
-			GUI->uiSetChanges |= PS_CLOSEALL;
-			GUI->uiFileSelectorCallback.disconnect_all();
+			GUI->InvokeSettingsChange |= PS_CLOSEALL;
+			GUI->FileSelectorCallback.disconnect_all();
 		}
 	);
 
@@ -1146,13 +1146,13 @@ void TEmulator::ActionROMLoad()
 //---------------------------------------------------------------------------
 void TEmulator::ActionMegaRomLoad()
 {
-	GUI->uiFileSelectorCallback.connect(
+	GUI->FileSelectorCallback.connect(
 		[&](const char *fileName) {
 			if (fileName)
 				ChangeMegaRomFile(fileName);
 
-			GUI->uiSetChanges |= PS_CLOSEALL;
-			GUI->uiFileSelectorCallback.disconnect_all();
+			GUI->InvokeSettingsChange |= PS_CLOSEALL;
+			GUI->FileSelectorCallback.disconnect_all();
 		}
 	);
 
@@ -1167,13 +1167,13 @@ void TEmulator::ActionMegaRomLoad()
 //---------------------------------------------------------------------------
 void TEmulator::ActionRawFile(bool save)
 {
-	GUI->uiFileSelectorCallback.connect(
+	GUI->FileSelectorCallback.connect(
 		[&](const char *fileName) {
 			if (fileName)
 				SelectRawFile(fileName, save);
 
-			GUI->uiSetChanges |= PS_CLOSEALL;
-			GUI->uiFileSelectorCallback.disconnect_all();
+			GUI->InvokeSettingsChange |= PS_CLOSEALL;
+			GUI->FileSelectorCallback.disconnect_all();
 		}
 	);
 
@@ -1208,7 +1208,7 @@ void TEmulator::ActionSound(bool currentState)
 		Settings->Sound->mute = false;
 	}
 
-	GUI->uiSetChanges |= PS_SOUND;
+	GUI->InvokeSettingsChange |= PS_SOUND;
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionPlayPause()
@@ -2027,7 +2027,7 @@ void TEmulator::InsertTape(const char *fileName, bool import)
 		strcpy(Settings->TapeBrowser->fileName, fileName);
 	}
 
-	GUI->uiCallback.connect(&TEmulator::ActionTapeBrowser, this);
+	GUI->ProcessSettingsCallback.connect(&TEmulator::ActionTapeBrowser, this);
 }
 //---------------------------------------------------------------------------
 void TEmulator::SaveTape(const char *fileName)
@@ -2099,7 +2099,7 @@ void TEmulator::ChangeROMFile(const char *fileName)
 	delete [] Settings->CurrentModel->romFile;
 	Settings->CurrentModel->romFile = new char[strlen(ptr) + 1];
 	strcpy(Settings->CurrentModel->romFile, ptr);
-	GUI->uiSetChanges |= PS_MACHINE | PS_PERIPHERALS;
+	GUI->InvokeSettingsChange |= PS_MACHINE | PS_PERIPHERALS;
 
 	romChanged = true;
 }
@@ -2121,7 +2121,7 @@ void TEmulator::ChangeMegaRomFile(const char *fileName)
 	delete [] Settings->CurrentModel->mrmFile;
 	Settings->CurrentModel->mrmFile = new char[strlen(ptr) + 1];
 	strcpy(Settings->CurrentModel->mrmFile, ptr);
-	GUI->uiSetChanges |= PS_MACHINE | PS_PERIPHERALS;
+	GUI->InvokeSettingsChange |= PS_MACHINE | PS_PERIPHERALS;
 
 	romChanged = true;
 }

@@ -47,8 +47,8 @@ void UserInterface::DrawMenu()
 
 		if (ImGui::BeginMenu("File")) {
 			if (ImGui::MenuItem("New Tape")) {
-				uiCallback.connect(&TEmulator::ActionTapeNew, Emulator);
-				uiSetChanges |= PS_CLOSEALL;
+				ProcessSettingsCallback.connect(&TEmulator::ActionTapeNew, Emulator);
+				InvokeSettingsChange |= PS_CLOSEALL;
 			}
 			if (ImGui::MenuItem("Open Tape\u0085", MOD_KEY("F2"))) {
 				Emulator->ActionTapeLoad(false);
@@ -94,25 +94,25 @@ void UserInterface::DrawMenu()
 
 		if (ImGui::BeginMenu("Display")) {
 			if (ImGui::BeginMenu("Screen Size")) {
-				if (ImGui::MenuItem("100%", MOD_KEY("1")), Settings->Screen->size == DM_NORMAL) {
+				if (ImGui::MenuItem("100%", MOD_KEY("1"), Settings->Screen->size == DM_NORMAL)) {
 					Settings->Screen->size = DM_NORMAL;
-					uiSetChanges |= PS_SCREEN_SIZE;
+					InvokeSettingsChange |= PS_SCREEN_SIZE;
 				}
-				if (ImGui::MenuItem("200%", MOD_KEY("2")), Settings->Screen->size == DM_DOUBLESIZE) {
+				if (ImGui::MenuItem("200%", MOD_KEY("2"), Settings->Screen->size == DM_DOUBLESIZE)) {
 					Settings->Screen->size = DM_DOUBLESIZE;
-					uiSetChanges |= PS_SCREEN_SIZE;
+					InvokeSettingsChange |= PS_SCREEN_SIZE;
 				}
-				if (ImGui::MenuItem("300%", MOD_KEY("3")), Settings->Screen->size == DM_TRIPLESIZE) {
+				if (ImGui::MenuItem("300%", MOD_KEY("3"), Settings->Screen->size == DM_TRIPLESIZE)) {
 					Settings->Screen->size = DM_TRIPLESIZE;
-					uiSetChanges |= PS_SCREEN_SIZE;
+					InvokeSettingsChange |= PS_SCREEN_SIZE;
 				}
-				if (ImGui::MenuItem("400%", MOD_KEY("4")), Settings->Screen->size == DM_QUADRUPLESIZE) {
+				if (ImGui::MenuItem("400%", MOD_KEY("4"), Settings->Screen->size == DM_QUADRUPLESIZE)) {
 					Settings->Screen->size = DM_QUADRUPLESIZE;
-					uiSetChanges |= PS_SCREEN_SIZE;
+					InvokeSettingsChange |= PS_SCREEN_SIZE;
 				}
-				if (ImGui::MenuItem("500%", MOD_KEY("5")), Settings->Screen->size == DM_QUINTUPLESIZE) {
+				if (ImGui::MenuItem("500%", MOD_KEY("5"), Settings->Screen->size == DM_QUINTUPLESIZE)) {
 					Settings->Screen->size = DM_QUINTUPLESIZE;
-					uiSetChanges |= PS_SCREEN_SIZE;
+					InvokeSettingsChange |= PS_SCREEN_SIZE;
 				}
 				if (ImGui::MenuItem("Fullscreen", MOD_KEY("F"), Settings->Screen->size == DM_FULLSCREEN, false)) { }
 				ImGui::Separator();
@@ -120,7 +120,7 @@ void UserInterface::DrawMenu()
 					if (ImGui::SliderInt("##border", &Settings->Screen->border, 0, 9,
 						"%d", ImGuiSliderFlags_AlwaysClamp)) {
 
-						uiSetChanges |= PS_SCREEN_SIZE;
+						InvokeSettingsChange |= PS_SCREEN_SIZE;
 					}
 					ImGui::EndMenu();
 				}
@@ -132,33 +132,33 @@ void UserInterface::DrawMenu()
 				ImGui::PushItemFlag(ImGuiItemFlags_AutoClosePopups, false);
 				if (ImGui::MenuItem("Monochromatic", MOD_KEY("M"), Settings->Screen->colorProfile == CP_MONO)) {
 					Settings->Screen->colorProfile = CP_MONO;
-					uiSetChanges |= PS_SCREEN_MODE;
+					InvokeSettingsChange |= PS_SCREEN_MODE;
 				}
 				if (ImGui::MenuItem("Standard", MOD_KEY("M"), Settings->Screen->colorProfile == CP_STANDARD)) {
 					Settings->Screen->colorProfile = CP_STANDARD;
-					uiSetChanges |= PS_SCREEN_MODE;
+					InvokeSettingsChange |= PS_SCREEN_MODE;
 				}
 				if (ImGui::MenuItem("Color", MOD_KEY("C"), Settings->Screen->colorProfile == CP_COLOR)) {
 					Settings->Screen->colorProfile = CP_COLOR;
-					uiSetChanges |= PS_SCREEN_MODE;
+					InvokeSettingsChange |= PS_SCREEN_MODE;
 				}
 				if (ImGui::MenuItem("ColorAce", MOD_KEY("C"), Settings->Screen->colorProfile == CP_COLORACE)) {
 					Settings->Screen->colorProfile = CP_COLORACE;
-					uiSetChanges |= PS_SCREEN_MODE;
+					InvokeSettingsChange |= PS_SCREEN_MODE;
 				}
 				ImGui::Separator();
 				if (ImGui::BeginMenu("Color Palette", Settings->Screen->colorProfile == CP_COLOR)) {
 					if (ImGui::MenuItem("RGBM", NULL, Settings->Screen->colorPalette == CL_RGB)) {
 						Settings->Screen->colorPalette = CL_RGB;
-						uiSetChanges |= PS_SCREEN_MODE;
+						InvokeSettingsChange |= PS_SCREEN_MODE;
 					}
 					if (ImGui::MenuItem("VideoOut", NULL, Settings->Screen->colorPalette == CL_VIDEO)) {
 						Settings->Screen->colorPalette = CL_VIDEO;
-						uiSetChanges |= PS_SCREEN_MODE;
+						InvokeSettingsChange |= PS_SCREEN_MODE;
 					}
 					if (ImGui::MenuItem("Custom Colors", NULL, Settings->Screen->colorPalette == CL_DEFINED)) {
 						Settings->Screen->colorPalette = CL_DEFINED;
-						uiSetChanges |= PS_SCREEN_MODE;
+						InvokeSettingsChange |= PS_SCREEN_MODE;
 					}
 					ImGui::Separator();
 					AttributeMenuItems(Settings->Screen->colorPalette == CL_DEFINED);
@@ -171,32 +171,32 @@ void UserInterface::DrawMenu()
 				if (ImGui::MenuItem("LCD Emulation", MOD_KEY("L"), Settings->Screen->lcdMode)) {
 					Settings->Screen->lcdMode = true;
 					Settings->Screen->halfPass = HP_OFF;
-					uiSetChanges |= PS_SCREEN_MODE;
+					InvokeSettingsChange |= PS_SCREEN_MODE;
 				}
-				if (ImGui::MenuItem("Half-Pass 0%", MOD_KEY("6"), Settings->Screen->halfPass == HP_0)) {
+				if (ImGui::MenuItem("Half-Pass 00%", MOD_KEY("6"), Settings->Screen->halfPass == HP_0)) {
 					Settings->Screen->lcdMode = false;
 					Settings->Screen->halfPass = HP_0;
-					uiSetChanges |= PS_SCREEN_MODE;
+					InvokeSettingsChange |= PS_SCREEN_MODE;
 				}
 				if (ImGui::MenuItem("Half-Pass 25%", MOD_KEY("7"), Settings->Screen->halfPass == HP_25)) {
 					Settings->Screen->lcdMode = false;
 					Settings->Screen->halfPass = HP_25;
-					uiSetChanges |= PS_SCREEN_MODE;
+					InvokeSettingsChange |= PS_SCREEN_MODE;
 				}
 				if (ImGui::MenuItem("Half-Pass 50%", MOD_KEY("8"), Settings->Screen->halfPass == HP_50)) {
 					Settings->Screen->lcdMode = false;
 					Settings->Screen->halfPass = HP_50;
-					uiSetChanges |= PS_SCREEN_MODE;
+					InvokeSettingsChange |= PS_SCREEN_MODE;
 				}
 				if (ImGui::MenuItem("Half-Pass 75%", MOD_KEY("9"), Settings->Screen->halfPass == HP_75)) {
 					Settings->Screen->lcdMode = false;
 					Settings->Screen->halfPass = HP_75;
-					uiSetChanges |= PS_SCREEN_MODE;
+					InvokeSettingsChange |= PS_SCREEN_MODE;
 				}
 				if (ImGui::MenuItem("Pixel Precise", MOD_KEY("0"), Settings->Screen->halfPass == HP_OFF)) {
 					Settings->Screen->lcdMode = false;
 					Settings->Screen->halfPass = HP_OFF;
-					uiSetChanges |= PS_SCREEN_MODE;
+					InvokeSettingsChange |= PS_SCREEN_MODE;
 				}
 				ImGui::EndMenu();
 			}
@@ -219,18 +219,18 @@ void UserInterface::DrawMenu()
 			}
 			ImGui::Separator();
 			if (ImGui::MenuItem("Reset", MOD_KEY("F5"))) {
-				uiCallback.connect(&TEmulator::ActionReset, Emulator);
-				uiSetChanges |= PS_CLOSEALL;
+				ProcessSettingsCallback.connect(&TEmulator::ActionReset, Emulator);
+				InvokeSettingsChange |= PS_CLOSEALL;
 			}
 			if (ImGui::MenuItem("Hard Restart", MOD_SHIFT("F5"))) {
-				uiCallback.connect(&TEmulator::ActionHardReset, Emulator);
-				uiSetChanges |= PS_CLOSEALL;
+				ProcessSettingsCallback.connect(&TEmulator::ActionHardReset, Emulator);
+				InvokeSettingsChange |= PS_CLOSEALL;
 			}
 			ImGui::Separator();
 			if (ImGui::BeginMenu("Sound")) {
 				if (ImGui::MenuItem("Mute", MOD_KEY("F8"), Settings->Sound->mute)) {
 					Settings->Sound->mute = !Settings->Sound->mute;
-					uiSetChanges |= PS_SOUND;
+					InvokeSettingsChange |= PS_SOUND;
 				}
 				if (ImGui::BeginMenu("Volume", !Settings->Sound->mute)) {
 					ImGui::SliderInt("##volume", &Settings->Sound->volume, 2, 127,
@@ -241,15 +241,15 @@ void UserInterface::DrawMenu()
 			}
 			if (ImGui::BeginMenu("Keyboard")) {
 				if (ImGui::MenuItem("Swap Z/Y Keys", NULL, &Settings->Keyboard->changeZY)) {
-					uiSetChanges |= PS_CONTROLS;
+					InvokeSettingsChange |= PS_CONTROLS;
 				}
 				if (ImGui::MenuItem("Use Numeric Keypad", NULL, &Settings->Keyboard->useNumpad)) {
-					uiSetChanges |= PS_CONTROLS;
+					InvokeSettingsChange |= PS_CONTROLS;
 				}
 				if (ImGui::MenuItem("Extended Control Keys", "on Mato",
 					&Settings->Keyboard->useMatoCtrl, Settings->CurrentModel->type == CM_MATO)) {
 
-					uiSetChanges |= PS_CONTROLS;
+					InvokeSettingsChange |= PS_CONTROLS;
 				}
 				ImGui::EndMenu();
 			}
@@ -289,25 +289,25 @@ void UserInterface::DrawMenu()
 				ImGui::MenuItem("Split 8kB ROM", "on 8000/A000", Settings->CurrentModel->romSplit8kMode)) {
 
 				Settings->CurrentModel->romSplit8kMode = !Settings->CurrentModel->romSplit8kMode;
-				uiSetChanges |= PS_MACHINE;
+				InvokeSettingsChange |= PS_MACHINE;
 			}
 			if ((Settings->CurrentModel->type == CM_V3) &&
 				ImGui::MenuItem("Compatibility Mode", "JUMP FFF0", Settings->CurrentModel->compatibilityMode)) {
 
 				Settings->CurrentModel->compatibilityMode = !Settings->CurrentModel->compatibilityMode;
-				uiSetChanges |= PS_MACHINE;
+				InvokeSettingsChange |= PS_MACHINE;
 			}
 			if ((Settings->CurrentModel->type == CM_V2A || Settings->CurrentModel->type == CM_V3) &&
 				ImGui::MenuItem("256kB Memory Expansion", NULL, Settings->CurrentModel->ramExpansion256k)) {
 
 				Settings->CurrentModel->ramExpansion256k = !Settings->CurrentModel->ramExpansion256k;
-				uiSetChanges |= PS_MACHINE;
+				InvokeSettingsChange |= PS_MACHINE;
 			}
 			if ((Settings->CurrentModel->type == CM_MATO) &&
 				ImGui::MenuItem("Fix AllRAM 64kB Mode", NULL, Settings->CurrentModel->matoAllRAM64k)) {
 
 				Settings->CurrentModel->matoAllRAM64k = !Settings->CurrentModel->matoAllRAM64k;
-				uiSetChanges |= PS_MACHINE;
+				InvokeSettingsChange |= PS_MACHINE;
 			}
 
 			ImGui::Separator();
@@ -315,7 +315,7 @@ void UserInterface::DrawMenu()
 				accessibleForPMD85 ? Settings->CurrentModel->romModuleInserted : false, accessibleForPMD85)) {
 
 				Settings->CurrentModel->romModuleInserted = !Settings->CurrentModel->romModuleInserted;
-				uiSetChanges |= PS_MACHINE | PS_PERIPHERALS;
+				InvokeSettingsChange |= PS_MACHINE | PS_PERIPHERALS;
 			}
 			if (ImGui::BeginMenu("ROM Module Package", Settings->CurrentModel->romModuleInserted)) {
 				const char *name = Settings->CurrentModel->romModule->name;
@@ -324,7 +324,7 @@ void UserInterface::DrawMenu()
 							(strcmp(Settings->RomPackages[i]->name, name) == 0))) {
 
 						Settings->CurrentModel->romModule = Settings->RomPackages[i];
-						uiSetChanges |= PS_MACHINE | PS_PERIPHERALS;
+						InvokeSettingsChange |= PS_MACHINE | PS_PERIPHERALS;
 					}
 				}
 				ImGui::EndMenu();
@@ -335,7 +335,7 @@ void UserInterface::DrawMenu()
 				itemAccessible ? Settings->CurrentModel->megaModuleEnabled : false, itemAccessible)) {
 
 				Settings->CurrentModel->megaModuleEnabled = !Settings->CurrentModel->megaModuleEnabled;
-				uiSetChanges |= PS_MACHINE | PS_PERIPHERALS;
+				InvokeSettingsChange |= PS_MACHINE | PS_PERIPHERALS;
 			}
 
 			if (itemAccessible && Settings->CurrentModel->megaModuleEnabled) {
@@ -376,7 +376,7 @@ void UserInterface::DrawMenu()
 				bool state = Settings->Mouse->type == MT_M602;
 				if (ImGui::MenuItem("Connected", NULL, &state)) {
 					Settings->Mouse->type = state ? MT_M602 : MT_NONE;
-					uiSetChanges |= PS_PERIPHERALS;
+					InvokeSettingsChange |= PS_PERIPHERALS;
 				}
 				ImGui::Separator();
 				ImGui::MenuItem("Hide Mouse Cursor", NULL, &Settings->Mouse->hideCursor);
@@ -388,11 +388,11 @@ void UserInterface::DrawMenu()
 				bool state = Settings->PMD32->connected;
 				if (ImGui::MenuItem("Connected", NULL, &state)) {
 					Settings->PMD32->connected = state;
-					uiSetChanges |= PS_PERIPHERALS;
+					InvokeSettingsChange |= PS_PERIPHERALS;
 				}
 				ImGui::Separator();
 				if (ImGui::MenuItem("Extended Commands", NULL, &Settings->PMD32->extraCommands, state)) {
-					uiSetChanges |= PS_PERIPHERALS;
+					InvokeSettingsChange |= PS_PERIPHERALS;
 				}
 				char *sdRoot = Settings->PMD32->sdRoot ? currentFile : NULL;
 				if (sdRoot)
@@ -411,7 +411,7 @@ void UserInterface::DrawMenu()
 				accessibleForPMD85 ? Settings->Sound->ifMIF85 : false, accessibleForPMD85)) {
 
 				Settings->Sound->ifMIF85 = !Settings->Sound->ifMIF85;
-				uiSetChanges |= PS_PERIPHERALS;
+				InvokeSettingsChange |= PS_PERIPHERALS;
 			}
 
 			delete [] currentFile;
@@ -431,7 +431,7 @@ void UserInterface::MachineMenuItem(const char *name, TComputerModel model)
 			}
 		}
 
-		uiSetChanges |= PS_MACHINE;
+		InvokeSettingsChange |= PS_MACHINE;
 	}
 }
 //-----------------------------------------------------------------------------
@@ -524,8 +524,8 @@ void UserInterface::DiskImagesMenuItems(bool inMenu)
 		if (ImGui::SmallButton(buf) && imagePath) {
 			delete [] drive->image;
 			drive->image = NULL;
-			uiCallback.connect(&TEmulator::ActionPMD32Update, Emulator);
-			uiSetChanges |= PS_CLOSEALL;
+			ProcessSettingsCallback.connect(&TEmulator::ActionPMD32Update, Emulator);
+			InvokeSettingsChange |= PS_CLOSEALL;
 		}
 
 		bbase = drive->writeProtect ? ImColor::HSV(0.0f, 0.6f, 0.6f) : ImColor::HSV(0.5f, 0.2f, 0.2f);
@@ -538,8 +538,8 @@ void UserInterface::DiskImagesMenuItems(bool inMenu)
 		sprintf(buf, "WP##%c", letter);
 		if (ImGui::SmallButton("WP") && imagePath) {
 			drive->writeProtect = !drive->writeProtect;
-			uiCallback.connect(&TEmulator::ActionPMD32Update, Emulator);
-			uiSetChanges |= PS_CLOSEALL;
+			ProcessSettingsCallback.connect(&TEmulator::ActionPMD32Update, Emulator);
+			InvokeSettingsChange |= PS_CLOSEALL;
 		}
 
 		ImGui::PopStyleColor(6);

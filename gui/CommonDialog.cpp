@@ -134,37 +134,37 @@ void UserInterface::DrawQueryDialog()
 		if (queryDialogSaveType) {
 			if (ImGui::Button("Save", ImVec2(100.0f, 0.0f))) {
 				ImGui::CloseCurrentPopup();
-				uiQueryCallback(GUI_QUERY_SAVE);
+				QueryDialogCallback(GUI_QUERY_SAVE);
 			}
 			ImGui::SameLine();
 			if (ImGui::Button("Don't Save", ImVec2(100.0f, 0.0f))) {
 				ImGui::CloseCurrentPopup();
-				uiQueryCallback(GUI_QUERY_DONTSAVE);
+				QueryDialogCallback(GUI_QUERY_DONTSAVE);
 			}
 			ImGui::SameLine();
 			ImGui::SetItemDefaultFocus();
 			if (ImGui::Button("Cancel", ImVec2(100.0f, 0.0f))) {
 				ImGui::CloseCurrentPopup();
-				uiQueryCallback(GUI_QUERY_CANCEL);
+				QueryDialogCallback(GUI_QUERY_CANCEL);
 			}
 		}
 		else if (queryDialogTitle && queryDialogTitle[0] != '\0') {
 			if (ImGui::Button("Yes", ImVec2(150.0f, 0.0f))) {
 				ImGui::CloseCurrentPopup();
-				uiQueryCallback(GUI_QUERY_YES);
+				QueryDialogCallback(GUI_QUERY_YES);
 			}
 			ImGui::SameLine();
 			ImGui::SetItemDefaultFocus();
 			if (ImGui::Button("No", ImVec2(150.0f, 0.0f))) {
 				ImGui::CloseCurrentPopup();
-				uiQueryCallback(GUI_QUERY_NO);
+				QueryDialogCallback(GUI_QUERY_NO);
 			}
 		}
 		else {
 			ImGui::SetItemDefaultFocus();
 			if (ImGui::Button("OK", ImVec2(200.0f, 0.0f))) {
 				ImGui::CloseCurrentPopup();
-				uiQueryCallback(GUI_QUERY_NO);
+				QueryDialogCallback(GUI_QUERY_NO);
 			}
 		}
 
