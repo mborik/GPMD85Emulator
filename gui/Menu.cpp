@@ -56,10 +56,10 @@ void UserInterface::DrawMenu()
 			if (ImGui::MenuItem("Save Tape\u0085", MOD_SHIFT("F2"))) {
 				Emulator->ActionTapeSave();
 			}
-			ImGui::MenuItem("Tape Browser", MOD_KEY("T"), &dialogTapeBrowserOpened);
+			ImGui::MenuItem("Tape Browser", MOD_KEY("T"), &Settings->GUI->dialogTapeBrowserOpened);
 
 			ImGui::Separator();
-			ImGui::MenuItem("Disk Images", MOD_KEY("F6"), &dialogDiskImagesOpened);
+			ImGui::MenuItem("Disk Images", MOD_KEY("F6"), &Settings->GUI->dialogDiskImagesOpened);
 
 			ImGui::Separator();
 			if (ImGui::MenuItem("Open Snapshot\u0085", MOD_KEY("F7"))) {
@@ -263,6 +263,10 @@ void UserInterface::DrawMenu()
 			ImGui::EndMenu();
 		}
 
+		if (triggerMachineMenuOpen) {
+			triggerMachineMenuOpen = false;
+			ImGui::OpenPopup("Machine");
+		}
 		if (ImGui::BeginMenu("Machine")) {
 			bool accessibleForPMD85 = Settings->CurrentModel->type <= CM_V3;
 			char *currentFile = new char[MAX_PATH + 2];

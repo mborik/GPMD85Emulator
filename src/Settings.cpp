@@ -50,7 +50,19 @@ TSettings::TSettings(bool userCfg)
 				CONFIGURATION_VERSION, buf);
 	}
 
-	cfgIniLine *m = NULL, *n = cfgFindSection(cfgRoot, "General");
+//# User interface settings
+	cfgIniLine *m = NULL, *n = cfgFindSection(cfgRoot, "GUI");
+
+	GUI = new SetUserInterface;
+	GUI->position.x = cfgGetIntValue(n, "pos-x", -1, &(GUI->position.x));
+	GUI->position.y = cfgGetIntValue(n, "pos-y", -1, &(GUI->position.y));
+	GUI->windowSize.x = cfgGetIntValue(n, "width", -1, &(GUI->windowSize.x));
+	GUI->windowSize.y = cfgGetIntValue(n, "height", -1, &(GUI->windowSize.y));
+	GUI->dialogTapeBrowserOpened = cfgGetBoolValue(n, "dialog-tape", false, &(GUI->dialogTapeBrowserOpened));
+	GUI->dialogDiskImagesOpened = cfgGetBoolValue(n, "dialog-disk", false, &(GUI->dialogDiskImagesOpened));
+
+//# General settings
+	n = cfgFindSection(cfgRoot, "General");
 
 	pauseOnFocusLost = cfgGetBoolValue(n, "pause-on-focus-lost", false, &pauseOnFocusLost);
 	showHiddenFiles = cfgGetBoolValue(n, "show-hidden-files", false, &showHiddenFiles);
@@ -326,6 +338,9 @@ TSettings::TSettings(bool userCfg)
 	MemoryBlock = new SetMemoryBlock;
 	MemoryBlock->start = cfgGetIntValue(n, "start", 0, &(MemoryBlock->start));
 	MemoryBlock->length = cfgGetIntValue(n, "length", 0, &(MemoryBlock->length));
+	MemoryBlock->autorun = cfgGetIntValue(n, "autorun", -1, &(MemoryBlock->autorun));
+	MemoryBlock->ex256pg = cfgGetIntValue(n, "ex256pg", -1, &(MemoryBlock->ex256pg));
+	MemoryBlock->remapping = cfgGetBoolValue(n, "remapping", false, &(MemoryBlock->remapping));
 
 	MemoryBlock->hex = false;
 	if ((m = cfgGetLine(n, "radix")) != NULL) {
@@ -349,7 +364,6 @@ TSettings::TSettings(bool userCfg)
 	else
 		cfgInsertNewLine(n->next, "source", LT_ROM, (void *) &(MemoryBlock->rom));
 
-	MemoryBlock->remapping = cfgGetBoolValue(n, "remapping", false, &(MemoryBlock->remapping));
 	MemoryBlock->fileName = cfgGetStringValue(n, "recent-file", &(MemoryBlock->fileName));
 
 //# Screen configuration
@@ -357,11 +371,6 @@ TSettings::TSettings(bool userCfg)
 
 	Screen = new SetScreen;
 	Screen->border = cfgGetIntValue(n, "border", 0, &(Screen->border));
-
-	Screen->position.x = cfgGetIntValue(n, "pos-x", -1, &(Screen->position.x));
-	Screen->position.y = cfgGetIntValue(n, "pos-y", -1, &(Screen->position.y));
-	Screen->windowSize.x = cfgGetIntValue(n, "width", -1, &(Screen->windowSize.x));
-	Screen->windowSize.y = cfgGetIntValue(n, "height", -1, &(Screen->windowSize.y));
 
 	Screen->size = DM_NORMAL;
 	if ((m = cfgGetLine(n, "size")) != NULL) {
@@ -453,23 +462,6 @@ TSettings::TSettings(bool userCfg)
 	Keyboard->useNumpad = cfgGetBoolValue(n, "use-numpad", false, &(Keyboard->useNumpad));
 	Keyboard->useMatoCtrl = cfgGetBoolValue(n, "mato-ctrl", false, &(Keyboard->useMatoCtrl));
 
-//# Mouse configuration
-	n = cfgFindSection(cfgRoot, "Mouse");
-
-	Mouse = new SetMouse;
-	Mouse->hideCursor = cfgGetBoolValue(n, "hide-cursor", true, &(Mouse->hideCursor));
-
-	Mouse->type = MT_NONE;
-	if ((m = cfgGetLine(n, "type")) != NULL) {
-		if (strcmp(m->value, "m602") == 0)
-			Mouse->type = MT_M602;
-
-		m->type = LT_MOUSE;
-		m->ptr = (void *) &(Mouse->type);
-	}
-	else
-		cfgInsertNewLine(n->next, "type", LT_MOUSE, (void *) &(Mouse->type));
-
 //# Joysticks configuration
 	n = cfgFindSection(cfgRoot, "Joystick-GPIO0");
 
@@ -532,6 +524,23 @@ TSettings::TSettings(bool userCfg)
 	}
 	else
 		cfgInsertNewLine(n->next, "type", LT_JOY, (void *) &(Joystick->GPIO1->type));
+
+//# Mouse configuration
+	n = cfgFindSection(cfgRoot, "Mouse");
+
+	Mouse = new SetMouse;
+	Mouse->hideCursor = cfgGetBoolValue(n, "hide-cursor", true, &(Mouse->hideCursor));
+
+	Mouse->type = MT_NONE;
+	if ((m = cfgGetLine(n, "type")) != NULL) {
+		if (strcmp(m->value, "m602") == 0)
+			Mouse->type = MT_M602;
+
+		m->type = LT_MOUSE;
+		m->ptr = (void *) &(Mouse->type);
+	}
+	else
+		cfgInsertNewLine(n->next, "type", LT_MOUSE, (void *) &(Mouse->type));
 
 //# PMD-32 disk drive
 	n = cfgFindSection(cfgRoot, "PMD-32");
@@ -665,6 +674,10 @@ TSettings::~TSettings()
 	if (Debugger)
 		delete Debugger;
 	Debugger = NULL;
+
+	if (GUI)
+		delete GUI;
+	GUI = NULL;
 
 	if (Screen)
 		delete Screen;

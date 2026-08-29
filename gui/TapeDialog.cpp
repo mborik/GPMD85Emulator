@@ -29,11 +29,11 @@ void UserInterface::DrawTapeDialog()
 	if (TapeBrowser->shouldUpdateEntries || tapeDialogEntries.empty())
 		TapeBrowser->FillFileList(tapeDialogEntries);
 
-	if (dialogTapeBrowserOpened) {
+	if (Settings->GUI->dialogTapeBrowserOpened) {
 		ImVec2 center = ImGui::GetMainViewport()->GetCenter();
 		ImGui::SetNextWindowPos(center, ImGuiCond_FirstUseEver, ImVec2(0.5f, 0.5f));
 		ImGui::SetNextWindowSize(ImVec2(320.0f, 480.0f), ImGuiCond_FirstUseEver);
-		ImGui::Begin("Tape Browser", &dialogTapeBrowserOpened,
+		ImGui::Begin("Tape Browser", &Settings->GUI->dialogTapeBrowserOpened,
 			TapeBrowser->tapeChanged ? ImGuiWindowFlags_UnsavedDocument : ImGuiWindowFlags_None);
 
 		static char label[12];
