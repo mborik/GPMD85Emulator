@@ -25,7 +25,7 @@
 //-----------------------------------------------------------------------------
 #include "globals.h"
 //-----------------------------------------------------------------------------
-#define CONFIGURATION_VERSION "6"
+#define CONFIGURATION_VERSION "7"
 //-----------------------------------------------------------------------------
 class TSettings
 {
@@ -66,12 +66,16 @@ class TSettings
 			TAutoStopType autoStop;
 			char *fileName;
 		};
+		struct SetUserInterface {
+			SDL_Point position;
+			SDL_Point windowSize;
+			bool dialogTapeBrowserOpened;
+			bool dialogDiskImagesOpened;
+		};
 		struct SetScreen {
 			int border;
 			TDisplayMode size;
 			TDisplayMode realsize;
-			SDL_Point position;
-			SDL_Point windowSize;
 			THalfPassMode halfPass;
 			bool lcdMode;
 			TColorProfile colorProfile;
@@ -135,6 +139,8 @@ class TSettings
 		struct SetMemoryBlock {
 			int start;
 			int length;
+			int autorun;
+			int ex256pg;
 			bool rom;
 			bool hex;
 			bool remapping;
@@ -181,19 +187,20 @@ class TSettings
 		BYTE modelsCount;
 		BYTE romPackagesCount;
 
+		SetUserInterface *GUI;
 		SetComputerModel **AllModels;
 		SetComputerModel *CurrentModel;
 		SetRomPackage **RomPackages;
-		SetSnapshot *Snapshot;
-		SetTapeBrowser *TapeBrowser;
 		SetScreen *Screen;
 		SetSound *Sound;
 		SetKeyboard *Keyboard;
+		SetSnapshot *Snapshot;
+		SetTapeBrowser *TapeBrowser;
+		SetDebugger *Debugger;
+		SetMemoryBlock *MemoryBlock;
 		SetJoystick *Joystick;
 		SetMouse *Mouse;
 		SetStoragePMD32 *PMD32;
-		SetDebugger *Debugger;
-		SetMemoryBlock *MemoryBlock;
 
 		TSettings(bool userCfg);
 		virtual ~TSettings();

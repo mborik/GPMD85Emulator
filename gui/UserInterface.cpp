@@ -39,9 +39,8 @@ UserInterface::UserInterface()
 
 	isMenuHovered = false;
 	isEmulatorWindowFocused = false;
+	triggerMachineMenuOpen = false;
 	dialogAboutOpened = false;
-	dialogTapeBrowserOpened = false;
-	dialogDiskImagesOpened = false;
 
 	queryDialogTitle = NULL;
 	queryDialogMessage = NULL;
@@ -145,30 +144,25 @@ void UserInterface::DrawEmulatorWindow()
 void UserInterface::Execute(TGuiElementType type, void *data)
 {
 	switch (type) {
+		case GE_MACHINE:
+			triggerMachineMenuOpen = true;
+			break;
+
 		case GE_ABOUT:
 			dialogAboutOpened = true;
 			ImGui::OpenPopup("About");
 			break;
 
 		case GE_DISKIMAGES:
-			dialogDiskImagesOpened = !dialogDiskImagesOpened;
+			Settings->GUI->dialogDiskImagesOpened = !Settings->GUI->dialogDiskImagesOpened;
 			break;
 
 		case GE_TAPEBROWSER:
-			dialogTapeBrowserOpened = !dialogTapeBrowserOpened;
+			Settings->GUI->dialogTapeBrowserOpened = !Settings->GUI->dialogTapeBrowserOpened;
 			break;
 
 		default:
 			break;
 	}
-}
-//-----------------------------------------------------------------------------
-void UserInterface::MenuClose()
-{
-}
-//-----------------------------------------------------------------------------
-void UserInterface::MenuCloseAll()
-{
-	ImGui::ClosePopupToLevel(0, true);
 }
 //-----------------------------------------------------------------------------

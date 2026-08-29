@@ -76,9 +76,6 @@ class UserInterface
 		);
 
 		void Execute(TGuiElementType type, void *data = NULL);
-		void MenuClose();
-		void MenuCloseAll();
-
 		void RedrawStatusBar(float horizontalPadding = 0.0f);
 		void SetLedState(int led);
 		void SetIconState(int icon);
@@ -96,8 +93,7 @@ class UserInterface
 		bool isMenuHovered;
 		bool isAnyPopupWindowFocused;
 		bool isEmulatorWindowFocused;
-		bool dialogTapeBrowserOpened;
-		bool dialogDiskImagesOpened;
+		bool triggerMachineMenuOpen;
 		bool dialogAboutOpened;
 
 		TFileSelectType fileSelectorType;

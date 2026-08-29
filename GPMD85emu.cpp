@@ -187,10 +187,10 @@ int main(int argc, char** argv)
 	Emulator->ProcessSettings(-1);
 	Emulator->ProcessArgvOptions(true);
 
-	if (Settings->Screen->position.x >= 0 || Settings->Screen->position.y >= 0)
-		SDL_SetWindowPosition(gdc.window, Settings->Screen->position.x, Settings->Screen->position.y);
-	if (Settings->Screen->windowSize.x >= 0 || Settings->Screen->windowSize.y >= 0)
-		SDL_SetWindowSize(gdc.window, Settings->Screen->windowSize.x, Settings->Screen->windowSize.y);
+	if (Settings->GUI->position.x >= 0 || Settings->GUI->position.y >= 0)
+		SDL_SetWindowPosition(gdc.window, Settings->GUI->position.x, Settings->GUI->position.y);
+	if (Settings->GUI->windowSize.x >= 0 || Settings->GUI->windowSize.y >= 0)
+		SDL_SetWindowSize(gdc.window, Settings->GUI->windowSize.x, Settings->GUI->windowSize.y);
 	SDL_ShowWindow(gdc.window);
 
 	Emulator->ActionPlayPause(true);
@@ -298,9 +298,9 @@ int main(int argc, char** argv)
 	}
 
 	SDL_GetWindowPosition(gdc.window,
-			&Settings->Screen->position.x, &Settings->Screen->position.y);
+			&Settings->GUI->position.x, &Settings->GUI->position.y);
 	SDL_GetWindowSize(gdc.window,
-			&Settings->Screen->windowSize.x, &Settings->Screen->windowSize.y);
+			&Settings->GUI->windowSize.x, &Settings->GUI->windowSize.y);
 
 	SDL_HideWindow(gdc.window);
 	debug("", "Main loop terminated");

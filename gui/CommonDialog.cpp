@@ -26,8 +26,8 @@
 //-----------------------------------------------------------------------------
 void UserInterface::DrawDiskImagesDialog()
 {
-	if (dialogDiskImagesOpened) {
-		ImGui::Begin("Disk Images", &dialogDiskImagesOpened,
+	if (Settings->GUI->dialogDiskImagesOpened) {
+		ImGui::Begin("Disk Images", &Settings->GUI->dialogDiskImagesOpened,
 			ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize);
 		DiskImagesMenuItems();
 		ImGui::End();
@@ -98,14 +98,6 @@ void UserInterface::DrawAboutDialog()
 	}
 }
 //-----------------------------------------------------------------------------
-void UserInterface::QueryDialog(const char *title, const char *message, bool save)
-{
-	queryDialogTitle = title;
-	queryDialogMessage = message;
-	queryDialogSaveType = save;
-	queryDialogShouldOpen = true;
-}
-//-----------------------------------------------------------------------------
 void UserInterface::DrawQueryDialog()
 {
 	if (queryDialogShouldOpen) {
@@ -171,6 +163,14 @@ void UserInterface::DrawQueryDialog()
 		ImGui::PopStyleVar();
 		ImGui::EndPopup();
 	}
+}
+//-----------------------------------------------------------------------------
+void UserInterface::QueryDialog(const char *title, const char *message, bool save)
+{
+	queryDialogTitle = title;
+	queryDialogMessage = message;
+	queryDialogSaveType = save;
+	queryDialogShouldOpen = true;
 }
 //-----------------------------------------------------------------------------
 void UserInterface::MessageBox(const char *text, ...)
