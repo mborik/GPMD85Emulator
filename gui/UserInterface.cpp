@@ -53,8 +53,7 @@ UserInterface::UserInterface()
 	fileSelectorRecentPath = new char[PATH_MAX];
 	strcpy(fileSelectorRecentPath, PathApplication);
 
-	uiSetChanges = 0;
-	uiQueryState = GUI_QUERY_CANCEL;
+	InvokeSettingsChange = 0;
 }
 //-----------------------------------------------------------------------------
 UserInterface::~UserInterface()

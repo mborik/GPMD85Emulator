@@ -39,11 +39,10 @@ class UserInterface
 	public:
 		DWORD globalPalette[256];
 
-		BYTE uiSetChanges;
-		BYTE uiQueryState;
-		sigslot::signal<> uiCallback;
-		sigslot::signal<TMenuQueryType> uiQueryCallback;
-		sigslot::signal<char *> uiFileSelectorCallback;
+		BYTE InvokeSettingsChange;
+		sigslot::signal<> ProcessSettingsCallback;
+		sigslot::signal<TMenuQueryType> QueryDialogCallback;
+		sigslot::signal<char *> FileSelectorCallback;
 
 		UserInterface();
 		virtual ~UserInterface();

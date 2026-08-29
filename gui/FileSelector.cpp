@@ -112,7 +112,7 @@ void UserInterface::DrawFileSelector()
 		if (!TestDir(fileSelectorRecentPath, (char *) "..", NULL))
 			strcpy(fileSelectorRecentPath, PathApplication);
 
-		uiFileSelectorCallback(fileSelectorPath);
+		FileSelectorCallback(fileSelectorPath);
 
 		fileSelector->ClearSelected();
 		fileSelector->Close();
@@ -120,7 +120,7 @@ void UserInterface::DrawFileSelector()
 	}
 
 	if (!fileSelector->IsOpened()) {
-		uiFileSelectorCallback(nullptr);
+		FileSelectorCallback(nullptr);
 		fileSelector->Close();
 		shouldDestroy = true;
 	}
