@@ -24,11 +24,11 @@
 #define SCREENPMD85_H_
 //-----------------------------------------------------------------------------
 #include "globals.h"
-#include "UserInterface.h"
+#include "imgui/imgui.h"
 #include "TapeBrowser.h"
 //-----------------------------------------------------------------------------
 #define BORDER_MULTIPLIER 12
-#define WEAK_REFRESH_TIME 200
+#define DWORD_COLOR_ENTRY(R, G, B) SDL_FOURCC(R, G, B, 0xff)
 //-----------------------------------------------------------------------------
 typedef struct SCANLINER_DEF {
 	DWORD x2[6 * 4];
@@ -72,6 +72,7 @@ public:
 	inline int GetMultiplier() { return screenWidth / bufferWidth; }
 	inline int GetScreenOffsetX() { return screenRect->x; }
 	inline int GetScreenOffsetY() { return screenRect->y; }
+	inline DWORD *GetPalette() { return palette; }
 
 	void SetColorProfile(TColorProfile ColProf);
 	inline TColorProfile GetColorProfile() { return colorProfile; }
@@ -115,7 +116,7 @@ private:
 	THalfPassMode halfPass;
 	BYTE cAttr[4];
 	BYTE pAttr[8];
-	DWORD *palette;
+	DWORD palette[16];
 
 	const SCANLINER_DEF *scanliner;
 	int scanlinerMode;

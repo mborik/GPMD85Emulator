@@ -22,7 +22,6 @@
 //-----------------------------------------------------------------------------
 #include "CommonUtils.h"
 #include "ScreenPMD85.h"
-#include "Emulator.h"
 //-----------------------------------------------------------------------------
 #define GL_GLEXT_PROTOTYPES
 #ifdef IMGUI_IMPL_OPENGL_ES2
@@ -40,7 +39,6 @@ ScreenPMD85::ScreenPMD85(TDisplayMode dispMode, int border)
 	glGenTextures(1, &scanlinerTexture);
 
 	screenRect = NULL;
-	palette = NULL;
 
 	blinkState = false;
 	blinkingEnabled = false;
@@ -285,7 +283,7 @@ void ScreenPMD85::InitVideoMode(TDisplayMode reqDispMode, bool reqWidth384)
 		}
 
 		if (dispMode == DM_FULLSCREEN) {
-			if (screenWidth > gdc.w || screenHeight + (int) STATUSBAR_HEIGHT > gdc.h) {
+			if (screenWidth > gdc.w || screenHeight > gdc.h) {
 				if (reqDispMode == DM_QUINTUPLESIZE)
 					reqDispMode = DM_QUADRUPLESIZE;
 				else if (reqDispMode == DM_QUADRUPLESIZE)
@@ -629,7 +627,7 @@ void ScreenPMD85::InitScanliners()
 //-----------------------------------------------------------------------------
 void ScreenPMD85::InitPalette()
 {
-	static DWORD stdpal[36] = {
+	static DWORD stdpal[16] = {
 		DWORD_COLOR_ENTRY(   0,   0,   0 ),  // 0 - black (dimmed dot)
 		DWORD_COLOR_ENTRY( 160,   0,   0 ),  // 1 - maroon
 		DWORD_COLOR_ENTRY(   0, 160,   0 ),  // 2 - green
@@ -646,32 +644,8 @@ void ScreenPMD85::InitPalette()
 		DWORD_COLOR_ENTRY( 255,  80, 255 ),  // 13 - fuchsia
 		DWORD_COLOR_ENTRY(  80, 255, 255 ),  // 14 - aqua
 		DWORD_COLOR_ENTRY( 255, 255, 255 ),  // 15 - white (full bright)
-
-	// UserInterface colors:
-		DWORD_COLOR_ENTRY(   0,   0,   0 ),  // window shadow
-		DWORD_COLOR_ENTRY( 160,  24,  12 ),  // window border a title background
-		DWORD_COLOR_ENTRY( 242, 238, 233 ),  // window background
-		DWORD_COLOR_ENTRY(   0,   0,   0 ),  // foreground, text
-		DWORD_COLOR_ENTRY( 196, 215, 245 ),  // highlight background
-		DWORD_COLOR_ENTRY( 160, 160, 160 ),  // disabled item, inactive text
-		DWORD_COLOR_ENTRY( 200, 200, 200 ),  // checkbox/radio border, separator
-		DWORD_COLOR_ENTRY(   0, 160,   0 ),  // checkbox/radio active symbol
-		DWORD_COLOR_ENTRY(  80,  80, 255 ),  // smart-key
-		DWORD_COLOR_ENTRY(   0,   0, 160 ),  // hotkey/directory
-		DWORD_COLOR_ENTRY(   8,  32,  64 ),  // debugger background
-		DWORD_COLOR_ENTRY( 233, 238, 242 ),  // debugger foreground
-		DWORD_COLOR_ENTRY(  32,  64, 128 ),  // debugger highlight cursor
-		DWORD_COLOR_ENTRY(  96, 112, 128 ),  // debugger border
-		DWORD_COLOR_ENTRY(   0,   0,   0 ),  // (reserved)
-		DWORD_COLOR_ENTRY(   0,   0,   0 ),  // (reserved)
-		DWORD_COLOR_ENTRY(  68,  68,  68 ),  // statusbar standard text
-		DWORD_COLOR_ENTRY( 224,  27,  76 ),  // statusbar paused blinking text
-		DWORD_COLOR_ENTRY(  16,  24,  16 ),  // statusbar tape background
-		DWORD_COLOR_ENTRY(  40, 100,  50 ),  // statusbar tape foreground
 	};
 
-	palette = GUI->globalPalette;
-	SDL_memset4(palette, 0, 256);
 	memcpy(palette, stdpal, sizeof(stdpal));
 }
 //-----------------------------------------------------------------------------

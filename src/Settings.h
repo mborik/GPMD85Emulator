@@ -69,6 +69,7 @@ class TSettings
 		struct SetUserInterface {
 			SDL_Point position;
 			SDL_Point windowSize;
+			int fontScale;
 			bool dialogTapeBrowserOpened;
 			bool dialogDiskImagesOpened;
 		};

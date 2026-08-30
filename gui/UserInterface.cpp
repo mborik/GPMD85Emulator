@@ -53,6 +53,7 @@ UserInterface::UserInterface()
 	fileSelectorRecentPath = new char[PATH_MAX];
 	strcpy(fileSelectorRecentPath, PathApplication);
 
+	screenInstance = NULL;
 	InvokeSettingsChange = 0;
 }
 //-----------------------------------------------------------------------------
@@ -77,10 +78,12 @@ UserInterface::~UserInterface()
 void UserInterface::InitFont(float size, bool oversample)
 {
 	ImGuiIO& io = ImGui::GetIO();
+
 	ImFontConfig config;
 	config.OversampleH = (ImS8) oversample;
 	config.OversampleV = (ImS8) oversample;
 	config.PixelSnapH = true;
+	config.EllipsisChar = 0x2026;
 	config.GlyphOffset = ImVec2(0.0f, -1.0f);
 
 	io.Fonts->AddFontFromMemoryCompressedTTF(
@@ -88,6 +91,15 @@ void UserInterface::InitFont(float size, bool oversample)
 		GPMD85Emulator_font_compressed_size,
 		size, &config
 	);
+}
+//-----------------------------------------------------------------------------
+float UserInterface::GetMonoTextWidth(int textLength, float padding)
+{
+	if (textLength <= 0)
+		return 0.0f;
+
+	float charWidth = ImGui::CalcTextSize("W").x;
+	return (charWidth * textLength) + (padding * 2.0f);
 }
 //-----------------------------------------------------------------------------
 void UserInterface::DrawEmulatorWindow()
@@ -99,10 +111,13 @@ void UserInterface::DrawEmulatorWindow()
 		ImGuiWindowFlags_NoScrollWithMouse |
 		ImGuiWindowFlags_NoBringToFrontOnFocus;
 
-	ImVec2 screen_size = Emulator->video->GetScreenSize();
-	ImVec2 window_size = Emulator->video->GetWindowSize();
-	ImVec2 border_offset = Emulator->video->GetBorderOffset();
-	ImVec2 emulator_size = Emulator->video->GetScreenSize() / Emulator->video->GetMultiplier();
+	if (!screenInstance)
+		return;
+
+	ImVec2 screen_size = screenInstance->GetScreenSize();
+	ImVec2 window_size = screenInstance->GetWindowSize();
+	ImVec2 border_offset = screenInstance->GetBorderOffset();
+	ImVec2 emulator_size = screenInstance->GetScreenSize() / screenInstance->GetMultiplier();
 
 	window_size.y += ImGui::GetTextLineHeightWithSpacing() + STATUSBAR_HEIGHT;
 
@@ -124,8 +139,8 @@ void UserInterface::DrawEmulatorWindow()
 
 	window->DrawList->AddRectFilled(winRect.Min, winRect.Max, ImGui::GetColorU32(ImVec4(0.0f, 0.0f, 0.0f, 1.00f)));
 	window->DrawList->AddCallback(ImGui::GetPlatformIO().DrawCallback_SetSamplerNearest);
-	window->DrawList->AddImage(Emulator->video->GetScreenTexture(), emuRect.Min, emuRect.Max);
-	window->DrawList->AddImage(Emulator->video->GetScalerTexture(), emuRect.Min, emuRect.Max);
+	window->DrawList->AddImage(screenInstance->GetScreenTexture(), emuRect.Min, emuRect.Max);
+	window->DrawList->AddImage(screenInstance->GetScalerTexture(), emuRect.Min, emuRect.Max);
 
 	ImGui::InvisibleButton("Screen", screen_size + (border_offset * 2), ImGuiButtonFlags_MouseButtonMask_);
 	if (ImGui::IsItemHovered()) {
@@ -160,9 +175,15 @@ void UserInterface::DrawEmulatorWindow()
 	ImGui::PopStyleVar(1);
 }
 //-----------------------------------------------------------------------------
-void UserInterface::Execute(TGuiElementType type, void *data)
+void UserInterface::Execute(TGuiElementType type, bool forceOpen)
 {
 	switch (type) {
+		case GE_SCALE: {
+			float scale = ((float) Settings->GUI->fontScale + 1.0f) * 0.5f;
+			ImGui::GetStyle().FontScaleMain = scale;
+			break;
+		}
+
 		case GE_MACHINE:
 			triggerMachineMenuOpen = true;
 			break;
@@ -177,7 +198,7 @@ void UserInterface::Execute(TGuiElementType type, void *data)
 			break;
 
 		case GE_TAPEBROWSER:
-			Settings->GUI->dialogTapeBrowserOpened = !Settings->GUI->dialogTapeBrowserOpened;
+			Settings->GUI->dialogTapeBrowserOpened = forceOpen || !Settings->GUI->dialogTapeBrowserOpened;
 			break;
 
 		default:

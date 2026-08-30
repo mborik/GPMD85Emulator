@@ -76,7 +76,7 @@ void UserInterface::RedrawStatusBar(float horizontalPadding)
 
 //	tape progress bar...
 	TTapeBrowser::TProgressBar *progress = TapeBrowser->ProgressBar;
-	if (progressWidth > 0.0f && !Settings->GUI->dialogTapeBrowserOpened && *progress->Active) {
+	if (progressWidth > 50.0f && !Settings->GUI->dialogTapeBrowserOpened && *progress->Active) {
 		ImGui::PushID("##progress");
 		ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.1f, 0.1f, 0.1f, 0.5f));
 		ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.16f, 0.4f, 0.2f, 1.0f));

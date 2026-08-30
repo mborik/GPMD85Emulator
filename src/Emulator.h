@@ -95,9 +95,6 @@ class TEmulator
 		void ActionMouseState(int x, int y, int leftBtn = 0, int rightBtn = 0, int middleBtn = 0);
 		int  ActionJoyControllers(SDL_GameController ***controllers = NULL, bool refresh = false);
 
-		// access to ScreenPMD85 class
-		ScreenPMD85 *video;
-
 		sigslot::signal<> actionCallback;
 
 	private:
@@ -106,6 +103,7 @@ class TEmulator
 
 		ChipCpu8080 *cpu;
 		ChipMemory  *memory;
+		ScreenPMD85 *video;
 		SoundDriver *sound;
 
 		SystemPIO   *systemPIO;
