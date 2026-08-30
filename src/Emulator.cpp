@@ -274,7 +274,7 @@ void TEmulator::ProcessArgvOptions(bool memModifiers)
 //-----------------------------------------------------------------------------
 void TEmulator::ProcessSettings(BYTE filter)
 {
-	filter &= (0xFF ^ PS_CLOSEALL);
+	filter &= (PS_CLOSEONLEAVE - 1);
 	if (filter == 0)
 		return;
 
@@ -444,15 +444,16 @@ void TEmulator::BaseTimerCallback(bool guiWantCapture)
 		if (GUI->OnMenuLeave())
 			GUI->InvokeSettingsChange |= PS_CLOSEALL;
 
-		if (GUI->InvokeSettingsChange) {
+		// if we leaving menu and InvokeSettingsChange is set, apply settings change
+		// PS_CLOSEALL is special flag that will be cleared but callback will be executed
+		// PS_CLOSEONLEAVE is another flag that will execute settings change after menu leaving
+		if (GUI->InvokeSettingsChange &&
+			(GUI->InvokeSettingsChange & ~(PS_CLOSEONLEAVE - 1)) != PS_CLOSEONLEAVE) {
+
 			isRunning = false;
 
-			// if we leaving menu and InvokeSettingsChange is set, apply settings change
-			// PS_CLOSEALL is special flag that will be cleared but callback will be executed
-			if (GUI->InvokeSettingsChange) {
-				ProcessSettings(GUI->InvokeSettingsChange);
-				GUI->InvokeSettingsChange = 0;
-			}
+			ProcessSettings(GUI->InvokeSettingsChange);
+			GUI->InvokeSettingsChange = 0;
 
 			// menu leaving callback was executed
 			GUI->ProcessSettingsCallback();

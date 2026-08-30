@@ -168,7 +168,9 @@ void UserInterface::DrawMenu()
 				ImGui::EndMenu();
 			}
 			if (ImGui::BeginMenu("Scanliner")) {
-				if (ImGui::MenuItem("LCD Emulation", MOD_KEY("L"), Settings->Screen->lcdMode)) {
+				if (ImGui::MenuItem("LCD Emulation", MOD_KEY("L"),
+					Settings->Screen->lcdMode && Settings->Screen->halfPass == HP_OFF)) {
+
 					Settings->Screen->lcdMode = true;
 					Settings->Screen->halfPass = HP_OFF;
 					InvokeSettingsChange |= PS_SCREEN_MODE;
@@ -193,7 +195,9 @@ void UserInterface::DrawMenu()
 					Settings->Screen->halfPass = HP_75;
 					InvokeSettingsChange |= PS_SCREEN_MODE;
 				}
-				if (ImGui::MenuItem("Pixel Precise", MOD_KEY("0"), Settings->Screen->halfPass == HP_OFF)) {
+				if (ImGui::MenuItem("Pixel Precise", MOD_KEY("0"),
+					Settings->Screen->halfPass == HP_OFF && !Settings->Screen->lcdMode)) {
+
 					Settings->Screen->lcdMode = false;
 					Settings->Screen->halfPass = HP_OFF;
 					InvokeSettingsChange |= PS_SCREEN_MODE;
@@ -309,25 +313,25 @@ void UserInterface::DrawMenu()
 				ImGui::MenuItem("Split 8kB ROM", "on 8000/A000", Settings->CurrentModel->romSplit8kMode)) {
 
 				Settings->CurrentModel->romSplit8kMode = !Settings->CurrentModel->romSplit8kMode;
-				InvokeSettingsChange |= PS_MACHINE;
+				InvokeSettingsChange |= PS_MACHINE | PS_CLOSEONLEAVE;
 			}
 			if ((Settings->CurrentModel->type == CM_V3) &&
 				ImGui::MenuItem("Compatibility Mode", "JUMP FFF0", Settings->CurrentModel->compatibilityMode)) {
 
 				Settings->CurrentModel->compatibilityMode = !Settings->CurrentModel->compatibilityMode;
-				InvokeSettingsChange |= PS_MACHINE;
+				InvokeSettingsChange |= PS_MACHINE | PS_CLOSEONLEAVE;
 			}
 			if ((Settings->CurrentModel->type == CM_V2A || Settings->CurrentModel->type == CM_V3) &&
 				ImGui::MenuItem("256kB Memory Expansion", NULL, Settings->CurrentModel->ramExpansion256k)) {
 
 				Settings->CurrentModel->ramExpansion256k = !Settings->CurrentModel->ramExpansion256k;
-				InvokeSettingsChange |= PS_MACHINE;
+				InvokeSettingsChange |= PS_MACHINE | PS_CLOSEONLEAVE;
 			}
 			if ((Settings->CurrentModel->type == CM_MATO) &&
 				ImGui::MenuItem("Fix AllRAM 64kB Mode", NULL, Settings->CurrentModel->matoAllRAM64k)) {
 
 				Settings->CurrentModel->matoAllRAM64k = !Settings->CurrentModel->matoAllRAM64k;
-				InvokeSettingsChange |= PS_MACHINE;
+				InvokeSettingsChange |= PS_MACHINE | PS_CLOSEONLEAVE;
 			}
 
 			ImGui::Separator();
@@ -335,7 +339,7 @@ void UserInterface::DrawMenu()
 				accessibleForPMD85 ? Settings->CurrentModel->romModuleInserted : false, accessibleForPMD85)) {
 
 				Settings->CurrentModel->romModuleInserted = !Settings->CurrentModel->romModuleInserted;
-				InvokeSettingsChange |= PS_MACHINE | PS_PERIPHERALS;
+				InvokeSettingsChange |= PS_MACHINE | PS_PERIPHERALS | PS_CLOSEONLEAVE;
 			}
 			if (ImGui::BeginMenu("ROM Module Package", Settings->CurrentModel->romModuleInserted)) {
 				const char *name = Settings->CurrentModel->romModule->name;
@@ -344,7 +348,7 @@ void UserInterface::DrawMenu()
 							(strcmp(Settings->RomPackages[i]->name, name) == 0))) {
 
 						Settings->CurrentModel->romModule = Settings->RomPackages[i];
-						InvokeSettingsChange |= PS_MACHINE | PS_PERIPHERALS;
+						InvokeSettingsChange |= PS_MACHINE | PS_PERIPHERALS | PS_CLOSEONLEAVE;
 					}
 				}
 				ImGui::EndMenu();
@@ -355,7 +359,7 @@ void UserInterface::DrawMenu()
 				itemAccessible ? Settings->CurrentModel->megaModuleEnabled : false, itemAccessible)) {
 
 				Settings->CurrentModel->megaModuleEnabled = !Settings->CurrentModel->megaModuleEnabled;
-				InvokeSettingsChange |= PS_MACHINE | PS_PERIPHERALS;
+				InvokeSettingsChange |= PS_MACHINE | PS_PERIPHERALS | PS_CLOSEONLEAVE;
 			}
 
 			if (itemAccessible && Settings->CurrentModel->megaModuleEnabled) {
@@ -396,7 +400,7 @@ void UserInterface::DrawMenu()
 				bool state = Settings->Mouse->type == MT_M602;
 				if (ImGui::MenuItem("Connected", NULL, &state)) {
 					Settings->Mouse->type = state ? MT_M602 : MT_NONE;
-					InvokeSettingsChange |= PS_PERIPHERALS;
+					InvokeSettingsChange |= PS_PERIPHERALS | PS_CLOSEONLEAVE;
 				}
 				ImGui::Separator();
 				ImGui::MenuItem("Hide Mouse Cursor", NULL, &Settings->Mouse->hideCursor);
@@ -408,7 +412,7 @@ void UserInterface::DrawMenu()
 				bool state = Settings->PMD32->connected;
 				if (ImGui::MenuItem("Connected", NULL, &state)) {
 					Settings->PMD32->connected = state;
-					InvokeSettingsChange |= PS_PERIPHERALS;
+					InvokeSettingsChange |= PS_PERIPHERALS | PS_CLOSEONLEAVE;
 				}
 				ImGui::Separator();
 				if (ImGui::MenuItem("Extended Commands", NULL, &Settings->PMD32->extraCommands, state)) {
@@ -431,7 +435,7 @@ void UserInterface::DrawMenu()
 				accessibleForPMD85 ? Settings->Sound->ifMIF85 : false, accessibleForPMD85)) {
 
 				Settings->Sound->ifMIF85 = !Settings->Sound->ifMIF85;
-				InvokeSettingsChange |= PS_PERIPHERALS;
+				InvokeSettingsChange |= PS_PERIPHERALS | PS_CLOSEONLEAVE;
 			}
 
 			delete [] currentFile;
@@ -451,7 +455,7 @@ void UserInterface::MachineMenuItem(const char *name, TComputerModel model)
 			}
 		}
 
-		InvokeSettingsChange |= PS_MACHINE;
+		InvokeSettingsChange |= PS_MACHINE | PS_CLOSEONLEAVE;
 	}
 }
 //-----------------------------------------------------------------------------
