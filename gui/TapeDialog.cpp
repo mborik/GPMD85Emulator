@@ -112,7 +112,7 @@ void UserInterface::DrawTapeDialog()
 			if (iconState >= 9) {
 				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 0.2f, 0.2f, 0.9f));
 				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 0.2f, 0.2f, 0.5f));
-				if (ImGui::Button("[]", buttonSize))
+				if (ImGui::Button("\u23F9", buttonSize))
 					TapeBrowser->ActionStop();
 				ImGui::PopStyleColor(2);
 			}
@@ -203,7 +203,7 @@ void UserInterface::DrawTapeDialog()
 				ImGui::PushID(label);
 				ImGui::TableNextColumn();
 
-				bool wasClickedButton = false;
+				bool wasRightClickedButton = false;
 				ImVec2 szVec(ImGui::GetFrameHeight(), ImGui::GetFrameHeight());
 				ImGuiButtonFlags buttonFlags = ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight;
 
@@ -212,12 +212,12 @@ void UserInterface::DrawTapeDialog()
 				if (i == TapeBrowser->currBlockIdx)
 					ImGui::ArrowButtonEx("##cursor", ImGuiDir_Right, szVec, buttonFlags);
 				else if (i == TapeBrowser->stopBlockIdx)
-					ImGui::ArrowButtonEx("##cursor", ImGuiDir_Up, szVec, buttonFlags);
+					ImGui::ButtonEx("\u23F9##cursor", szVec, buttonFlags);
 				else
 					ImGui::ButtonEx("##cursor", szVec, buttonFlags);
 
 				if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
-					wasClickedButton = true;
+					wasRightClickedButton = true;
 					if (i > TapeBrowser->currBlockIdx)
 						TapeBrowser->stopBlockIdx = i;
 				}
@@ -233,7 +233,7 @@ void UserInterface::DrawTapeDialog()
 					ImGuiSelectableFlags_SpanAllColumns
 				);
 
-				if (!(tapeDialogEntries.empty() || wasClickedButton))
+				if (!(tapeDialogEntries.empty() || wasRightClickedButton))
 					DrawTapeDialogContextMenu(selection, i, item);
 
 				ImGui::TableNextColumn();

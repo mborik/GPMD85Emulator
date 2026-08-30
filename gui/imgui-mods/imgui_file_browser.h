@@ -1031,7 +1031,7 @@ inline void ImGui::FileBrowser::ToolTip(const std::string_view &s)
 
 inline void ImGui::FileBrowser::UpdateFileRecords()
 {
-    fileRecords_ = { FileRecord{ true, "..", "[D] ..", "" } };
+    fileRecords_ = { FileRecord{ true, "..", "\u2386 ..", "" } };
 
     const auto getDirectoryIterator = [&]() -> std::filesystem::directory_iterator
     {
@@ -1075,7 +1075,7 @@ inline void ImGui::FileBrowser::UpdateFileRecords()
             }
 
             rcd.extension = p.path().filename().extension();
-            rcd.showName = (rcd.isDir ? "[D] " : "[F] ") + u8StrToStr(p.path().filename().u8string());
+            rcd.showName = (rcd.isDir ? "\u2386 " : "  ") + u8StrToStr(p.path().filename().u8string());
         }
         catch(...)
         {

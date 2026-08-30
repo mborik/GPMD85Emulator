@@ -28,7 +28,7 @@
 #include "imgui/imgui.h"
 #include "imgui-mods/imgui_file_browser.h"
 //-----------------------------------------------------------------------------
-#define STATUSBAR_HEIGHT  48
+#define STATUSBAR_HEIGHT 32.0f
 //-----------------------------------------------------------------------------
 #define SDL_PIXELFORMAT_DEFAULT SDL_PIXELFORMAT_ABGR8888
 #define SDL_DEFAULT_MASK_QUAD 0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff
@@ -82,6 +82,7 @@ class UserInterface
 		void SetComputerModel(TComputerModel model);
 		inline void SetStatusPercentage(int val) { statusPercentage = val; }
 		inline void SetStatusFPS(int val) { statusFPS = val; }
+		static void InitFont(float size, bool oversample = true);
 
 	private:
 		int ledState;
@@ -96,6 +97,7 @@ class UserInterface
 		bool triggerMachineMenuOpen;
 		bool dialogAboutOpened;
 
+		ImFont* pixelFont;
 		TFileSelectType fileSelectorType;
 		ImGui::FileBrowser *fileSelector;
 		char *fileSelectorPath;
