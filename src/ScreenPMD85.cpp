@@ -103,6 +103,7 @@ void ScreenPMD85::SetWidth384(bool mode384)
 	if (width384mode == mode384)
 		return;
 
+	scanlinerMode = -1;
 	InitVideoMode(dispMode, mode384);
 }
 //---------------------------------------------------------------------------
@@ -317,6 +318,8 @@ void ScreenPMD85::InitVideoMode(TDisplayMode reqDispMode, bool reqWidth384)
 	if (!screenPixelBuffer)
 		error("Screen", "Unable to create screen pixel buffer!");
 
+	memset(screenPixelBuffer, 0, bufferWidth * bufferHeight * sizeof(BYTE));
+
 	glBindTexture(GL_TEXTURE_2D, screenTexture);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -324,13 +327,7 @@ void ScreenPMD85::InitVideoMode(TDisplayMode reqDispMode, bool reqWidth384)
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	PrepareScanliner();
-	PrepareScreen();
-
 	SDL_UnlockMutex(displayModeMutex);
-}
-//-----------------------------------------------------------------------------
-void ScreenPMD85::PrepareScreen()
-{
 }
 //-----------------------------------------------------------------------------
 void ScreenPMD85::PrepareScanliner()
