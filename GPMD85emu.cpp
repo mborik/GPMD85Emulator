@@ -204,8 +204,7 @@ int main(int argc, char** argv)
 	BYTE *kb = Emulator->keyBuffer;
 	bool waitForRelease = false;
 
-	debug("", "Starting main CPU %dHz loop and %d FPS refresh timer",
-		CPU_FRAMES_PER_SEC, GPU_FRAMES_PER_SEC);
+	debug("", "Starting main CPU %dHz loop", CPU_FRAMES_PER_SEC);
 
 	while (Emulator->isActive) {
 		currentTime = SDL_GetPerformanceCounter();
@@ -263,17 +262,13 @@ int main(int argc, char** argv)
 			waitForRelease = false;
 
 		while (cpuAccumulator >= CPU_TIMER_INTERVAL) {
-			Emulator->CpuTimerCallback();
-			cpuAccumulator -= CPU_TIMER_INTERVAL;
-		}
-
-		while (baseAccumulator >= GPU_TIMER_INTERVAL) {
 			Emulator->BaseTimerCallback(
 				io.WantCaptureKeyboard && GUI->InAnyWindowExceptEmulator()
 			);
-
+			Emulator->CpuTimerCallback();
 			Emulator->RefreshDisplay();
-			baseAccumulator -= GPU_TIMER_INTERVAL;
+
+			cpuAccumulator -= CPU_TIMER_INTERVAL;
 		}
 
 		ImGui_ImplOpenGL3_NewFrame();
