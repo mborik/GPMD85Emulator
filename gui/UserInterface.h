@@ -25,20 +25,26 @@
 //-----------------------------------------------------------------------------
 #include "globals.h"
 #include "TapeBrowser.h"
+#include "ScreenPMD85.h"
 #include "imgui/imgui.h"
 #include "imgui-mods/imgui_file_browser.h"
 //-----------------------------------------------------------------------------
 #define STATUSBAR_HEIGHT 32.0f
 //-----------------------------------------------------------------------------
-#define SDL_PIXELFORMAT_DEFAULT SDL_PIXELFORMAT_ABGR8888
-#define SDL_DEFAULT_MASK_QUAD 0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff
-#define DWORD_COLOR_ENTRY(R, G, B) SDL_FOURCC(R, G, B, 0xff)
+enum TGuiElementType {
+	GE_SCALE,             // Scale and store in config
+	GE_MACHINE,           // Machine menu
+	GE_ABOUT,             // About modal dialog
+	GE_DISKIMAGES,        // Disk images dialog
+	GE_MEMBLOCK_READ,     // Memory block read dialog
+	GE_MEMBLOCK_WRITE,    // Memory block write dialog
+	GE_TAPEBROWSER,       // Tape-browser
+	GE_DEBUGGER,          // Debugger dialog
+};
 //-----------------------------------------------------------------------------
 class UserInterface
 {
 	public:
-		DWORD globalPalette[256];
-
 		BYTE InvokeSettingsChange;
 		sigslot::signal<> ProcessSettingsCallback;
 		sigslot::signal<TMenuQueryType> QueryDialogCallback;
@@ -47,6 +53,7 @@ class UserInterface
 		UserInterface();
 		virtual ~UserInterface();
 
+		inline void SetScreenInstance(ScreenPMD85 *video) { screenInstance = video; }
 		inline bool InMenu() { return isMenuHovered; }
 		inline bool InEmulatorWindow() { return isEmulatorWindowFocused; }
 		inline bool InAnyWindowExceptEmulator() {
@@ -75,7 +82,7 @@ class UserInterface
 			bool fallbackToResourceDir = false
 		);
 
-		void Execute(TGuiElementType type, void *data = NULL);
+		void Execute(TGuiElementType type, bool forceOpen = false);
 		void RedrawStatusBar(float horizontalPadding = 0.0f);
 		void SetLedState(int led);
 		void SetIconState(int icon);
@@ -97,7 +104,7 @@ class UserInterface
 		bool triggerMachineMenuOpen;
 		bool dialogAboutOpened;
 
-		ImFont* pixelFont;
+		ScreenPMD85 *screenInstance;
 		TFileSelectType fileSelectorType;
 		ImGui::FileBrowser *fileSelector;
 		char *fileSelectorPath;
@@ -123,6 +130,8 @@ class UserInterface
 		void DrawDebugWidgetRegs();
 		void DrawDebugWidgetStack();
 		void DrawDebugWidgetBreaks();
+
+		float GetMonoTextWidth(int textLength, float padding = 0.0f);
 };
 //-----------------------------------------------------------------------------
 #endif

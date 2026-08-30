@@ -278,8 +278,12 @@ void TEmulator::ProcessSettings(BYTE filter)
 	if (filter == 0)
 		return;
 
-	if (!isActive)
+	if (!isActive) {
 		video = new ScreenPMD85(Settings->Screen->size, Settings->Screen->border);
+
+		GUI->SetScreenInstance(video);
+		GUI->Execute(GE_SCALE);
+	}
 	else if (filter & PS_SCREEN_SIZE) {
 		video->SetDisplayMode(Settings->Screen->size, Settings->Screen->border);
 		int multiplier = video->GetMultiplier();
@@ -2027,7 +2031,10 @@ void TEmulator::InsertTape(const char *fileName, bool import)
 		strcpy(Settings->TapeBrowser->fileName, fileName);
 	}
 
-	GUI->ProcessSettingsCallback.connect(&TEmulator::ActionTapeBrowser, this);
+	actionCallback.connect([&]() {
+		GUI->Execute(GE_TAPEBROWSER, true);
+		actionCallback.disconnect_all();
+	});
 }
 //---------------------------------------------------------------------------
 void TEmulator::SaveTape(const char *fileName)

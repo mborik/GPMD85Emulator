@@ -177,15 +177,6 @@ enum TMenuQueryType { GUI_QUERY_CANCEL = -1, GUI_QUERY_NO = 0, GUI_QUERY_YES, GU
 enum TFileSelectType { GUI_FS_OPEN, GUI_FS_SAVE, GUI_FS_DIR };
 enum TDebugListType { DL_DUMP, DL_ASCII, DL_DISASM };
 enum TDebugListSource { MEM, HL, DE, BC, AF, SP, PC };
-enum TGuiElementType {
-	GE_MACHINE,           // Machine menu
-	GE_ABOUT,             // About modal dialog
-	GE_DISKIMAGES,        // Disk images dialog
-	GE_MEMBLOCK_READ,     // Memory block read dialog
-	GE_MEMBLOCK_WRITE,    // Memory block write dialog
-	GE_TAPEBROWSER,       // Tape-browser
-	GE_DEBUGGER,          // Debugger dialog
-};
 //-----------------------------------------------------------------------------
 // screen offsets of top-left -> bottom-right corner
 typedef struct TDrawRegion { WORD tl, br; } TDrawRegion;

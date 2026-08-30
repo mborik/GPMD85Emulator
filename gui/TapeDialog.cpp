@@ -39,11 +39,12 @@ void UserInterface::DrawTapeDialog()
 		static char label[12];
 		static ImGuiSelectionBasicStorage selection;
 		bool hex = Settings->TapeBrowser->hex;
+		const ImGuiStyle& style = ImGui::GetStyle();
 		float sz = ImGui::GetFrameHeight();
 
 		if (ImGui::BeginTable("TapeBrowserHeader", 2, ImGuiTableFlags_NoSavedSettings)) {
 			ImGui::TableSetupColumn("##hdr1", ImGuiTableColumnFlags_NoHide);
-			ImGui::TableSetupColumn("##hdr2", ImGuiTableColumnFlags_WidthFixed, 64.0f);
+			ImGui::TableSetupColumn("##hdr2", ImGuiTableColumnFlags_WidthFixed, GetMonoTextWidth(9));
 
 			static char *ptr = NULL;
 			if (Settings->TapeBrowser->fileName && !TapeBrowser->preparedForSave) {
@@ -102,11 +103,13 @@ void UserInterface::DrawTapeDialog()
 		ImGui::Separator();
 
 		if (ImGui::BeginTable("TapeBrowserPlayer", 2, ImGuiTableFlags_NoSavedSettings)) {
-			ImGui::TableSetupColumn("##btn", ImGuiTableColumnFlags_WidthFixed, 25.0f);
+			float bigButtonSize = 24.0f * style.FontScaleMain;
+
+			ImGui::TableSetupColumn("##btn", ImGuiTableColumnFlags_WidthFixed, bigButtonSize);
 			ImGui::TableSetupColumn("##progress", ImGuiTableColumnFlags_NoHide);
 
-			ImVec2 buttonSize(24.0f, 24.0f);
-			ImGui::TableNextRow(ImGuiTableColumnFlags_WidthStretch, buttonSize.y);
+			ImVec2 buttonSize(bigButtonSize, bigButtonSize);
+			ImGui::TableNextRow(ImGuiTableColumnFlags_WidthStretch, bigButtonSize);
 			ImGui::TableNextColumn();
 
 			if (iconState >= 9) {
@@ -153,10 +156,10 @@ void UserInterface::DrawTapeDialog()
 			ImGuiTableColumnFlags_NoReorder |
 			ImGuiTableColumnFlags_NoSort |
 			ImGuiTableColumnFlags_NoClip;
-
 		static ImGuiMultiSelectFlags selectionFlags =
 			ImGuiMultiSelectFlags_BoxSelect1d |
 			ImGuiMultiSelectFlags_NoSelectOnRightClick;
+		float fixedColumnWidth = GetMonoTextWidth(6, 4.0f);
 
 		ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(4.0f, 0.0f));
 		if (ImGui::BeginTable("TapeBrowserItems", 5,
@@ -168,12 +171,12 @@ void UserInterface::DrawTapeDialog()
 				| ImGuiTableColumnFlags_NoHeaderLabel, sz);
 			ImGui::TableSetupColumn("ID/T Header", columnFlags);
 			ImGui::TableSetupColumn("Start", columnFlags
-				| ImGuiTableColumnFlags_WidthFixed, 50.0f);
+				| ImGuiTableColumnFlags_WidthFixed, fixedColumnWidth);
 			ImGui::TableSetupColumn("Length", columnFlags
-				| ImGuiTableColumnFlags_WidthFixed, 50.0f);
+				| ImGuiTableColumnFlags_WidthFixed, fixedColumnWidth);
 			ImGui::TableSetupColumn("CRC Error", columnFlags
 				| ImGuiTableColumnFlags_WidthFixed
-				| ImGuiTableColumnFlags_NoHeaderLabel, 10.0f);
+				| ImGuiTableColumnFlags_NoHeaderLabel, GetMonoTextWidth(1, 2.0f));
 			ImGui::TableSetupScrollFreeze(0, 1);
 
 			ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(4.0f, 8.0f));
@@ -246,8 +249,11 @@ void UserInterface::DrawTapeDialog()
 				ImGui::TextAligned(1.0f, -FLT_MIN, (hex ? "#%04X" : "%5d"), item.length);
 
 				ImGui::TableNextColumn();
-				if (item.headCrcError)
+				if (item.headCrcError) {
 					ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "!");
+					if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
+						ImGui::SetTooltip("CRC Error");
+				}
 				else
 					ImGui::TextUnformatted("");
 

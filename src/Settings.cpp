@@ -58,6 +58,7 @@ TSettings::TSettings(bool userCfg)
 	GUI->position.y = cfgGetIntValue(n, "pos-y", -1, &(GUI->position.y));
 	GUI->windowSize.x = cfgGetIntValue(n, "width", -1, &(GUI->windowSize.x));
 	GUI->windowSize.y = cfgGetIntValue(n, "height", -1, &(GUI->windowSize.y));
+	GUI->fontScale = cfgGetIntValue(n, "font-scale", 1, &(GUI->fontScale));
 	GUI->dialogTapeBrowserOpened = cfgGetBoolValue(n, "dialog-tape", false, &(GUI->dialogTapeBrowserOpened));
 	GUI->dialogDiskImagesOpened = cfgGetBoolValue(n, "dialog-disk", false, &(GUI->dialogDiskImagesOpened));
 

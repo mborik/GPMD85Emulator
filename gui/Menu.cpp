@@ -202,15 +202,17 @@ void UserInterface::DrawMenu()
 			}
 			ImGui::Separator();
 			if (ImGui::BeginMenu("Font Scale")) {
-				int fontScale = (int) (ImGui::GetStyle().FontScaleMain * 2.0f) - 1.0f;
-				if (ImGui::MenuItem("100%", NULL, fontScale == 1)) {
-					ImGui::GetStyle().FontScaleMain = 1.0f;
+				if (ImGui::MenuItem("100%", NULL, Settings->GUI->fontScale == 1)) {
+					Settings->GUI->fontScale = 1;
+					Execute(GE_SCALE);
 				}
-				if (ImGui::MenuItem("150%", NULL, fontScale == 2)) {
-					ImGui::GetStyle().FontScaleMain = 1.5f;
+				if (ImGui::MenuItem("150%", NULL, Settings->GUI->fontScale == 2)) {
+					Settings->GUI->fontScale = 2;
+					Execute(GE_SCALE);
 				}
-				if (ImGui::MenuItem("200%", NULL, fontScale == 3)) {
-					ImGui::GetStyle().FontScaleMain = 2.0f;
+				if (ImGui::MenuItem("200%", NULL, Settings->GUI->fontScale == 3)) {
+					Settings->GUI->fontScale = 3;
+					Execute(GE_SCALE);
 				}
 				ImGui::EndMenu();
 			}
@@ -366,8 +368,8 @@ void UserInterface::DrawMenu()
 
 				ImGui::SetNextItemAllowOverlap();
 				ImGui::MenuItem("ROM MEGAmodule Page", "");
-				ImGui::SameLine(170.0f);
-				ImGui::SetNextItemWidth(80.0f);
+				ImGui::SameLine(GetMonoTextWidth(24, 1.0f));
+				ImGui::SetNextItemWidth(GetMonoTextWidth(12, 4.0f));
 				int currentMrmPage = Emulator->ActionMegaModulePage();
 				if (ImGui::InputInt("##mrmPage", &currentMrmPage, 1, 16,
 					ImGuiInputTextFlags_CharsDecimal |
@@ -486,6 +488,7 @@ void UserInterface::AttributeMenuItems(bool enabled)
 			break;
 	}
 
+	DWORD *globalPalette = screenInstance->GetPalette();
 	float sz = ImGui::GetTextLineHeight();
 	char* attrName = new char[16];
 
