@@ -50,7 +50,7 @@ void UserInterface::DrawAboutDialog()
 
 	if (ImGui::BeginPopupModal("About", &showAboutDialog, ImGuiWindowFlags_AlwaysAutoResize)) {
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.0f, 8.0f));
-		ImGui::Text("%s v%s (c) %s", PACKAGE_NAME, VERSION, PACKAGE_YEAR);
+		ImGui::Text("%s v%s © %s", PACKAGE_NAME, VERSION, PACKAGE_YEAR);
 		ImGui::Separator();
 
 		ImGui::Text(

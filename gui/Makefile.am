@@ -1,7 +1,6 @@
 # GPMD85emu automake by mborik
 
 AUTOMAKE_OPTIONS = foreign subdir-objects
-EXTRA_DIST = update-submodules.sh
 
 AM_CPPFLAGS = \
 	-DIMGUI_USER_CONFIG='"$(srcdir)/imgui-mods/imconfig_mod.h"' \
@@ -15,6 +14,7 @@ AM_CPPFLAGS = \
 noinst_LIBRARIES = libGPMD85emu_gui.a
 
 libGPMD85emu_gui_a_SOURCES = \
+	imgui/basefont.h \
 	imgui-mods/imconfig_mod.h \
 	imgui/imgui.h \
 	imgui/backends/imgui_impl_sdl2.cpp \
@@ -42,3 +42,6 @@ libGPMD85emu_gui_a_SOURCES = \
 	StatusBar.cpp \
 	TapeDialog.cpp \
 	UserInterface.cpp
+
+noinst_HEADERS = \
+	UserInterface.h

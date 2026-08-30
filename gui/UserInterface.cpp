@@ -24,6 +24,7 @@
 #include "UserInterface.h"
 #include "Emulator.h"
 #include "imgui/imgui_internal.h"
+#include "basefont.h"
 //-----------------------------------------------------------------------------
 UserInterface *GUI;
 //-----------------------------------------------------------------------------
@@ -73,6 +74,22 @@ UserInterface::~UserInterface()
 	}
 }
 //-----------------------------------------------------------------------------
+void UserInterface::InitFont(float size, bool oversample)
+{
+	ImGuiIO& io = ImGui::GetIO();
+	ImFontConfig config;
+	config.OversampleH = (ImS8) oversample;
+	config.OversampleV = (ImS8) oversample;
+	config.PixelSnapH = true;
+	config.GlyphOffset = ImVec2(0.0f, -1.0f);
+
+	io.Fonts->AddFontFromMemoryCompressedTTF(
+		GPMD85Emulator_font_compressed_data,
+		GPMD85Emulator_font_compressed_size,
+		size, &config
+	);
+}
+//-----------------------------------------------------------------------------
 void UserInterface::DrawEmulatorWindow()
 {
 	static ImGuiWindowFlags window_flags =
@@ -86,6 +103,8 @@ void UserInterface::DrawEmulatorWindow()
 	ImVec2 window_size = Emulator->video->GetWindowSize();
 	ImVec2 border_offset = Emulator->video->GetBorderOffset();
 	ImVec2 emulator_size = Emulator->video->GetScreenSize() / Emulator->video->GetMultiplier();
+
+	window_size.y += ImGui::GetTextLineHeightWithSpacing() + STATUSBAR_HEIGHT;
 
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 	ImGui::SetNextWindowSize(window_size, ImGuiCond_Always);

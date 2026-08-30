@@ -29,14 +29,17 @@ void UserInterface::RedrawStatusBar(float horizontalPadding)
 	static const char *driveLetters[] = {"A", "B", "C", "D"};
 	static BYTE pauseBlinker = 0;
 
+	const ImGuiStyle& style = ImGui::GetStyle();
 	const ImVec2 buttonSize = ImVec2(14.0f, 14.0f);
 	const float statusWidth = 150.0f;
 	const float iconsWidth = buttonSize.x * 6;
+	float unscaleFactor = style.FontSizeBase * (1.0f / style.FontScaleMain);
 	float width = ImGui::GetContentRegionAvail().x - (horizontalPadding * 2);
 	float progressWidth = width - statusWidth - iconsWidth;
 	float sameLine = horizontalPadding;
 	const ImVec2 progressBarSize = ImVec2(progressWidth, 3.0f);
 
+	ImGui::PushFont(NULL, unscaleFactor);
 	ImGui::BeginGroup();
 	if (horizontalPadding > 0.0f) {
 		ImGui::SetNextItemWidth(horizontalPadding);
@@ -73,7 +76,7 @@ void UserInterface::RedrawStatusBar(float horizontalPadding)
 
 //	tape progress bar...
 	TTapeBrowser::TProgressBar *progress = TapeBrowser->ProgressBar;
-	if (progressWidth > 0.0f && *progress->Active) {
+	if (progressWidth > 0.0f && !Settings->GUI->dialogTapeBrowserOpened && *progress->Active) {
 		ImGui::PushID("##progress");
 		ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.1f, 0.1f, 0.1f, 0.5f));
 		ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.16f, 0.4f, 0.2f, 1.0f));
@@ -137,6 +140,7 @@ void UserInterface::RedrawStatusBar(float horizontalPadding)
 	ImGui::PopStyleVar(2);
 	ImGui::EndDisabled();
 	ImGui::EndGroup();
+	ImGui::PopFont();
 }
 //-----------------------------------------------------------------------------
 void UserInterface::SetButtonColor(int icon)
@@ -225,13 +229,13 @@ void UserInterface::SetComputerModel(TComputerModel model)
 		case CM_V3:
 			modelName = "M3"; break;
 		case CM_ALFA:
-			modelName = "a1"; break;
+			modelName = "α1"; break;
 		case CM_ALFA2:
-			modelName = "a2"; break;
+			modelName = "α2"; break;
 		case CM_C2717:
 			modelName = "C2717"; break;
 		case CM_MATO:
-			modelName = "Mato"; break;
+			modelName = "Maťo"; break;
 		default:
 			break;
 	}

@@ -285,7 +285,7 @@ void ScreenPMD85::InitVideoMode(TDisplayMode reqDispMode, bool reqWidth384)
 		}
 
 		if (dispMode == DM_FULLSCREEN) {
-			if (screenWidth > gdc.w || screenHeight + STATUSBAR_HEIGHT > gdc.h) {
+			if (screenWidth > gdc.w || screenHeight + (int) STATUSBAR_HEIGHT > gdc.h) {
 				if (reqDispMode == DM_QUINTUPLESIZE)
 					reqDispMode = DM_QUADRUPLESIZE;
 				else if (reqDispMode == DM_QUADRUPLESIZE)
@@ -310,7 +310,7 @@ void ScreenPMD85::InitVideoMode(TDisplayMode reqDispMode, bool reqWidth384)
 	bufferHeight = 256;
 
 	windowWidth  = screenWidth + (borderSize * 2);
-	windowHeight = screenHeight + (borderSize * 2) + STATUSBAR_HEIGHT;
+	windowHeight = screenHeight + (borderSize * 2);
 
 	debug("Screen", "Windowed mode: %dx%d -> viewport: %dx%d",
 			screenWidth, screenHeight, windowWidth, windowHeight);

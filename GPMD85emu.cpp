@@ -147,20 +147,21 @@ int main(int argc, char** argv)
 	SDL_GL_MakeCurrent(gdc.window, gdc.context);
 	SDL_GL_SetSwapInterval(1); // Enable vsync
 
+	// ImGui initialization
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void) io;
 	io.IniFilename = PathGuiConfig;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
 	ImGuiStyle& style = ImGui::GetStyle();
-	style.ScaleAllSizes(1.0f);
-	style.FontScaleDpi = 1.0f;
-	style.FontSizeBase = 13.0f;
-	style.FrameRounding = 0.0f;
 	ImVec4 background = style.Colors[ImGuiCol_WindowBg];
+	float fontSize = 13.0f;
 
-	io.Fonts->AddFontDefaultBitmap();
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+	style.ScaleAllSizes(1.0f);
+	style.FontSizeBase = fontSize;
+	style.FrameRounding = 0.0f;
+	UserInterface::InitFont(fontSize, true);
 
 	// Setup Dear ImGui style
 	ImGui::StyleColorsDark();

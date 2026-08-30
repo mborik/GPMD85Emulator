@@ -25,7 +25,7 @@
 #include "imgui/imgui_internal.h"
 //-----------------------------------------------------------------------------
 #define MOD_KEY(k) "\u00A4+" k
-#define MOD_SHIFT(k) "\u00A4\u0088+" k
+#define MOD_SHIFT(k) "\u00A4\u02C4+" k
 //-----------------------------------------------------------------------------
 bool UserInterface::OnMenuLeave()
 {
@@ -50,10 +50,10 @@ void UserInterface::DrawMenu()
 				ProcessSettingsCallback.connect(&TEmulator::ActionTapeNew, Emulator);
 				InvokeSettingsChange |= PS_CLOSEALL;
 			}
-			if (ImGui::MenuItem("Open Tape\u0085", MOD_KEY("F2"))) {
+			if (ImGui::MenuItem("Open Tape…", MOD_KEY("F2"))) {
 				Emulator->ActionTapeLoad(false);
 			}
-			if (ImGui::MenuItem("Save Tape\u0085", MOD_SHIFT("F2"))) {
+			if (ImGui::MenuItem("Save Tape…", MOD_SHIFT("F2"))) {
 				Emulator->ActionTapeSave();
 			}
 			ImGui::MenuItem("Tape Browser", MOD_KEY("T"), &Settings->GUI->dialogTapeBrowserOpened);
@@ -62,10 +62,10 @@ void UserInterface::DrawMenu()
 			ImGui::MenuItem("Disk Images", MOD_KEY("F6"), &Settings->GUI->dialogDiskImagesOpened);
 
 			ImGui::Separator();
-			if (ImGui::MenuItem("Open Snapshot\u0085", MOD_KEY("F7"))) {
+			if (ImGui::MenuItem("Open Snapshot…", MOD_KEY("F7"))) {
 				Emulator->ActionSnapLoad();
 			}
-			if (ImGui::MenuItem("Create Snapshot\u0085", MOD_SHIFT("F7"))) {
+			if (ImGui::MenuItem("Create Snapshot…", MOD_SHIFT("F7"))) {
 				Emulator->ActionSnapSave();
 			}
 			if (ImGui::BeginMenu("Snapshot Options")) {
@@ -77,13 +77,13 @@ void UserInterface::DrawMenu()
 			}
 
 			ImGui::Separator();
-			if (ImGui::MenuItem("Load to Memory\u0085", MOD_KEY("F11"))) { }
-			if (ImGui::MenuItem("Save Memory\u0085", MOD_SHIFT("F11"))) { }
+			if (ImGui::MenuItem("Load to Memory…", MOD_KEY("F11"))) { }
+			if (ImGui::MenuItem("Save Memory…", MOD_SHIFT("F11"))) { }
 			ImGui::Separator();
-			if (ImGui::MenuItem("Save Screenshot\u0085")) { }
+			if (ImGui::MenuItem("Save Screenshot…")) { }
 
 			ImGui::Separator();
-			if (ImGui::MenuItem("About\u0085", MOD_KEY("F1"))) {
+			if (ImGui::MenuItem("About…", MOD_KEY("F1"))) {
 				Execute(GE_ABOUT);
 			}
 			if (ImGui::MenuItem("Exit", MOD_KEY("F4"))) {
@@ -142,7 +142,7 @@ void UserInterface::DrawMenu()
 					Settings->Screen->colorProfile = CP_COLOR;
 					InvokeSettingsChange |= PS_SCREEN_MODE;
 				}
-				if (ImGui::MenuItem("ColorAce", MOD_KEY("C"), Settings->Screen->colorProfile == CP_COLORACE)) {
+				if (ImGui::MenuItem("ColorAce™", MOD_KEY("C"), Settings->Screen->colorProfile == CP_COLORACE)) {
 					Settings->Screen->colorProfile = CP_COLORACE;
 					InvokeSettingsChange |= PS_SCREEN_MODE;
 				}
@@ -200,11 +200,25 @@ void UserInterface::DrawMenu()
 				}
 				ImGui::EndMenu();
 			}
+			ImGui::Separator();
+			if (ImGui::BeginMenu("Font Scale")) {
+				int fontScale = (int) (ImGui::GetStyle().FontScaleMain * 2.0f) - 1.0f;
+				if (ImGui::MenuItem("100%", NULL, fontScale == 1)) {
+					ImGui::GetStyle().FontScaleMain = 1.0f;
+				}
+				if (ImGui::MenuItem("150%", NULL, fontScale == 2)) {
+					ImGui::GetStyle().FontScaleMain = 1.5f;
+				}
+				if (ImGui::MenuItem("200%", NULL, fontScale == 3)) {
+					ImGui::GetStyle().FontScaleMain = 2.0f;
+				}
+				ImGui::EndMenu();
+			}
 			ImGui::EndMenu();
 		}
 
 		if (ImGui::BeginMenu("Emulation")) {
-			if (ImGui::MenuItem("Debugger\u0085", MOD_KEY("F12"), false, false)) { }
+			if (ImGui::MenuItem("Debugger…", MOD_KEY("F12"), false, false)) { }
 			if (ImGui::MenuItem("Pause", MOD_KEY("F3"), Settings->isPaused)) {
 				Settings->isPaused = !Settings->isPaused;
 			}
@@ -246,7 +260,7 @@ void UserInterface::DrawMenu()
 				if (ImGui::MenuItem("Use Numeric Keypad", NULL, &Settings->Keyboard->useNumpad)) {
 					InvokeSettingsChange |= PS_CONTROLS;
 				}
-				if (ImGui::MenuItem("Extended Control Keys", "on Mato",
+				if (ImGui::MenuItem("Extended Control Keys", "on Maťo",
 					&Settings->Keyboard->useMatoCtrl, Settings->CurrentModel->type == CM_MATO)) {
 
 					InvokeSettingsChange |= PS_CONTROLS;
@@ -279,13 +293,13 @@ void UserInterface::DrawMenu()
 			MachineMenuItem("Didaktik Alfa", CM_ALFA);
 			MachineMenuItem("Didaktik Alfa 2", CM_ALFA2);
 			MachineMenuItem("Consul 2717", CM_C2717);
-			MachineMenuItem("Mato", CM_MATO);
+			MachineMenuItem("Maťo", CM_MATO);
 
 			ImGui::SeparatorText("Memory Configuration");
 			ImGui::PushItemFlag(ImGuiItemFlags_AutoClosePopups, false);
 
 			sprintf(currentFile, "[%s]", ExtractFileName(Settings->CurrentModel->romFile));
-			if (ImGui::MenuItem("System ROM File\u0085", currentFile)) {
+			if (ImGui::MenuItem("System ROM File…", currentFile)) {
 				Emulator->ActionROMLoad();
 			}
 
@@ -346,7 +360,7 @@ void UserInterface::DrawMenu()
 				char *mrmFile = Settings->CurrentModel->mrmFile ? currentFile : NULL;
 				if (mrmFile)
 					sprintf(currentFile, "[%s]", ExtractFileName(Settings->CurrentModel->mrmFile));
-				if (ImGui::MenuItem("ROM MEGAmodule Image\u0085", mrmFile)) {
+				if (ImGui::MenuItem("ROM MEGAmodule Image…", mrmFile)) {
 					Emulator->ActionMegaRomLoad();
 				}
 
@@ -401,7 +415,7 @@ void UserInterface::DrawMenu()
 				char *sdRoot = Settings->PMD32->sdRoot ? currentFile : NULL;
 				if (sdRoot)
 					sprintf(currentFile, "[%s]", ExtractFileName(Settings->PMD32->sdRoot));
-				if (ImGui::MenuItem("Virtual SD-Card Directory\u0085", sdRoot, false,
+				if (ImGui::MenuItem("Virtual SD-Card Directory…", sdRoot, false,
 					state && Settings->PMD32->extraCommands)) { }
 
 				ImGui::Separator();
@@ -539,12 +553,15 @@ void UserInterface::DiskImagesMenuItems(bool inMenu)
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, hover);
 
 		ImGui::SameLine();
-		sprintf(buf, "WP##%c", letter);
-		if (ImGui::SmallButton("WP") && imagePath) {
+		sprintf(buf, "\u2302##WP%c", letter);
+		if (ImGui::SmallButton(buf) && imagePath) {
 			drive->writeProtect = !drive->writeProtect;
 			ProcessSettingsCallback.connect(&TEmulator::ActionPMD32Update, Emulator);
 			InvokeSettingsChange |= PS_CLOSEALL;
 		}
+
+		if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
+			ImGui::SetTooltip("Drive %c Write Protect: %s", letter, drive->writeProtect ? "ON" : "OFF");
 
 		ImGui::PopStyleColor(6);
 		ImGui::PopID();
