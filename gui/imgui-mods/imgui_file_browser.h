@@ -1,4 +1,4 @@
-﻿// File browser implementation for Dear ImGui (C++17 is required)
+// File browser implementation for Dear ImGui (C++17 is required)
 // Copyright (c) 2019-2025 Zhuang Guan
 // Get latest version at https://github.com/AirGuanZ/imgui-filebrowser
 // Licensed under The MIT License (MIT)
@@ -608,7 +608,7 @@ inline void ImGui::FileBrowser::Display()
             focusOnInputText |= IsItemFocused();
             SameLine();
 
-            if(Button("ok") && newDirNameBuffer_[0] != '\0')
+            if(Button("  ok  ") && newDirNameBuffer_[0] != '\0')
             {
                 ScopeGuard closeNewDirPopup([] { CloseCurrentPopup(); });
                 if(create_directory(currentDirectory_ / u8StrToPath(newDirNameBuffer_.data())))
@@ -823,17 +823,50 @@ inline void ImGui::FileBrowser::Display()
     if(!(flags_ & ImGuiFileBrowserFlags_SelectDirectory))
     {
         BeginDisabled(selectedFilenames_.empty());
-        const bool ok = Button("ok");
+        const bool ok = Button("  ok  ");
         EndDisabled();
         if((ok || isEnterPressed) && !selectedFilenames_.empty())
         {
             isOk_ = true;
+            if(flags_ & ImGuiFileBrowserFlags_EnterNewFilename)
+            {
+                if(!selectedFilenames_.empty() && !typeFilters_.empty() && typeFilterIndex_ < typeFilters_.size())
+                {
+                    // Ignore combined filter (if exists at index 0) and universal filter ".*"
+                    bool isCombinedFilter = hasAllFilter_ && typeFilterIndex_ == 0;
+                    std::string currentFilter = typeFilters_[typeFilterIndex_];
+
+                    if(isCombinedFilter && currentFilter != ".*")
+                    {
+                        // If the current filter is a combined filter, we will try first proper extension.
+                        // In this case, want to modify the selected filename's extension.
+                        currentFilter = typeFilters_.size() > 1 ? typeFilters_[1] : ".*";
+                        isCombinedFilter = false;
+                    }
+                    if(!isCombinedFilter && currentFilter != ".*")
+                    {
+                        std::filesystem::path path = *selectedFilenames_.begin();
+
+                        // If the selected filename doesn't have an extension, append the current filter as the extension
+                        if(!path.has_extension())
+                        {
+                            path.replace_extension(currentFilter);
+                            selectedFilenames_.clear();
+                            selectedFilenames_.insert(path);
+
+                            // Optionally update inputNameBuffer_ to visually match (in case the window doesn't close immediately)
+                            const std::string updatedName = u8StrToStr(path.filename().u8string());
+                            AssignToArrayStyleString(inputNameBuffer_, updatedName);
+                        }
+                    }
+                }
+            }
             CloseCurrentPopup();
         }
     }
     else
     {
-        if(Button(" ok ") || isEnterPressed)
+        if(Button("  ok  ") || isEnterPressed)
         {
             isOk_ = true;
             CloseCurrentPopup();
