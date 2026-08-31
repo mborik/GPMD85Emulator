@@ -448,6 +448,20 @@ void TTapeBrowser::TapeCommand(int command, bool *result)
 		*result = true;
 }
 //---------------------------------------------------------------------------
+TTapeBrowser::TAPE_BLOCK *TTapeBrowser::GetBlock(int idx)
+{
+	if (idx < 0 || idx >= totalBlocks)
+		return NULL;
+
+	TAPE_BLOCK *blk = blocks;
+	while (idx && blk->next) {
+		blk = blk->next;
+		idx--;
+	}
+
+	return blk;
+}
+//---------------------------------------------------------------------------
 void TTapeBrowser::SetCurrentBlock(int idx)
 {
 	if (idx >= 0) {
@@ -479,7 +493,7 @@ void TTapeBrowser::SetCurrentBlock(int idx)
 		stopBlockIdx = -1;
 }
 //---------------------------------------------------------------------------
-void TTapeBrowser::ToggleSelection(int idx)
+void TTapeBrowser::DoSelection(int idx, bool select)
 {
 	if (idx >= 0) {
 		TAPE_BLOCK *sBlk = NULL;
@@ -497,7 +511,7 @@ void TTapeBrowser::ToggleSelection(int idx)
 		}
 
 		if (sBlk) {
-			sBlk->selected = !sBlk->selected;
+			sBlk->selected = select;
 			CheckSelectionContinuity();
 		}
 	}

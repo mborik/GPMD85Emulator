@@ -22,7 +22,21 @@
 //-----------------------------------------------------------------------------
 #include "UserInterface.h"
 #include "Emulator.h"
+#include "TapeBrowser.h"
 #include "imgui/imgui_internal.h"
+//-----------------------------------------------------------------------------
+void UserInterface::InitTapeDialog()
+{
+	tapeDialogEntries.clear();
+	tapeDialogSelection = new ImGuiSelectionBasicStorage();
+	tapeDialogSelectionAdapter = new ImGuiSelectionExternalStorage();
+	tapeDialogSelectionAdapter->UserData = (void*) TapeBrowser;
+	tapeDialogSelectionAdapter->AdapterSetItemSelected =
+		[](ImGuiSelectionExternalStorage* self, int idx, bool selected) {
+			TTapeBrowser* tapeBrowser = reinterpret_cast<TTapeBrowser *>(self->UserData);
+			tapeBrowser->DoSelection(idx, selected);
+		};
+}
 //-----------------------------------------------------------------------------
 void UserInterface::DrawTapeDialog()
 {
@@ -37,7 +51,6 @@ void UserInterface::DrawTapeDialog()
 			TapeBrowser->tapeChanged ? ImGuiWindowFlags_UnsavedDocument : ImGuiWindowFlags_None);
 
 		static char label[12];
-		static ImGuiSelectionBasicStorage selection;
 		bool hex = Settings->TapeBrowser->hex;
 		const ImGuiStyle& style = ImGui::GetStyle();
 		float sz = ImGui::GetFrameHeight();
@@ -156,11 +169,8 @@ void UserInterface::DrawTapeDialog()
 			ImGuiTableColumnFlags_NoReorder |
 			ImGuiTableColumnFlags_NoSort |
 			ImGuiTableColumnFlags_NoClip;
-		static ImGuiMultiSelectFlags selectionFlags =
-			ImGuiMultiSelectFlags_BoxSelect1d |
-			ImGuiMultiSelectFlags_NoSelectOnRightClick;
-		float fixedColumnWidth = GetMonoTextWidth(6, 4.0f);
 
+		float fixedColumnWidth = GetMonoTextWidth(6, 4.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(4.0f, 0.0f));
 		if (ImGui::BeginTable("TapeBrowserItems", 5,
 			ImGuiTableFlags_BordersInnerV |
@@ -184,19 +194,13 @@ void UserInterface::DrawTapeDialog()
 			ImGui::PopStyleVar();
 
 			int count = tapeDialogEntries.size();
-			ImGuiMultiSelectIO* ms_io = ImGui::BeginMultiSelect(selectionFlags, selection.Size, count);
-			selection.ApplyRequests(ms_io);
-
-/* TODO: Implement external storage for selection...
-			ImGuiSelectionExternalStorage sel_adapter;
-			sel_adapter.UserData = (void*) TapeBrowser;
-			sel_adapter.AdapterSetItemSelected =
-				[](ImGuiSelectionExternalStorage* self, int idx, bool selected) {
-					TTapeBrowser* tapeBrowser = (TTapeBrowser *) self->UserData;
-					tapeBrowser->ForceSelection(idx, selected);
-				};
-			sel_adapter.ApplyRequests(ms_io);
-*/
+			ImGuiMultiSelectIO* ms_io = ImGui::BeginMultiSelect(
+				ImGuiMultiSelectFlags_BoxSelect1d | ImGuiMultiSelectFlags_NoSelectOnRightClick,
+				tapeDialogSelection->Size,
+				count
+			);
+			tapeDialogSelection->ApplyRequests(ms_io);
+			tapeDialogSelectionAdapter->ApplyRequests(ms_io);
 
 			for (int i = 0; i < count; ++i) {
 				const TTapeBrowser::TDialogItem &item = tapeDialogEntries[i];
@@ -232,12 +236,12 @@ void UserInterface::DrawTapeDialog()
 
 				ImGui::SetNextItemSelectionUserData(i);
 				ImGui::Selectable(item.name,
-					selection.Contains((ImGuiID) i),
+					tapeDialogSelection->Contains((ImGuiID) i),
 					ImGuiSelectableFlags_SpanAllColumns
 				);
 
 				if (!(tapeDialogEntries.empty() || wasRightClickedButton))
-					DrawTapeDialogContextMenu(selection, i, item);
+					DrawTapeDialogContextMenu(i);
 
 				ImGui::TableNextColumn();
 				if (item.start < 0)
@@ -261,7 +265,9 @@ void UserInterface::DrawTapeDialog()
 			}
 
 			ms_io = ImGui::EndMultiSelect();
-			selection.ApplyRequests(ms_io);
+			tapeDialogSelection->ApplyRequests(ms_io);
+			tapeDialogSelectionAdapter->ApplyRequests(ms_io);
+
 			ImGui::EndTable();
 		}
 
@@ -270,20 +276,19 @@ void UserInterface::DrawTapeDialog()
 	}
 }
 //-----------------------------------------------------------------------------
-void UserInterface::DrawTapeDialogContextMenu(
-	ImGuiSelectionBasicStorage &selection,
-	int &index, const TTapeBrowser::TDialogItem &item
-) {
+void UserInterface::DrawTapeDialogContextMenu(int &index) {
 	static char buf[64];
-	bool noSelection = selection.Size == 0;
+	bool noSelection = tapeDialogSelection->Size == 0;
+
+	TTapeBrowser::TAPE_BLOCK *blk = TapeBrowser->GetBlock(index);
 
 	if (ImGui::BeginPopupContextItem("##ctxmnu", ImGuiPopupFlags_MouseButtonRight)) {
-		if (ImGui::MenuItem("Select all", NULL, false, selection.Size == tapeDialogEntries.size())) {
+		if (ImGui::MenuItem("Select all", NULL, false, tapeDialogSelection->Size == tapeDialogEntries.size())) {
 			for (size_t i = 0; i < tapeDialogEntries.size(); i++)
-				selection.SetItemSelected((ImGuiID) i, true);
+				tapeDialogSelection->SetItemSelected((ImGuiID) i, true);
 		}
-		if (ImGui::MenuItem("Deselect all", NULL, false, noSelection))
-			selection.Clear();
+		if (ImGui::MenuItem("Deselect all", NULL, false, !noSelection))
+			tapeDialogSelection->Clear();
 
 		ImGui::Separator();
 
@@ -297,20 +302,22 @@ void UserInterface::DrawTapeDialogContextMenu(
 		}
 		ImGui::Separator();
 
-		if (selection.Size > 0) {
-			sprintf(buf, "Delete %d selected block%s", selection.Size, (selection.Size > 1) ? "s" : "");
+		if (tapeDialogSelection->Size > 0) {
+			sprintf(buf, "Delete %d selected block%s", tapeDialogSelection->Size, (tapeDialogSelection->Size > 1) ? "s" : "");
 			if (ImGui::MenuItem(buf)) {
 				void* it = NULL;
 				ImGuiID idx;
-				while (selection.GetNextSelectedItem(&it, &idx)) {
+				while (tapeDialogSelection->GetNextSelectedItem(&it, &idx)) {
 					TapeBrowser->DeleteSelected((int) idx);
 				}
-				selection.Clear();
+				tapeDialogSelection->Clear();
 			}
 		}
 		else {
-			if (ImGui::MenuItem("Delete current block"))
+			if (ImGui::MenuItem("Delete selected block")) {
 				TapeBrowser->DeleteSelected(index);
+				tapeDialogSelection->Clear();
+			}
 		}
 /*
 		ImGui::MenuItem("Move Block Up", NULL, false, false);

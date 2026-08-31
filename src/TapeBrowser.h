@@ -101,10 +101,11 @@ class TTapeBrowser
 		void SetNewTape();
 		void ActionPlay();
 		void ActionStop();
+		TAPE_BLOCK *GetBlock(int idx);
 		void SetCurrentBlock(int idx);
-		void ToggleSelection(int idx);
+		void DoSelection(int idx, bool select);
 		void MoveSelected(bool up, int *cursor);
-		void DeleteSelected(int idx);
+		void DeleteSelected(int idx = -1);
 		void TapeCommand(int command, bool *result);
 		BYTE SaveTape(char *newFileName, TAPE_BLOCK *blks, bool asPTP);
 		void FillFileList(std::vector<TDialogItem> &data);

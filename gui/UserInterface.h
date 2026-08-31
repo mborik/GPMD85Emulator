@@ -24,7 +24,6 @@
 #define USERINTERFACE_H_
 //-----------------------------------------------------------------------------
 #include "globals.h"
-#include "TapeBrowser.h"
 #include "ScreenPMD85.h"
 #include "imgui/imgui.h"
 #include "imgui-mods/imgui_file_browser.h"
@@ -116,15 +115,15 @@ class UserInterface
 		bool queryDialogShouldOpen;
 
 		std::vector<TTapeBrowser::TDialogItem> tapeDialogEntries;
+		ImGuiSelectionBasicStorage *tapeDialogSelection;
+		ImGuiSelectionExternalStorage *tapeDialogSelectionAdapter;
 
 		void SetButtonColor(int icon);
 		void MachineMenuItem(const char *name, TComputerModel model);
 		void AttributeMenuItems(bool enabled = false);
 		void DiskImagesMenuItems(bool inMenu = false);
-		void DrawTapeDialogContextMenu(
-			ImGuiSelectionBasicStorage &selection,
-			int &index, const TTapeBrowser::TDialogItem &item
-		);
+		void InitTapeDialog();
+		void DrawTapeDialogContextMenu(int &index);
 
 		void DrawDebugWidgetDisass(bool full);
 		void DrawDebugWidgetRegs();
