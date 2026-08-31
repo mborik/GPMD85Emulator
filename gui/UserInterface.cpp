@@ -53,6 +53,8 @@ UserInterface::UserInterface()
 	fileSelectorRecentPath = new char[PATH_MAX];
 	strcpy(fileSelectorRecentPath, PathApplication);
 
+	InitTapeDialog();
+
 	screenInstance = NULL;
 	InvokeSettingsChange = 0;
 }
@@ -72,6 +74,14 @@ UserInterface::~UserInterface()
 	if (fileSelectorRecentPath) {
 		delete[] fileSelectorRecentPath;
 		fileSelectorRecentPath = NULL;
+	}
+	if (tapeDialogSelection) {
+		delete tapeDialogSelection;
+		tapeDialogSelection = NULL;
+	}
+	if (tapeDialogSelectionAdapter) {
+		delete tapeDialogSelectionAdapter;
+		tapeDialogSelectionAdapter = NULL;
 	}
 }
 //-----------------------------------------------------------------------------
