@@ -65,9 +65,7 @@ void UserInterface::FileSelector(
 		strcpy(fileSelectorRecentPath, file);
 		delete [] file;
 
-		if (!TestDir(fileSelectorRecentPath, (char *) "..", NULL))
-			strcpy(fileSelectorRecentPath, PathApplication);
-		initialDir = std::filesystem::path(fileSelectorRecentPath);
+		initialDir = std::filesystem::path(fileSelectorRecentPath).parent_path();
 	}
 	if (!recentFile) {
 		if (fallbackToResourceDir) {
@@ -108,9 +106,8 @@ void UserInterface::DrawFileSelector()
 	fileSelector->Display();
 	if (fileSelector->HasSelected()) {
 		strcpy(fileSelectorPath, fileSelector->GetSelected().c_str());
-		strcpy(fileSelectorRecentPath, fileSelector->GetSelected().c_str());
-		if (!TestDir(fileSelectorRecentPath, (char *) "..", NULL))
-			strcpy(fileSelectorRecentPath, PathApplication);
+		std::filesystem::path recent = fileSelector->GetSelected().parent_path();
+		strcpy(fileSelectorRecentPath, recent.c_str());
 
 		FileSelectorCallback(fileSelectorPath);
 

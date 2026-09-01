@@ -17,9 +17,6 @@
   - quick search in the file-selector
   - bugfixing and testing
 
-+ Staon <staon@users.sf.net>
-  - fixing a compatibility bug in the file selector’s ScanDir
-
 + a8jan [Jan Krupa] <apc.atari@gmail.com>
   - Mega ROM Module implementation
   - 5x5 pixel scaler
