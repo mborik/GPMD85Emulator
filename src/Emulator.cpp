@@ -231,7 +231,7 @@ void TEmulator::ProcessArgvOptions(bool memModifiers)
 		Settings->TapeBrowser->flash = argv_config.flashload;
 		if (argv_config.tape) {
 			char *fileName = ComposeFilePath(argv_config.tape);
-			if (TapeBrowser->SetTapeFileName(fileName) == 0xFF) {
+			if (TapeBrowser->SetTapeFileName(fileName) < 0) {
 				delete [] fileName;
 				fileName = NULL;
 			}
@@ -2040,23 +2040,20 @@ void TEmulator::InsertTape(const char *fileName, bool import)
 //---------------------------------------------------------------------------
 void TEmulator::SaveTape(const char *fileName)
 {
-	// TODO refactor TapeBrowser input to const char *fileName
-	BYTE flag = TapeBrowser->SaveTape((char *) fileName, NULL, true);
+	int result = TapeBrowser->SaveTape(fileName);
 
-	if (flag == 0xFF)
+	if (result < 0)
 		GUI->MessageBox("Fatal Error!\nInvalid name, extension or can't open file for writing.");
-	else if (flag == 1) {
+	else if (result > 1)
 		GUI->MessageBox("Error writing file. Tape will be corrupted.");
-		flag = 0;
-	}
 	else {
 		delete [] Settings->TapeBrowser->fileName;
 		Settings->TapeBrowser->fileName = new char[(strlen(fileName) + 1)];
 		strcpy(Settings->TapeBrowser->fileName, fileName);
 
 		int curr = TapeBrowser->currBlockIdx;
-		if (TapeBrowser->SetTapeFileName((char *) fileName))
-			TapeBrowser->currBlockIdx = curr;
+		if (TapeBrowser->SetTapeFileName(fileName) == 0)
+			TapeBrowser->SetCurrentBlock(curr);
 	}
 }
 //---------------------------------------------------------------------------

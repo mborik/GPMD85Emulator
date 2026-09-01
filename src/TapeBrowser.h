@@ -71,7 +71,7 @@ class TTapeBrowser
 		int  ParseFile(const char *fn, TAPE_BLOCK **blks, DWORD seek = 0);
 		bool CheckCrc(BYTE *buff, int length, BYTE *goodCrc);
 		bool CheckHeader(BYTE *buff, TAPE_BLOCK *blk);
-		void DeleteBlock(int idx, TAPE_BLOCK *blk = NULL);
+		TAPE_BLOCK *DeleteBlock(int idx, TAPE_BLOCK *blk = NULL);
 		void CheckSelectionContinuity();
 		void PrepareData(bool head);
 		void PrepareSaveNewBlocks();
@@ -101,13 +101,15 @@ class TTapeBrowser
 		void SetNewTape();
 		void ActionPlay();
 		void ActionStop();
+
 		TAPE_BLOCK *GetBlock(int idx);
 		void SetCurrentBlock(int idx);
-		void DoSelection(int idx, bool select);
+
+		void DoSelection(int idx = -1, bool select = false);
 		void MoveSelected(bool up, int *cursor);
 		void DeleteSelected(int idx = -1);
 		void TapeCommand(int command, bool *result);
-		BYTE SaveTape(char *newFileName, TAPE_BLOCK *blks, bool asPTP);
+		int  SaveTape(const char *newFileName, TAPE_BLOCK *blks = NULL, bool asPTP = true);
 		void FillFileList(std::vector<TDialogItem> &data);
 };
 //---------------------------------------------------------------------------
