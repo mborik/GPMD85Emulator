@@ -55,8 +55,6 @@ int WriteToFile(const char *fileName, int offset, int size, BYTE *src, bool crea
 bool CreateMedium(const char *fileName, DWORD size, BYTE fill);
 int PackBlock(BYTE *dest, BYTE *src, int len);
 int UnpackBlock(BYTE *dest, int destlen, BYTE *src, int srclen);
-bool TestDir(const char *directory, char *add, char **tail);
-void ScanDir(const char *directory, char ***filenames, int *numfiles, bool showHiddenFiles = false);
 
 inline bool FileExists(const char *path)
 	{ return (stat(path, &filestat) == 0 && S_ISREG(filestat.st_mode)); }

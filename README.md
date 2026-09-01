@@ -17,8 +17,6 @@
   - quick-search in the file-selector, bugfixing and testing
 - **a8jan**
   - implementantion of Mega ROM Module, 5x5 scaler, support
-- **Staon**
-  - fixed a compatibility bug in the file selector
 - **Cizo/SinDiKat**
   - bugfixing, testing and support
 - **ikon/SinDiKat**
