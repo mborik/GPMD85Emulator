@@ -209,8 +209,8 @@ void UserInterface::DrawTapeDialog()
 				ImGui::TableNextRow();
 				ImGui::PushID(label);
 				ImGui::TableNextColumn();
+				ImGui::BeginDisabled(TapeBrowser->playing);
 
-				bool wasRightClickedButton = false;
 				ImVec2 szVec(ImGui::GetFrameHeight(), ImGui::GetFrameHeight());
 				ImGuiButtonFlags buttonFlags = ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight;
 
@@ -223,12 +223,11 @@ void UserInterface::DrawTapeDialog()
 				else
 					ImGui::ButtonEx("##cursor", szVec, buttonFlags);
 
-				if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
-					wasRightClickedButton = true;
+				if (ImGui::IsItemClicked(ImGuiMouseButton_Right) && !TapeBrowser->playing) {
 					if (i > TapeBrowser->currBlockIdx)
 						TapeBrowser->stopBlockIdx = i;
 				}
-				else if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
+				else if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && !TapeBrowser->playing)
 					TapeBrowser->SetCurrentBlock(i);
 
 				ImGui::PopStyleColor(2);
@@ -240,9 +239,10 @@ void UserInterface::DrawTapeDialog()
 					ImGuiSelectableFlags_SpanAllColumns
 				);
 
-				if (!(tapeDialogEntries.empty() || wasRightClickedButton))
+				if (!tapeDialogEntries.empty() && !TapeBrowser->playing)
 					DrawTapeDialogContextMenu(i);
 
+				ImGui::EndDisabled();
 				ImGui::TableNextColumn();
 				if (item.start < 0)
 					ImGui::TextUnformatted("");
@@ -283,46 +283,129 @@ void UserInterface::DrawTapeDialogContextMenu(int &index) {
 	TTapeBrowser::TAPE_BLOCK *blk = TapeBrowser->GetBlock(index);
 
 	if (ImGui::BeginPopupContextItem("##ctxmnu", ImGuiPopupFlags_MouseButtonRight)) {
-		if (ImGui::MenuItem("Select all", NULL, false, tapeDialogSelection->Size == tapeDialogEntries.size())) {
-			for (size_t i = 0; i < tapeDialogEntries.size(); i++)
-				tapeDialogSelection->SetItemSelected((ImGuiID) i, true);
+		if (ImGui::MenuItem("Select All", NULL, false, tapeDialogSelection->Size != tapeDialogEntries.size())) {
+			for (ImGuiID id = 0; id < tapeDialogEntries.size(); id++) {
+				tapeDialogSelection->SetItemSelected((ImGuiID) id, true);
+				TapeBrowser->DoSelection((int) id, false);
+			}
 		}
-		if (ImGui::MenuItem("Deselect all", NULL, false, !noSelection))
+		if (ImGui::MenuItem("Deselect All", NULL, false, !noSelection)) {
+			ImGuiID id;
+			void* it = NULL;
+			while (tapeDialogSelection->GetNextSelectedItem(&it, &id))
+				TapeBrowser->DoSelection((int) id, false);
 			tapeDialogSelection->Clear();
+		}
 
 		ImGui::Separator();
 
-		if (ImGui::MenuItem("Set current tape position", NULL, index == TapeBrowser->currBlockIdx, index != TapeBrowser->currBlockIdx)) {
+		if (ImGui::MenuItem("Set Current Tape Position", NULL,
+			index == TapeBrowser->currBlockIdx,
+			index != TapeBrowser->currBlockIdx)) {
+
 			TapeBrowser->SetCurrentBlock(index);
 		}
-		if (ImGui::MenuItem("Set STOP Marker", NULL, index == TapeBrowser->stopBlockIdx,
-			index > TapeBrowser->currBlockIdx && index != TapeBrowser->stopBlockIdx
-		)) {
+		if (ImGui::MenuItem("Set STOP Marker", NULL,
+			index == TapeBrowser->stopBlockIdx,
+			index > TapeBrowser->currBlockIdx && index != TapeBrowser->stopBlockIdx)) {
+
 			TapeBrowser->stopBlockIdx = index;
 		}
+
 		ImGui::Separator();
 
 		if (tapeDialogSelection->Size > 0) {
-			sprintf(buf, "Delete %d selected block%s", tapeDialogSelection->Size, (tapeDialogSelection->Size > 1) ? "s" : "");
+			sprintf(buf, "Delete %d Selected Block%s", tapeDialogSelection->Size, (tapeDialogSelection->Size > 1) ? "s" : "");
 			if (ImGui::MenuItem(buf)) {
-				void* it = NULL;
-				ImGuiID idx;
-				while (tapeDialogSelection->GetNextSelectedItem(&it, &idx)) {
-					TapeBrowser->DeleteSelected((int) idx);
-				}
+				TapeBrowser->DeleteSelected();
 				tapeDialogSelection->Clear();
 			}
 		}
 		else {
-			if (ImGui::MenuItem("Delete selected block")) {
+			if (ImGui::MenuItem("Delete Block")) {
 				TapeBrowser->DeleteSelected(index);
 				tapeDialogSelection->Clear();
 			}
 		}
-/*
-		ImGui::MenuItem("Move Block Up", NULL, false, false);
-		ImGui::MenuItem("Move Block Down", NULL, false, false);
-*/
+
+		ImGui::Separator();
+
+		int directionPointer = sprintf(buf, "Move %sBlock%s Up",
+			(tapeDialogSelection->Size > 0) ? "Selected " : "",
+			(tapeDialogSelection->Size > 1) ? "s" : "");
+
+		bool state = (tapeDialogSelection->Size > 0) ?
+			(TapeBrowser->Selection->continuity && TapeBrowser->Selection->first > 0) :
+			(index > 0);
+		if (ImGui::MenuItem(buf, NULL, false, state)) {
+			TapeBrowser->MoveSelected(true, &index);
+
+			tapeDialogSelection->SetItemSelected((ImGuiID) TapeBrowser->Selection->last + 1, false);
+			tapeDialogSelection->SetItemSelected((ImGuiID) TapeBrowser->Selection->first, true);
+		}
+
+		strcpy(buf + directionPointer - 2, "Down");
+
+		state = (tapeDialogSelection->Size > 0) ?
+			(TapeBrowser->Selection->continuity &&
+				TapeBrowser->Selection->last < (TapeBrowser->totalBlocks - 1)) :
+			(index < (TapeBrowser->totalBlocks - 1));
+		if (ImGui::MenuItem(buf, NULL, false, state)) {
+			TapeBrowser->MoveSelected(false, &index);
+
+			tapeDialogSelection->SetItemSelected((ImGuiID) TapeBrowser->Selection->first - 1, false);
+			tapeDialogSelection->SetItemSelected((ImGuiID) TapeBrowser->Selection->last, true);
+		}
+
+		if ((tapeDialogSelection->Size == 1 && blk->selected) || !tapeDialogSelection->Size) {
+			ImGui::Separator();
+			ImGui::BeginDisabled(true);
+
+			if (ImGui::MenuItem("Change to Headerless Block", NULL, false, blk->cType)) { }
+			if (ImGui::MenuItem("Change to Header Block", NULL, false, !blk->cType)) { }
+
+			if (blk->cType) {
+				ImGui::SeparatorText("Block Header");
+
+				float offset = GetMonoTextWidth(8, 8.0f);
+				BYTE blockNumber = (int) blk->bNumber;
+				WORD blockStart = (int) blk->wStart;
+				WORD blockLength = (int) blk->wLength;
+				char blockType[2], blockName[9];
+				blockType[0] = blk->cType;
+				blockType[1] = '\0';
+				memcpy(blockName, blk->cName, 8);
+				blockName[8] = '\0';
+
+				ImGui::TextUnformatted("ID/Type:");
+				ImGui::SameLine(offset);
+				ImGui::SetNextItemWidth(GetMonoTextWidth(8, 4.0f));
+				ImGui::InputScalar("##blknum", ImGuiDataType_U8, &blockNumber, NULL, NULL, "%02X");
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(GetMonoTextWidth(3, 2.0f));
+				ImGui::InputText("##blktyp", blockType, 2,
+					ImGuiInputTextFlags_CharsNoBlank | ImGuiInputTextFlags_CharsUppercase);
+
+				ImGui::TextUnformatted("Name:");
+				ImGui::SameLine(offset);
+				ImGui::SetNextItemWidth(GetMonoTextWidth(12, 4.0f));
+				ImGui::InputText("##blkname", blockName, 9,
+					ImGuiInputTextFlags_AlwaysOverwrite | ImGuiInputTextFlags_CharsUppercase);
+
+				ImGui::TextUnformatted("Start:");
+				ImGui::SameLine(offset);
+				ImGui::SetNextItemWidth(GetMonoTextWidth(12, 4.0f));
+				ImGui::InputScalar("##blkstart", ImGuiDataType_U16, &blockStart, NULL, NULL, "%04X");
+
+				ImGui::TextUnformatted("Length:");
+				ImGui::SameLine(offset);
+				ImGui::SetNextItemWidth(GetMonoTextWidth(12, 4.0f));
+				ImGui::InputScalar("##blklen", ImGuiDataType_U16, &blockLength, NULL, NULL, "%04X");
+			}
+
+			ImGui::EndDisabled();
+		}
+
 		ImGui::EndPopup();
 	}
 }

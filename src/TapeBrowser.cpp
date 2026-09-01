@@ -489,7 +489,7 @@ void TTapeBrowser::SetCurrentBlock(int idx)
 		currBlock = NULL;
 
 	currBlockIdx = idx;
-	if (currBlockIdx == stopBlockIdx)
+	if (currBlockIdx >= stopBlockIdx)
 		stopBlockIdx = -1;
 }
 //---------------------------------------------------------------------------
@@ -591,8 +591,9 @@ void TTapeBrowser::DeleteSelected(int idx)
 	int i = 0, count = 0;
 	while (tb) {
 		if (tb->selected) {
-			DeleteBlock(i, tb);
+			tb = DeleteBlock(i, tb);
 			count++;
+			continue;
 		}
 		else if (i == idx)
 			tbs = tb;
@@ -614,7 +615,7 @@ void TTapeBrowser::DeleteSelected(int idx)
 	CheckSelectionContinuity();
 }
 //---------------------------------------------------------------------------
-void TTapeBrowser::DeleteBlock(int idx, TAPE_BLOCK *tb)
+TTapeBrowser::TAPE_BLOCK *TTapeBrowser::DeleteBlock(int idx, TAPE_BLOCK *tb)
 {
 	if (tb == NULL) {
 		int i = idx;
@@ -646,9 +647,11 @@ void TTapeBrowser::DeleteBlock(int idx, TAPE_BLOCK *tb)
 	if (currBlockIdx > idx)
 		currBlockIdx--;
 	if (stopBlockIdx > idx)
-			stopBlockIdx--;
+		stopBlockIdx--;
 	if (stopBlockIdx == currBlockIdx)
 		stopBlockIdx = -1;
+
+	return tb;
 }
 //---------------------------------------------------------------------------
 void TTapeBrowser::CheckSelectionContinuity()
@@ -790,11 +793,11 @@ void TTapeBrowser::SaveNewBlock()
 	tapeChanged = true;
 }
 //---------------------------------------------------------------------------
-BYTE TTapeBrowser::SaveTape(char *newFileName, TAPE_BLOCK *blks, bool asPTP)
+int TTapeBrowser::SaveTape(const char *newFileName, TAPE_BLOCK *blks, bool asPTP)
 {
 	TAPE_BLOCK *blk = blks;
 	char *tmpFile = NULL;
-	BYTE flag = 0xFF;
+	int result = -1;
 	WORD wL;
 
 	if (blk == NULL)
@@ -818,35 +821,35 @@ BYTE TTapeBrowser::SaveTape(char *newFileName, TAPE_BLOCK *blks, bool asPTP)
 		if (blk == NULL)
 			break;
 
-		flag = 0;
+		result = 0;
 		while (blk) {
 			if (blk->cType != 0) {
 				wL = 63;
 				if (asPTP)
 					if (fwrite(&wL, sizeof(BYTE), 2, hDest) != 2) // length of PTP block
-						flag = 1;
+						result = 1;
 
 				if (fwrite(bHeadLeader, sizeof(BYTE), 48, hDest) != 48) // FF 00 55
-					flag = 1;
+					result = 1;
 				if (fwrite(&blk->bNumber, sizeof(BYTE), 15, hDest) != 15) // header
-					flag = 1;
+					result = 1;
 				wL = (WORD) (blk->wLength + 2);
 			}
 			else
 				wL = blk->wLength;
 
 			if (ReadFromFile(blk->orgFile, blk->dwOffsetBody, wL, buffer) != wL)
-				flag = 1;
+				result = 1;
 
 			if (blk->bodyCrcErrorFix || (blk->rawFile && blk->cType != 0))
 				*(buffer + wL - 1) = blk->bBodyCrc;
 
 			if (asPTP)
 				if (fwrite(&wL, sizeof(BYTE), 2, hDest) != 2) // length of PTP block
-					flag = 1;
+					result = 1;
 
 			if (fwrite(buffer, sizeof(BYTE), wL, hDest) != wL) // body
-				flag = 1;
+				result = 1;
 
 			blk = blk->next;
 		}
@@ -858,7 +861,7 @@ BYTE TTapeBrowser::SaveTape(char *newFileName, TAPE_BLOCK *blks, bool asPTP)
 
 	} while (false);
 
-	return flag;
+	return result;
 }
 //---------------------------------------------------------------------------
 void TTapeBrowser::FillFileList(std::vector<TDialogItem> &data)
