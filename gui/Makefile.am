@@ -34,10 +34,11 @@ libGPMD85emu_gui_a_SOURCES = \
 	imgui/misc/cpp/imgui_stdlib.h \
 	imgui-mods/imgui_memory_editor.h \
 	imgui-mods/imgui_file_browser.h \
-	UserInterface.h \
+	AboutDialog.cpp \
 	CommonDialog.cpp \
 	DebugWindow.cpp \
 	Menu.cpp \
+	MemDumpDialog.cpp \
 	FileSelector.cpp \
 	StatusBar.cpp \
 	TapeDialog.cpp \

@@ -281,6 +281,7 @@ int main(int argc, char** argv)
 		GUI->DrawQueryDialog();
 		GUI->DrawFileSelector();
 		GUI->DrawDiskImagesDialog();
+		GUI->DrawMemDumpDialog();
 		GUI->DrawEmulatorWindow();
 
 		Emulator->actionCallback();

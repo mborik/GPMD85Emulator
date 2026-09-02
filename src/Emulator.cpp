@@ -1173,11 +1173,11 @@ void TEmulator::ActionMegaRomLoad()
 void TEmulator::ActionRawFile(bool save)
 {
 	GUI->FileSelectorCallback.connect(
-		[&](const char *fileName) {
+		[&, save](const char *fileName) {
 			if (fileName)
 				SelectRawFile(fileName, save);
 
-			GUI->InvokeSettingsChange |= PS_CLOSEALL;
+			GUI->Execute(save ? GE_MEMBLOCK_WRITE : GE_MEMBLOCK_READ);
 			GUI->FileSelectorCallback.disconnect_all();
 		}
 	);
@@ -2008,13 +2008,13 @@ void TEmulator::PrepareSnapshot(const char *fileName)
 //---------------------------------------------------------------------------
 void TEmulator::InsertTape(const char *fileName, bool import)
 {
-	BYTE result = import ?
+	int result = import ?
 		TapeBrowser->ImportFileName(fileName) :
 		TapeBrowser->SetTapeFileName(fileName);
 
-	if (result == 0xFF)
-		GUI->MessageBox("Fatal error!\nCan't open file!");
-	else if (result == 1) {
+	if (result < 0)
+		GUI->MessageBox("File Error:\nCan't open file!");
+	else if (result > 0) {
 		GUI->MessageBox("Corrupted tape format!");
 		result = 0;
 	}
@@ -2043,8 +2043,8 @@ void TEmulator::SaveTape(const char *fileName)
 	int result = TapeBrowser->SaveTape(fileName);
 
 	if (result < 0)
-		GUI->MessageBox("Fatal Error!\nInvalid name, extension or can't open file for writing.");
-	else if (result > 1)
+		GUI->MessageBox("File Error:\nInvalid name, extension or can't open file for writing.");
+	else if (result > 0)
 		GUI->MessageBox("Error writing file. Tape will be corrupted.");
 	else {
 		delete [] Settings->TapeBrowser->fileName;
@@ -2151,13 +2151,15 @@ void TEmulator::SelectRawFile(const char *fileName, bool save)
 	}
 
 	if (!checkOK)
-		GUI->MessageBox("Fatal error!\nInvalid length or can't open file.");
+		GUI->MessageBox("File Error:\nInvalid length or can't open file.");
 	else {
 		if (Settings->MemoryBlock->fileName)
 			delete [] Settings->MemoryBlock->fileName;
 
-		Settings->MemoryBlock->fileName = new char[(strlen(fileName) + 1)];
-		strcpy(Settings->MemoryBlock->fileName, fileName);
+		if (fileName && strlen(fileName) > 0) {
+			Settings->MemoryBlock->fileName = new char[(strlen(fileName) + 1)];
+			strcpy(Settings->MemoryBlock->fileName, fileName);
+		}
 
 		Settings->MemoryBlock->length = length;
 	}
@@ -2166,7 +2168,7 @@ void TEmulator::SelectRawFile(const char *fileName, bool save)
 bool TEmulator::ProcessRawFile(bool save)
 {
 	int length = Settings->MemoryBlock->length,
-		 start = Settings->MemoryBlock->start;
+	     start = Settings->MemoryBlock->start;
 
 	if (start < 0 || start > 65535)
 		return false;
@@ -2179,70 +2181,67 @@ bool TEmulator::ProcessRawFile(bool save)
 	if (!fn)
 		return false;
 
+	ActionPlayPause(false, false);
+
 	BYTE *buff = NULL;
 	bool ret = true;
+	bool oldState = false;
+	bool oldAllRAM = false;
+	int oldPage = -1;
 
-	if (!save) {
-		buff = new BYTE[length];
+	if (!save)
 		length = ReadFromFile(fn, 0, length, buff);
 
-		if (length > 0) {
-			bool oldState = false;
-
-			if (model == CM_C2717) {
-				oldState = memory->IsRemapped();
-				memory->SetRemapped(Settings->MemoryBlock->remapping);
-			}
-			else {
-				oldState = memory->IsInReset();
-				if (oldState)
-					memory->ResetOff();
-			}
-
-			for (int i = 0; i < length; i++)
-				memory->WriteByte(start + i, *(buff + i));
-
-			if (model == CM_C2717)
-				memory->SetRemapped(oldState);
-			else if (oldState)
-				memory->ResetOn();
-		}
-		else
-			ret = false;
-	}
-	else {
-		int oldPage = -1;
-		bool oldState = false;
+	if (length > 0) {
 		buff = new BYTE[length];
 
-		if (model == CM_V2A || model == CM_V3 || model == CM_C2717) {
+		if (memory->HasAllRAM()) {
+			oldAllRAM = memory->IsAllRAM();
+			memory->SetAllRAM(!Settings->MemoryBlock->rom);
+		}
+		if (model == CM_C2717) {
+			oldState = memory->IsRemapped();
+			memory->SetRemapped(Settings->MemoryBlock->remapping);
+		}
+		else {
+			oldState = memory->IsInReset();
+			if (oldState)
+				memory->ResetOff();
+		}
+		if (memory->IsMem256()) {
 			oldPage = memory->GetPage();
-			memory->SetPage((BYTE) Settings->MemoryBlock->rom);
-
-			if (model == CM_C2717) {
-				oldState = memory->IsRemapped();
-				memory->SetRemapped(Settings->MemoryBlock->remapping);
-			}
+			memory->SetPage((BYTE) Settings->MemoryBlock->ex256pg);
 		}
 
-		for (int i = 0; i < length; i++)
-			*(buff + i) = memory->ReadByte(start + i);
-
-		if (model == CM_V2A || model == CM_V3 || model == CM_C2717) {
-			memory->SetPage(oldPage);
-
-			if (model == CM_C2717)
-				memory->SetRemapped(oldState);
+		if (save) {
+			for (int i = 0; i < length; i++)
+				*(buff + i) = memory->ReadByte(start + i);
+		}
+		else {
+			for (int i = 0; i < length; i++)
+				memory->WriteByte(start + i, *(buff + i));
 		}
 
-		if (WriteToFile(fn, 0, length, buff, true) < 0)
+		if (memory->HasAllRAM())
+			memory->SetAllRAM(oldAllRAM);
+		if (model == CM_C2717)
+			memory->SetRemapped(oldState);
+		else if (oldState)
+			memory->ResetOn();
+		if (memory->IsMem256())
+			memory->SetPage((BYTE) oldPage);
+
+		if (save && WriteToFile(fn, 0, length, buff, true) < 0)
 			ret = false;
 	}
+	else
+		ret = false;
 
 	if (buff)
 		delete [] buff;
 	delete [] fn;
 
+	ActionPlayPause(!Settings->isPaused, false);
 	return ret;
 }
 //---------------------------------------------------------------------------

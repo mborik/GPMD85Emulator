@@ -61,6 +61,7 @@ class TEmulator
 		TEmulator();
 		virtual ~TEmulator();
 		inline void RefreshDisplay() { video->RefreshDisplay(); }
+		inline bool IsAllRAMMemory() { return memory->HasAllRAM(); }
 
 		void ProcessArgvOptions(bool memModifiers = false);
 		void ProcessSettings(BYTE filter);
