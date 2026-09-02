@@ -339,8 +339,9 @@ TSettings::TSettings(bool userCfg)
 	MemoryBlock = new SetMemoryBlock;
 	MemoryBlock->start = cfgGetIntValue(n, "start", 0, &(MemoryBlock->start));
 	MemoryBlock->length = cfgGetIntValue(n, "length", 0, &(MemoryBlock->length));
-	MemoryBlock->autorun = cfgGetIntValue(n, "autorun", -1, &(MemoryBlock->autorun));
-	MemoryBlock->ex256pg = cfgGetIntValue(n, "ex256pg", -1, &(MemoryBlock->ex256pg));
+	MemoryBlock->autorun = cfgGetBoolValue(n, "autorun", false, &(MemoryBlock->autorun));
+	MemoryBlock->autorunAddr = cfgGetIntValue(n, "autorun-addr", 0, &(MemoryBlock->autorunAddr));
+	MemoryBlock->ex256pg = cfgGetIntValue(n, "ex256pg", 0, &(MemoryBlock->ex256pg));
 	MemoryBlock->remapping = cfgGetBoolValue(n, "remapping", false, &(MemoryBlock->remapping));
 
 	MemoryBlock->hex = false;

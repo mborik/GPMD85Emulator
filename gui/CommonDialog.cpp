@@ -34,68 +34,64 @@ void UserInterface::DrawDiskImagesDialog()
 	}
 }
 //-----------------------------------------------------------------------------
-void UserInterface::DrawAboutDialog()
+void UserInterface::DiskImagesMenuItems(bool inMenu)
 {
-	static bool showAboutDialog = false;
+	static char buf[FILENAME_MAX];
+	ImVec4 bbase, hover;
+	static TSettings::SetPMD32Drive *drives[4] = {
+		&Settings->PMD32->driveA,
+		&Settings->PMD32->driveB,
+		&Settings->PMD32->driveC,
+		&Settings->PMD32->driveD
+	};
 
-	if (dialogAboutOpened) {
-		ImGui::OpenPopup("About");
-		dialogAboutOpened = false;
-		showAboutDialog = true;
-	}
+	for (char i = 0, letter = 'A'; i < 4; i++, letter++) {
+		TSettings::SetPMD32Drive *drive = drives[i];
+		const char *imagePath = ExtractFileName(drive->image);
+		sprintf(buf, "Drive%c  %c: %s", letter, letter, imagePath ? imagePath : "[empty]");
+		buf[6] = '\0';
 
-	float button_width = 120.0f;
-	ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-	ImGui::SetNextWindowPos(center, ImGuiCond_FirstUseEver, ImVec2(0.5f, 0.5f));
+		ImGui::PushID(buf);
+		ImGui::SetNextItemAllowOverlap();
+		if (ImGui::MenuItem(buf + 8))
+			Emulator->ActionPMD32LoadDisk((int) i + 1);
 
-	if (ImGui::BeginPopupModal("About", &showAboutDialog, ImGuiWindowFlags_AlwaysAutoResize)) {
-		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.0f, 8.0f));
-		ImGui::Text("%s v%s © %s", PACKAGE_NAME, VERSION, PACKAGE_YEAR);
-		ImGui::Separator();
-
-		ImGui::Text(
-			"Open-source multi-platform\n"
-			"emulator of the Tesla PMD 85,\n"
-			"an 8-bit personal micro-computer\n"
-			"produced in 80s of 20th century\n"
-			"in former Czechoslovakia."
-		);
-
-		ImGui::Spacing();
-		ImGui::TextUnformatted("Built with SDL2 +");
-		ImGui::SameLine(0.0f, -8.0f);
-		ImGui::TextLinkOpenURL("Dear ImGui", "https://github.com/ocornut/imgui");
-		if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
-			ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+		bbase = imagePath ? ImColor::HSV(0.6f, 0.7f, 0.8f) : ImColor::HSV(0.5f, 0.2f, 0.2f);
+		hover = imagePath ? ImColor::HSV(0.6f, 0.9f, 1.0f) : ImColor::HSV(0.5f, 0.2f, 0.5f);
+		ImGui::PushStyleColor(ImGuiCol_Button, bbase);
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, hover);
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, hover);
 
 		ImGui::SameLine();
-		ImGui::TextUnformatted(ImGui::GetVersion());
-
-		ImGui::Spacing();
-		ImGui::Bullet();
-		ImGui::TextLinkOpenURL((PACKAGE_URL) + 8, PACKAGE_URL);
-		ImGui::Bullet();
-		const char *pmd85emu_url = "https://pmd85.borik.net";
-		ImGui::TextLinkOpenURL(pmd85emu_url + 8, pmd85emu_url);
-
-		ImGui::Spacing();
-		ImGui::TextDisabled("Licensed under the MIT License.");
-
-		ImGui::Separator();
-		ImGui::SetCursorPosX(
-			ImGui::GetCursorPosX() +
-			(ImGui::GetContentRegionAvail().x - button_width) * 0.5f
-		);
-
-		ImGui::SetItemDefaultFocus();
-		if (ImGui::Button("OK", ImVec2(button_width, 0.0f))) {
-			ImGui::CloseCurrentPopup();
-			showAboutDialog = false;
+		sprintf(buf, "Eject##%c", letter);
+		if (ImGui::SmallButton(buf) && imagePath) {
+			delete [] drive->image;
+			drive->image = NULL;
+			ProcessSettingsCallback.connect(&TEmulator::ActionPMD32Update, Emulator);
+			InvokeSettingsChange |= PS_CLOSEALL;
 		}
 
-		ImGui::PopStyleVar();
-		ImGui::EndPopup();
-	}
+		bbase = drive->writeProtect ? ImColor::HSV(0.0f, 0.6f, 0.6f) : ImColor::HSV(0.5f, 0.2f, 0.2f);
+		hover = drive->writeProtect ? ImColor::HSV(0.0f, 0.8f, 0.8f) : ImColor::HSV(0.5f, 0.2f, 0.5f);
+		ImGui::PushStyleColor(ImGuiCol_Button, bbase);
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, hover);
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, hover);
+
+		ImGui::SameLine();
+		sprintf(buf, "\u2302##WP%c", letter);
+		if (ImGui::SmallButton(buf) && imagePath) {
+			drive->writeProtect = !drive->writeProtect;
+			ProcessSettingsCallback.connect(&TEmulator::ActionPMD32Update, Emulator);
+			InvokeSettingsChange |= PS_CLOSEALL;
+		}
+
+		if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
+			ImGui::SetTooltip("Drive %c Write Protect: %s", letter, drive->writeProtect ? "ON" : "OFF");
+
+		ImGui::PopStyleColor(6);
+		ImGui::PopID();
+	};
+
 }
 //-----------------------------------------------------------------------------
 void UserInterface::DrawQueryDialog()
@@ -123,38 +119,40 @@ void UserInterface::DrawQueryDialog()
 		ImGui::Separator();
 		ImGui::Spacing();
 
+		float button_width = ImMax(100.0f, GetMonoTextWidth(10, 8.0f));
+
 		if (queryDialogSaveType) {
-			if (ImGui::Button("Save", ImVec2(100.0f, 0.0f))) {
+			if (ImGui::Button("Save", ImVec2(button_width, 0.0f))) {
 				ImGui::CloseCurrentPopup();
 				QueryDialogCallback(GUI_QUERY_SAVE);
 			}
 			ImGui::SameLine();
-			if (ImGui::Button("Don't Save", ImVec2(100.0f, 0.0f))) {
+			if (ImGui::Button("Don't Save", ImVec2(button_width, 0.0f))) {
 				ImGui::CloseCurrentPopup();
 				QueryDialogCallback(GUI_QUERY_DONTSAVE);
 			}
 			ImGui::SameLine();
 			ImGui::SetItemDefaultFocus();
-			if (ImGui::Button("Cancel", ImVec2(100.0f, 0.0f))) {
+			if (ImGui::Button("Cancel", ImVec2(button_width, 0.0f))) {
 				ImGui::CloseCurrentPopup();
 				QueryDialogCallback(GUI_QUERY_CANCEL);
 			}
 		}
 		else if (queryDialogTitle && queryDialogTitle[0] != '\0') {
-			if (ImGui::Button("Yes", ImVec2(150.0f, 0.0f))) {
+			if (ImGui::Button("Yes", ImVec2(button_width * 1.5, 0.0f))) {
 				ImGui::CloseCurrentPopup();
 				QueryDialogCallback(GUI_QUERY_YES);
 			}
 			ImGui::SameLine();
 			ImGui::SetItemDefaultFocus();
-			if (ImGui::Button("No", ImVec2(150.0f, 0.0f))) {
+			if (ImGui::Button("No", ImVec2(button_width * 1.5, 0.0f))) {
 				ImGui::CloseCurrentPopup();
 				QueryDialogCallback(GUI_QUERY_NO);
 			}
 		}
 		else {
 			ImGui::SetItemDefaultFocus();
-			if (ImGui::Button("OK", ImVec2(200.0f, 0.0f))) {
+			if (ImGui::Button("OK", ImVec2(button_width * 2.0f, 0.0f))) {
 				ImGui::CloseCurrentPopup();
 				QueryDialogCallback(GUI_QUERY_NO);
 			}

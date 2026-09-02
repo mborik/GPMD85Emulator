@@ -140,11 +140,12 @@ class TSettings
 		struct SetMemoryBlock {
 			int start;
 			int length;
-			int autorun;
+			bool autorun;
+			int autorunAddr;
 			int ex256pg;
+			bool remapping;
 			bool rom;
 			bool hex;
-			bool remapping;
 			char *fileName;
 		};
 

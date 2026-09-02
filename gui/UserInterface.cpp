@@ -53,6 +53,9 @@ UserInterface::UserInterface()
 	fileSelectorRecentPath = new char[PATH_MAX];
 	strcpy(fileSelectorRecentPath, PathApplication);
 
+	memDumpDialogSaveType = false;
+	memDumpDialogShouldOpen = false;
+
 	InitTapeDialog();
 
 	screenInstance = NULL;
@@ -209,6 +212,16 @@ void UserInterface::Execute(TGuiElementType type, bool forceOpen)
 
 		case GE_TAPEBROWSER:
 			Settings->GUI->dialogTapeBrowserOpened = forceOpen || !Settings->GUI->dialogTapeBrowserOpened;
+			break;
+
+		case GE_MEMBLOCK_READ:
+			memDumpDialogSaveType = false;
+			memDumpDialogShouldOpen = true;
+			break;
+
+		case GE_MEMBLOCK_WRITE:
+			memDumpDialogSaveType = true;
+			memDumpDialogShouldOpen = true;
 			break;
 
 		default:

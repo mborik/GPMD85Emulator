@@ -69,6 +69,7 @@ class UserInterface
 		void DrawFileSelector();
 		void DrawDiskImagesDialog();
 		void DrawTapeDialog();
+		void DrawMemDumpDialog();
 		void DrawDebugWindow();
 		void DrawEmulatorWindow();
 
@@ -102,6 +103,7 @@ class UserInterface
 		bool isEmulatorWindowFocused;
 		bool triggerMachineMenuOpen;
 		bool dialogAboutOpened;
+		bool dialogMemDumpOpened;
 
 		ScreenPMD85 *screenInstance;
 		TFileSelectType fileSelectorType;
@@ -114,6 +116,11 @@ class UserInterface
 		bool queryDialogSaveType;
 		bool queryDialogShouldOpen;
 
+		bool memDumpDialogSaveType;
+		bool memDumpDialogShouldOpen;
+		WORD mdBlockStart, mdBlockLength, mdAutorunAddr;
+		BYTE mdEx256pg;
+
 		std::vector<TTapeBrowser::TDialogItem> tapeDialogEntries;
 		ImGuiSelectionBasicStorage *tapeDialogSelection;
 		ImGuiSelectionExternalStorage *tapeDialogSelectionAdapter;
@@ -122,6 +129,7 @@ class UserInterface
 		void MachineMenuItem(const char *name, TComputerModel model);
 		void AttributeMenuItems(bool enabled = false);
 		void DiskImagesMenuItems(bool inMenu = false);
+		void MemDumpDialogContent(bool saveType);
 		void InitTapeDialog();
 		void DrawTapeDialogContextMenu(int &index);
 
