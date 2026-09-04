@@ -25,12 +25,17 @@
 //---------------------------------------------------------------------------
 #include "globals.h"
 //---------------------------------------------------------------------------
+#define MEM_MAX 0x10000
+
 // type of memory block access
 #define MA_RO     1   // ROM, read only, write attempt is ignored
 #define MA_WO     2   // RWM, write only, read attempt is ignored
 #define MA_RW     3   // RWM, read and write
 #define MA_NA     0   // unallocated memory block, write attempt is ignored
                       // read attempt returns NA_BYTE or NA_WORD
+
+#define MA_VRAM   4   // VRAM, read and write
+#define MA_VRAM_B 8   // VRAM aside buffer
 
 // operations
 #define OP_READ   1   // read operation
@@ -80,6 +85,7 @@ public:
 	bool GetRemapType() { return remapType; }
 	void SetRemapType(int iRemapT) { remapType = iRemapT; }
 	bool WasVramModified();
+	void GetMemState(int physAddr, BYTE *state, BYTE *value = NULL);
 
 	// read/write/fill of memory space
 	bool PutRom(BYTE *src, int size);
@@ -94,6 +100,7 @@ public:
 	void WriteWord(int physAddr, WORD value);
 
 	bool IsMemoryValid() { return (memROM != NULL && memRAM != NULL); }
+	BYTE *memChanging; // pointer to buffer tracking changes in memory
 
 protected:
 	BYTE *memROM;      // pointer to virtual ROM memory area

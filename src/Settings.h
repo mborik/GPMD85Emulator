@@ -72,6 +72,10 @@ class TSettings
 			int fontScale;
 			bool dialogTapeBrowserOpened;
 			bool dialogDiskImagesOpened;
+			bool dialogMemEditOpened;
+			bool dialogDebugOpened;
+			bool memEditAscii;
+			int memEditColumns;
 		};
 		struct SetScreen {
 			int border;

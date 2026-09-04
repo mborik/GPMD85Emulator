@@ -177,6 +177,12 @@ void TDebugger::Reset()
 	flag = 0;
 }
 //-----------------------------------------------------------------------------
+BYTE TDebugger::GetMemState(int addr, BYTE *value) {
+	BYTE state;
+	memory->GetMemState(addr, &state, value);
+	return state;
+}
+//-----------------------------------------------------------------------------
 char *TDebugger::MakeInstrLine(WORD *addr)
 {
 	BYTE opcode = memory->ReadByte(*addr);
@@ -545,10 +551,10 @@ void TDebugger::DoStepToNext()
 	flag = 9;
 }
 //---------------------------------------------------------------------------
-bool TDebugger::CheckBreakPoint(WORD adr)
+bool TDebugger::CheckBreakPoint(WORD addr)
 {
 	for (int ii = 0; ii < MAX_BREAK_POINTS; ii++)
-		if (bp[ii].active && adr == bp[ii].addr)
+		if (bp[ii].active && addr == bp[ii].addr)
 			return true;
 
 	return false;
