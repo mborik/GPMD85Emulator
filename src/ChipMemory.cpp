@@ -101,6 +101,7 @@ void ChipMemory::GetMemState(int physAddr, BYTE *state, BYTE *value)
 
 		int offset = (r - memRAM);
 		if ((offset & 0xFC000) == vramOffset) {
+			// TODO C2717 Remap
 			s |= MA_VRAM;
 			if ((offset & 0x3F) >= 48)
 				s |= MA_VRAM_B;

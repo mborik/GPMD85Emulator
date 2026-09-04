@@ -36,6 +36,7 @@ void UserInterface::InitDebugSuite()
 	memEditor->OptShowAscii = Settings->GUI->memEditAscii;
 	memEditor->OptAddrDigitsCount = 4;
 	memEditor->OptShowOptions = false;
+	memEditor->GotoAddr = 0;
 
 	struct UserDataContext {
 		TDebugger *dbg;
@@ -165,15 +166,13 @@ void UserInterface::DrawMemEditDialog()
 			ImGui::Separator();
 			ImGui::SetNextItemWidth(4 * s.GlyphWidth + style.FramePadding.x * 2.0f);
 
-			static const char* widthItems[] = { "", "8", "16" };
+			static const char* widthItems[] = { NULL, "8", "16" };
 			int widthIdx = (int) Settings->GUI->memEditColumns / 8;
 			if (ImGui::SliderInt("##medcols", &widthIdx, 1, 2, widthItems[widthIdx])) {
 				memEditor->ContentsWidthChanged = true;
 				memEditor->Cols = Settings->GUI->memEditColumns = widthIdx * 8;
 			}
 
-			// ImGui::SameLine();
-			// ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
 			ImGui::SameLine();
 			if (ImGui::Checkbox("ASCII", &Settings->GUI->memEditAscii)) {
 				memEditor->ContentsWidthChanged = true;
@@ -183,17 +182,36 @@ void UserInterface::DrawMemEditDialog()
 			ImGui::SameLine();
 			ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
 			ImGui::SameLine();
-			ImGui::SetNextItemWidth((s.AddrDigitsCount + 1) * s.GlyphWidth + style.FramePadding.x * 2.0f);
+
+			auto ProcessGotoAddr = [&](const char *c) {
+				size_t gotoAddr;
+				if (sscanf(c, "%zX", &gotoAddr) == 1) {
+					memEditor->GotoAddr = gotoAddr;
+					memEditor->HighlightMin = memEditor->HighlightMax = (size_t) -1;
+				}
+			};
+
+			float addrInputWidth = (s.AddrDigitsCount + 1) * s.GlyphWidth + style.FramePadding.x * 2.0f;
+			ImGui::SetNextItemWidth(addrInputWidth);
 			ImGui::InputText("##medaddr",
 				memEditor->AddrInputBuf, 5,
 				ImGuiInputTextFlags_CharsHexadecimal);
 			ImGui::SameLine();
-			if (ImGui::Button("MEM")) {
-				size_t gotoAddr;
-				if (sscanf(memEditor->AddrInputBuf, "%zX", &gotoAddr) == 1) {
-					memEditor->GotoAddr = gotoAddr;
-					memEditor->HighlightMin = memEditor->HighlightMax = (size_t) -1;
-				}
+			if (ImGui::Button("MEM"))
+				ProcessGotoAddr(memEditor->AddrInputBuf);
+
+			static char regsLine[48];
+			static short regUpdateCounter = 0;
+
+			if (--regUpdateCounter <= 0) {
+				regUpdateCounter = 10;
+				memcpy(regsLine, Debugger->FillRegs(true), 48);
+			}
+
+			for (int i = 40; i > 0; i -= 8) {
+				ImGui::SameLine();
+				if (ImGui::Button(regsLine + i))
+					ProcessGotoAddr(regsLine + i + 3);
 			}
 
 			if (memEditor->ContentsWidthChanged) {

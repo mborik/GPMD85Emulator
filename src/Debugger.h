@@ -85,7 +85,7 @@ class TDebugger
 		inline BYTE GetChangingBufferValue(int off) { return memory ? memory->memChanging[off] : 0; }
 
 		char *FillDisass(BYTE *ctrl);
-		char *FillRegs();
+		char *FillRegs(bool memEdit = false);
 		char *FillFlags();
 		char *FillStack();
 		char *FillBreakpoints(BYTE *ctrl);
