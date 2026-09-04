@@ -313,13 +313,17 @@ char *TDebugger::FillDisass(BYTE *ctrl)
 	return MakeInstrLine(&pc);
 }
 //-----------------------------------------------------------------------------
-char *TDebugger::FillRegs()
+char *TDebugger::FillRegs(bool memEdit)
 {
 	static char regs[6][3] = { "AF", "BC", "DE", "HL", "PC", "SP" };
 	int i, j = 0, k = 0;
 
 	if (cpu == NULL || memory == NULL)
 		return NULL;
+
+	const char *fmt = radix ? "%s:#%04X\n" : "%s:%05d\n";
+	if (memEdit)
+		fmt = "%s:%04X ";
 
 	for (i = 0; i < 6; i++) {
 		switch (i) {
@@ -343,11 +347,12 @@ char *TDebugger::FillRegs()
 				break;
 		}
 
-		sprintf(lineBuffer + j, (radix ? "%s:#%04X\n" : "%s:%05d\n"), regs[i], k);
-		j += 9;
+		j += sprintf(lineBuffer + j, fmt, regs[i], k);
+		if (memEdit)
+			lineBuffer[j - 1] = '\0';
 	}
 
-	lineBuffer[--k] = '\0';
+	lineBuffer[--j] = '\0';
 	return lineBuffer;
 }
 //-----------------------------------------------------------------------------
