@@ -24,6 +24,30 @@
 #include "Emulator.h"
 #include "imgui/imgui_internal.h"
 //-----------------------------------------------------------------------------
+void UserInterface::InitFileSelector()
+{
+	fileSelector = NULL;
+	fileSelectorPath = new char[PATH_MAX];
+	fileSelectorRecentPath = new char[PATH_MAX];
+	strcpy(fileSelectorRecentPath, PathApplication);
+}
+//-----------------------------------------------------------------------------
+void UserInterface::DestroyFileSelector()
+{
+	if (fileSelector) {
+		delete fileSelector;
+		fileSelector = NULL;
+	}
+	if (fileSelectorPath) {
+		delete[] fileSelectorPath;
+		fileSelectorPath = NULL;
+	}
+	if (fileSelectorRecentPath) {
+		delete[] fileSelectorRecentPath;
+		fileSelectorRecentPath = NULL;
+	}
+}
+//-----------------------------------------------------------------------------
 void UserInterface::FileSelector(
 	TFileSelectType type,
 	const char *title,

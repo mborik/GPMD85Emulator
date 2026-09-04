@@ -80,6 +80,9 @@ class TDebugger
 		TDebugger();
 		void SetParams(ChipCpu8080 *cpu, ChipMemory *mem, TComputerModel model);
 		void Reset();
+		BYTE GetMemState(int addr, BYTE *value = nullptr);
+		inline void WriteByte(int addr, BYTE value) { memory->WriteByte(addr, value); }
+		inline BYTE GetChangingBufferValue(int off) { return memory ? memory->memChanging[off] : 0; }
 
 		char *FillDisass(BYTE *ctrl);
 		char *FillRegs();
@@ -91,7 +94,7 @@ class TDebugger
 		void DoStepOver();
 		void DoStepOut();
 		void DoStepToNext();
-		bool CheckBreakPoint(WORD adr);
+		bool CheckBreakPoint(WORD addr);
 		bool CheckDebugRet(int *t);
 };
 //-----------------------------------------------------------------------------

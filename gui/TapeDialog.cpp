@@ -33,9 +33,21 @@ void UserInterface::InitTapeDialog()
 	tapeDialogSelectionAdapter->UserData = (void*) TapeBrowser;
 	tapeDialogSelectionAdapter->AdapterSetItemSelected =
 		[](ImGuiSelectionExternalStorage* self, int idx, bool selected) {
-			TTapeBrowser* tapeBrowser = reinterpret_cast<TTapeBrowser *>(self->UserData);
+			TTapeBrowser* tapeBrowser = static_cast<TTapeBrowser *>(self->UserData);
 			tapeBrowser->DoSelection(idx, selected);
 		};
+}
+//-----------------------------------------------------------------------------
+void UserInterface::DestroyTapeDialog()
+{
+	if (tapeDialogSelection) {
+		delete tapeDialogSelection;
+		tapeDialogSelection = NULL;
+	}
+	if (tapeDialogSelectionAdapter) {
+		delete tapeDialogSelectionAdapter;
+		tapeDialogSelectionAdapter = NULL;
+	}
 }
 //-----------------------------------------------------------------------------
 void UserInterface::DrawTapeDialog()

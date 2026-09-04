@@ -48,15 +48,12 @@ UserInterface::UserInterface()
 	queryDialogSaveType = false;
 	queryDialogShouldOpen = false;
 
-	fileSelector = NULL;
-	fileSelectorPath = new char[PATH_MAX];
-	fileSelectorRecentPath = new char[PATH_MAX];
-	strcpy(fileSelectorRecentPath, PathApplication);
-
 	memDumpDialogSaveType = false;
 	memDumpDialogShouldOpen = false;
 
+	InitFileSelector();
 	InitTapeDialog();
+	InitDebugSuite();
 
 	screenInstance = NULL;
 	InvokeSettingsChange = 0;
@@ -66,26 +63,9 @@ UserInterface::~UserInterface()
 {
 	debug("GUI", "Uninitializing, freeing...");
 
-	if (fileSelector) {
-		delete fileSelector;
-		fileSelector = NULL;
-	}
-	if (fileSelectorPath) {
-		delete[] fileSelectorPath;
-		fileSelectorPath = NULL;
-	}
-	if (fileSelectorRecentPath) {
-		delete[] fileSelectorRecentPath;
-		fileSelectorRecentPath = NULL;
-	}
-	if (tapeDialogSelection) {
-		delete tapeDialogSelection;
-		tapeDialogSelection = NULL;
-	}
-	if (tapeDialogSelectionAdapter) {
-		delete tapeDialogSelectionAdapter;
-		tapeDialogSelectionAdapter = NULL;
-	}
+	DestroyFileSelector();
+	DestroyTapeDialog();
+	DestroyDebugSuite();
 }
 //-----------------------------------------------------------------------------
 void UserInterface::InitFont(float size, bool oversample)

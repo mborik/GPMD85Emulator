@@ -36,7 +36,7 @@ libGPMD85emu_gui_a_SOURCES = \
 	imgui-mods/imgui_file_browser.h \
 	AboutDialog.cpp \
 	CommonDialog.cpp \
-	DebugWindow.cpp \
+	DebugSuite.cpp \
 	Menu.cpp \
 	MemDumpDialog.cpp \
 	FileSelector.cpp \

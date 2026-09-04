@@ -41,6 +41,10 @@ ChipMemory::ChipMemory(WORD initRomSizeKB)
 	memRAM = NULL;
 	sizeRAM = 0;
 
+	// 64kB working buffer for tracking changes
+	memChanging = new BYTE[MEM_MAX];
+	memset(memChanging, 0, MEM_MAX);
+
 	resetState = false;
 	allRAM = false;
 	remapped = false;
@@ -67,6 +71,10 @@ ChipMemory::~ChipMemory()
 		delete [] memRAM;
 		memRAM = NULL;
 	}
+	if (memChanging != NULL) {
+		delete [] memChanging;
+		memChanging = NULL;
+	}
 }
 //---------------------------------------------------------------------------
 bool ChipMemory::WasVramModified()
@@ -78,6 +86,34 @@ bool ChipMemory::WasVramModified()
 	drawRegion.br = 0x0000;
 
 	return true;
+}
+//---------------------------------------------------------------------------
+void ChipMemory::GetMemState(int physAddr, BYTE *state, BYTE *value)
+{
+	BYTE *r, *w, s = 0;
+
+	if (physAddr >= 0 && physAddr < MEM_MAX) {
+		s |= MA_RW;
+		if (FindPointer(physAddr, 1, OP_READ, &r) < 1)
+			s ^= MA_RO;
+		if (FindPointer(physAddr, 1, OP_WRITE, &w) < 1)
+			s ^= MA_WO;
+
+		int offset = (r - memRAM);
+		if ((offset & 0xFC000) == vramOffset) {
+			s |= MA_VRAM;
+			if ((offset & 0x3F) >= 48)
+				s |= MA_VRAM_B;
+		}
+
+		if (memChanging[physAddr] > 0)
+			memChanging[physAddr] -= 5;
+	}
+
+	if (state)
+		*state = s;
+	if (value)
+		*value = (r) ? *r : NA_BYTE;
 }
 //---------------------------------------------------------------------------
 /*
@@ -114,8 +150,9 @@ bool ChipMemory::PutMem(int physAddr, BYTE *src, int size)
 	int count;
 	BYTE *ptr;
 
-	if (physAddr < 0 || physAddr > 0xFFFF || size < 1 ||
-			size > 0x10000 || (physAddr + size) > 0x10000 || src == NULL)
+	if (physAddr < 0 || physAddr >= MEM_MAX ||
+	        size < 1 || size > MEM_MAX ||
+	       (physAddr + size) > MEM_MAX || src == NULL)
 		return false;
 
 	do {
@@ -146,8 +183,9 @@ bool ChipMemory::GetMem(BYTE *dest, int physAddr, int size)
 	int count;
 	BYTE *ptr;
 
-	if (physAddr < 0 || physAddr > 0xFFFF || size < 1 ||
-			size > 0x10000 || (physAddr + size) > 0x10000 || dest == NULL)
+	if (physAddr < 0 || physAddr >= MEM_MAX ||
+	        size < 1 || size > MEM_MAX ||
+	       (physAddr + size) > MEM_MAX || dest == NULL)
 		return false;
 
 	do {
@@ -180,8 +218,8 @@ bool ChipMemory::FillMem(int destAddr, BYTE value, int size)
 	int count;
 	BYTE *ptr = NULL;
 
-	if (destAddr < 0 || destAddr > 0xFFFF || size < 1 ||
-			size > 0x10000 || (destAddr + size) > 0x10000)
+	if (destAddr < 0 || destAddr >= MEM_MAX ||
+	        size < 1 || size > MEM_MAX || (destAddr + size) > MEM_MAX)
 		return false;
 
 	do {
@@ -209,9 +247,12 @@ bool ChipMemory::FillMem(int destAddr, BYTE value, int size)
 BYTE ChipMemory::ReadByte(int physAddr)
 {
 	BYTE *ptr;
-	if (physAddr >= 0 && physAddr < 0x10000) {
-		if (FindPointer(physAddr, 1, OP_READ, &ptr) > 0 && ptr)
+	if (physAddr >= 0 && physAddr < MEM_MAX) {
+		if (FindPointer(physAddr, 1, OP_READ, &ptr) > 0 && ptr) {
+			if (memChanging[physAddr] > 0)
+				memChanging[physAddr] -= 5;
 			return *ptr;
+		}
 	}
 
 	return NA_BYTE;
@@ -247,6 +288,9 @@ void ChipMemory::WriteByte(int physAddr, BYTE value)
 {
 	BYTE *ptr;
 	if (FindPointer(physAddr, 1, OP_WRITE, &ptr) > 0 && ptr) {
+		if (*ptr != value)
+			memChanging[physAddr] = 255;
+
 		*ptr = value;
 
 		int offset = (ptr - memRAM);

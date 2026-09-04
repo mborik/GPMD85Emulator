@@ -27,6 +27,7 @@
 #include "ScreenPMD85.h"
 #include "imgui/imgui.h"
 #include "imgui-mods/imgui_file_browser.h"
+#include "imgui-mods/imgui_memory_editor.h"
 //-----------------------------------------------------------------------------
 #define STATUSBAR_HEIGHT 32.0f
 //-----------------------------------------------------------------------------
@@ -70,6 +71,7 @@ class UserInterface
 		void DrawDiskImagesDialog();
 		void DrawTapeDialog();
 		void DrawMemDumpDialog();
+		void DrawMemEditDialog();
 		void DrawDebugWindow();
 		void DrawEmulatorWindow();
 
@@ -106,6 +108,9 @@ class UserInterface
 		bool dialogMemDumpOpened;
 
 		ScreenPMD85 *screenInstance;
+		MemoryEditor *memEditor;
+		BYTE *memEditorBuffer;
+
 		TFileSelectType fileSelectorType;
 		ImGui::FileBrowser *fileSelector;
 		char *fileSelectorPath;
@@ -130,9 +135,16 @@ class UserInterface
 		void AttributeMenuItems(bool enabled = false);
 		void DiskImagesMenuItems(bool inMenu = false);
 		void MemDumpDialogContent(bool saveType);
+
+		void InitFileSelector();
+		void DestroyFileSelector();
+
 		void InitTapeDialog();
+		void DestroyTapeDialog();
 		void DrawTapeDialogContextMenu(int &index);
 
+		void InitDebugSuite();
+		void DestroyDebugSuite();
 		void DrawDebugWidgetDisass(bool full);
 		void DrawDebugWidgetRegs();
 		void DrawDebugWidgetStack();

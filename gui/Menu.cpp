@@ -83,6 +83,7 @@ void UserInterface::DrawMenu()
 			if (ImGui::MenuItem("Save Memory…", MOD_SHIFT("F11"))) {
 				Execute(GE_MEMBLOCK_WRITE);
 			}
+			ImGui::MenuItem("Memory Editor", NULL, &Settings->GUI->dialogMemEditOpened);
 			ImGui::Separator();
 			if (ImGui::MenuItem("Save Screenshot…")) { }
 
