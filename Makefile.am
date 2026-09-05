@@ -36,10 +36,10 @@ GPMD85emu_DEPENDENCIES = \
 	saa/libSAASound.a
 
 GPMD85emu_SOURCES = \
-	GPMD85emu.cpp
+	main.cpp \
+	sigslot.hpp
 
 noinst_HEADERS = \
-	sigslot.hpp \
 	globals.h \
 	config.h
 

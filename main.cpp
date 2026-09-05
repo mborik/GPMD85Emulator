@@ -1,4 +1,4 @@
-/*	GPMD85emu.cpp: Initialization and main program loop.
+/*	main.cpp: Initialization and main program loop.
 	Copyright (c) 2011-2026 Martin Borik <martin@borik.net>
 
 	Permission is hereby granted, free of charge, to any person obtaining
@@ -172,8 +172,12 @@ int main(int argc, char** argv)
 	ImGui_ImplSDL2_InitForOpenGL(gdc.window, gdc.context);
 	ImGui_ImplOpenGL3_Init(glsl_version);
 
-	SDL_Surface *icon = SDL_LoadBMP(LocateResource("icon.bmp"));
-	if (icon) {
+	SDL_Surface *icon = SDL_LoadBMP(LocateResource("icon128.bmp"));
+	if (icon != NULL) {
+		SDL_SetWindowIcon(gdc.window, icon);
+		SDL_FreeSurface(icon);
+	}
+	else if ((icon = SDL_LoadBMP(LocateResource("icon32.bmp"))) != NULL) {
 		SDL_SetColorKey(icon, SDL_TRUE, SDL_MapRGB(icon->format, 255, 0, 255));
 		SDL_SetWindowIcon(gdc.window, icon);
 		SDL_FreeSurface(icon);
