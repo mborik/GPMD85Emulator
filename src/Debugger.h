@@ -82,7 +82,7 @@ class TDebugger
 		void Reset();
 		BYTE GetMemState(int addr, BYTE *value = nullptr);
 		inline void WriteByte(int addr, BYTE value) { memory->WriteByte(addr, value); }
-		inline BYTE GetChangingBufferValue(int off) { return memory ? memory->memChanging[off] : 0; }
+		inline BYTE *GetChangingMemState() { return memory->GetChangingMemState(); }
 
 		char *FillDisass(BYTE *ctrl);
 		char *FillRegs(bool memEdit = false);

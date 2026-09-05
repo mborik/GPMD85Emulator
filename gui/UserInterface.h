@@ -24,6 +24,7 @@
 #define USERINTERFACE_H_
 //-----------------------------------------------------------------------------
 #include "globals.h"
+#include "Debugger.h"
 #include "ScreenPMD85.h"
 #include "imgui/imgui.h"
 #include "imgui-mods/imgui_file_browser.h"
@@ -109,7 +110,15 @@ class UserInterface
 
 		ScreenPMD85 *screenInstance;
 		MemoryEditor *memEditor;
+
+		typedef struct MemEditorDataContext {
+			TDebugger *dbg;
+			BYTE *buffer;
+			BYTE *changingBuffer;
+		} MemEditorDataContext;
+
 		BYTE *memEditorBuffer;
+		MemEditorDataContext *memEditorDataContext;
 
 		TFileSelectType fileSelectorType;
 		ImGui::FileBrowser *fileSelector;

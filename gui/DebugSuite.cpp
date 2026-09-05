@@ -38,30 +38,25 @@ void UserInterface::InitDebugSuite()
 	memEditor->OptShowOptions = false;
 	memEditor->GotoAddr = 0;
 
-	struct UserDataContext {
-		TDebugger *dbg;
-		BYTE *buffer;
-	};
-
-	static UserDataContext ctx = { Debugger, memEditorBuffer };
-	memEditor->UserData = (void *) &ctx;
+	memEditorDataContext = new MemEditorDataContext { Debugger, memEditorBuffer, NULL };
+	memEditor->UserData = (void *) memEditorDataContext;
 	memEditor->ReadFn = [](const ImU8* mem, size_t off, void* user_data) -> ImU8 {
-		auto* ctx = static_cast<UserDataContext*>(user_data);
+		auto* ctx = static_cast<MemEditorDataContext*>(user_data);
 		BYTE value;
 		ctx->dbg->GetMemState(off, &value);
 		ctx->buffer[off] = value;
 		return value;
 	};
 	memEditor->WriteFn = [](ImU8* mem, size_t off, ImU8 val, void* user_data) {
-		auto* ctx = static_cast<UserDataContext*>(user_data);
+		auto* ctx = static_cast<MemEditorDataContext*>(user_data);
 		ctx->dbg->WriteByte(off, val);
 		mem[off] = val;
 	};
 	memEditor->BgColorFn = [](const ImU8* mem, size_t off, void* user_data) -> ImU32 {
-		auto* ctx = static_cast<UserDataContext *>(const_cast<void *>(user_data));
-		ImU8 changing = ctx->dbg->GetChangingBufferValue(off), changingQ = changing / 4;
+		auto* ctx = static_cast<MemEditorDataContext *>(const_cast<void *>(user_data));
+		ImU8 changing = ctx->changingBuffer[off], changingQ = changing / 4;
 		ImU32 color = IM_COL32(changingQ, changing / 2, changing, 64 + changingQ);
-		BYTE value, state = ctx->dbg->GetMemState(off, &value);
+		BYTE state = ctx->dbg->GetMemState(off);
 		if ((state & MA_RW) == 0)
 			color |= IM_COL32(128, 0, 0, 0); // unaccessible
 		if ((state & MA_RW) != MA_RW)
@@ -83,6 +78,10 @@ void UserInterface::DestroyDebugSuite()
 	if (memEditorBuffer) {
 		delete[] memEditorBuffer;
 		memEditorBuffer = NULL;
+	}
+	if (memEditorDataContext) {
+		delete memEditorDataContext;
+		memEditorDataContext = NULL;
 	}
 }
 //-----------------------------------------------------------------------------
@@ -154,6 +153,7 @@ void UserInterface::DrawMemEditDialog()
 	if (Settings->GUI->dialogMemEditOpened) {
 		ImGuiStyle& style = ImGui::GetStyle();
 
+		memEditorDataContext->changingBuffer = Debugger->GetChangingMemState();
 		memEditor->OptFooterExtraHeight = ImGui::GetTextLineHeightWithSpacing() + style.FramePadding.y * 3.0f;
 		memEditor->CalcSizes(s, MEM_MAX, 0);
 

@@ -52,6 +52,10 @@
 // memory mapper of 256k extension
 #define MM256_REG_MASK 0xFF
 #define MM256_REG_ADR  0x6D
+
+// memory changing pull-up buffer constants
+#define MCHG_CHANGED_VALUE 250
+#define MCHG_DECREASE 10
 //---------------------------------------------------------------------------
 class ChipMemory
 {
@@ -100,11 +104,12 @@ public:
 	void WriteWord(int physAddr, WORD value);
 
 	bool IsMemoryValid() { return (memROM != NULL && memRAM != NULL); }
-	BYTE *memChanging; // pointer to buffer tracking changes in memory
+	BYTE *GetChangingMemState();
 
 protected:
 	BYTE *memROM;      // pointer to virtual ROM memory area
 	BYTE *memRAM;      // pointer to virtual RAM memory area
+	BYTE *memChanging; // pointer to buffer tracking changes in memory
 	int  sizeRomKB;    // size of ROM in kilobytes
 	int  sizeROM;      // size of ROM in bytes
 	int  sizeRAM;      // size of RAM in bytes

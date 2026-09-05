@@ -88,6 +88,18 @@ bool ChipMemory::WasVramModified()
 	return true;
 }
 //---------------------------------------------------------------------------
+BYTE *ChipMemory::GetChangingMemState()
+{
+	if (!memChanging)
+		return NULL;
+
+	for (int i = 0; i < MEM_MAX; i++)
+		if (memChanging[i] > 0)
+			memChanging[i] -= MCHG_DECREASE;
+
+	return memChanging;
+}
+//---------------------------------------------------------------------------
 void ChipMemory::GetMemState(int physAddr, BYTE *state, BYTE *value)
 {
 	BYTE *r, *w, s = 0;
@@ -101,14 +113,10 @@ void ChipMemory::GetMemState(int physAddr, BYTE *state, BYTE *value)
 
 		int offset = (r - memRAM);
 		if ((offset & 0xFC000) == vramOffset) {
-			// TODO C2717 Remap
 			s |= MA_VRAM;
-			if ((offset & 0x3F) >= 48)
+			if ((remapped && offset <= 0xCFFF) || (!remapped && (offset & 0x3F) >= 48))
 				s |= MA_VRAM_B;
 		}
-
-		if (memChanging[physAddr] > 0)
-			memChanging[physAddr] -= 5;
 	}
 
 	if (state)
@@ -168,6 +176,7 @@ bool ChipMemory::PutMem(int physAddr, BYTE *src, int size)
 		size -= count;
 	} while (size > 0);
 
+	memset(memChanging + physAddr, 0, size);
 	return true;
 }
 //---------------------------------------------------------------------------
@@ -203,6 +212,7 @@ bool ChipMemory::GetMem(BYTE *dest, int physAddr, int size)
 		size -= count;
 	} while (size > 0);
 
+	memset(memChanging + physAddr, 0, size);
 	return true;
 }
 //---------------------------------------------------------------------------
@@ -234,6 +244,7 @@ bool ChipMemory::FillMem(int destAddr, BYTE value, int size)
 		size -= count;
 	} while (size > 0);
 
+	memset(memChanging + destAddr, 0, size);
 	return true;
 }
 //---------------------------------------------------------------------------
@@ -248,13 +259,9 @@ bool ChipMemory::FillMem(int destAddr, BYTE value, int size)
 BYTE ChipMemory::ReadByte(int physAddr)
 {
 	BYTE *ptr;
-	if (physAddr >= 0 && physAddr < MEM_MAX) {
-		if (FindPointer(physAddr, 1, OP_READ, &ptr) > 0 && ptr) {
-			if (memChanging[physAddr] > 0)
-				memChanging[physAddr] -= 5;
+	if (physAddr >= 0 && physAddr < MEM_MAX)
+		if (FindPointer(physAddr, 1, OP_READ, &ptr) > 0 && ptr)
 			return *ptr;
-		}
-	}
 
 	return NA_BYTE;
 }
@@ -290,7 +297,7 @@ void ChipMemory::WriteByte(int physAddr, BYTE value)
 	BYTE *ptr;
 	if (FindPointer(physAddr, 1, OP_WRITE, &ptr) > 0 && ptr) {
 		if (*ptr != value)
-			memChanging[physAddr] = 255;
+			memChanging[physAddr] = MCHG_CHANGED_VALUE;
 
 		*ptr = value;
 
