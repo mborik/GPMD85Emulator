@@ -3,7 +3,9 @@
 AUTOMAKE_OPTIONS = foreign
 RES = \
 	default.conf \
-	icon.bmp
+	icon128.bmp \
+	icon32.bmp \
+	icon.png
 
 pkgdata_DATA = $(RES)
 
