@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=GPMD85 Emulator
+Comment=Open-source emulator of the Tesla PMD 85, an 8-bit personal microcomputer
+Exec=GPMD85emu %F
+Icon=GPMD85emu
+Categories=Game;Utility;Emulator;
+Terminal=false
+StartupNotify=true
