@@ -71,20 +71,25 @@ void UserInterface::DrawTapeDialog()
 			ImGui::TableSetupColumn("##hdr1", ImGuiTableColumnFlags_NoHide);
 			ImGui::TableSetupColumn("##hdr2", ImGuiTableColumnFlags_WidthFixed, GetMonoTextWidth(9));
 
-			static char *ptr = NULL;
+			ImGui::TableNextRow(ImGuiTableColumnFlags_WidthStretch, sz * 2.0f);
+			ImGui::TableNextColumn();
+
+			if (ImGui::SmallButton("\u2386"))
+				Emulator->ActionTapeLoad(false);
+			ImGui::SameLine();
+
 			if (Settings->TapeBrowser->fileName && !TapeBrowser->preparedForSave) {
-				ptr = strrchr(Settings->TapeBrowser->fileName, '/');
+				char *ptr = strrchr(Settings->TapeBrowser->fileName, '/');
 				if (ptr)
 					ptr++;
 				else
 					ptr = Settings->TapeBrowser->fileName;
+
+				ImGui::TextUnformatted(ptr);
+				ImGui::SetItemTooltip("%s", Settings->TapeBrowser->fileName);
 			}
 			else
-				ptr = (char *) "[new tape]";
-
-			ImGui::TableNextRow(ImGuiTableColumnFlags_WidthStretch, sz * 2.0f);
-			ImGui::TableNextColumn();
-			ImGui::TextUnformatted(ptr);
+				ImGui::TextUnformatted("[new tape]");
 
 			ImGui::TableNextColumn();
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
