@@ -114,7 +114,10 @@ TCmdLineSwitch switches[] = {
 	{ "-ptr", "--memblock-address", VAR_INT, (void *) &argv_config.memstart,
 				"load memory block at given address", SWPAR("{WORD}") },
 };
-TCmdLineSwitches cmdline = { switches, 27 };
+TCmdLineSwitches cmdline = {
+	switches,
+	(unsigned) (sizeof(switches) / sizeof(switches[0]))
+};
 //-----------------------------------------------------------------------------
 void IntroMessage()
 {
