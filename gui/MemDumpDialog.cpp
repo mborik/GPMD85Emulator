@@ -227,7 +227,11 @@ void UserInterface::MemDumpDialogContent(bool saveType)
 		}
 		else if (!saveType && ImGui::Button("Load", ImVec2(baseWidth, 0.0f))) {
 			ImGui::CloseCurrentPopup();
-			Emulator->ProcessRawFile(false);
+			Settings->MemoryBlock->start = mdBlockStart;
+			Settings->MemoryBlock->length = mdBlockLength;
+			Settings->MemoryBlock->autorunAddr = mdAutorunAddr;
+			if (!Emulator->ProcessRawFile(false, true))
+				debug("MemoryBlock", "GUI load failed");
 		}
 
 		ImGui::EndDisabled();
