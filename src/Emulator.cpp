@@ -2176,13 +2176,27 @@ bool TEmulator::ProcessRawFile(bool save)
 		return false;
 	if ((start + length) > 65535)
 		length = 65536 - start;
+	int requestedLength = length;
 
 	char *fn = ComposeFilePath(Settings->MemoryBlock->fileName);
 	if (!fn)
 		return false;
 
-	debug("MemoryBlock", "%s path='%s' start=#%04X length=%d",
-		save ? "Saving" : "Loading", fn, start, length);
+	debug("MemoryBlock", "%s path='%s' start=#%04X requested length=%d",
+		save ? "Saving" : "Loading", fn, start, requestedLength);
+
+	if (!save) {
+		long fileLength = FileSize(fn);
+		if (fileLength <= 0) {
+			debug("MemoryBlock", "Load failed: invalid file size=%ld", fileLength);
+			delete [] fn;
+			return false;
+		}
+		if (fileLength < length)
+			length = (int) fileLength;
+		debug("MemoryBlock", "File size=%ld, effective length=%d",
+			fileLength, length);
+	}
 
 	ActionPlayPause(false, false);
 
