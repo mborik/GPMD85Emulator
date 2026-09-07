@@ -524,6 +524,9 @@ void SystemPIO::ReadKeyboardC()
 void SystemPIO::WritePaging()
 {
 	BYTE pg = PeripheralReadByte(PP_PortC);
+	bool oldReset = memory->IsInReset();
+	bool oldAllRAM = memory->IsAllRAM();
+	bool oldRemapped = memory->IsRemapped();
 
 	if (model == CM_C2717) {
 		width384 = ((pg & 32) + 1);       // 48/64 chars per line mode
@@ -539,6 +542,13 @@ void SystemPIO::WritePaging()
 			else
 				memory->SetAllRAM(true);  // AllRAM
 		}
+	}
+	if (oldReset != memory->IsInReset() ||
+		oldAllRAM != memory->IsAllRAM() ||
+		oldRemapped != memory->IsRemapped()) {
+		debug("SystemPIO", "Memory paging: portC=#%02X reset=%d->%d allRAM=%d->%d remapped=%d->%d",
+			pg, oldReset, memory->IsInReset(), oldAllRAM, memory->IsAllRAM(),
+			oldRemapped, memory->IsRemapped());
 	}
 
 	// AllRAM
