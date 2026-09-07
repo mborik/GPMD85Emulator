@@ -22,6 +22,8 @@
 //-----------------------------------------------------------------------------
 #include "ArgvParser.h"
 #include "globals.h"
+#include <errno.h>
+#include <limits.h>
 //-----------------------------------------------------------------------------
 #define SWPAR(str) str, false, -1
 #define NOVAL INT32_MIN
@@ -127,6 +129,32 @@ void IntroMessage()
 	printf("\n- Distributed under the MIT License. See LICENSE.md for details.\n\n");
 }
 //-----------------------------------------------------------------------------
+static bool ParseIntegerArgument(const char *value, int *result)
+{
+	if (value == NULL || *value == '\0')
+		return false;
+
+	errno = 0;
+	char *end = NULL;
+	int base = 10;
+	const char *number = value;
+
+	if (strncasecmp(number, "0x", 2) == 0) {
+		base = 16;
+		number += 2;
+		if (*number == '\0')
+			return false;
+	}
+
+	long parsed = strtol(number, &end, base);
+	if (errno == ERANGE || end == number || *end != '\0' ||
+		parsed < INT_MIN || parsed > INT_MAX)
+		return false;
+
+	*result = (int) parsed;
+	return true;
+}
+//-----------------------------------------------------------------------------
 bool ParseOptions(int *argc, char *(*argv[]))
 {
 	unsigned q;
@@ -176,15 +204,10 @@ bool ParseOptions(int *argc, char *(*argv[]))
 							ret = false;
 						}
 
-						errnum = 0;
-						if (strncasecmp(args[i + 1], "0x", 2) == 0)
-							transcode = strtol(&(args[i + 1][2]), &ptr, 16);
-						else
-							transcode = strtol(args[i + 1], &ptr, 10);
-
-						if (errnum != 0) {
+						if (!ParseIntegerArgument(args[i + 1], &transcode)) {
 							warning("Arguments", "Value %s is not correct argument for parameter %s", args[i + 1], args[i]);
 							ret = false;
+							break;
 						}
 
 						*((int *) cmdline.switches[q].variable) = transcode;
