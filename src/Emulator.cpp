@@ -2181,19 +2181,30 @@ bool TEmulator::ProcessRawFile(bool save)
 	if (!fn)
 		return false;
 
+	debug("MemoryBlock", "%s path='%s' start=#%04X length=%d",
+		save ? "Saving" : "Loading", fn, start, length);
+
 	ActionPlayPause(false, false);
 
-	BYTE *buff = NULL;
+	BYTE *buff = new BYTE[length];
 	bool ret = true;
 	bool oldState = false;
 	bool oldAllRAM = false;
 	int oldPage = -1;
 
-	if (!save)
-		length = ReadFromFile(fn, 0, length, buff);
+	if (!save) {
+		int bytesRead = ReadFromFile(fn, 0, length, buff);
+		debug("MemoryBlock", "Read result: %d/%d bytes", bytesRead, length);
+		if (bytesRead != length) {
+			debug("MemoryBlock", "Load failed before memory write");
+			ret = false;
+		}
+	}
 
-	if (length > 0) {
-		buff = new BYTE[length];
+	if (ret) {
+		debug("MemoryBlock", "Mapping before: reset=%d allRAM=%d remapped=%d page=%d",
+			memory->IsInReset(), memory->IsAllRAM(), memory->IsRemapped(),
+			memory->IsMem256() ? memory->GetPage() : -1);
 
 		if (memory->HasAllRAM()) {
 			oldAllRAM = memory->IsAllRAM();
@@ -2212,6 +2223,9 @@ bool TEmulator::ProcessRawFile(bool save)
 			oldPage = memory->GetPage();
 			memory->SetPage((BYTE) Settings->MemoryBlock->ex256pg);
 		}
+		debug("MemoryBlock", "Mapping for operation: reset=%d allRAM=%d remapped=%d page=%d",
+			memory->IsInReset(), memory->IsAllRAM(), memory->IsRemapped(),
+			memory->IsMem256() ? memory->GetPage() : -1);
 
 		if (save) {
 			for (int i = 0; i < length; i++)
@@ -2231,14 +2245,15 @@ bool TEmulator::ProcessRawFile(bool save)
 		if (memory->IsMem256())
 			memory->SetPage((BYTE) oldPage);
 
-		if (save && WriteToFile(fn, 0, length, buff, true) < 0)
-			ret = false;
+		if (save) {
+			int bytesWritten = WriteToFile(fn, 0, length, buff, true);
+			debug("MemoryBlock", "Write result: %d/%d bytes", bytesWritten, length);
+			if (bytesWritten != length)
+				ret = false;
+		}
 	}
-	else
-		ret = false;
 
-	if (buff)
-		delete [] buff;
+	delete [] buff;
 	delete [] fn;
 
 	ActionPlayPause(!Settings->isPaused, false);
