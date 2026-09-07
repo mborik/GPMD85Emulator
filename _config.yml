@@ -1,1 +1,34 @@
+title: GPMD85Emulator
+description: Open-source, multi-platform emulator of the Tesla PMD 85, an 8-bit personal microcomputer produced in 1980s in former Czechoslovakia
 theme: jekyll-theme-minimal
+logo: /res/icon.png
+
+author: Martin Bórik
+email: martin@borik.net
+github_username: mborik
+
+url: "https://mborik.github.io"
+baseurl: "/GPMD85Emulator"
+repository: mborik/GPMD85Emulator
+
+plugins:
+  - jekyll-seo-tag
+  - jekyll-sitemap
+
+exclude:
+  - gui/
+  - rom/
+  - saa/
+  - src/
+  - res/default.conf
+  - res/GPMD85emu.desktop
+  - res/Makefile.am
+  - res/*.bmp
+  - config.h.in
+  - configure.ac
+  - Makefile.am
+  - main.cpp
+  - sigslot.hpp
+  - globals.h
+  - .github/
+  - .gitignore
