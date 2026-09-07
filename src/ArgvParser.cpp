@@ -190,6 +190,7 @@ bool ParseOptions(int *argc, char *(*argv[]))
 								(cmdline.switches[q].par_descr == NULL ? "" : cmdline.switches[q].par_descr));
 
 							ret = false;
+							break;
 						}
 
 						*((char **) cmdline.switches[q].variable) = args[i + 1];
@@ -202,6 +203,7 @@ bool ParseOptions(int *argc, char *(*argv[]))
 								(cmdline.switches[q].par_descr == NULL ? "" : cmdline.switches[q].par_descr));
 
 							ret = false;
+							break;
 						}
 
 						if (!ParseIntegerArgument(args[i + 1], &transcode)) {
