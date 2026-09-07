@@ -65,7 +65,7 @@ class TEmulator
 
 		void ProcessArgvOptions(bool memModifiers = false);
 		void ProcessSettings(BYTE filter);
-		bool ProcessRawFile(bool save);
+		bool ProcessRawFile(bool save, bool allowAutorun = false);
 
 		void BaseTimerCallback(bool guiWantCapture = false);
 		void CpuTimerCallback();

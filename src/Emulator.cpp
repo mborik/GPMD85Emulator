@@ -2165,7 +2165,7 @@ void TEmulator::SelectRawFile(const char *fileName, bool save)
 	}
 }
 //---------------------------------------------------------------------------
-bool TEmulator::ProcessRawFile(bool save)
+bool TEmulator::ProcessRawFile(bool save, bool allowAutorun)
 {
 	int length = Settings->MemoryBlock->length,
 	     start = Settings->MemoryBlock->start;
@@ -2261,6 +2261,15 @@ bool TEmulator::ProcessRawFile(bool save)
 		debug("MemoryBlock", "Mapping restored: reset=%d allRAM=%d remapped=%d page=%d",
 			memory->IsInReset(), memory->IsAllRAM(), memory->IsRemapped(),
 			memory->IsMem256() ? memory->GetPage() : -1);
+
+		// Apply GUI Autorun only after a successful load and mapping restore.
+		if (!save && allowAutorun && Settings->MemoryBlock->autorun) {
+			WORD oldPC = cpu->GetPC();
+			WORD autorunAddr = (WORD) Settings->MemoryBlock->autorunAddr;
+			debug("MemoryBlock", "Autorun requested: address=#%04X", autorunAddr);
+			cpu->SetPC(autorunAddr);
+			debug("MemoryBlock", "PC changed: #%04X -> #%04X", oldPC, autorunAddr);
+		}
 
 		if (save) {
 			int bytesWritten = WriteToFile(fn, 0, length, buff, true);
