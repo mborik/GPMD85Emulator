@@ -2258,6 +2258,9 @@ bool TEmulator::ProcessRawFile(bool save)
 			memory->ResetOn();
 		if (memory->IsMem256())
 			memory->SetPage((BYTE) oldPage);
+		debug("MemoryBlock", "Mapping restored: reset=%d allRAM=%d remapped=%d page=%d",
+			memory->IsInReset(), memory->IsAllRAM(), memory->IsRemapped(),
+			memory->IsMem256() ? memory->GetPage() : -1);
 
 		if (save) {
 			int bytesWritten = WriteToFile(fn, 0, length, buff, true);
