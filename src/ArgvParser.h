@@ -38,7 +38,7 @@ typedef struct TCmdLineSwitch {
 
 typedef struct TCmdLineSwitches {
 	TCmdLineSwitch *switches;
-	unsigned count;
+	unsigned int count;
 } TCmdLineSwitches;
 //-----------------------------------------------------------------------------
 extern struct TCmdLineArguments {
@@ -71,6 +71,7 @@ extern struct TCmdLineArguments {
 	char *snap;
 	char *memblock;
 	int   memstart;
+	int   autorun;
 } argv_config;
 //-----------------------------------------------------------------------------
 void IntroMessage();

@@ -65,7 +65,7 @@ class TEmulator
 
 		void ProcessArgvOptions(bool memModifiers = false);
 		void ProcessSettings(BYTE filter);
-		bool ProcessRawFile(bool save, bool allowAutorun = false);
+		bool ProcessRawFile(bool save, bool testOnly = false);
 
 		void BaseTimerCallback(bool guiWantCapture = false);
 		void CpuTimerCallback();
@@ -132,6 +132,7 @@ class TEmulator
 		int  pmd32workdrive;
 		bool romModuleConnected;
 		bool megaModuleEnabled;
+		int  loadRawFileTimeout;
 
 		void SetComputerModel(bool fromSnap = false, int snapRomLen = 0, BYTE *snapRom = NULL);
 		void InsertRomModule(bool inserted);

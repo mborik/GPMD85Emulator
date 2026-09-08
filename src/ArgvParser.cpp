@@ -115,10 +115,12 @@ TCmdLineSwitch switches[] = {
 				"load memory block", SWPAR("\"filename.bin\"") },
 	{ "-ptr", "--memblock-address", VAR_INT, (void *) &argv_config.memstart,
 				"load memory block at given address", SWPAR("{WORD}") },
+	{ "-run", "--memblock-autorun", VAR_INT, (void *) &argv_config.autorun,
+				"auto-run memory block at given address", SWPAR("{WORD}") },
 };
 TCmdLineSwitches cmdline = {
 	switches,
-	(unsigned) (sizeof(switches) / sizeof(switches[0]))
+	sizeof(switches) / sizeof(switches[0])
 };
 //-----------------------------------------------------------------------------
 void IntroMessage()
@@ -148,8 +150,8 @@ static bool ParseIntegerArgument(const char *value, int *result)
 
 	long parsed = strtol(number, &end, base);
 	if (errno == ERANGE || end == number || *end != '\0' ||
-		parsed < INT_MIN || parsed > INT_MAX)
-		return false;
+		parsed <= NOVAL || parsed > INT32_MAX)
+			return false;
 
 	*result = (int) parsed;
 	return true;
@@ -217,31 +219,24 @@ bool ParseOptions(int *argc, char *(*argv[]))
 						break;
 				}
 			}
-			else {
-				if (unflagged_offset == cmdline.switches[q].order) {
-					switch (cmdline.switches[q].var_type) {
-						case VAR_STRING:
-							*((char **) cmdline.switches[q].variable) = args[i];
+			else if (unflagged_offset == cmdline.switches[q].order) {
+				switch (cmdline.switches[q].var_type) {
+					case VAR_STRING:
+						*((char **) cmdline.switches[q].variable) = args[i];
+						break;
+
+					case VAR_INT:
+						if (!ParseIntegerArgument(args[i + 1], &transcode)) {
+							warning("Arguments", "Value %s is not correct argument for parameter %s", args[i + 1], args[i]);
+							ret = false;
 							break;
+						}
 
-						case VAR_INT:
-							errnum = 0;
-							if (strncasecmp(args[i + 1], "0x", 2) == 0)
-								transcode = strtol(&(args[i + 1][2]), &ptr, 16);
-							else
-								transcode = strtol(args[i + 1], &ptr, 10);
+						*((int *) cmdline.switches[q].variable) = transcode;
+						break;
 
-							if (errnum != 0) {
-								warning("Arguments", "Value %s is not correct argument!", args[i]);
-								ret = false;
-							}
-
-							*((int *) cmdline.switches[q].variable) = transcode;
-							break;
-
-						default:
-							break;
-					}
+					default:
+						break;
 				}
 			}
 
@@ -336,6 +331,15 @@ bool ParseOptions(int *argc, char *(*argv[]))
 		}
 		if (argv_config.memstart == NOVAL)
 			argv_config.memstart = 0;
+
+		if (argv_config.memblock == NULL && argv_config.autorun != NOVAL) {
+			warning("Arguments", "Memory block file missing");
+			argv_config.autorun = NOVAL;
+		}
+		if (TEST_VALUE_RANGE(argv_config.autorun, 0, 65535)) {
+			warning("Arguments", "Invalid auto-run address '%d'", argv_config.autorun);
+			argv_config.autorun = NOVAL;
+		}
 	}
 
 	if (ret) {
@@ -356,7 +360,8 @@ bool ParseOptions(int *argc, char *(*argv[]))
 			argv_config.tape != NULL ||
 			argv_config.flashload == false ||
 			argv_config.snap != NULL ||
-			argv_config.memblock != NULL;
+			argv_config.memblock != NULL ||
+			argv_config.autorun >= 0;
 	}
 
 	return ret;

@@ -214,24 +214,25 @@ void UserInterface::MemDumpDialogContent(bool saveType)
 			ImGui::CloseCurrentPopup();
 			if (fileExists) {
 				QueryDialogCallback.connect([&](TMenuQueryType result) {
-					if (result == GUI_QUERY_YES)
-						Emulator->ProcessRawFile(true);
+					if (result == GUI_QUERY_YES && !Emulator->ProcessRawFile(true))
+						warning("GUI", "Memory block save failed");
 
 					GUI->QueryDialogCallback.disconnect_all();
 				});
 
 				QueryDialog("File Exists", "File already exists. Overwrite?", false);
 			}
-			else
-				Emulator->ProcessRawFile(true);
+			else if (!Emulator->ProcessRawFile(true))
+				warning("GUI", "Memory block save failed");
 		}
 		else if (!saveType && ImGui::Button("Load", ImVec2(baseWidth, 0.0f))) {
 			ImGui::CloseCurrentPopup();
 			Settings->MemoryBlock->start = mdBlockStart;
 			Settings->MemoryBlock->length = mdBlockLength;
 			Settings->MemoryBlock->autorunAddr = mdAutorunAddr;
-			if (!Emulator->ProcessRawFile(false, true))
-				debug("MemoryBlock", "GUI load failed");
+
+			if (!Emulator->ProcessRawFile(false))
+				warning("GUI", "Memory block load failed");
 		}
 
 		ImGui::EndDisabled();

@@ -57,6 +57,7 @@ TEmulator::TEmulator()
 	pmd32connected = false;
 	romModuleConnected = false;
 	megaModuleEnabled = false;
+	loadRawFileTimeout = 0;
 
 	Settings = new TSettings(argv_config.any_related ? argv_config.overcfg : true);
 	Debugger = new TDebugger();
@@ -263,10 +264,34 @@ void TEmulator::ProcessArgvOptions(bool memModifiers)
 			Settings->MemoryBlock->length = 65535;
 			Settings->MemoryBlock->fileName = ComposeFilePath(argv_config.memblock);
 
-			if (!ProcessRawFile(false)) {
+			if (argv_config.autorun >= 0) {
+				Settings->MemoryBlock->autorun = true;
+				Settings->MemoryBlock->autorunAddr = argv_config.autorun;
+			}
+
+			if (!ProcessRawFile(false, true)) {
 				if (Settings->MemoryBlock->fileName)
 					delete [] Settings->MemoryBlock->fileName;
 				Settings->MemoryBlock->fileName = NULL;
+			}
+			else {
+				// multiples of 20ms based on model boot time
+				switch (Settings->CurrentModel->type) {
+					case CM_V3:
+					case CM_ALFA2:
+						loadRawFileTimeout = 300;
+						break;
+
+					case CM_V1:
+					case CM_ALFA:
+					case CM_C2717:
+						loadRawFileTimeout = 60;
+						break;
+
+					default:
+						loadRawFileTimeout = 40;
+						break;
+				}
 			}
 		}
 	}
@@ -487,6 +512,11 @@ void TEmulator::BaseTimerCallback(bool guiWantCapture)
 			memory->GetVramPointer(),
 			fullRedrawExpected || memory->WasVramModified()
 		);
+
+		if (loadRawFileTimeout > 0) {
+			if (!(--loadRawFileTimeout))
+				ProcessRawFile(false);
+		}
 	}
 
 	// status bar FPS and CPU indicators
@@ -2165,7 +2195,7 @@ void TEmulator::SelectRawFile(const char *fileName, bool save)
 	}
 }
 //---------------------------------------------------------------------------
-bool TEmulator::ProcessRawFile(bool save, bool allowAutorun)
+bool TEmulator::ProcessRawFile(bool save, bool testOnly)
 {
 	int length = Settings->MemoryBlock->length,
 	     start = Settings->MemoryBlock->start;
@@ -2182,20 +2212,25 @@ bool TEmulator::ProcessRawFile(bool save, bool allowAutorun)
 	if (!fn)
 		return false;
 
-	debug("MemoryBlock", "%s path='%s' start=#%04X requested length=%d",
-		save ? "Saving" : "Loading", fn, start, requestedLength);
+	debug("Emulator", "ProcessRawFile: %s path='%s', start=#%04X, length=#%04X",
+		save ? "Saving" : testOnly ? "Testing" : "Loading", fn, start, requestedLength);
+
+	if (testOnly) {
+		delete [] fn;
+		return true;
+	}
 
 	if (!save) {
 		long fileLength = FileSize(fn);
 		if (fileLength <= 0) {
-			debug("MemoryBlock", "Load failed: invalid file size=%ld", fileLength);
+			warning("Emulator", "ProcessRawFile: Input file empty or unaccessible");
 			delete [] fn;
 			return false;
 		}
 		if (fileLength < length)
 			length = (int) fileLength;
-		debug("MemoryBlock", "File size=%ld, effective length=%d",
-			fileLength, length);
+
+		debug("Emulator", "ProcessRawFile: Size=%ld, Requested size=%d", fileLength, length);
 	}
 
 	ActionPlayPause(false, false);
@@ -2208,15 +2243,16 @@ bool TEmulator::ProcessRawFile(bool save, bool allowAutorun)
 
 	if (!save) {
 		int bytesRead = ReadFromFile(fn, 0, length, buff);
-		debug("MemoryBlock", "Read result: %d/%d bytes", bytesRead, length);
 		if (bytesRead != length) {
-			debug("MemoryBlock", "Load failed before memory write");
+			warning("Emulator", "ProcessRawFile: Read failed (%d/%d bytes)", bytesRead, length);
 			ret = false;
 		}
+		else
+			debug("Emulator", "ProcessRawFile: Read successful (%d bytes)", bytesRead);
 	}
 
 	if (ret) {
-		debug("MemoryBlock", "Mapping before: reset=%d allRAM=%d remapped=%d page=%d",
+		debug("Emulator", "ProcessRawFile: Memory mapping BEFORE: reset=%d allRAM=%d remapped=%d page=%d",
 			memory->IsInReset(), memory->IsAllRAM(), memory->IsRemapped(),
 			memory->IsMem256() ? memory->GetPage() : -1);
 
@@ -2237,7 +2273,8 @@ bool TEmulator::ProcessRawFile(bool save, bool allowAutorun)
 			oldPage = memory->GetPage();
 			memory->SetPage((BYTE) Settings->MemoryBlock->ex256pg);
 		}
-		debug("MemoryBlock", "Mapping for operation: reset=%d allRAM=%d remapped=%d page=%d",
+
+		debug("Emulator", "ProcessRawFile: Memory mapping DURING: reset=%d allRAM=%d remapped=%d page=%d",
 			memory->IsInReset(), memory->IsAllRAM(), memory->IsRemapped(),
 			memory->IsMem256() ? memory->GetPage() : -1);
 
@@ -2250,32 +2287,37 @@ bool TEmulator::ProcessRawFile(bool save, bool allowAutorun)
 				memory->WriteByte(start + i, *(buff + i));
 		}
 
-		if (memory->HasAllRAM())
-			memory->SetAllRAM(oldAllRAM);
-		if (model == CM_C2717)
-			memory->SetRemapped(oldState);
-		else if (oldState)
-			memory->ResetOn();
-		if (memory->IsMem256())
-			memory->SetPage((BYTE) oldPage);
-		debug("MemoryBlock", "Mapping restored: reset=%d allRAM=%d remapped=%d page=%d",
-			memory->IsInReset(), memory->IsAllRAM(), memory->IsRemapped(),
-			memory->IsMem256() ? memory->GetPage() : -1);
-
-		// Apply GUI Autorun only after a successful load and mapping restore.
-		if (!save && allowAutorun && Settings->MemoryBlock->autorun) {
-			WORD oldPC = cpu->GetPC();
+		if (!save && Settings->MemoryBlock->autorun) {
 			WORD autorunAddr = (WORD) Settings->MemoryBlock->autorunAddr;
-			debug("MemoryBlock", "Autorun requested: address=#%04X", autorunAddr);
+			debug("Emulator", "ProcessRawFile: Autorun requested, PC: #%04X -> #%04X",
+				cpu->GetPC(), autorunAddr);
+
 			cpu->SetPC(autorunAddr);
-			debug("MemoryBlock", "PC changed: #%04X -> #%04X", oldPC, autorunAddr);
+			cpu->SetIff(false);
+		}
+		else {
+			if (memory->HasAllRAM())
+				memory->SetAllRAM(oldAllRAM);
+			if (model == CM_C2717)
+				memory->SetRemapped(oldState);
+			else if (oldState)
+				memory->ResetOn();
+			if (memory->IsMem256())
+				memory->SetPage((BYTE) oldPage);
+
+			debug("Emulator", "ProcessRawFile: Memory mapping AFTER: reset=%d allRAM=%d remapped=%d page=%d",
+				memory->IsInReset(), memory->IsAllRAM(), memory->IsRemapped(),
+				memory->IsMem256() ? memory->GetPage() : -1);
 		}
 
 		if (save) {
 			int bytesWritten = WriteToFile(fn, 0, length, buff, true);
-			debug("MemoryBlock", "Write result: %d/%d bytes", bytesWritten, length);
-			if (bytesWritten != length)
+			if (bytesWritten != length) {
+				warning("Emulator", "ProcessRawFile: Write failed (%d/%d bytes)", bytesWritten, length);
 				ret = false;
+			}
+			else
+				debug("Emulator", "ProcessRawFile: Write successful (%d bytes)", bytesWritten);
 		}
 	}
 
