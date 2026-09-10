@@ -137,7 +137,10 @@ void UserInterface::DrawEmulatorWindow()
 
 	ImGui::InvisibleButton("Screen", screen_size + (border_offset * 2), ImGuiButtonFlags_MouseButtonMask_);
 	if (ImGui::IsItemHovered()) {
-		ImGui::SetMouseCursor(Settings->Mouse->hideCursor ? ImGuiMouseCursor_None : ImGuiMouseCursor_Arrow);
+		ImGui::SetMouseCursor(
+			Emulator->isRunning && Settings->Mouse->hideCursor ?
+				ImGuiMouseCursor_None : ImGuiMouseCursor_Arrow
+		);
 
 		int leftBtn = 0, rightBtn = 0, middleBtn = 0;
 		ImVec2 mousePos = ImGui::GetMousePos();
@@ -192,6 +195,10 @@ void UserInterface::Execute(TGuiElementType type, bool forceOpen)
 
 		case GE_TAPEBROWSER:
 			Settings->GUI->dialogTapeBrowserOpened = forceOpen || !Settings->GUI->dialogTapeBrowserOpened;
+			break;
+
+		case GE_DEBUGGER:
+			Settings->GUI->dialogDebugOpened = forceOpen || !Settings->GUI->dialogDebugOpened;
 			break;
 
 		case GE_MEMBLOCK_READ:

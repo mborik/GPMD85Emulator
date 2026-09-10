@@ -154,7 +154,8 @@ class UserInterface
 
 		void InitDebugSuite();
 		void DestroyDebugSuite();
-		void DrawDebugWidgetDisass(bool full);
+
+		void DrawDebugWidgetDisass(int numberOfItems);
 		void DrawDebugWidgetRegs();
 		void DrawDebugWidgetStack();
 		void DrawDebugWidgetBreaks();

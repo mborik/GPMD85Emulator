@@ -85,23 +85,84 @@ void UserInterface::DestroyDebugSuite()
 	}
 }
 //-----------------------------------------------------------------------------
-void UserInterface::DrawDebugWidgetDisass(bool full)
+void UserInterface::DrawDebugWidgetDisass(int numberOfItems)
 {
-/*
-	int l1 = (full ? 8 : 4), l2 = (full ? 25 : 12);
+	static std::vector<TDisassLine> disassLines;
 
-	BYTE b = l1;
-	char *line = NULL;
-	for (int i = 0; i < l2; i++) {
-		line = Debugger->FillDisass(&b);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
+	ImGui::BeginChild("DebugDisass", ImVec2(-FLT_MIN, 0.0f),
+		ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
 
-		if (line)
-			PrintText(s, mx, my, GUI_COLOR_DBG_TEXT, line);
-		if (b)
-			PrintChar(s, mx - GUI_CONST_HOTKEYCHAR, my,
-					GUI_COLOR_HIGHLIGHT, SCHR_NAVIGATOR);
+	float widthWidth = ImGui::GetContentRegionAvail().x;
+
+	ImGui::PushItemFlag(
+		ImGuiItemFlags_NoNav |
+		ImGuiItemFlags_NoTabStop |
+		ImGuiItemFlags_NoNavDefaultFocus, true);
+
+	Debugger->FillDisass(disassLines, numberOfItems);
+	for (int i = 0; i < disassLines.size(); i++) {
+		TDisassLine line = disassLines[i];
+
+		ImGui::PushID(i);
+		ImGui::SetNextItemAllowOverlap();
+
+		ImGuiSelectableFlags selectableFlags =
+			ImGuiSelectableFlags_AllowDoubleClick |
+			ImGuiSelectableFlags_NoHoldingActiveID |
+			ImGuiSelectableFlags_NoSetKeyOwner |
+			ImGuiSelectableFlags_NoAutoClosePopups;
+
+		if (line.color == COL_CURSOR)
+			selectableFlags |= ImGuiSelectableFlags_Highlight;
+		if (line.color == COL_CURRENT) {
+			selectableFlags |= ImGuiSelectableFlags_Highlight;
+			ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.9f, 0.9f, 0.9f, 1.0f));
+			ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.9f, 0.9f, 0.9f, 0.8f));
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+		}
+		if (line.color == COL_BREAKPT) {
+			selectableFlags |= ImGuiSelectableFlags_Highlight;
+			ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.8f, 0.4f, 0.2f, 1.0f));
+			ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.8f, 0.4f, 0.2f, 0.8f));
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+		}
+
+		ImGui::Selectable(line.text.c_str(), false, selectableFlags);
+
+		if (line.color >= COL_CURRENT)
+			ImGui::PopStyleColor(3);
+
+		if (line.isBranch) {
+			static ImVec4 branchColor = ImVec4(0.9f, 0.7f, 0.0f, 1.0f);
+			const char *direction = line.isBranchFwdDir ? "\u2193" : "\u2191";
+
+			if (line.isBranchTarget) {
+				ImGui::SameLine(widthWidth - GetMonoTextWidth(6, 0.0f));
+				ImGui::TextColored(branchColor,
+					Settings->Debugger->hex ? "#%02X%s" : "%03d%s",
+					line.branchTarget, direction);
+			}
+			else if (line.isBranchSource) {
+				ImGui::SameLine(widthWidth - GetMonoTextWidth(1, 0.0f));
+				ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 0.6f), "<");
+			}
+			else {
+				ImGui::SameLine(widthWidth - GetMonoTextWidth(1, 0.0f));
+				ImGui::TextColored(branchColor, "%s", direction);
+			}
+		}
+		if (line.isBreakPoint) {
+			ImGui::SameLine(1.0f);
+			ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "\u2022");
+		}
+
+		ImGui::PopID();
 	}
-*/
+
+	ImGui::PopItemFlag();
+	ImGui::EndChild();
+	ImGui::PopStyleVar();
 }
 //-----------------------------------------------------------------------------
 void UserInterface::DrawDebugWidgetRegs()
@@ -138,12 +199,91 @@ void UserInterface::DrawDebugWidgetBreaks()
 //-----------------------------------------------------------------------------
 void UserInterface::DrawDebugWindow()
 {
-/*
-	DrawDebugWidgetDisass((Settings->Debugger->listType == DL_DISASM));
-	DrawDebugWidgetRegs();
-	DrawDebugWidgetStack();
-	DrawDebugWidgetBreaks();
-*/
+	static bool firstTime = true;
+
+	if (Settings->GUI->dialogDebugOpened) {
+		ImGuiStyle& style = ImGui::GetStyle();
+
+		ImVec2 framePadding = style.FramePadding * 2.0f;
+		float lineHeight = ImGui::GetTextLineHeightWithSpacing();
+		float widthWidth = GetMonoTextWidth(50, framePadding.x);
+		float minHeight = widthWidth * 0.60f;
+
+		ImGui::SetNextWindowSize(ImVec2(widthWidth, minHeight), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSizeConstraints(ImVec2(widthWidth, minHeight), ImVec2(widthWidth, FLT_MAX));
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 0.0f));
+		ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.0f, 10.0f));
+
+		if (ImGui::Begin("Debugger", &Settings->GUI->dialogDebugOpened, ImGuiWindowFlags_NoScrollbar)) {
+			Debugger->RefreshRequest(firstTime);
+			// firstTime = false;
+
+			if (ImGui::BeginTable("DebuggerLayout", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_BordersInnerH)) {
+				ImGui::TableSetupColumn("##dbghdr1", ImGuiTableColumnFlags_NoHide);
+				ImGui::TableSetupColumn("##dbghdr2", ImGuiTableColumnFlags_WidthFixed, GetMonoTextWidth(12, framePadding.x));
+
+				ImGui::TableNextRow(ImGuiTableColumnFlags_WidthStretch);
+				ImGui::TableNextColumn();
+
+				if (ImGui::Button(Emulator->isRunning ? " \u23F9 " : " \u2023 "))
+					Emulator->ActionPlayPause(!Emulator->isRunning, false);
+
+				ImGui::SameLine();
+				ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+				ImGui::SameLine();
+
+				if (Emulator->isRunning)
+					ImGui::BeginDisabled();
+
+				float spacing = style.ItemInnerSpacing.x;
+				if (ImGui::Button("Step")) { }
+				ImGui::SameLine(0.0f, spacing);
+				if (ImGui::Button("Over")) { }
+				ImGui::SameLine(0.0f, spacing);
+				if (ImGui::Button("Leave")) { }
+				ImGui::SameLine(0.0f, spacing);
+				if (ImGui::Button("Until Next")) { }
+
+				if (Emulator->isRunning)
+					ImGui::EndDisabled();
+
+				ImGui::TableNextColumn();
+				ImGui::SameLine();
+
+				static const char* cpuItems[] = { "8080", "Z80" };
+				static const char* hexItems[] = { "DEC", "HEX" };
+				int cputypeIdx = (int) Settings->Debugger->z80;
+				ImGui::SetNextItemWidth(GetMonoTextWidth(4, framePadding.x));
+				if (ImGui::SliderInt("##cputype", &cputypeIdx, 0, 1, cpuItems[cputypeIdx]))
+					Settings->Debugger->z80 = (bool) cputypeIdx;
+
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(GetMonoTextWidth(4, framePadding.x));
+				int hexdecIdx = (int) Settings->Debugger->hex;
+				if (ImGui::SliderInt("##hexdec", &hexdecIdx, 0, 1, hexItems[hexdecIdx]))
+					Settings->Debugger->hex = (bool) hexdecIdx;
+
+				ImGui::TableNextRow(ImGuiTableColumnFlags_WidthStretch);
+
+				float cursorPos = ImGui::GetCursorPosY();
+				float childHeight = ImGui::GetCurrentWindow()->Size.y - cursorPos - framePadding.y;
+				int numberOfItems = static_cast<int>(ceil(childHeight / (lineHeight + 1.0f)));
+
+				ImGui::TableNextColumn();
+				DrawDebugWidgetDisass(numberOfItems);
+
+				ImGui::TableNextColumn();
+				DrawDebugWidgetRegs();
+				DrawDebugWidgetStack();
+
+				ImGui::EndTable();
+			}
+		}
+
+		ImGui::End();
+	}
+
+	ImGui::PopStyleVar(2);
 }
 //-----------------------------------------------------------------------------
 void UserInterface::DrawMemEditDialog()
@@ -157,8 +297,9 @@ void UserInterface::DrawMemEditDialog()
 		memEditor->OptFooterExtraHeight = ImGui::GetTextLineHeightWithSpacing() + style.FramePadding.y * 3.0f;
 		memEditor->CalcSizes(s, MEM_MAX, 0);
 
-		ImGui::SetNextWindowSize(ImVec2(s.WindowWidth, s.WindowWidth * 0.60f), ImGuiCond_FirstUseEver);
-		ImGui::SetNextWindowSizeConstraints(ImVec2(s.WindowWidth, 0.0f), ImVec2(s.WindowWidth, FLT_MAX));
+		float minHeight = s.WindowWidth * 0.60f;
+		ImGui::SetNextWindowSize(ImVec2(s.WindowWidth, minHeight), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSizeConstraints(ImVec2(s.WindowWidth, minHeight), ImVec2(s.WindowWidth, FLT_MAX));
 
 		if (ImGui::Begin("Memory Editor", &Settings->GUI->dialogMemEditOpened, ImGuiWindowFlags_NoScrollbar)) {
 			memEditor->DrawContents(memEditorBuffer, MEM_MAX, 0);
@@ -195,23 +336,24 @@ void UserInterface::DrawMemEditDialog()
 			ImGui::SetNextItemWidth(addrInputWidth);
 			ImGui::InputText("##medaddr",
 				memEditor->AddrInputBuf, 5,
-				ImGuiInputTextFlags_CharsHexadecimal);
+				ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_AlwaysOverwrite);
 			ImGui::SameLine();
 			if (ImGui::Button("MEM"))
 				ProcessGotoAddr(memEditor->AddrInputBuf);
 
-			static char regsLine[48];
+			static std::vector<std::string> regsLine(6, "");
 			static short regUpdateCounter = 0;
 
 			if (--regUpdateCounter <= 0) {
 				regUpdateCounter = 10;
-				memcpy(regsLine, Debugger->FillRegs(true), 48);
+				Debugger->FillRegs(regsLine, true);
 			}
 
-			for (int i = 40; i > 0; i -= 8) {
+			// SP, PC, HL, DE, BC
+			for (int i = 5; i > 0; i--) {
 				ImGui::SameLine();
-				if (ImGui::Button(regsLine + i))
-					ProcessGotoAddr(regsLine + i + 3);
+				if (ImGui::Button(regsLine[i].c_str()))
+					ProcessGotoAddr(regsLine[i].c_str() + 3);
 			}
 
 			if (memEditor->ContentsWidthChanged) {

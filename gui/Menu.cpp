@@ -229,7 +229,9 @@ void UserInterface::DrawMenu()
 		}
 
 		if (ImGui::BeginMenu("Emulation")) {
-			if (ImGui::MenuItem("Debugger…", MOD_KEY("F12"), false, false)) { }
+			if (ImGui::MenuItem("Debugger…", MOD_KEY("F12"))) {
+				Execute(GE_DEBUGGER);
+			}
 			if (ImGui::MenuItem("Pause", MOD_KEY("F3"), Settings->isPaused)) {
 				Settings->isPaused = !Settings->isPaused;
 			}
