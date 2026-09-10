@@ -144,12 +144,18 @@ TDebugger::TDebugger()
 	cpu = NULL;
 	memory = NULL;
 
-	int ii;
-	memadr = 0;
-	for (ii = 0; ii < OFFSETS; ii++)
-		offsets[ii] = 0;
+	cpuTraceCur = 0;
+	cpuTraceTop = 0;
+	cpuTraceFlags = 0;
+	cpuCursorY = -1U;
+	cpuNextPC = -1U;
+	memset(cpuPCTrace, 0, sizeof(cpuPCTrace));
 
-	na_depth = 0;
+	reqUpdateRefresh = URQ_FORCE;
+	currentNumberOfLines = 0;
+	nestDepth = 0;
+
+	int ii;
 	for (ii = 0; ii < MAX_NESTINGS; ii++) {
 		na[ii].addr = 0;
 		na[ii].offset = 0;
@@ -177,10 +183,74 @@ void TDebugger::Reset()
 	flag = 0;
 }
 //-----------------------------------------------------------------------------
-BYTE TDebugger::GetMemState(int addr, BYTE *value) {
+BYTE TDebugger::GetMemState(int addr, BYTE *value)
+{
 	BYTE state;
 	memory->GetMemState(addr, &state, value);
 	return state;
+}
+//-----------------------------------------------------------------------------
+unsigned TDebugger::GetFlagState()
+{
+	static const BYTE flags[] = { 0x40, 0x01, 0x04, 0x80 }; // ZF,CF,PV,SF
+	WORD readptr = cpu->GetPC();
+	BYTE opcode = memory->ReadByte(readptr),
+	     fstate = cpu->GetAF() & 0xFF;
+
+	auto doRet = [&]() -> unsigned {
+		WORD ptr = cpu->GetSP();
+		unsigned fl = TWF_BRANCH | TWF_BRADDR;
+		fl |= memory->ReadByte(ptr++);
+		fl |= memory->ReadByte(ptr) << 8;
+		return fl;
+	};
+	auto doJump = [&](unsigned fl = 0) -> unsigned {
+		fl |= TWF_BRANCH;
+		fl |= memory->ReadByte(++readptr);
+		fl |= memory->ReadByte(++readptr) << 8;
+		return fl;
+	};
+
+	if (opcode == 0xE9) // jp (hl)
+		return cpu->GetHL() | TWF_BRANCH | TWF_BRADDR;
+
+	if (opcode == 0x76) // halt
+		return TWF_HALTCMD | ((cpu->IsInterruptEnabled()) ? 0x38 : 0);
+
+	if (opcode == 0xC9) // ret
+		return doRet();
+
+	if (opcode == 0xC3) // jp
+		return doJump();
+
+	if (opcode == 0xCD) // call
+		return doJump(TWF_CALLCMD);
+
+	if ((opcode & 0xC1) == 0xC0) {
+		BYTE flag = flags[(opcode >> 4) & 3];
+		BYTE res = fstate & flag;
+
+		if (!(opcode & 0x08))
+			res ^= flag;
+		if (!res)
+			return 0;
+
+		// ret cc
+		if ((opcode & 0xC7) == 0xC0)
+			return doRet();
+		// call cc
+		if ((opcode & 0xC7) == 0xC4)
+			return doJump(TWF_CALLCMD);
+		// jp cc
+		if ((opcode & 0xC7) == 0xC2)
+			return doJump(TWF_LOOPCMD);
+	}
+
+	// rst #xx
+	if ((opcode & 0xC7) == 0xC7)
+		return (opcode & 0x38) | TWF_CALLCMD | TWF_BRANCH;
+
+	return 0;
 }
 //-----------------------------------------------------------------------------
 char *TDebugger::MakeInstrLine(WORD *addr)
@@ -188,40 +258,46 @@ char *TDebugger::MakeInstrLine(WORD *addr)
 	BYTE opcode = memory->ReadByte(*addr);
 	WORD oper = memory->ReadWord(*addr + 1);
 	int ilen = cpu->GetLength(opcode);
-	unsigned i, j = 14;
+	unsigned i = 1, j = 15, l;
 
-	sprintf(lineBuffer, radix ? "#%04X" : "%05d", *addr);
+	memset(lineBuffer, ' ', j);
+	i += sprintf(lineBuffer + i, radix ? "#%04X" : "%05d", *addr);
+
+	lineBuffer[i] = ' ';
+	i = 7;
 
 	switch (ilen) {
 		default:
 		case 1:
-			sprintf(lineBuffer + 5, " %02X%6s", opcode, "");
+			i += sprintf(lineBuffer + i, "%02X", opcode);
 			break;
 		case 2:
-			sprintf(lineBuffer + 5, " %02X%02X%4s", opcode, (oper & 0xff), "");
+			i += sprintf(lineBuffer + i, "%02X%02X", opcode, (oper & 0xff));
 			break;
 		case 3:
-			sprintf(lineBuffer + 5, " %02X%02X%02X  ",
+			i += sprintf(lineBuffer + i, "%02X%02X%02X",
 				opcode, (oper & 0xff), ((oper >> 8) & 0xff));
 			break;
 	}
 
+	lineBuffer[i] = ' ';
+
 	char *mnemo = (Settings->Debugger->z80) ? instrZ80[opcode] : instr8080[opcode];
-	for (i = 0; i < strlen(mnemo); i++) {
+	l = strlen(mnemo);
+
+	for (i = 0; i < l; i++) {
 		switch (mnemo[i]) {
 			case '@':
 				oper = (WORD)(opcode & 0x38);
 			// ... and continue in next case
 
 			case '%':
-				sprintf(lineBuffer + j, radix ? "#%02X" : "%03d", (oper & 0xff));
-				j += 3;
+				j += std::sprintf(lineBuffer + j, radix ? "#%02X" : "%3d", (oper & 0xff));
 				break;
 
 			case '*':
 			case '&':
-				sprintf(lineBuffer + j, radix ? "#%04X" : "%05d", oper);
-				j += 5;
+				j += std::sprintf(lineBuffer + j, radix ? "#%04X" : "%5d", oper);
 				break;
 
 			default :
@@ -291,41 +367,89 @@ WORD TDebugger::FindNextInstruction(WORD pc, int howmany)
 	return pc;
 }
 //-----------------------------------------------------------------------------
-char *TDebugger::FillDisass(BYTE *ctrl)
+void TDebugger::FillDisass(std::vector<TDisassLine> &result, unsigned numberOfItems)
 {
-	static WORD pc;
-	static int jump = -1;
+	if (cpu == NULL || memory == NULL)
+		return;
 
-	if (cpu == NULL || memory == NULL || ctrl == NULL)
-		return NULL;
+	currentNumberOfLines = SDL_min(numberOfItems, MAX_TRACE_LINES - 1);
+	result.resize(currentNumberOfLines);
 
-	if (*ctrl > 1) {
-		jump = -1;
-		pc = cpu->GetPC();
+	WORD realPC = cpu->GetPC(), nextPC;
+	unsigned ii, pc;
 
-		if (strchr(instr8080[memory->ReadByte(pc)], '*') != NULL)
-			jump = memory->ReadWord(pc + 1);
+	cpuTraceFlags = GetFlagState();
+	cpuNextPC = cpuCursorY = -1U;
+	pc = cpuTraceTop;
 
-		pc = FindPeviousInstruction(pc, *ctrl);
+	for (ii = 0; ii < currentNumberOfLines; ii++) {
+		TDisassLine disassLine;
+		disassLine.color = COL_NORMAL;
+		disassLine.isBreakPoint = false;
+		disassLine.isBranch = false;
+		disassLine.isBranchFwdDir = false;
+		disassLine.isBranchTarget = false;
+		disassLine.isBranchSource = false;
+		disassLine.branchTarget = 0;
+
+		nextPC = (pc &= 0xFFFF);
+		cpuPCTrace[ii] = nextPC;
+
+		disassLine.text = MakeInstrLine(&nextPC);
+
+		if (pc == cpuTraceCur) {
+			disassLine.color = COL_CURSOR;
+			cpuCursorY = ii;
+		}
+
+		if (pc == realPC) {
+			disassLine.color = COL_CURRENT;
+			if (cpuTraceFlags & TWF_STEPOVR)
+				cpuNextPC = nextPC;
+		}
+
+		if (CheckBreakPoint(pc)) {
+			disassLine.isBreakPoint = true;
+			if (pc == realPC)
+				disassLine.color = COL_BREAKPT;
+		}
+
+		if (cpuTraceFlags & TWF_BRANCH) {
+			if (pc == realPC) {
+				disassLine.isBranch = true;
+
+				unsigned addr = cpuTraceFlags & 0xFFFF;
+				disassLine.isBranchFwdDir = (addr > pc);
+
+				if (cpuTraceFlags & TWF_BRADDR) {
+					disassLine.isBranchTarget = true;
+					disassLine.branchTarget = (WORD) addr;
+				}
+			}
+			else if (pc == (cpuTraceFlags & 0xFFFF))
+				disassLine.isBranch = disassLine.isBranchSource = true;
+		}
+
+		result[ii] = disassLine;
+		pc = nextPC;
 	}
 
-	*ctrl = ((int) pc == jump) ? 1 : 0;
-	return MakeInstrLine(&pc);
+	cpuPCTrace[ii] = pc;
+	return;
 }
 //-----------------------------------------------------------------------------
-char *TDebugger::FillRegs(bool memEdit)
+void TDebugger::FillRegs(std::vector<std::string> &result, bool memEdit)
 {
 	static char regs[6][3] = { "AF", "BC", "DE", "HL", "PC", "SP" };
-	int i, j = 0, k = 0;
 
 	if (cpu == NULL || memory == NULL)
-		return NULL;
-
-	const char *fmt = radix ? "%s:#%04X\n" : "%s:%05d\n";
+		return;
+	const char *fmt = radix ? "%s:#%04X" : "%s:%05d";
 	if (memEdit)
-		fmt = "%s:%04X ";
+		fmt = "%s:%04X";
 
-	for (i = 0; i < 6; i++) {
+	result.clear();
+	for (int i = 0, k = 0; i < 6; i++) {
 		switch (i) {
 			case 0:
 				k = cpu->GetAF();
@@ -347,13 +471,12 @@ char *TDebugger::FillRegs(bool memEdit)
 				break;
 		}
 
-		j += sprintf(lineBuffer + j, fmt, regs[i], k);
-		if (memEdit)
-			lineBuffer[j - 1] = '\0';
+		std::string regLine(10, 0);
+		std::snprintf(regLine.data(), regLine.size(), fmt, regs[i], k);
+		result.push_back(regLine);
 	}
 
-	lineBuffer[--j] = '\0';
-	return lineBuffer;
+	return;
 }
 //-----------------------------------------------------------------------------
 char *TDebugger::FillFlags()
@@ -498,13 +621,35 @@ void TDebugger::FillNesting()
 	int adr;
 
 	LbNestings->Clear();
-	for (int ii = 0; ii < na_depth; ii++) {
+	for (int ii = 0; ii < nestDepth; ii++) {
 		adr = na[ii].addr + na[ii].offset;
 		LbNestings->Items->Add(MakeNumber(&adr, true, true, true, false, !radix));
 	}
 }
 //-----------------------------------------------------------------------------
 */
+void TDebugger::RefreshRequest(bool firstTime)
+{
+	if (reqUpdateRefresh & URQ_LOAD_PC || firstTime) {
+		WORD newpc = cpu->GetPC();
+		cpuTraceCur = newpc;
+
+		if (/* firstTime || */
+			newpc < cpuTraceTop ||
+			newpc >= cpuPCTrace[currentNumberOfLines] ||
+			cpuCursorY == -1U)
+
+			cpuTraceTop = newpc;
+	}
+	else if (reqUpdateRefresh & URQ_PAGE_SW)
+		cpuTraceCur = cpuPCTrace[reqUpdateRefresh & (URQ_LOAD_PC - 1)];
+
+	if (reqUpdateRefresh & URQ_BREAKPT)
+		bp[0].active = false;
+
+	reqUpdateRefresh = 0;
+}
+//---------------------------------------------------------------------------
 void TDebugger::DoStepInto()
 {
 	cpu->DoInstruction();
