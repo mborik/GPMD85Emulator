@@ -231,10 +231,10 @@ void UserInterface::DrawMenu()
 
 		if (ImGui::BeginMenu("Emulation")) {
 			if (ImGui::MenuItem("Debugger…", MOD_KEY("F12"))) {
-				Execute(GE_DEBUGGER);
+				Emulator->ActionDebugger();
 			}
 			if (ImGui::MenuItem("Pause", MOD_KEY("F3"), Settings->isPaused)) {
-				Settings->isPaused = !Settings->isPaused;
+				Emulator->ActionPlayPause();
 			}
 			if (ImGui::BeginMenu("Speed")) {
 				float speedValue = (Settings->emulationSpeed * 100.0f);
