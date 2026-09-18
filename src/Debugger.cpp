@@ -479,43 +479,40 @@ void TDebugger::FillRegs(std::vector<std::string> &result, bool memEdit)
 	return;
 }
 //-----------------------------------------------------------------------------
-char *TDebugger::FillFlags()
+void TDebugger::FillFlags(std::vector<std::string> &result)
 {
 	BYTE val = cpu->GetAF();
 
-	sprintf(lineBuffer, "%s\n%s\n%s\n%s\n%s\n%s",
-		((val & FLAG_S)  ? " M" : " P"),
-		((val & FLAG_Z)  ? " Z" : "NZ"),
-		((val & FLAG_AC) ? "AC" : "NA"),
-		((val & FLAG_PE) ? "PE" : "PO"),
-		((val & FLAG_CY) ? " C" : "NC"),
-		(cpu->IsInterruptEnabled() ? "EI" : "DI"));
-
-	return lineBuffer;
+	result.clear();
+	result.push_back((val & FLAG_S)  ? " M" : " P");
+	result.push_back((val & FLAG_Z)  ? " Z" : "NZ");
+	result.push_back((val & FLAG_AC) ? "AC" : "NA");
+	result.push_back((val & FLAG_PE) ? "PE" : "PO");
+	result.push_back((val & FLAG_CY) ? " C" : "NC");
+	result.push_back(cpu->IsInterruptEnabled() ? "EI" : "DI");
 }
 //-----------------------------------------------------------------------------
-char *TDebugger::FillStack()
+void TDebugger::FillStack(std::vector<std::string> &result)
 {
-	WORD val = cpu->GetSP() - 2, j = 0;
+	static const char offsetPrefixes[6][3] = { "-2", "SP", "+2", "+4", "+6", "+8" };
+	WORD val = cpu->GetSP() - 2;
 
-	for (int i = 0; i < 5; i++) {
-		sprintf(lineBuffer + j, (radix ? "#%04X  #%04X\n" : "%05d  %05d\n"),
-				val, memory->ReadWord(val));
-
-		val += (WORD) 2;
-		j += 13;
+	result.clear();
+	for (int i = 0; i < 6; i++, val += 2) {
+		std::string stackLine(16, 0);
+		std::snprintf(stackLine.data(), stackLine.size(),
+			(radix ? "%s:#%04X <#%04X>" : "%s:%05d <%05d>"),
+			offsetPrefixes[i], memory->ReadWord(val), val);
+		result.push_back(stackLine);
 	}
-
-	lineBuffer[--j] = '\0';
-	return lineBuffer;
 }
 //-----------------------------------------------------------------------------
-char *TDebugger::FillBreakpoints(BYTE *ctrl)
+void TDebugger::FillBreakpoints(BYTE *ctrl)
 {
 	static int ii = -1;
 
 	if (cpu == NULL || memory == NULL || ctrl == NULL)
-		return NULL;
+		return;
 
 	if (*ctrl > 1)
 		ii = 1;
@@ -524,7 +521,6 @@ char *TDebugger::FillBreakpoints(BYTE *ctrl)
 	*ctrl = (BYTE) bp[ii].active;
 
 	ii++;
-	return lineBuffer;
 }
 //-----------------------------------------------------------------------------
 /*
@@ -634,7 +630,7 @@ void TDebugger::RefreshRequest(bool firstTime)
 		WORD newpc = cpu->GetPC();
 		cpuTraceCur = newpc;
 
-		if (/* firstTime || */
+		if (firstTime ||
 			newpc < cpuTraceTop ||
 			newpc >= cpuPCTrace[currentNumberOfLines] ||
 			cpuCursorY == -1U)

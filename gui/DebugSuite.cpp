@@ -130,6 +130,7 @@ void UserInterface::DrawDebugWidgetDisass(int numberOfItems)
 		ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
 
 	float widthWidth = ImGui::GetContentRegionAvail().x;
+	float breakpointOffset = GetMonoTextWidth(14, 0.0f);
 
 	ImGui::PushItemFlag(
 		ImGuiItemFlags_NoNav |
@@ -166,11 +167,13 @@ void UserInterface::DrawDebugWidgetDisass(int numberOfItems)
 
 		ImGui::Selectable(line.text.c_str(), false, selectableFlags);
 
-		if (line.color >= COL_CURRENT)
+		ImVec4 branchColor = ImVec4(0.9f, 0.7f, 0.0f, 1.0f);
+		if (line.color >= COL_CURRENT) {
 			ImGui::PopStyleColor(3);
+			branchColor = ImVec4(0.3f, 0.1f, 0.0f, 1.0f);
+		}
 
 		if (line.isBranch) {
-			static ImVec4 branchColor = ImVec4(0.9f, 0.7f, 0.0f, 1.0f);
 			const char *direction = line.isBranchFwdDir ? "\u2193" : "\u2191";
 
 			if (line.isBranchTarget) {
@@ -181,7 +184,7 @@ void UserInterface::DrawDebugWidgetDisass(int numberOfItems)
 			}
 			else if (line.isBranchSource) {
 				ImGui::SameLine(widthWidth - GetMonoTextWidth(1, 0.0f));
-				ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 0.6f), "<");
+				ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "<");
 			}
 			else {
 				ImGui::SameLine(widthWidth - GetMonoTextWidth(1, 0.0f));
@@ -189,7 +192,7 @@ void UserInterface::DrawDebugWidgetDisass(int numberOfItems)
 			}
 		}
 		if (line.isBreakPoint) {
-			ImGui::SameLine(1.0f);
+			ImGui::SameLine(breakpointOffset);
 			ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "\u2022");
 		}
 
@@ -203,17 +206,92 @@ void UserInterface::DrawDebugWidgetDisass(int numberOfItems)
 //-----------------------------------------------------------------------------
 void UserInterface::DrawDebugWidgetRegs()
 {
-/*
-	Debugger->FillRegs()
-	Debugger->FillFlags()
-*/
+	static std::vector<std::string> regs, flags;
+
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
+	ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.0f, 0.0f));
+
+	ImGui::BeginChild("DebugRegs", ImVec2(0, 6.25 * ImGui::GetTextLineHeightWithSpacing()), ImGuiChildFlags_Borders);
+
+	ImGui::PushItemFlag(
+		ImGuiItemFlags_NoNav |
+		ImGuiItemFlags_NoTabStop |
+		ImGuiItemFlags_NoNavDefaultFocus, true);
+
+	if (ImGui::BeginTable("RegsLayout", 2, ImGuiTableFlags_NoSavedSettings)) {
+		ImGui::TableSetupColumn("##reghdr1", ImGuiTableColumnFlags_NoHide);
+		ImGui::TableSetupColumn("##reghdr2", ImGuiTableColumnFlags_WidthFixed, GetMonoTextWidth(2));
+
+		ImGui::TableNextRow(ImGuiTableColumnFlags_WidthStretch);
+		ImGui::TableNextColumn();
+
+		Debugger->FillRegs(regs);
+
+		for (int i = 0; i < 6; i++) {
+			ImGui::PushID(regs[i].substr(0, 2).c_str());
+			ImGui::Selectable(regs[i].c_str(), false,
+				ImGuiSelectableFlags_AllowDoubleClick |
+				ImGuiSelectableFlags_NoHoldingActiveID |
+				ImGuiSelectableFlags_NoSetKeyOwner |
+				ImGuiSelectableFlags_NoAutoClosePopups,
+				ImVec2(GetMonoTextWidth(8), 0)
+			);
+
+			ImGui::PopID();
+		}
+
+		ImGui::TableNextColumn();
+		Debugger->FillFlags(flags);
+		for (int i = 0; i < flags.size(); i++) {
+			ImGui::PushID(i);
+			ImGui::Selectable(flags[i].c_str(), false,
+				ImGuiSelectableFlags_AllowDoubleClick |
+				ImGuiSelectableFlags_NoHoldingActiveID |
+				ImGuiSelectableFlags_NoSetKeyOwner |
+				ImGuiSelectableFlags_NoAutoClosePopups
+			);
+
+			ImGui::PopID();
+		}
+
+		ImGui::EndTable();
+	}
+
+	ImGui::PopItemFlag();
+	ImGui::EndChild();
+	ImGui::PopStyleVar(2);
 }
 //-----------------------------------------------------------------------------
 void UserInterface::DrawDebugWidgetStack()
 {
-/*
-	Debugger->FillStack()
-*/
+	static std::vector<std::string> stack;
+
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
+	ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.0f, 0.0f));
+
+	ImGui::BeginChild("DebugStack", ImVec2(0, 6.25 * ImGui::GetTextLineHeightWithSpacing()), ImGuiChildFlags_Borders);
+
+	ImGui::PushItemFlag(
+		ImGuiItemFlags_NoNav |
+		ImGuiItemFlags_NoTabStop |
+		ImGuiItemFlags_NoNavDefaultFocus, true);
+
+	Debugger->FillStack(stack);
+	for (int i = 0; i < stack.size(); i++) {
+		ImGui::PushID(i);
+		ImGui::Selectable(stack[i].c_str(), false,
+			ImGuiSelectableFlags_AllowDoubleClick |
+			ImGuiSelectableFlags_NoHoldingActiveID |
+			ImGuiSelectableFlags_NoSetKeyOwner |
+			ImGuiSelectableFlags_NoAutoClosePopups
+		);
+
+		ImGui::PopID();
+	}
+
+	ImGui::PopItemFlag();
+	ImGui::EndChild();
+	ImGui::PopStyleVar(2);
 }
 //-----------------------------------------------------------------------------
 void UserInterface::DrawDebugWidgetBreaks()
@@ -235,9 +313,9 @@ void UserInterface::DrawDebugWidgetBreaks()
 //-----------------------------------------------------------------------------
 void UserInterface::DrawDebugWindow()
 {
-	static bool firstTime = true;
+	static bool isOpening = true;
 
-	if (Settings->GUI->dialogDebugOpened) {
+	if (dialogDebugOpened) {
 		ImGuiStyle& style = ImGui::GetStyle();
 
 		ImVec2 framePadding = style.FramePadding * 2.0f;
@@ -245,14 +323,20 @@ void UserInterface::DrawDebugWindow()
 		float widthWidth = GetMonoTextWidth(50, framePadding.x);
 		float minHeight = widthWidth * 0.60f;
 
+		if (isOpening)
+			ImGui::SetNextWindowFocus();
+
 		ImGui::SetNextWindowSize(ImVec2(widthWidth, minHeight), ImGuiCond_FirstUseEver);
 		ImGui::SetNextWindowSizeConstraints(ImVec2(widthWidth, minHeight), ImVec2(widthWidth, FLT_MAX));
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 0.0f));
 		ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.0f, 10.0f));
 
-		if (ImGui::Begin("Debugger", &Settings->GUI->dialogDebugOpened, ImGuiWindowFlags_NoScrollbar)) {
-			Debugger->RefreshRequest(firstTime);
-			// firstTime = false;
+		if (ImGui::Begin("Debugger", &dialogDebugOpened, ImGuiWindowFlags_NoScrollbar)) {
+			if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootWindow))
+				dialogDebugFocused = true;
+
+			Debugger->RefreshRequest(isOpening);
+			isOpening = false;
 
 			if (ImGui::BeginTable("DebuggerLayout", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_BordersInnerH)) {
 				ImGui::TableSetupColumn("##dbghdr1", ImGuiTableColumnFlags_NoHide);
@@ -317,9 +401,15 @@ void UserInterface::DrawDebugWindow()
 		}
 
 		ImGui::End();
+		ImGui::PopStyleVar(2);
 	}
+	else if (dialogDebugFocused) {
+		dialogDebugFocused = false;
+		Emulator->ActionPlayPause(true);
 
-	ImGui::PopStyleVar(2);
+		if (!isOpening)
+			isOpening = true;
+	}
 }
 //-----------------------------------------------------------------------------
 void UserInterface::DrawMemEditDialog()

@@ -117,11 +117,11 @@ class TDebugger
 		inline void WriteByte(int addr, BYTE value) { memory->WriteByte(addr, value); }
 		inline BYTE *GetChangingMemState() { return memory->GetChangingMemState(); }
 
-		void  FillDisass(std::vector<TDisassLine> &result, unsigned numberOfItems);
-		void  FillRegs(std::vector<std::string> &result, bool memEdit = false);
-		char *FillFlags();
-		char *FillStack();
-		char *FillBreakpoints(BYTE *ctrl);
+		void FillDisass(std::vector<TDisassLine> &result, unsigned numberOfItems);
+		void FillRegs(std::vector<std::string> &result, bool memEdit = false);
+		void FillFlags(std::vector<std::string> &result);
+		void FillStack(std::vector<std::string> &result);
+		void FillBreakpoints(BYTE *ctrl);
 
 		void RefreshRequest(bool firstTime = false);
 		void DoStepInto();

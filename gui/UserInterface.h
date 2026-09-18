@@ -108,6 +108,8 @@ class UserInterface
 		bool triggerMachineMenuOpen;
 		bool dialogAboutOpened;
 		bool dialogMemDumpOpened;
+		bool dialogDebugOpened;
+		bool dialogDebugFocused;
 
 		ScreenPMD85 *screenInstance;
 		MemoryEditor *memEditor;

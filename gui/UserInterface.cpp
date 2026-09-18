@@ -42,6 +42,8 @@ UserInterface::UserInterface()
 	isEmulatorWindowFocused = false;
 	triggerMachineMenuOpen = false;
 	dialogAboutOpened = false;
+	dialogDebugOpened = false;
+	dialogDebugFocused = false;
 
 	queryDialogTitle = NULL;
 	queryDialogMessage = NULL;
@@ -198,7 +200,7 @@ void UserInterface::Execute(TGuiElementType type, bool forceOpen)
 			break;
 
 		case GE_DEBUGGER:
-			Settings->GUI->dialogDebugOpened = forceOpen || !Settings->GUI->dialogDebugOpened;
+			dialogDebugOpened = forceOpen || !dialogDebugOpened;
 			break;
 
 		case GE_MEMBLOCK_READ:

@@ -965,7 +965,7 @@ void TEmulator::ActionExit()
 void TEmulator::ActionDebugger()
 {
 	ActionPlayPause(false, false);
-	GUI->Execute(GE_DEBUGGER);
+	GUI->Execute(GE_DEBUGGER, true);
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionTapeBrowser()
