@@ -27,8 +27,10 @@
 #define GL_GLEXT_PROTOTYPES
 #ifdef IMGUI_IMPL_OPENGL_ES2
 #  include "SDL_opengles2.h"
+#  define MEMMAP_TEX_FORMAT GL_RGBA
 #else
 #  include "SDL_opengl.h"
+#  define MEMMAP_TEX_FORMAT GL_RGBA8
 #endif
 //-----------------------------------------------------------------------------
 #define MEMMAP_TEX_SIZE 256
@@ -86,7 +88,7 @@ void UserInterface::InitDebugSuite()
 	glBindTexture(GL_TEXTURE_2D, memMapTexture);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, MEMMAP_TEX_SIZE, MEMMAP_TEX_SIZE, 0,
+	glTexImage2D(GL_TEXTURE_2D, 0, MEMMAP_TEX_FORMAT, MEMMAP_TEX_SIZE, MEMMAP_TEX_SIZE, 0,
 		GL_RGBA, GL_UNSIGNED_BYTE, memMapPixelBuffer);
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
@@ -267,7 +269,8 @@ void UserInterface::DrawMemMapWindow()
 		ImGuiCond_FirstUseEver);
 
 	if (ImGui::Begin("Memory Map", &Settings->GUI->dialogMemMapOpened)) {
-		Debugger->GetMem(memMapReadBuffer, 0, MEM_MAX);
+		if (!Debugger->GetMem(memMapReadBuffer, 0, MEM_MAX))
+			memset(memMapReadBuffer, 0, MEM_MAX);
 
 		for (int i = 0; i < MEM_MAX; i++) {
 			BYTE value = memMapReadBuffer[i];
