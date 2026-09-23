@@ -73,6 +73,7 @@ class UserInterface
 		void DrawTapeDialog();
 		void DrawMemDumpDialog();
 		void DrawMemEditDialog();
+		void DrawMemMapWindow();
 		void DrawDebugWindow();
 		void DrawEmulatorWindow();
 
@@ -118,6 +119,9 @@ class UserInterface
 		} MemEditorDataContext;
 
 		BYTE *memEditorBuffer;
+		BYTE *memMapReadBuffer;
+		BYTE *memMapPixelBuffer;
+		uint memMapTexture;
 		MemEditorDataContext *memEditorDataContext;
 
 		TFileSelectType fileSelectorType;

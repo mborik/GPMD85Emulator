@@ -81,6 +81,7 @@ class TDebugger
 		void SetParams(ChipCpu8080 *cpu, ChipMemory *mem, TComputerModel model);
 		void Reset();
 		BYTE GetMemState(int addr, BYTE *value = nullptr);
+		inline bool GetMem(BYTE *dest, int addr, int size) { return memory->GetMem(dest, addr, size); }
 		inline void WriteByte(int addr, BYTE value) { memory->WriteByte(addr, value); }
 		inline BYTE *GetChangingMemState() { return memory->GetChangingMemState(); }
 

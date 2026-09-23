@@ -24,12 +24,26 @@
 #include "Emulator.h"
 #include "imgui-mods/imgui_memory_editor.h"
 #include "imgui/imgui_internal.h"
+#define GL_GLEXT_PROTOTYPES
+#ifdef IMGUI_IMPL_OPENGL_ES2
+#  include "SDL_opengles2.h"
+#else
+#  include "SDL_opengl.h"
+#endif
+//-----------------------------------------------------------------------------
+#define MEMMAP_TEX_SIZE 256
+#define MEMMAP_TEX_SCALE 2
 //-----------------------------------------------------------------------------
 void UserInterface::InitDebugSuite()
 {
 	memEditor = new MemoryEditor();
 	memEditorBuffer = new BYTE[MEM_MAX]; // 64KB working buffer for memEditor
+	memMapReadBuffer = new BYTE[MEM_MAX];
+	memMapPixelBuffer = new BYTE[MEMMAP_TEX_SIZE * MEMMAP_TEX_SIZE * 4];
+	memMapTexture = 0;
 	memset(memEditorBuffer, 0, MEM_MAX);
+	memset(memMapReadBuffer, 0, MEM_MAX);
+	memset(memMapPixelBuffer, 0, MEMMAP_TEX_SIZE * MEMMAP_TEX_SIZE * 4);
 
 	memEditor->Open = Settings->GUI->dialogMemEditOpened;
 	memEditor->Cols = Settings->GUI->memEditColumns;
@@ -67,6 +81,14 @@ void UserInterface::InitDebugSuite()
 			color |= IM_COL32(0, 64, 0, 0); // VRAM
 		return color;
 	};
+
+	glGenTextures(1, &memMapTexture);
+	glBindTexture(GL_TEXTURE_2D, memMapTexture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, MEMMAP_TEX_SIZE, MEMMAP_TEX_SIZE, 0,
+		GL_RGBA, GL_UNSIGNED_BYTE, memMapPixelBuffer);
+	glBindTexture(GL_TEXTURE_2D, 0);
 }
 //-----------------------------------------------------------------------------
 void UserInterface::DestroyDebugSuite()
@@ -82,6 +104,18 @@ void UserInterface::DestroyDebugSuite()
 	if (memEditorDataContext) {
 		delete memEditorDataContext;
 		memEditorDataContext = NULL;
+	}
+	if (memMapReadBuffer) {
+		delete[] memMapReadBuffer;
+		memMapReadBuffer = NULL;
+	}
+	if (memMapPixelBuffer) {
+		delete[] memMapPixelBuffer;
+		memMapPixelBuffer = NULL;
+	}
+	if (memMapTexture) {
+		glDeleteTextures(1, &memMapTexture);
+		memMapTexture = 0;
 	}
 }
 //-----------------------------------------------------------------------------
@@ -221,5 +255,49 @@ void UserInterface::DrawMemEditDialog()
 		}
 		ImGui::End();
 	}
+}
+//-----------------------------------------------------------------------------
+void UserInterface::DrawMemMapWindow()
+{
+	if (!Settings->GUI->dialogMemMapOpened)
+		return;
+
+	ImGui::SetNextWindowSize(
+		ImVec2(MEMMAP_TEX_SIZE * MEMMAP_TEX_SCALE, MEMMAP_TEX_SIZE * MEMMAP_TEX_SCALE + STATUSBAR_HEIGHT),
+		ImGuiCond_FirstUseEver);
+
+	if (ImGui::Begin("Memory Map", &Settings->GUI->dialogMemMapOpened)) {
+		Debugger->GetMem(memMapReadBuffer, 0, MEM_MAX);
+
+		for (int i = 0; i < MEM_MAX; i++) {
+			BYTE value = memMapReadBuffer[i];
+			BYTE *pixel = memMapPixelBuffer + (i * 4);
+			pixel[0] = pixel[1] = pixel[2] = value;
+			pixel[3] = 0xFF;
+		}
+
+		glBindTexture(GL_TEXTURE_2D, memMapTexture);
+		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, MEMMAP_TEX_SIZE, MEMMAP_TEX_SIZE,
+			GL_RGBA, GL_UNSIGNED_BYTE, memMapPixelBuffer);
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		ImVec2 imagePos = ImGui::GetCursorScreenPos();
+		ImGui::Image((ImTextureID) (intptr_t) memMapTexture,
+			ImVec2(MEMMAP_TEX_SIZE * MEMMAP_TEX_SCALE, MEMMAP_TEX_SIZE * MEMMAP_TEX_SCALE));
+
+		if (ImGui::IsItemHovered()) {
+			ImVec2 mousePos = ImGui::GetMousePos();
+			int px = (int) (mousePos.x - imagePos.x) / MEMMAP_TEX_SCALE;
+			int py = (int) (mousePos.y - imagePos.y) / MEMMAP_TEX_SCALE;
+
+			if (px >= 0 && px < MEMMAP_TEX_SIZE && py >= 0 && py < MEMMAP_TEX_SIZE) {
+				WORD addr = (WORD) (py * MEMMAP_TEX_SIZE + px);
+				ImGui::SetTooltip(Settings->Debugger->hex ? "#%04X: #%02X" : "%05d: %03d",
+					addr, memMapReadBuffer[addr]);
+			}
+		}
+	}
+
+	ImGui::End();
 }
 //-----------------------------------------------------------------------------
