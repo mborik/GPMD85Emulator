@@ -42,8 +42,12 @@ sudo cmake --install build
 ```
 
 ## CONFIGURATION PARAMETERS:
-- to enable debug mode, use `-DGPMD85EMU_ENABLE_DEBUG=ON`
-- to disable all trace messages, use `-DGPMD85EMU_ENABLE_TRACE=OFF` (size optimization)
+- to enable debug mode:
+  `cmake -S . -B build -DGPMD85EMU_ENABLE_DEBUG=ON`
+- to disable all trace messages (size optimization):
+  `cmake -S . -B build -DGPMD85EMU_ENABLE_TRACE=OFF`
+- when switching options in an existing build directory, rerun the configure command
+  with updated `-D...` values; remove `build/` only if cache state becomes problematic
 
 ## COMMAND-LINE ARGUMENTS:
 | short / full form of argument    | meaning |

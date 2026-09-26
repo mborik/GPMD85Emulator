@@ -14,15 +14,15 @@
   - `sudo dnf install gcc make cmake pkgconfig SDL2-devel mesa-libGL-devel`
     _(in older distros there was `yum` package manager instead of `dnf`)_
 
-- **MacOS** (tested on 10.12+)
-  - first, "Xcode Command Line Tools" is required (for `clang` & `make`)
+- **macOS** (tested on 10.12+)
+  - first, "Xcode Command Line Tools" is required (for `clang`, `make`, and core developer toolchain utilities)
   - in addition to that you will need install tools & libs via MacPorts:
     `sudo port install cmake pkgconfig libsdl2`,
     or with Brew: `brew install cmake pkg-config sdl2`
-  - tested on Apple Silicon M1 and latest MacOS 11.0+
+  - tested on Apple Silicon M1 and latest macOS 11.0+
 
 ## Building:
 - configure build directory with `cmake -S . -B build`
-  _(for all available options/switches type `cmake -S . -B build -L`)_
+  _(for all available options/switches type `cmake -L -N build` after configuration)_
 - build with `cmake --build build`
 - _(optional)_ install to the system directories with `sudo cmake --install build`

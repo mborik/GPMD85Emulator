@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.20)
 
+if(APPLE AND NOT DEFINED CMAKE_OSX_DEPLOYMENT_TARGET)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "10.12" CACHE STRING "macOS deployment target")
+endif()
+
 project(GPMD85emulator
     VERSION 1.0.2609
     DESCRIPTION "Open-source, multi-platform emulator of the Tesla PMD 85"
@@ -9,13 +13,18 @@ project(GPMD85emulator
 
 include(GNUInstallDirs)
 include(CheckIncludeFile)
+include(CheckIncludeFiles)
 include(CheckFunctionExists)
+include(CheckCSourceCompiles)
 include(CheckStructHasMember)
+include(CheckTypeSize)
 include(CheckCXXSourceCompiles)
 include(TestBigEndian)
+include(FindPkgConfig)
 
 option(GPMD85EMU_ENABLE_DEBUG "Enable debug build flags" OFF)
 option(GPMD85EMU_ENABLE_TRACE "Compile trace messages" ON)
+option(GPMD85EMU_USE_INSTALLED_RESOURCES "Use install datadir for resource lookup at runtime" OFF)
 
 set(PACKAGE "gpmd85emu")
 set(PACKAGE_NAME "GPMD85emulator")
@@ -34,24 +43,22 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS ON)
 
-if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang|GNU|MSVC")
     message(WARNING "This project is primarily tested with Clang and GCC compilers.")
-endif()
-
-if(APPLE AND NOT CMAKE_OSX_DEPLOYMENT_TARGET)
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "macOS deployment target" FORCE)
 endif()
 
 set(GPMD85EMU_COMMON_COMPILE_OPTIONS -Wno-deprecated)
 
 if(GPMD85EMU_ENABLE_DEBUG)
-    list(APPEND GPMD85EMU_COMMON_COMPILE_OPTIONS -g3 -O0)
+    if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
+        set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
+    endif()
     add_compile_definitions(DEBUG)
 else()
-    list(APPEND GPMD85EMU_COMMON_COMPILE_OPTIONS -Os)
-    if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        add_link_options(-s)
+    if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
+        set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
     endif()
+    add_link_options($<$<AND:$<CXX_COMPILER_ID:GNU>,$<OR:$<CONFIG:Release>,$<CONFIG:MinSizeRel>>>:-s>)
 endif()
 
 if(NOT GPMD85EMU_ENABLE_TRACE AND NOT GPMD85EMU_ENABLE_DEBUG)
@@ -59,13 +66,18 @@ if(NOT GPMD85EMU_ENABLE_TRACE AND NOT GPMD85EMU_ENABLE_DEBUG)
 endif()
 
 find_package(PkgConfig QUIET)
+set(GPMD85EMU_SDL_TARGET "")
 if(PkgConfig_FOUND)
-    pkg_check_modules(SDL2 QUIET IMPORTED_TARGET sdl2)
+    pkg_check_modules(SDL2_PKG QUIET IMPORTED_TARGET sdl2)
+    if(NOT TARGET PkgConfig::SDL2_PKG)
+        pkg_check_modules(SDL2_PKG QUIET IMPORTED_TARGET SDL2)
+    endif()
+    if(TARGET PkgConfig::SDL2_PKG)
+        set(GPMD85EMU_SDL_TARGET PkgConfig::SDL2_PKG)
+    endif()
 endif()
 
-if(TARGET PkgConfig::SDL2)
-    set(GPMD85EMU_SDL_TARGET PkgConfig::SDL2)
-else()
+if(NOT GPMD85EMU_SDL_TARGET)
     find_package(SDL2 REQUIRED)
     if(TARGET SDL2::SDL2)
         set(GPMD85EMU_SDL_TARGET SDL2::SDL2)
@@ -73,9 +85,10 @@ else()
         add_library(GPMD85emu_sdl2 INTERFACE)
         target_include_directories(GPMD85emu_sdl2 INTERFACE ${SDL2_INCLUDE_DIRS})
         target_compile_options(GPMD85emu_sdl2 INTERFACE ${SDL2_CFLAGS_OTHER})
+        target_link_options(GPMD85emu_sdl2 INTERFACE ${SDL2_LDFLAGS_OTHER})
         target_link_libraries(GPMD85emu_sdl2 INTERFACE ${SDL2_LIBRARIES})
         set(GPMD85EMU_SDL_TARGET GPMD85emu_sdl2)
-    endif()
+    endif()    
 endif()
 
 set(GPMD85EMU_OPENGL_LIBS "")
@@ -116,11 +129,13 @@ if(HAVE_DIRENT_H)
 endif()
 
 check_include_file("stdbool.h" HAVE_STDBOOL_H)
-if(HAVE_STDBOOL_H)
+check_type_size("_Bool" SIZEOF__BOOL LANGUAGE C)
+if(SIZEOF__BOOL)
     set(HAVE__BOOL 1)
 endif()
 
-if(HAVE_STDIO_H AND HAVE_STDARG_H AND HAVE_STDDEF_H AND HAVE_STDLIB_H AND HAVE_STRING_H)
+check_include_files("assert.h;ctype.h;errno.h;float.h;limits.h;locale.h;math.h;memory.h;setjmp.h;signal.h;stdarg.h;stddef.h;stdio.h;stdlib.h;string.h;time.h;sys/types.h;sys/stat.h" HAVE_STDC_HEADER_SET)
+if(HAVE_STDC_HEADER_SET)
     set(STDC_HEADERS 1)
 endif()
 
@@ -132,27 +147,34 @@ check_function_exists(strstr HAVE_STRSTR)
 check_function_exists(strtol HAVE_STRTOL)
 check_function_exists(strcasecmp HAVE_STRCASECMP)
 check_function_exists(strrchr HAVE_STRRCHR)
-check_function_exists(error_at_line HAVE_ERROR_AT_LINE)
+set(FILESYSTEM_TEST_SOURCE "#include <filesystem>\nint main(){std::filesystem::path p(\"/tmp\");return p.empty();}\n")
+set(GPMD85EMU_PROBE_DIR "${CMAKE_CURRENT_BINARY_DIR}/cmake-probes")
+file(MAKE_DIRECTORY "${GPMD85EMU_PROBE_DIR}")
+function(gpmd85emu_try_link_filesystem out_var)
+    set(test_src "${GPMD85EMU_PROBE_DIR}/${out_var}.cpp")
+    file(WRITE "${test_src}" "${FILESYSTEM_TEST_SOURCE}")
+    if(ARGC GREATER 1)
+        try_compile(${out_var}
+            "${CMAKE_CURRENT_BINARY_DIR}"
+            "${test_src}"
+            CMAKE_FLAGS "-DCMAKE_CXX_STANDARD=17"
+            LINK_LIBRARIES ${ARGV1}
+        )
+    else()
+        try_compile(${out_var}
+            "${CMAKE_CURRENT_BINARY_DIR}"
+            "${test_src}"
+            CMAKE_FLAGS "-DCMAKE_CXX_STANDARD=17"
+        )
+    endif()
+    set(${out_var} "${${out_var}}" PARENT_SCOPE)
+endfunction()
 
-if(NOT HAVE_ERROR_AT_LINE)
-    message(WARNING "error_at_line not found; continuing without it")
-endif()
-
-set(CMAKE_REQUIRED_FLAGS "-std=c++17")
-unset(CMAKE_REQUIRED_LIBRARIES)
-check_cxx_source_compiles(
-    "#include <filesystem>\nint main(){std::filesystem::path p(\"/tmp\");return 0;}"
-    HAVE_STD_FILESYSTEM
-)
+gpmd85emu_try_link_filesystem(HAVE_STD_FILESYSTEM)
 
 set(GPMD85EMU_FILESYSTEM_LIB "")
-if(NOT HAVE_STD_FILESYSTEM AND NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    set(CMAKE_REQUIRED_LIBRARIES stdc++fs)
-    check_cxx_source_compiles(
-        "#include <filesystem>\nint main(){std::filesystem::path p(\"/tmp\");return 0;}"
-        HAVE_STD_FILESYSTEM_WITH_STDCXXFS
-    )
-    unset(CMAKE_REQUIRED_LIBRARIES)
+if(NOT HAVE_STD_FILESYSTEM)
+    gpmd85emu_try_link_filesystem(HAVE_STD_FILESYSTEM_WITH_STDCXXFS stdc++fs)
 
     if(HAVE_STD_FILESYSTEM_WITH_STDCXXFS)
         set(HAVE_STD_FILESYSTEM 1)
@@ -161,31 +183,74 @@ if(NOT HAVE_STD_FILESYSTEM AND NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 if(NOT HAVE_STD_FILESYSTEM)
-    check_cxx_source_compiles(
-        "#include <experimental/filesystem>\nint main(){std::experimental::filesystem::path p(\"/tmp\");return 0;}"
-        HAVE_STD_EXPERIMENTAL_FILESYSTEM
+    set(EXPERIMENTAL_FILESYSTEM_TEST_SOURCE "#include <experimental/filesystem>\nint main(){std::experimental::filesystem::path p(\"/tmp\");return p.empty();}\n")
+    set(experimental_test_src "${GPMD85EMU_PROBE_DIR}/HAVE_STD_EXPERIMENTAL_FILESYSTEM.cpp")
+    file(WRITE "${experimental_test_src}" "${EXPERIMENTAL_FILESYSTEM_TEST_SOURCE}")
+    try_compile(HAVE_STD_EXPERIMENTAL_FILESYSTEM
+        "${CMAKE_CURRENT_BINARY_DIR}"
+        "${experimental_test_src}"
+        CMAKE_FLAGS "-DCMAKE_CXX_STANDARD=17"
     )
+    if(NOT HAVE_STD_EXPERIMENTAL_FILESYSTEM)
+        try_compile(HAVE_STD_EXPERIMENTAL_FILESYSTEM_WITH_STDCXXFS
+            "${CMAKE_CURRENT_BINARY_DIR}"
+            "${experimental_test_src}"
+            CMAKE_FLAGS "-DCMAKE_CXX_STANDARD=17"
+            LINK_LIBRARIES stdc++fs
+        )
+        if(HAVE_STD_EXPERIMENTAL_FILESYSTEM_WITH_STDCXXFS)
+            set(HAVE_STD_EXPERIMENTAL_FILESYSTEM 1)
+            if(NOT GPMD85EMU_FILESYSTEM_LIB)
+                set(GPMD85EMU_FILESYSTEM_LIB stdc++fs)
+            endif()
+        else()
+            try_compile(HAVE_STD_EXPERIMENTAL_FILESYSTEM_WITH_CXXFS
+                "${CMAKE_CURRENT_BINARY_DIR}"
+                "${experimental_test_src}"
+                CMAKE_FLAGS "-DCMAKE_CXX_STANDARD=17"
+                LINK_LIBRARIES c++fs
+            )
+            if(HAVE_STD_EXPERIMENTAL_FILESYSTEM_WITH_CXXFS)
+                set(HAVE_STD_EXPERIMENTAL_FILESYSTEM 1)
+                if(NOT GPMD85EMU_FILESYSTEM_LIB)
+                    set(GPMD85EMU_FILESYSTEM_LIB c++fs)
+                endif()
+            endif()
+        endif()
+    endif()
 endif()
-unset(CMAKE_REQUIRED_FLAGS)
 
 if(NOT HAVE_STD_FILESYSTEM AND NOT HAVE_STD_EXPERIMENTAL_FILESYSTEM)
-    message(FATAL_ERROR "C++17 std::filesystem is required but not found.")
+    message(FATAL_ERROR "C++17 filesystem support is required but not found (neither std::filesystem nor std::experimental::filesystem is available).")
 endif()
 
-check_include_file("dlfcn.h" HAVE_DLFCN_H)
-check_function_exists(dlopen HAVE_DLOPEN)
 set(GPMD85EMU_DL_LIB "")
-if(NOT HAVE_DLOPEN)
-    find_library(DL_LIBRARY dl)
-    if(NOT DL_LIBRARY)
+if(NOT WIN32)
+    check_include_file("dlfcn.h" HAVE_DLFCN_H)
+    if(HAVE_DLFCN_H)
+        if(CMAKE_DL_LIBS)
+            list(APPEND GPMD85EMU_DL_LIB ${CMAKE_DL_LIBS})
+        endif()
+        set(GPMD85EMU_REQUIRED_LIBRARIES_SAVED "${CMAKE_REQUIRED_LIBRARIES}")
+        set(CMAKE_REQUIRED_LIBRARIES ${GPMD85EMU_DL_LIB})
+        check_c_source_compiles(
+            "#include <dlfcn.h>\nint main(void){void* handle = dlopen(0, RTLD_LAZY); return handle == 0;}\n"
+            HAVE_DLOPEN
+        )
+        set(CMAKE_REQUIRED_LIBRARIES "${GPMD85EMU_REQUIRED_LIBRARIES_SAVED}")
+    endif()
+    if(NOT HAVE_DLFCN_H OR NOT HAVE_DLOPEN)
         message(FATAL_ERROR "Dynamic linking support (dlopen) is required but not found.")
     endif()
-    set(GPMD85EMU_DL_LIB ${DL_LIBRARY})
 endif()
 
 test_big_endian(WORDS_BIGENDIAN)
 
-set(DIR_RESOURCES "${CMAKE_INSTALL_FULL_DATADIR}/${PACKAGE_TARNAME}")
+if(GPMD85EMU_USE_INSTALLED_RESOURCES)
+    set(DIR_RESOURCES "${CMAKE_INSTALL_DATADIR}/${PACKAGE_TARNAME}")
+else()
+    set(DIR_RESOURCES "${CMAKE_CURRENT_SOURCE_DIR}/res")
+endif()
 
 if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/gui/imgui/imgui.cpp")
     message(FATAL_ERROR "Missing gui/imgui submodule. Initialize submodules before configuring.")
@@ -289,7 +354,7 @@ target_include_directories(gpmd85emu_gui
         "${CMAKE_CURRENT_SOURCE_DIR}/gui/imgui/backends"
         "${CMAKE_CURRENT_SOURCE_DIR}/gui/imgui-mods"
 )
-target_compile_definitions(gpmd85emu_gui PUBLIC IMGUI_USER_CONFIG='"imgui-mods/imconfig_mod.h"')
+target_compile_definitions(gpmd85emu_gui PUBLIC IMGUI_USER_CONFIG=\"imgui-mods/imconfig_mod.h\")
 target_compile_options(gpmd85emu_gui PRIVATE ${GPMD85EMU_COMMON_COMPILE_OPTIONS})
 target_link_libraries(gpmd85emu_gui PUBLIC ${GPMD85EMU_SDL_TARGET})
 
@@ -317,7 +382,10 @@ target_link_libraries(GPMD85emu PRIVATE
     ${GPMD85EMU_DL_LIB}
 )
 
-install(TARGETS GPMD85emu RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+install(TARGETS GPMD85emu
+    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+    BUNDLE DESTINATION "${CMAKE_INSTALL_BINDIR}"
+)
 
 install(FILES
     rom/basic1.rmm
