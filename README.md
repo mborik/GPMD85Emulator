@@ -34,18 +34,16 @@ an 8-bit personal microcomputer produced in 1980s in former Czechoslovakia
 ```bash
 # clone with all submodules:
 git clone --recurse-submodules [url]
-# generate configuration scripts with autotools
-autoreconf -vfi
 # configure and build
-./configure
-make
+cmake -S . -B build
+cmake --build build
 # (optional) install into system dirs
-sudo make install
+sudo cmake --install build
 ```
 
 ## CONFIGURATION PARAMETERS:
-- to enable debug mode, use `./configure --enable-debug`
-- to disable all trace messages, use `./configure --disable-trace` (size optimization)
+- to enable debug mode, use `-DGPMD85EMU_ENABLE_DEBUG=ON`
+- to disable all trace messages, use `-DGPMD85EMU_ENABLE_TRACE=OFF` (size optimization)
 
 ## COMMAND-LINE ARGUMENTS:
 | short / full form of argument    | meaning |
