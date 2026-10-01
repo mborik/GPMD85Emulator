@@ -120,7 +120,7 @@ class UserInterface
 
 		BYTE *memEditorBuffer;
 		BYTE *memMapReadBuffer;
-		BYTE *memMapPixelBuffer;
+		DWORD *memMapPixelBuffer;
 		uint memMapTexture;
 		MemEditorDataContext *memEditorDataContext;
 

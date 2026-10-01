@@ -41,11 +41,11 @@ void UserInterface::InitDebugSuite()
 	memEditor = new MemoryEditor();
 	memEditorBuffer = new BYTE[MEM_MAX]; // 64KB working buffer for memEditor
 	memMapReadBuffer = new BYTE[MEM_MAX];
-	memMapPixelBuffer = new BYTE[MEMMAP_TEX_SIZE * MEMMAP_TEX_SIZE * 4];
+	memMapPixelBuffer = new DWORD[MEM_MAX];
 	memMapTexture = 0;
 	memset(memEditorBuffer, 0, MEM_MAX);
 	memset(memMapReadBuffer, 0, MEM_MAX);
-	memset(memMapPixelBuffer, 0, MEMMAP_TEX_SIZE * MEMMAP_TEX_SIZE * 4);
+	memset(memMapPixelBuffer, 0, MEM_MAX * sizeof(DWORD));
 
 	memEditor->Open = Settings->GUI->dialogMemEditOpened;
 	memEditor->Cols = Settings->GUI->memEditColumns;
@@ -89,7 +89,7 @@ void UserInterface::InitDebugSuite()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexImage2D(GL_TEXTURE_2D, 0, MEMMAP_TEX_FORMAT, MEMMAP_TEX_SIZE, MEMMAP_TEX_SIZE, 0,
-		GL_RGBA, GL_UNSIGNED_BYTE, memMapPixelBuffer);
+		GL_RGBA, GL_UNSIGNED_BYTE, reinterpret_cast<BYTE *>(memMapPixelBuffer));
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 //-----------------------------------------------------------------------------
@@ -274,14 +274,14 @@ void UserInterface::DrawMemMapWindow()
 
 		for (int i = 0; i < MEM_MAX; i++) {
 			BYTE value = memMapReadBuffer[i];
-			BYTE *pixel = memMapPixelBuffer + (i * 4);
+			BYTE *pixel = reinterpret_cast<BYTE *>(memMapPixelBuffer + i);
 			pixel[0] = pixel[1] = pixel[2] = value;
 			pixel[3] = 0xFF;
 		}
 
 		glBindTexture(GL_TEXTURE_2D, memMapTexture);
 		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, MEMMAP_TEX_SIZE, MEMMAP_TEX_SIZE,
-			GL_RGBA, GL_UNSIGNED_BYTE, memMapPixelBuffer);
+			GL_RGBA, GL_UNSIGNED_BYTE, reinterpret_cast<BYTE *>(memMapPixelBuffer));
 		glBindTexture(GL_TEXTURE_2D, 0);
 
 		ImVec2 imagePos = ImGui::GetCursorScreenPos();
