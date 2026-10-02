@@ -6,71 +6,8 @@
 /* Define to 1 if you have the <dirent.h> header file, and it defines 'DIR'. */
 #cmakedefine HAVE_DIRENT_H 1
 
-/* Define to 1 if you have the <GL/gl.h> header file. */
-#cmakedefine HAVE_GL_GL_H 1
-
-/* Define to 1 if you have the <inttypes.h> header file. */
-#cmakedefine HAVE_INTTYPES_H 1
-
-/* Define to 1 if you have the <memory.h> header file. */
-#cmakedefine HAVE_MEMORY_H 1
-
-/* Define to 1 if you have the 'memset' function. */
-#cmakedefine HAVE_MEMSET 1
-
-/* Define to 1 if you have the 'mkdir' function. */
-#cmakedefine HAVE_MKDIR 1
-
 /* Define to 1 if you have the <ndir.h> header file, and it defines 'DIR'. */
 #cmakedefine HAVE_NDIR_H 1
-
-/* Define to 1 if you have the 'rmdir' function. */
-#cmakedefine HAVE_RMDIR 1
-
-/* Define to 1 if you have the 'stat' function. */
-#cmakedefine HAVE_STAT 1
-
-/* Define to 1 if you have the <stdarg.h> header file. */
-#cmakedefine HAVE_STDARG_H 1
-
-/* Define to 1 if stdbool.h conforms to C99. */
-#cmakedefine HAVE_STDBOOL_H 1
-
-/* Define to 1 if you have the <stddef.h> header file. */
-#cmakedefine HAVE_STDDEF_H 1
-
-/* Define to 1 if you have the <stdint.h> header file. */
-#cmakedefine HAVE_STDINT_H 1
-
-/* Define to 1 if you have the <stdio.h> header file. */
-#cmakedefine HAVE_STDIO_H 1
-
-/* Define to 1 if you have the <stdlib.h> header file. */
-#cmakedefine HAVE_STDLIB_H 1
-
-/* Define to 1 if you have std::experimental::filesystem */
-#cmakedefine HAVE_STD_EXPERIMENTAL_FILESYSTEM 1
-
-/* Define to 1 if you have std::filesystem */
-#cmakedefine HAVE_STD_FILESYSTEM 1
-
-/* Define to 1 if you have the 'strcasecmp' function. */
-#cmakedefine HAVE_STRCASECMP 1
-
-/* Define to 1 if you have the <strings.h> header file. */
-#cmakedefine HAVE_STRINGS_H 1
-
-/* Define to 1 if you have the <string.h> header file. */
-#cmakedefine HAVE_STRING_H 1
-
-/* Define to 1 if you have the 'strrchr' function. */
-#cmakedefine HAVE_STRRCHR 1
-
-/* Define to 1 if you have the 'strstr' function. */
-#cmakedefine HAVE_STRSTR 1
-
-/* Define to 1 if you have the 'strtol' function. */
-#cmakedefine HAVE_STRTOL 1
 
 /* Define to 1 if 'd_type' is a member of 'struct dirent'. */
 #cmakedefine HAVE_STRUCT_DIRENT_D_TYPE 1
@@ -81,20 +18,14 @@
 /* Define to 1 if you have the <sys/ndir.h> header file, and it defines 'DIR'. */
 #cmakedefine HAVE_SYS_NDIR_H 1
 
-/* Define to 1 if you have the <sys/stat.h> header file. */
-#cmakedefine HAVE_SYS_STAT_H 1
-
 /* Define to 1 if you have the <sys/syslimits.h> header file. */
 #cmakedefine HAVE_SYS_SYSLIMITS_H 1
 
-/* Define to 1 if you have the <sys/types.h> header file. */
-#cmakedefine HAVE_SYS_TYPES_H 1
+/* Define to 1 if you have std::experimental::filesystem */
+#cmakedefine HAVE_STD_EXPERIMENTAL_FILESYSTEM 1
 
-/* Define to 1 if you have the <unistd.h> header file. */
-#cmakedefine HAVE_UNISTD_H 1
-
-/* Define to 1 if the system has the type '_Bool'. */
-#cmakedefine HAVE__BOOL 1
+/* Define to 1 if you have std::filesystem */
+#cmakedefine HAVE_STD_FILESYSTEM 1
 
 /* Name of package */
 #define PACKAGE "@PACKAGE@"
@@ -119,12 +50,6 @@
 
 /* Define to the build year of this package. */
 #define PACKAGE_YEAR "@PACKAGE_YEAR@"
-
-/* Define to 1 if the 'S_IS*' macros in <sys/stat.h> do not work properly. */
-#cmakedefine STAT_MACROS_BROKEN 1
-
-/* Define to 1 if all of the C89 standard headers exist. */
-#cmakedefine STDC_HEADERS 1
 
 /* Version number of package */
 #define VERSION "@VERSION@"
