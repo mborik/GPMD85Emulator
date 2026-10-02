@@ -23,7 +23,7 @@ exclude:
   - res/default.conf
   - res/GPMD85emu.desktop
   - res/*.bmp
-  - config.h.cmake.in
+  - config.h.in
   - main.cpp
   - sigslot.hpp
   - globals.h

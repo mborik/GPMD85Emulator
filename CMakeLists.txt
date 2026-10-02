@@ -222,7 +222,7 @@ endif()
 set(CONFIG_H_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 file(MAKE_DIRECTORY "${CONFIG_H_OUTPUT_DIR}")
 configure_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake.in"
+    "${CMAKE_CURRENT_SOURCE_DIR}/config.h.in"
     "${CONFIG_H_OUTPUT_DIR}/config.h"
 )
 
