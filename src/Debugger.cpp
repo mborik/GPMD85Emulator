@@ -494,136 +494,47 @@ void TDebugger::FillFlags(std::vector<std::string> &result)
 //-----------------------------------------------------------------------------
 void TDebugger::FillStack(std::vector<std::string> &result)
 {
-	static const char offsetPrefixes[6][3] = { "-2", "SP", "+2", "+4", "+6", "+8" };
+	static const char offsetPrefixes[6][6] = {
+		"SP-02", "SP+00", "SP+02", "SP+04", "SP+06", "SP+08"
+	};
+
 	WORD val = cpu->GetSP() - 2;
 
 	result.clear();
 	for (int i = 0; i < 6; i++, val += 2) {
 		std::string stackLine(16, 0);
 		std::snprintf(stackLine.data(), stackLine.size(),
-			(radix ? "%s:#%04X <#%04X>" : "%s:%05d <%05d>"),
-			offsetPrefixes[i], memory->ReadWord(val), val);
+			(radix ? "%s: #%04X" : "%s: %05d"),
+			offsetPrefixes[i], memory->ReadWord(val));
 		result.push_back(stackLine);
 	}
 }
 //-----------------------------------------------------------------------------
-void TDebugger::FillBreakpoints(BYTE *ctrl)
+void TDebugger::FillNestings(std::vector<std::string> &result)
 {
-	static int ii = -1;
-
-	if (cpu == NULL || memory == NULL || ctrl == NULL)
-		return;
-
-	if (*ctrl > 1)
-		ii = 1;
-
-	sprintf(lineBuffer, (radix ? "#%04X" : "%05d"), bp[ii].addr);
-	*ctrl = (BYTE) bp[ii].active;
-
-	ii++;
+	result.clear();
+	for (int i = 0; i < nestDepth; i++) {
+		std::string nestLine(6, 0);
+		std::snprintf(nestLine.data(), nestLine.size(),
+			(radix ? "#%04X" : "%05d"), na[i].addr);
+		result.push_back(nestLine);
+	}
 }
 //-----------------------------------------------------------------------------
-/*
-void TDebugger::FillList()
+void TDebugger::FillBreakpoints(std::vector<std::pair<std::string, bool>> &result)
 {
 	if (cpu == NULL || memory == NULL)
 		return;
 
-	string aLA;
-	WORD adr = GetCurrentSourceAddress();
-	int ls = CbListSrc->ItemIndex;
-	int off = offsets[ls];
-
-	switch (ls) {
-		case 0:
-			aLA = "(MEM";
-			break;
-
-		case 1:
-			aLA = "(AF";
-			break;
-
-		case 2:
-			aLA = "(BC";
-			break;
-
-		case 3:
-			aLA = "(DE";
-			break;
-
-		case 4:
-			aLA = "(HL";
-			break;
-
-		case 5:
-			aLA = "(PC";
-			break;
-
-		case 6:
-			aLA = "(SP";
-			break;
-	}
-	adr += (WORD) off;
-	LblListAddr->Hint = MakeNumber(&adr, true, false, true, false, !radix);
-
-	if (off > 0)
-		aLA += ("+" + MakeNumber(&off, true, false, true, false, !radix));
-	else if (off < 0) {
-		off = -off;
-		aLA += ("-" + MakeNumber(&off, true, false, true, false, !radix));
-	}
-	aLA += ")";
-
-	if (CbListType->ItemIndex == 2) {
-		dump1->Caption = MakeInstrLine(&adr);
-		dump2->Caption = MakeInstrLine(&adr);
-		dump3->Caption = MakeInstrLine(&adr);
-		dump4->Caption = MakeInstrLine(&adr);
-		dump5->Caption = MakeInstrLine(&adr);
-		dump6->Caption = MakeInstrLine(&adr);
-		dump7->Caption = MakeInstrLine(&adr);
-		dump8->Caption = MakeInstrLine(&adr);
-		dump9->Caption = MakeInstrLine(&adr);
-		dump10->Caption = MakeInstrLine(&adr);
-	}
-	else {
-		dump1->Caption = MakeDumpLine(&adr);
-		dump2->Caption = MakeDumpLine(&adr);
-		dump3->Caption = MakeDumpLine(&adr);
-		dump4->Caption = MakeDumpLine(&adr);
-		dump5->Caption = MakeDumpLine(&adr);
-		dump6->Caption = MakeDumpLine(&adr);
-		dump7->Caption = MakeDumpLine(&adr);
-		dump8->Caption = MakeDumpLine(&adr);
-		dump9->Caption = MakeDumpLine(&adr);
-		dump10->Caption = MakeDumpLine(&adr);
-	}
-
-	LblListAddr->Caption = aLA;
-}
-//-----------------------------------------------------------------------------
-void TDebugger::FillBreakpoints()
-{
-	for (int ii = 1; ii < MAX_BREAK_POINTS; ii++) {
-		ClbBreakPoints->Items->Strings[ii - 1]
-				= MakeNumber(&bp[ii].addr, true, true, true, false, !radix);
-		ClbBreakPoints->Checked[ii - 1] = bp[ii].active;
-	}
-	ClbBreakPoints->ItemIndex = -1;
-}
-//-----------------------------------------------------------------------------
-void TDebugger::FillNesting()
-{
-	int adr;
-
-	LbNestings->Clear();
-	for (int ii = 0; ii < nestDepth; ii++) {
-		adr = na[ii].addr + na[ii].offset;
-		LbNestings->Items->Add(MakeNumber(&adr, true, true, true, false, !radix));
+	result.clear();
+	for (int i = 0; i < 6; i++) {
+		std::string lineBuffer(8, 0);
+		std::snprintf(lineBuffer.data(), lineBuffer.size(),
+			(radix ? "%04X" : "%05d"), bp[i].addr);
+		result.emplace_back(lineBuffer, bp[i].active);
 	}
 }
 //-----------------------------------------------------------------------------
-*/
 void TDebugger::RefreshRequest(bool firstTime)
 {
 	if (reqUpdateRefresh & URQ_LOAD_PC || firstTime) {
@@ -695,6 +606,15 @@ void TDebugger::DoStepToNext()
 	bp[0].addr = FindNextInstruction(adr, 1);
 	bp[0].active = true;
 	flag = 9;
+}
+//---------------------------------------------------------------------------
+void TDebugger::SetBreakPoint(int index, bool active, const char *addr)
+{
+	if (index >= 0 && index < MAX_BREAK_POINTS) {
+		bp[index].active = active;
+		if (addr)
+			bp[index].addr = strtoul(addr, nullptr, radix ? 16 : 10);
+	}
 }
 //---------------------------------------------------------------------------
 bool TDebugger::CheckBreakPoint(WORD addr)

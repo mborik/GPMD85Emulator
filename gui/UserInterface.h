@@ -163,8 +163,8 @@ class UserInterface
 
 		void DrawDebugWidgetDisass(int numberOfItems);
 		void DrawDebugWidgetRegs();
-		void DrawDebugWidgetStack();
-		void DrawDebugWidgetBreaks();
+		void DrawDebugWidgetStackNests();
+		void DrawDebugWidgetBreaksWatchers();
 
 		float GetMonoTextWidth(int textLength, float padding = 0.0f);
 };
