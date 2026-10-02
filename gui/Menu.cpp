@@ -84,6 +84,7 @@ void UserInterface::DrawMenu()
 				Execute(GE_MEMBLOCK_WRITE);
 			}
 			ImGui::MenuItem("Memory Editor", NULL, &Settings->GUI->dialogMemEditOpened);
+			ImGui::MenuItem("Memory Map", NULL, &Settings->GUI->dialogMemMapOpened);
 			ImGui::Separator();
 			if (ImGui::MenuItem("Save Screenshot…")) { }
 
@@ -233,7 +234,6 @@ void UserInterface::DrawMenu()
 			if (ImGui::MenuItem("Pause", MOD_KEY("F3"), Settings->isPaused)) {
 				Settings->isPaused = !Settings->isPaused;
 			}
-			ImGui::MenuItem("Memory Map", NULL, &Settings->GUI->dialogMemMapOpened);
 			if (ImGui::BeginMenu("Speed")) {
 				float speedValue = (Settings->emulationSpeed * 100.0f);
 				if (ImGui::SliderFloat("##speed", &speedValue, 10.0f, 1000.0f, "%.0f%%",

@@ -89,7 +89,7 @@ void UserInterface::InitDebugSuite()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexImage2D(GL_TEXTURE_2D, 0, MEMMAP_TEX_FORMAT, MEMMAP_TEX_SIZE, MEMMAP_TEX_SIZE, 0,
-		GL_RGBA, GL_UNSIGNED_BYTE, reinterpret_cast<BYTE *>(memMapPixelBuffer));
+		GL_RGBA, GL_UNSIGNED_BYTE, (BYTE *)(memMapPixelBuffer));
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 //-----------------------------------------------------------------------------
@@ -259,48 +259,64 @@ void UserInterface::DrawMemEditDialog()
 	}
 }
 //-----------------------------------------------------------------------------
-void UserInterface::DrawMemMapWindow()
+void UserInterface::DrawMemMapDialog()
 {
-	if (!Settings->GUI->dialogMemMapOpened)
-		return;
+	static ImGuiWindowFlags memmap_dialog_flags =
+		ImGuiWindowFlags_NoResize |
+		ImGuiWindowFlags_NoCollapse |
+		ImGuiWindowFlags_NoScrollbar |
+		ImGuiWindowFlags_NoScrollWithMouse;
 
-	ImGui::SetNextWindowSize(
-		ImVec2(MEMMAP_TEX_SIZE * MEMMAP_TEX_SCALE, MEMMAP_TEX_SIZE * MEMMAP_TEX_SCALE + STATUSBAR_HEIGHT),
-		ImGuiCond_FirstUseEver);
+	if (Settings->GUI->dialogMemMapOpened) {
+		ImGuiStyle& style = ImGui::GetStyle();
+		float titleBarHeight = ImGui::GetTextLineHeightWithSpacing() + style.FramePadding.y;
+		ImVec2 windowSize = ImVec2(
+			MEMMAP_TEX_SIZE * MEMMAP_TEX_SCALE,
+			MEMMAP_TEX_SIZE * MEMMAP_TEX_SCALE + titleBarHeight
+		) + (style.WindowPadding * 2.0f);
 
-	if (ImGui::Begin("Memory Map", &Settings->GUI->dialogMemMapOpened)) {
-		if (!Debugger->GetMem(memMapReadBuffer, 0, MEM_MAX))
-			memset(memMapReadBuffer, 0, MEM_MAX);
+		ImGui::SetNextWindowSize(windowSize, ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSizeConstraints(windowSize, windowSize);
 
-		for (int i = 0; i < MEM_MAX; i++) {
-			BYTE value = memMapReadBuffer[i];
-			BYTE *pixel = reinterpret_cast<BYTE *>(memMapPixelBuffer + i);
-			pixel[0] = pixel[1] = pixel[2] = value;
-			pixel[3] = 0xFF;
-		}
+		if (ImGui::Begin("Memory Map", &Settings->GUI->dialogMemMapOpened, memmap_dialog_flags)) {
+			if (!Debugger->GetMem(memMapReadBuffer, 0, MEM_MAX))
+				memset(memMapReadBuffer, 0, MEM_MAX);
 
-		glBindTexture(GL_TEXTURE_2D, memMapTexture);
-		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, MEMMAP_TEX_SIZE, MEMMAP_TEX_SIZE,
-			GL_RGBA, GL_UNSIGNED_BYTE, reinterpret_cast<BYTE *>(memMapPixelBuffer));
-		glBindTexture(GL_TEXTURE_2D, 0);
+			for (int i = 0; i < MEM_MAX; i++) {
+				BYTE value = memMapReadBuffer[i];
+				memMapPixelBuffer[i] = DWORD_COLOR_ENTRY(value, value, value);
+			}
 
-		ImVec2 imagePos = ImGui::GetCursorScreenPos();
-		ImGui::Image((ImTextureID) (intptr_t) memMapTexture,
-			ImVec2(MEMMAP_TEX_SIZE * MEMMAP_TEX_SCALE, MEMMAP_TEX_SIZE * MEMMAP_TEX_SCALE));
+			glBindTexture(GL_TEXTURE_2D, memMapTexture);
+			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, MEMMAP_TEX_SIZE, MEMMAP_TEX_SIZE,
+				GL_RGBA, GL_UNSIGNED_BYTE, (BYTE *)(memMapPixelBuffer));
+			glBindTexture(GL_TEXTURE_2D, 0);
 
-		if (ImGui::IsItemHovered()) {
-			ImVec2 mousePos = ImGui::GetMousePos();
-			int px = (int) (mousePos.x - imagePos.x) / MEMMAP_TEX_SCALE;
-			int py = (int) (mousePos.y - imagePos.y) / MEMMAP_TEX_SCALE;
+			ImVec2 imagePos = ImGui::GetCursorScreenPos();
+			ImGui::Image(
+				(ImTextureID) (intptr_t) memMapTexture,
+				ImVec2(
+					MEMMAP_TEX_SIZE * MEMMAP_TEX_SCALE,
+					MEMMAP_TEX_SIZE * MEMMAP_TEX_SCALE
+				)
+			);
 
-			if (px >= 0 && px < MEMMAP_TEX_SIZE && py >= 0 && py < MEMMAP_TEX_SIZE) {
-				WORD addr = (WORD) (py * MEMMAP_TEX_SIZE + px);
-				ImGui::SetTooltip(Settings->Debugger->hex ? "#%04X: #%02X" : "%05d: %03d",
-					addr, memMapReadBuffer[addr]);
+			if (ImGui::IsItemHovered()) {
+				ImVec2 mousePos = ImGui::GetMousePos();
+				int px = (int) (mousePos.x - imagePos.x) / MEMMAP_TEX_SCALE;
+				int py = (int) (mousePos.y - imagePos.y) / MEMMAP_TEX_SCALE;
+
+				if (px >= 0 && px < MEMMAP_TEX_SIZE && py >= 0 && py < MEMMAP_TEX_SIZE) {
+					WORD addr = (WORD) (py * MEMMAP_TEX_SIZE + px);
+					ImGui::SetTooltip(
+						Settings->Debugger->hex ? "#%04X:#%02X" : "%05d:%03d",
+						addr, memMapReadBuffer[addr]
+					);
+				}
 			}
 		}
-	}
 
-	ImGui::End();
+		ImGui::End();
+	}
 }
 //-----------------------------------------------------------------------------

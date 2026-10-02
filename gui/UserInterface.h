@@ -73,7 +73,7 @@ class UserInterface
 		void DrawTapeDialog();
 		void DrawMemDumpDialog();
 		void DrawMemEditDialog();
-		void DrawMemMapWindow();
+		void DrawMemMapDialog();
 		void DrawDebugWindow();
 		void DrawEmulatorWindow();
 
