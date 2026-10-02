@@ -881,7 +881,8 @@ void TTapeBrowser::FillFileList(std::vector<TDialogItem> &data)
 			name[8] = '\0';
 			memcpy(name, blk->cName, 8);
 
-			sprintf(item.name, "%02d/%c %s", blk->bNumber, blk->cType, name);
+			snprintf(item.name, sizeof(item.name), "%03u/%c %.8s",
+				(unsigned int) blk->bNumber, blk->cType, name);
 			item.start = blk->wStart;
 		}
 		else {
