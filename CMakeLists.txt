@@ -19,9 +19,9 @@ include(CheckCXXSourceCompiles)
 include(TestBigEndian)
 include(FindPkgConfig)
 
-option(GPMD85EMU_ENABLE_DEBUG "Enable debug build flags" OFF)
-option(GPMD85EMU_ENABLE_TRACE "Compile trace messages" ON)
-option(GPMD85EMU_USE_INSTALLED_RESOURCES "Use install datadir for resource lookup at runtime" OFF)
+option(DEBUG "Enable debug build flags" OFF)
+option(TRACE "Compile trace messages" ON)
+option(INSTALLED_RESOURCES "Use install datadir for resource lookup at runtime" OFF)
 
 set(PACKAGE "gpmd85emu")
 set(PACKAGE_NAME "GPMD85emulator")
@@ -46,7 +46,7 @@ endif()
 
 set(GPMD85EMU_COMMON_COMPILE_OPTIONS -Wno-deprecated)
 
-if(GPMD85EMU_ENABLE_DEBUG)
+if(DEBUG)
     if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
         set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
     endif()
@@ -58,7 +58,7 @@ else()
     add_link_options($<$<AND:$<CXX_COMPILER_ID:GNU>,$<OR:$<CONFIG:Release>,$<CONFIG:MinSizeRel>>>:-s>)
 endif()
 
-if(NOT GPMD85EMU_ENABLE_TRACE AND NOT GPMD85EMU_ENABLE_DEBUG)
+if(NOT TRACE AND NOT DEBUG)
     add_compile_definitions(NOTRACEMSG)
 endif()
 
@@ -209,7 +209,7 @@ endif()
 
 test_big_endian(WORDS_BIGENDIAN)
 
-if(GPMD85EMU_USE_INSTALLED_RESOURCES)
+if(INSTALLED_RESOURCES)
     set(DIR_RESOURCES "${CMAKE_INSTALL_DATADIR}/${PACKAGE_TARNAME}")
 else()
     set(DIR_RESOURCES "${CMAKE_CURRENT_SOURCE_DIR}/res")

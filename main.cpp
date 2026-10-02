@@ -49,7 +49,7 @@ int main(int argc, char** argv)
 	IntroMessage();
 
 	PathUserHome = SDL_getenv("HOME");
-	PathApplication = getcwd(NULL, PATH_MAX);
+	PathApplication = getcwd(NULL, MAX_PATH);
 	PathResources = new char[strlen(DIR_RESOURCES) + 1];
 	PathAppConfig = new char[strlen(PathUserHome) + 16];
 	PathGuiConfig = new char[strlen(PathUserHome) + 32];
