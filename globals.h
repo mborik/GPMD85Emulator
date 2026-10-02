@@ -34,6 +34,7 @@
 #include <strings.h>
 #include <inttypes.h>
 #include <stdint.h>
+#include <limits.h>
 #include <unistd.h>
 #if HAVE_DIRENT_H
 #  include <dirent.h>
@@ -62,10 +63,16 @@
 #  define DIR_DELIMITER '/'
 #endif
 //-----------------------------------------------------------------------------
-#ifdef FILENAME_MAX
+#if defined(PATH_MAX)
+#  define MAX_PATH PATH_MAX
+#elif defined(FILENAME_MAX)
 #  define MAX_PATH FILENAME_MAX
+#elif defined(_POSIX_PATH_MAX)
+#  define MAX_PATH _POSIX_PATH_MAX
+#elif defined(_MAX_PATH)
+#  define MAX_PATH _MAX_PATH
 #else
-#  define MAX_PATH 4096
+#  define MAX_PATH 1024
 #endif
 //-----------------------------------------------------------------------------
 #ifdef __GNUC__
