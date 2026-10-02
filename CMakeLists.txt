@@ -390,5 +390,5 @@ install(FILES
     DESTINATION "${CMAKE_INSTALL_DATADIR}/${PACKAGE_TARNAME}"
 )
 
-install(FILES res/GPMD85emu.desktop DESTINATION "${CMAKE_INSTALL_DATADIR}/applications")
-install(FILES res/icon.png DESTINATION "${CMAKE_INSTALL_DATADIR}/pixmaps" RENAME GPMD85emu.png)
+install(FILES res/GPMD85emu.desktop DESTINATION "share/applications")
+install(FILES res/icon.png DESTINATION "share/pixmaps" RENAME GPMD85emu.png)
