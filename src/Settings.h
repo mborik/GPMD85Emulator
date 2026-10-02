@@ -73,6 +73,7 @@ class TSettings
 			bool dialogTapeBrowserOpened;
 			bool dialogDiskImagesOpened;
 			bool dialogMemEditOpened;
+			bool dialogMemMapOpened;
 			bool dialogDebugOpened;
 			bool memEditAscii;
 			int memEditColumns;

@@ -115,6 +115,7 @@
 #  define MAX_SIGNED_INT (0x7FFFFFFF)
 #  define MIN_SIGNED_INT (0x80000000)
 #endif
+#define DWORD_COLOR_ENTRY(R, G, B) SDL_FOURCC(R, G, B, 0xff)
 //-----------------------------------------------------------------------------
 #define BYTE  uint8_t
 #define WORD  uint16_t

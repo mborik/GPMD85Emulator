@@ -28,7 +28,6 @@
 #include "TapeBrowser.h"
 //-----------------------------------------------------------------------------
 #define BORDER_MULTIPLIER 12
-#define DWORD_COLOR_ENTRY(R, G, B) SDL_FOURCC(R, G, B, 0xff)
 //-----------------------------------------------------------------------------
 typedef struct SCANLINER_DEF {
 	DWORD x2[6 * 4];

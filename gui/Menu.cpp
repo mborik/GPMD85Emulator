@@ -84,6 +84,7 @@ void UserInterface::DrawMenu()
 				Execute(GE_MEMBLOCK_WRITE);
 			}
 			ImGui::MenuItem("Memory Editor", NULL, &Settings->GUI->dialogMemEditOpened);
+			ImGui::MenuItem("Memory Map", NULL, &Settings->GUI->dialogMemMapOpened);
 			ImGui::Separator();
 			if (ImGui::MenuItem("Save Screenshot…")) { }
 

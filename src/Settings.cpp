@@ -62,6 +62,7 @@ TSettings::TSettings(bool userCfg)
 	GUI->dialogTapeBrowserOpened = cfgGetBoolValue(n, "dialog-tape", false, &(GUI->dialogTapeBrowserOpened));
 	GUI->dialogDiskImagesOpened = cfgGetBoolValue(n, "dialog-disk", false, &(GUI->dialogDiskImagesOpened));
 	GUI->dialogMemEditOpened = cfgGetBoolValue(n, "dialog-memedit", false, &(GUI->dialogMemEditOpened));
+	GUI->dialogMemMapOpened = cfgGetBoolValue(n, "dialog-memmap", false, &(GUI->dialogMemMapOpened));
 	GUI->dialogDebugOpened = cfgGetBoolValue(n, "dialog-debug", false, &(GUI->dialogDebugOpened));
 	GUI->memEditAscii = cfgGetBoolValue(n, "memedit-ascii", true, &(GUI->memEditAscii));
 	GUI->memEditColumns = cfgGetIntValue(n, "memedit-cols", 16, &(GUI->memEditColumns));
