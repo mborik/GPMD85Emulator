@@ -27,8 +27,8 @@
 void UserInterface::InitFileSelector()
 {
 	fileSelector = NULL;
-	fileSelectorPath = new char[PATH_MAX];
-	fileSelectorRecentPath = new char[PATH_MAX];
+	fileSelectorPath = new char[MAX_PATH];
+	fileSelectorRecentPath = new char[MAX_PATH];
 	strcpy(fileSelectorRecentPath, PathApplication);
 }
 //-----------------------------------------------------------------------------

@@ -46,7 +46,7 @@ class TTapeBrowser
 		} TTapeSelection;
 
 		typedef struct TDialogItem {
-			char name[14];
+			char name[16];
 			int start;
 			int length;
 			bool headCrcError;

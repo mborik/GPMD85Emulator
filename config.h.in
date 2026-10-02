@@ -1,153 +1,61 @@
-/* config.h.in.  Generated from configure.ac by autoheader.  */
+/* config.h.in.  Generated from CMakeLists.txt by configure_file. */
 
 /* Define if building universal (internal helper macro) */
-#undef AC_APPLE_UNIVERSAL_BUILD
+#cmakedefine AC_APPLE_UNIVERSAL_BUILD 1
 
-/* Define to 1 if you have the <dirent.h> header file, and it defines 'DIR'.
-   */
-#undef HAVE_DIRENT_H
-
-/* Define to 1 if you have the <GL/gl.h> header file. */
-#undef HAVE_GL_GL_H
-
-/* Define to 1 if you have the <inttypes.h> header file. */
-#undef HAVE_INTTYPES_H
-
-/* Define to 1 if you have the <memory.h> header file. */
-#undef HAVE_MEMORY_H
-
-/* Define to 1 if you have the 'memset' function. */
-#undef HAVE_MEMSET
-
-/* Define to 1 if you have the 'mkdir' function. */
-#undef HAVE_MKDIR
+/* Define to 1 if you have the <dirent.h> header file, and it defines 'DIR'. */
+#cmakedefine HAVE_DIRENT_H 1
 
 /* Define to 1 if you have the <ndir.h> header file, and it defines 'DIR'. */
-#undef HAVE_NDIR_H
-
-/* Define to 1 if you have the 'rmdir' function. */
-#undef HAVE_RMDIR
-
-/* Define to 1 if you have the 'stat' function. */
-#undef HAVE_STAT
-
-/* Define to 1 if you have the <stdarg.h> header file. */
-#undef HAVE_STDARG_H
-
-/* Define to 1 if stdbool.h conforms to C99. */
-#undef HAVE_STDBOOL_H
-
-/* Define to 1 if you have the <stddef.h> header file. */
-#undef HAVE_STDDEF_H
-
-/* Define to 1 if you have the <stdint.h> header file. */
-#undef HAVE_STDINT_H
-
-/* Define to 1 if you have the <stdio.h> header file. */
-#undef HAVE_STDIO_H
-
-/* Define to 1 if you have the <stdlib.h> header file. */
-#undef HAVE_STDLIB_H
-
-/* Define to 1 if you have std::experimental::filesystem */
-#undef HAVE_STD_EXPERIMENTAL_FILESYSTEM
-
-/* Define to 1 if you have std::filesystem */
-#undef HAVE_STD_FILESYSTEM
-
-/* Define to 1 if you have the 'strcasecmp' function. */
-#undef HAVE_STRCASECMP
-
-/* Define to 1 if you have the <strings.h> header file. */
-#undef HAVE_STRINGS_H
-
-/* Define to 1 if you have the <string.h> header file. */
-#undef HAVE_STRING_H
-
-/* Define to 1 if you have the 'strrchr' function. */
-#undef HAVE_STRRCHR
-
-/* Define to 1 if you have the 'strstr' function. */
-#undef HAVE_STRSTR
-
-/* Define to 1 if you have the 'strtol' function. */
-#undef HAVE_STRTOL
+#cmakedefine HAVE_NDIR_H 1
 
 /* Define to 1 if 'd_type' is a member of 'struct dirent'. */
-#undef HAVE_STRUCT_DIRENT_D_TYPE
+#cmakedefine HAVE_STRUCT_DIRENT_D_TYPE 1
 
-/* Define to 1 if you have the <sys/dir.h> header file, and it defines 'DIR'.
-   */
-#undef HAVE_SYS_DIR_H
+/* Define to 1 if you have the <sys/dir.h> header file, and it defines 'DIR'. */
+#cmakedefine HAVE_SYS_DIR_H 1
 
-/* Define to 1 if you have the <sys/ndir.h> header file, and it defines 'DIR'.
-   */
-#undef HAVE_SYS_NDIR_H
-
-/* Define to 1 if you have the <sys/stat.h> header file. */
-#undef HAVE_SYS_STAT_H
+/* Define to 1 if you have the <sys/ndir.h> header file, and it defines 'DIR'. */
+#cmakedefine HAVE_SYS_NDIR_H 1
 
 /* Define to 1 if you have the <sys/syslimits.h> header file. */
-#undef HAVE_SYS_SYSLIMITS_H
+#cmakedefine HAVE_SYS_SYSLIMITS_H 1
 
-/* Define to 1 if you have the <sys/types.h> header file. */
-#undef HAVE_SYS_TYPES_H
+/* Define to 1 if you have std::experimental::filesystem */
+#cmakedefine HAVE_STD_EXPERIMENTAL_FILESYSTEM 1
 
-/* Define to 1 if you have the <unistd.h> header file. */
-#undef HAVE_UNISTD_H
-
-/* Define to 1 if the system has the type '_Bool'. */
-#undef HAVE__BOOL
+/* Define to 1 if you have std::filesystem */
+#cmakedefine HAVE_STD_FILESYSTEM 1
 
 /* Name of package */
-#undef PACKAGE
+#define PACKAGE "@PACKAGE@"
 
 /* Define to the address where bug reports for this package should be sent. */
-#undef PACKAGE_BUGREPORT
+#define PACKAGE_BUGREPORT "@PACKAGE_BUGREPORT@"
 
 /* Define to the full name of this package. */
-#undef PACKAGE_NAME
+#define PACKAGE_NAME "@PACKAGE_NAME@"
 
 /* Define to the full name and version of this package. */
-#undef PACKAGE_STRING
+#define PACKAGE_STRING "@PACKAGE_STRING@"
 
 /* Define to the one symbol short name of this package. */
-#undef PACKAGE_TARNAME
+#define PACKAGE_TARNAME "@PACKAGE_TARNAME@"
 
 /* Define to the home page for this package. */
-#undef PACKAGE_URL
+#define PACKAGE_URL "@PACKAGE_URL@"
 
 /* Define to the version of this package. */
-#undef PACKAGE_VERSION
+#define PACKAGE_VERSION "@PACKAGE_VERSION@"
 
 /* Define to the build year of this package. */
-#undef PACKAGE_YEAR
-
-/* Define to 1 if the 'S_IS*' macros in <sys/stat.h> do not work properly. */
-#undef STAT_MACROS_BROKEN
-
-/* Define to 1 if all of the C89 standard headers exist (not just the ones
-   required in a freestanding environment). This macro is provided for
-   backward compatibility; new code need not use it. */
-#undef STDC_HEADERS
+#define PACKAGE_YEAR "@PACKAGE_YEAR@"
 
 /* Version number of package */
-#undef VERSION
+#define VERSION "@VERSION@"
 
-/* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
-   significant byte first (like Motorola and SPARC, unlike Intel). */
-#if defined AC_APPLE_UNIVERSAL_BUILD
-# if defined __BIG_ENDIAN__
-#  define WORDS_BIGENDIAN 1
-# endif
-#else
-# ifndef WORDS_BIGENDIAN
-#  undef WORDS_BIGENDIAN
-# endif
-#endif
+/* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most significant byte first. */
+#cmakedefine WORDS_BIGENDIAN 1
 
-/* Define to '__inline__' or '__inline' if that's what the C compiler
-   calls it, or to nothing if 'inline' is not supported under any name.  */
-#ifndef __cplusplus
-#undef inline
-#endif
+/* Define to '__inline__' or '__inline' if that's what the C compiler calls it. */
+/* #undef inline */

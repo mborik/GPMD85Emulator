@@ -18,13 +18,10 @@ jobs:
     - name: install dependencies
       run: |
         sudo apt update -y
-        sudo apt install -y build-essential autoconf autotools-dev pkg-config libsdl2-dev libgl1-mesa-dev
-
-    - name: autoreconf
-      run: autoreconf -vfi
+        sudo apt install -y build-essential cmake pkg-config libsdl2-dev libgl1-mesa-dev
 
     - name: configure
-      run: ./configure
+      run: cmake -S . -B build
 
-    - name: make
-      run: make
+    - name: build
+      run: cmake --build build
