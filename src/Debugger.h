@@ -99,12 +99,9 @@ class TDebugger
 		unsigned GetFlagState();
 		WORD  FindPeviousInstruction(WORD pc, int howmany);
 		WORD  FindNextInstruction(WORD pc, int howmany);
-		void  FillList();
 		char *MakeInstrLine(WORD *addr);
 		char *MakeDumpLine(WORD *addr);
 		WORD  GetCurrentSourceAddress();
-		void  FillBreakpoints();
-		void  FillNesting();
 
 	public:
 		int flag;
@@ -121,13 +118,15 @@ class TDebugger
 		void FillRegs(std::vector<std::string> &result, bool memEdit = false);
 		void FillFlags(std::vector<std::string> &result);
 		void FillStack(std::vector<std::string> &result);
-		void FillBreakpoints(BYTE *ctrl);
+		void FillNestings(std::vector<std::string> &result);
+		void FillBreakpoints(std::vector<std::pair<std::string, bool>> &result);
 
 		void RefreshRequest(bool firstTime = false);
 		void DoStepInto();
 		void DoStepOver();
 		void DoStepOut();
 		void DoStepToNext();
+		void SetBreakPoint(int index, bool active, const char *addr = NULL);
 		bool CheckBreakPoint(WORD addr);
 		bool CheckDebugRet(int *t);
 };

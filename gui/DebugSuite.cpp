@@ -36,6 +36,24 @@
 #define MEMMAP_TEX_SIZE 256
 #define MEMMAP_TEX_SCALE 2
 //-----------------------------------------------------------------------------
+static ImGuiTabBarFlags tab_bar_flags =
+	ImGuiTabBarFlags_FittingPolicyMixed |
+	ImGuiTabBarFlags_Reorderable |
+	ImGuiTabBarFlags_NoCloseWithMiddleMouseButton |
+	ImGuiTabBarFlags_NoTabListScrollingButtons |
+	ImGuiTabBarFlags_DrawSelectedOverline;
+
+static ImGuiSelectableFlags selectable_flags =
+	ImGuiSelectableFlags_AllowDoubleClick |
+	ImGuiSelectableFlags_NoHoldingActiveID |
+	ImGuiSelectableFlags_NoSetKeyOwner |
+	ImGuiSelectableFlags_NoAutoClosePopups;
+
+static ImGuiItemFlags item_flags =
+	ImGuiItemFlags_NoNav |
+	ImGuiItemFlags_NoTabStop |
+	ImGuiItemFlags_NoNavDefaultFocus;
+//-----------------------------------------------------------------------------
 void UserInterface::InitDebugSuite()
 {
 	memEditor = new MemoryEditor();
@@ -144,12 +162,7 @@ void UserInterface::DrawDebugWidgetDisass(int numberOfItems)
 		ImGui::PushID(i);
 		ImGui::SetNextItemAllowOverlap();
 
-		ImGuiSelectableFlags selectableFlags =
-			ImGuiSelectableFlags_AllowDoubleClick |
-			ImGuiSelectableFlags_NoHoldingActiveID |
-			ImGuiSelectableFlags_NoSetKeyOwner |
-			ImGuiSelectableFlags_NoAutoClosePopups;
-
+		ImGuiSelectableFlags selectableFlags = selectable_flags;
 		if (line.color == COL_CURSOR)
 			selectableFlags |= ImGuiSelectableFlags_Highlight;
 		if (line.color == COL_CURRENT) {
@@ -213,11 +226,7 @@ void UserInterface::DrawDebugWidgetRegs()
 
 	ImGui::BeginChild("DebugRegs", ImVec2(0, 6.25 * ImGui::GetTextLineHeightWithSpacing()), ImGuiChildFlags_Borders);
 
-	ImGui::PushItemFlag(
-		ImGuiItemFlags_NoNav |
-		ImGuiItemFlags_NoTabStop |
-		ImGuiItemFlags_NoNavDefaultFocus, true);
-
+	ImGui::PushItemFlag(item_flags, true);
 	if (ImGui::BeginTable("RegsLayout", 2, ImGuiTableFlags_NoSavedSettings)) {
 		ImGui::TableSetupColumn("##reghdr1", ImGuiTableColumnFlags_NoHide);
 		ImGui::TableSetupColumn("##reghdr2", ImGuiTableColumnFlags_WidthFixed, GetMonoTextWidth(2));
@@ -229,11 +238,8 @@ void UserInterface::DrawDebugWidgetRegs()
 
 		for (int i = 0; i < 6; i++) {
 			ImGui::PushID(regs[i].substr(0, 2).c_str());
-			ImGui::Selectable(regs[i].c_str(), false,
-				ImGuiSelectableFlags_AllowDoubleClick |
-				ImGuiSelectableFlags_NoHoldingActiveID |
-				ImGuiSelectableFlags_NoSetKeyOwner |
-				ImGuiSelectableFlags_NoAutoClosePopups,
+			ImGui::Selectable(
+				regs[i].c_str(), false, selectable_flags,
 				ImVec2(GetMonoTextWidth(8), 0)
 			);
 
@@ -244,13 +250,7 @@ void UserInterface::DrawDebugWidgetRegs()
 		Debugger->FillFlags(flags);
 		for (int i = 0; i < flags.size(); i++) {
 			ImGui::PushID(i);
-			ImGui::Selectable(flags[i].c_str(), false,
-				ImGuiSelectableFlags_AllowDoubleClick |
-				ImGuiSelectableFlags_NoHoldingActiveID |
-				ImGuiSelectableFlags_NoSetKeyOwner |
-				ImGuiSelectableFlags_NoAutoClosePopups
-			);
-
+			ImGui::Selectable(flags[i].c_str(), false, selectable_flags);
 			ImGui::PopID();
 		}
 
@@ -262,53 +262,167 @@ void UserInterface::DrawDebugWidgetRegs()
 	ImGui::PopStyleVar(2);
 }
 //-----------------------------------------------------------------------------
-void UserInterface::DrawDebugWidgetStack()
+void UserInterface::DrawDebugWidgetStackNests()
 {
 	static std::vector<std::string> stack;
+	static std::vector<std::string> nests;
 
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
-	ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.0f, 0.0f));
 
-	ImGui::BeginChild("DebugStack", ImVec2(0, 6.25 * ImGui::GetTextLineHeightWithSpacing()), ImGuiChildFlags_Borders);
+	if (ImGui::BeginTabBar("DebugStackNests", tab_bar_flags)) {
+		if (ImGui::BeginTabItem("Stack")) {
+			ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.0f, 0.0f));
+			ImGui::BeginChild("DebugStack", ImVec2(0, 6.25 * ImGui::GetTextLineHeightWithSpacing()), ImGuiChildFlags_Borders);
 
-	ImGui::PushItemFlag(
-		ImGuiItemFlags_NoNav |
-		ImGuiItemFlags_NoTabStop |
-		ImGuiItemFlags_NoNavDefaultFocus, true);
+			ImGui::PushItemFlag(item_flags, true);
 
-	Debugger->FillStack(stack);
-	for (int i = 0; i < stack.size(); i++) {
-		ImGui::PushID(i);
-		ImGui::Selectable(stack[i].c_str(), false,
-			ImGuiSelectableFlags_AllowDoubleClick |
-			ImGuiSelectableFlags_NoHoldingActiveID |
-			ImGuiSelectableFlags_NoSetKeyOwner |
-			ImGuiSelectableFlags_NoAutoClosePopups
-		);
+			Debugger->FillStack(stack);
+			for (int i = 0; i < stack.size(); i++) {
+				ImGui::PushID(i);
 
-		ImGui::PopID();
+				if (
+					ImGui::Selectable(stack[i].c_str(), false, selectable_flags) &&
+					ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)
+				) {
+					// TODO handle edit
+					// strcpy(stack_addrInputBuf, stack[i].substr(Settings->Debugger->hex ? 8 : 7).c_str());
+				}
+
+				ImGui::PopID();
+			}
+
+			ImGui::PopItemFlag();
+			ImGui::EndChild();
+			ImGui::PopStyleVar();
+			ImGui::EndTabItem();
+		}
+
+		if (ImGui::BeginTabItem("Nests")) {
+			ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.0f, 0.0f));
+			ImGui::BeginChild("DebugNests", ImVec2(0, 6.25 * ImGui::GetTextLineHeightWithSpacing()), ImGuiChildFlags_Borders);
+
+			if (ImGui::BeginTable("NestsLayout", 2, ImGuiTableFlags_NoSavedSettings)) {
+				ImGui::TableSetupColumn("##nesthdr1", ImGuiTableColumnFlags_NoHide);
+				ImGui::TableSetupColumn("##nesthdr2", ImGuiTableColumnFlags_NoHide);
+
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn();
+
+				Debugger->FillNestings(nests);
+				if (!nests.empty())
+					nests.push_back("");
+
+				int n = 0, nestCountLeft = nests.size(), nestCountRight = 0;
+				if (nestCountLeft > 6) {
+					nestCountRight = nestCountLeft - 6;
+					nestCountLeft = 6;
+				}
+				for (int i = 0; i < nestCountLeft; i++, n++) {
+					ImGui::PushID(n);
+					if (nests[n].empty()) {
+						ImGui::SmallButton(" Pop ");
+					}
+					else {
+						ImGui::Selectable(
+							nests[n].c_str(), false,
+							selectable_flags | ImGuiSelectableFlags_Disabled,
+							ImVec2(GetMonoTextWidth(5), 0)
+						);
+					}
+					ImGui::PopID();
+				}
+
+				ImGui::TableNextColumn();
+				for (int i = 0; i < nestCountRight; i++, n++) {
+					ImGui::PushID(n);
+					if (nests[n].empty()) {
+						ImGui::SmallButton(" Pop ");
+					}
+					else {
+						ImGui::Selectable(
+							nests[n].c_str(), false,
+							selectable_flags | ImGuiSelectableFlags_Disabled,
+							ImVec2(GetMonoTextWidth(5), 0));
+					}
+					ImGui::PopID();
+				}
+
+				ImGui::EndTable();
+			}
+
+			ImGui::EndChild();
+			ImGui::PopStyleVar();
+			ImGui::EndTabItem();
+		}
+
+		ImGui::EndTabBar();
 	}
 
-	ImGui::PopItemFlag();
-	ImGui::EndChild();
-	ImGui::PopStyleVar(2);
+	ImGui::PopStyleVar();
 }
 //-----------------------------------------------------------------------------
-void UserInterface::DrawDebugWidgetBreaks()
+void UserInterface::DrawDebugWidgetBreaksWatchers()
 {
+	static std::vector<std::pair<std::string, bool>> breaks;
+	static char bpAddrInputBuf[MAX_BREAK_POINTS][8];
+
+	static ImGuiMultiSelectFlags ms_flags =
+		ImGuiMultiSelectFlags_NoAutoSelect |
+		ImGuiMultiSelectFlags_NoAutoClear |
+		ImGuiMultiSelectFlags_ClearOnEscape;
+
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
+
+	if (ImGui::BeginTabBar("DebugBreaksWatchers", tab_bar_flags)) {
+		if (ImGui::BeginTabItem("Breaks")) {
+			ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.0f, 0.0f));
+			ImGui::BeginChild("DebugBreaks", ImVec2(0, 0),
+				ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
 /*
-	BYTE b = -1;
-	char *line = NULL;
-	for (int i = 0; i < 6; i++) {
-		line = Debugger->FillBreakpoints(&b);
+			if (breaks.empty())
+				Debugger->FillBreakpoints(breaks);
 
-		if (line)
-			PrintText(s, mx, my, GUI_COLOR_DBG_TEXT, line);
+			ImGuiMultiSelectIO* ms_io = ImGui::BeginMultiSelect(ms_flags, -1, breaks.size());
+			ImGuiSelectionExternalStorage storage_wrapper;
 
-		PrintCheck(s, mx - GUI_CONST_HOTKEYCHAR + 1, my + 1,
-				GUI_COLOR_CHECKED, SCHR_CHECK, (bool) b);
-	}
+			storage_wrapper.UserData = (void*) Debugger;
+			storage_wrapper.AdapterSetItemSelected = [](ImGuiSelectionExternalStorage* self, int n, bool selected) {
+				TDebugger* debugger = (TDebugger*) self->UserData;
+				debugger->SetBreakPoint(n, selected);
+			};
+
+			storage_wrapper.ApplyRequests(ms_io);
+			for (int n = 0; n < breaks.size(); n++) {
+				ImGui::PushID(n);
+
+				ImGui::SetNextItemSelectionUserData(n);
+				ImGui::Checkbox("##bpchk", &breaks[n].second);
+				ImGui::SameLine();
+
+				strcpy(bpAddrInputBuf[n], breaks[n].first.c_str());
+				ImGui::InputText(
+					"##bpaddr",
+					bpAddrInputBuf[n], Settings->Debugger->hex ? 4 : 5,
+					ImGuiInputTextFlags_AlwaysOverwrite |
+					(Settings->Debugger->hex ?
+						ImGuiInputTextFlags_CharsHexadecimal :
+						ImGuiInputTextFlags_CharsDecimal)
+				);
+
+				ImGui::PopID();
+			}
+
+			storage_wrapper.ApplyRequests((ms_io = ImGui::EndMultiSelect()));
 */
+			ImGui::EndChild();
+			ImGui::PopStyleVar();
+			ImGui::EndTabItem();
+		}
+
+		ImGui::EndTabBar();
+	}
+
+	ImGui::PopStyleVar();
 }
 //-----------------------------------------------------------------------------
 void UserInterface::DrawDebugWindow()
@@ -320,7 +434,7 @@ void UserInterface::DrawDebugWindow()
 
 		ImVec2 framePadding = style.FramePadding * 2.0f;
 		float lineHeight = ImGui::GetTextLineHeightWithSpacing();
-		float widthWidth = GetMonoTextWidth(50, framePadding.x);
+		float widthWidth = GetMonoTextWidth(52, framePadding.x);
 		float minHeight = widthWidth * 0.60f;
 
 		if (isOpening)
@@ -329,7 +443,7 @@ void UserInterface::DrawDebugWindow()
 		ImGui::SetNextWindowSize(ImVec2(widthWidth, minHeight), ImGuiCond_FirstUseEver);
 		ImGui::SetNextWindowSizeConstraints(ImVec2(widthWidth, minHeight), ImVec2(widthWidth, FLT_MAX));
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 0.0f));
-		ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.0f, 10.0f));
+		ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(5.0f, 10.0f));
 
 		if (ImGui::Begin("Debugger", &dialogDebugOpened, ImGuiWindowFlags_NoScrollbar)) {
 			if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootWindow))
@@ -394,7 +508,7 @@ void UserInterface::DrawDebugWindow()
 
 				ImGui::TableNextColumn();
 				DrawDebugWidgetRegs();
-				DrawDebugWidgetStack();
+				DrawDebugWidgetStackNests();
 
 				ImGui::EndTable();
 			}
