@@ -72,8 +72,6 @@ UserInterface::~UserInterface()
 //-----------------------------------------------------------------------------
 void UserInterface::InitFont(float size, bool oversample)
 {
-	ImGuiIO& io = ImGui::GetIO();
-
 	ImFontConfig config;
 	config.OversampleH = (ImS8) oversample;
 	config.OversampleV = (ImS8) oversample;
@@ -81,14 +79,14 @@ void UserInterface::InitFont(float size, bool oversample)
 	config.EllipsisChar = 0x2026;
 	config.GlyphOffset = ImVec2(0.0f, -1.0f);
 
-	io.Fonts->AddFontFromMemoryCompressedTTF(
+	ImGui::GetIO().Fonts->AddFontFromMemoryCompressedTTF(
 		GPMD85Emulator_font_compressed_data,
 		GPMD85Emulator_font_compressed_size,
 		size, &config
 	);
 }
 //-----------------------------------------------------------------------------
-float UserInterface::GetMonoTextWidth(int textLength, float padding)
+float UserInterface::GetMonoTextWidth(float textLength, float padding)
 {
 	if (textLength <= 0)
 		return 0.0f;

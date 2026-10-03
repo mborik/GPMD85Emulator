@@ -166,7 +166,7 @@ class UserInterface
 		void DrawDebugWidgetStackNests();
 		void DrawDebugWidgetBreaksWatchers();
 
-		float GetMonoTextWidth(int textLength, float padding = 0.0f);
+		float GetMonoTextWidth(float textLength, float padding = 0.0f);
 };
 //-----------------------------------------------------------------------------
 #endif

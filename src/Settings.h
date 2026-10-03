@@ -138,7 +138,6 @@ class TSettings
 		struct SetDebugger {
 			bool hex;
 			bool z80;
-			TDebugListType listType;
 			TDebugListSource listSource;
 			int listOffset;
 		};

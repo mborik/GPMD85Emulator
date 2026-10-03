@@ -145,10 +145,20 @@ void UserInterface::DrawDebugWidgetDisass(int numberOfItems)
 
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
 	ImGui::BeginChild("DebugDisass", ImVec2(-FLT_MIN, 0.0f),
-		ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
+		ImGuiChildFlags_Borders |
+		ImGuiChildFlags_AutoResizeY |
+		ImGuiWindowFlags_NoScrollWithMouse);
+
+	if (ImGui::IsWindowHovered() || ImGui::IsWindowFocused()) {
+		float wheel = ImGui::GetIO().MouseWheel;
+		if (wheel > 0.0f)
+			Debugger->HandleKeyboardInput(K_UP);
+		if (wheel < 0.0f)
+			Debugger->HandleKeyboardInput(K_DOWN);
+	}
 
 	float widthWidth = ImGui::GetContentRegionAvail().x;
-	float breakpointOffset = GetMonoTextWidth(14, 0.0f);
+	float breakpointOffset = GetMonoTextWidth(14.5, 0.0f);
 
 	ImGui::PushItemFlag(
 		ImGuiItemFlags_NoNav |
@@ -158,32 +168,89 @@ void UserInterface::DrawDebugWidgetDisass(int numberOfItems)
 	Debugger->FillDisass(disassLines, numberOfItems);
 	for (int i = 0; i < disassLines.size(); i++) {
 		TDisassLine line = disassLines[i];
-
-		ImGui::PushID(i);
-		ImGui::SetNextItemAllowOverlap();
+		std::string addr = line.text.substr(1, 5);
+		if (Settings->Debugger->hex)
+			addr = addr.substr(1);
 
 		ImGuiSelectableFlags selectableFlags = selectable_flags;
-		if (line.color == COL_CURSOR)
+		if (line.color == COL_CURSOR) {
 			selectableFlags |= ImGuiSelectableFlags_Highlight;
-		if (line.color == COL_CURRENT) {
+			ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.3f, 0.3f, 0.3f, 0.8f));
+			ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.3f, 0.3f, 0.3f, 0.6f));
+		}
+		else if (line.color == COL_CURRENT) {
 			selectableFlags |= ImGuiSelectableFlags_Highlight;
 			ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.9f, 0.9f, 0.9f, 1.0f));
 			ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.9f, 0.9f, 0.9f, 0.8f));
 			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
 		}
-		if (line.color == COL_BREAKPT) {
+		else if (line.color == COL_BREAKPT) {
 			selectableFlags |= ImGuiSelectableFlags_Highlight;
 			ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.8f, 0.4f, 0.2f, 1.0f));
 			ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.8f, 0.4f, 0.2f, 0.8f));
 			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
 		}
+		else {
+			ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+			ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+		}
 
-		ImGui::Selectable(line.text.c_str(), false, selectableFlags);
+		ImGui::PushID(i);
+		ImGui::SetNextItemAllowOverlap();
+		if (ImGui::Selectable(line.text.c_str(), false, selectableFlags) ||
+			ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+
+			Debugger->SetTraceCursor(i);
+			if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+				Debugger->ToggleBreakPoint(addr.c_str(), -1);
+			}
+		}
 
 		ImVec4 branchColor = ImVec4(0.9f, 0.7f, 0.0f, 1.0f);
 		if (line.color >= COL_CURRENT) {
 			ImGui::PopStyleColor(3);
 			branchColor = ImVec4(0.3f, 0.1f, 0.0f, 1.0f);
+		}
+		else
+			ImGui::PopStyleColor(2);
+
+		if (ImGui::BeginPopupContextItem()) {
+			static char bpAddrInputBuf[12];
+			strcpy(bpAddrInputBuf, line.text.substr(7, 6).c_str());
+
+			if (ImGui::MenuItem("Toggle Breakpoint", "Space")) {
+				Debugger->ToggleBreakPoint(addr.c_str(), -1);
+			}
+			if (ImGui::MenuItem("Look-up operand", "`")) {
+				// TODO Debugger->PushAddress(line.branchTarget);
+			}
+			ImGui::Separator();
+			if (ImGui::MenuItem("Goto Address", "G")) {
+				// TODO
+			}
+			if (ImGui::MenuItem("Move Cursor to Address", "M")) {
+				// TODO
+			}
+			if (ImGui::MenuItem("Set PC to Address", "Z")) {
+				// TODO
+			}
+			ImGui::Separator();
+			ImGui::LabelText("##instEditLabel", "Edit Instruction:");
+			ImGui::SameLine(GetMonoTextWidth(18, 4.0f));
+			ImGui::SetNextItemWidth(GetMonoTextWidth(7, 4.0f));
+			ImGui::InputText(
+				"##instEdit",
+				bpAddrInputBuf, 7,
+				ImGuiInputTextFlags_AlwaysOverwrite |
+				ImGuiInputTextFlags_CharsHexadecimal |
+				ImGuiInputTextFlags_EnterReturnsTrue
+			);
+			ImGui::SameLine();
+			if (ImGui::Button("\u2713")) {
+				// TODO: Handle instruction edit here
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::EndPopup();
 		}
 
 		if (line.isBranch) {
@@ -428,9 +495,13 @@ void UserInterface::DrawDebugWidgetBreaksWatchers()
 void UserInterface::DrawDebugWindow()
 {
 	static bool isOpening = true;
+	static ImGuiWindowFlags flags =
+		ImGuiWindowFlags_NoScrollbar |
+		ImGuiWindowFlags_NoNavInputs;
 
 	if (dialogDebugOpened) {
 		ImGuiStyle& style = ImGui::GetStyle();
+		ImGuiIO& io = ImGui::GetIO();
 
 		ImVec2 framePadding = style.FramePadding * 2.0f;
 		float lineHeight = ImGui::GetTextLineHeightWithSpacing();
@@ -445,9 +516,39 @@ void UserInterface::DrawDebugWindow()
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 0.0f));
 		ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(5.0f, 10.0f));
 
-		if (ImGui::Begin("Debugger", &dialogDebugOpened, ImGuiWindowFlags_NoScrollbar)) {
-			if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootWindow))
+		if (ImGui::Begin("Debugger", &dialogDebugOpened, flags)) {
+			if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows))
 				dialogDebugFocused = true;
+
+			if (dialogDebugFocused && !ImGui::IsAnyItemActive()) {
+				if (ImGui::IsKeyPressed(ImGuiKey_UpArrow, true)) {
+					Debugger->HandleKeyboardInput(K_UP);
+				}
+				if (ImGui::IsKeyPressed(ImGuiKey_DownArrow, true)) {
+					Debugger->HandleKeyboardInput(K_DOWN);
+				}
+				if (ImGui::IsKeyPressed(ImGuiKey_PageUp, true)) {
+					Debugger->HandleKeyboardInput(K_PAGEUP);
+				}
+				if (ImGui::IsKeyPressed(ImGuiKey_PageDown, true)) {
+					Debugger->HandleKeyboardInput(K_PAGEDOWN);
+				}
+				if (ImGui::IsKeyPressed(ImGuiKey_Home)) {
+					Debugger->HandleKeyboardInput(K_HOME);
+				}
+				if (ImGui::IsKeyPressed(ImGuiKey_F7)) {
+					Debugger->DoStepInto();
+				}
+				if (ImGui::IsKeyPressed(ImGuiKey_F8)) {
+					Debugger->DoStepOver();
+				}
+				if (io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_F8)) {
+					Debugger->DoStepOut();
+				}
+				if (io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_F7)) {
+					Debugger->DoStepToNext();
+				}
+			}
 
 			Debugger->RefreshRequest(isOpening);
 			isOpening = false;
@@ -470,13 +571,25 @@ void UserInterface::DrawDebugWindow()
 					ImGui::BeginDisabled();
 
 				float spacing = style.ItemInnerSpacing.x;
-				if (ImGui::Button("Step")) { }
+				if (ImGui::Button("Step")) {
+					Debugger->DoStepInto();
+				}
+				ImGui::SetItemTooltip("Step into (F7)");
 				ImGui::SameLine(0.0f, spacing);
-				if (ImGui::Button("Over")) { }
+				if (ImGui::Button("Over")) {
+					Debugger->DoStepOver();
+				}
+				ImGui::SetItemTooltip("Step over (F8)");
 				ImGui::SameLine(0.0f, spacing);
-				if (ImGui::Button("Leave")) { }
+				if (ImGui::Button("Leave")) {
+					Debugger->DoStepOut();
+				}
+				ImGui::SetItemTooltip("Leave routine (Shift+F8)");
 				ImGui::SameLine(0.0f, spacing);
-				if (ImGui::Button("Until Next")) { }
+				if (ImGui::Button("Until Next")) {
+					Debugger->DoStepToNext();
+				}
+				ImGui::SetItemTooltip("Run until next instruction (Shift+F7)");
 
 				if (Emulator->isRunning)
 					ImGui::EndDisabled();

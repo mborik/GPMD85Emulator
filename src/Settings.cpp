@@ -302,19 +302,6 @@ TSettings::TSettings(bool userCfg)
 	else
 		cfgInsertNewLine(n->next, "notation", LT_NOTATION, (void *) &(Debugger->z80));
 
-	Debugger->listType = DL_DUMP;
-	if ((m = cfgGetLine(n, "list-type")) != NULL) {
-		if (strcmp(m->value, "ascii") == 0)
-			Debugger->listType = DL_ASCII;
-		else if (strcmp(m->value, "disassembly") == 0)
-			Debugger->listType = DL_DISASM;
-
-		m->type = LT_DEBUGLIST;
-		m->ptr = (void *) &(Debugger->listType);
-	}
-	else
-		cfgInsertNewLine(n->next, "list-type", LT_DEBUGLIST, (void *) &(Debugger->listType));
-
 	Debugger->listSource = MEM;
 	if ((m = cfgGetLine(n, "list-source")) != NULL) {
 		if (strcmp(m->value, "hl") == 0)
@@ -1082,22 +1069,6 @@ void TSettings::storeSettings()
 					b = *((bool *) entry->ptr);
 					buf = (char *) (b ? "z80" : "i8080");
 					std = b = true;
-					break;
-
-				case LT_DEBUGLIST:
-					i = *((uintptr_t *) entry->ptr);
-					switch ((TDebugListType) i) {
-						case DL_ASCII:
-							buf = (char *) "ascii";
-							break;
-						case DL_DISASM:
-							buf = (char *) "disassembly";
-							break;
-						default:
-							buf = (char *) "dump";
-							break;
-					}
-					std = true;
 					break;
 
 				case LT_DEBUGSRC:

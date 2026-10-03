@@ -178,9 +178,10 @@ void TDebugger::SetParams(ChipCpu8080 *cpu, ChipMemory *mem, TComputerModel mode
 //-----------------------------------------------------------------------------
 void TDebugger::Reset()
 {
+	flag = 0;
 	bp[0].addr = 0;
 	bp[0].active = false;
-	flag = 0;
+	reqUpdateRefresh = URQ_LOAD_PC;
 }
 //-----------------------------------------------------------------------------
 BYTE TDebugger::GetMemState(int addr, BYTE *value)
@@ -311,39 +312,6 @@ char *TDebugger::MakeInstrLine(WORD *addr)
 	return lineBuffer;
 }
 //-----------------------------------------------------------------------------
-char *TDebugger::MakeDumpLine(WORD *addr)
-{
-	if (Settings->Debugger->listType == DL_DISASM)
-		return MakeInstrLine(addr);
-
-	int i, j = 6, k;
-	WORD adr = *addr;
-	BYTE ch;
-
-	sprintf(lineBuffer, radix ? "#%04X " : "%05d ", adr);
-	if (Settings->Debugger->listType == DL_DUMP) {
-		for (i = 0; i < 8; i++) {
-			ch = memory->ReadByte(adr++);
-			sprintf(lineBuffer + j, radix ? "#%04X" : "%05d", ch);
-			j += 4;
-		}
-		k = 8;
-	}
-	else
-		k = 32;
-
-	adr = *addr;
-	for (i = 0; i < k; i++) {
-		ch = memory->ReadByte(adr++);
-		if (ch < 0x20 || ch > 0x7F)
-			ch = 0x7F;
-		lineBuffer[j++] = (char) ch;
-	}
-
-	*addr = adr;
-	return lineBuffer;
-}
-//-----------------------------------------------------------------------------
 WORD TDebugger::FindPeviousInstruction(WORD pc, int howmany)
 {
 	while (howmany-- > 0) {
@@ -435,7 +403,6 @@ void TDebugger::FillDisass(std::vector<TDisassLine> &result, unsigned numberOfIt
 	}
 
 	cpuPCTrace[ii] = pc;
-	return;
 }
 //-----------------------------------------------------------------------------
 void TDebugger::FillRegs(std::vector<std::string> &result, bool memEdit)
@@ -475,8 +442,6 @@ void TDebugger::FillRegs(std::vector<std::string> &result, bool memEdit)
 		std::snprintf(regLine.data(), regLine.size(), fmt, regs[i], k);
 		result.push_back(regLine);
 	}
-
-	return;
 }
 //-----------------------------------------------------------------------------
 void TDebugger::FillFlags(std::vector<std::string> &result)
@@ -557,6 +522,78 @@ void TDebugger::RefreshRequest(bool firstTime)
 	reqUpdateRefresh = 0;
 }
 //---------------------------------------------------------------------------
+void TDebugger::HandleKeyboardInput(TKeyInput key)
+{
+	unsigned i, curs = 0;
+
+	auto updatePCTrace = [&]() {
+		WORD nextPC;
+		unsigned ii, pc = cpuTraceTop;
+
+		cpuCursorY = -1U;
+		for (ii = 0; ii < currentNumberOfLines; ii++) {
+			nextPC = (pc &= 0xFFFF);
+			cpuPCTrace[ii] = nextPC;
+
+			MakeInstrLine(&nextPC);
+			if (pc == cpuTraceCur)
+				cpuCursorY = ii;
+
+			pc = nextPC;
+		}
+
+		cpuPCTrace[ii] = pc;
+	};
+
+	if (key == K_UP) {
+		if (cpuTraceCur > cpuTraceTop) {
+			for (i = 1; i < currentNumberOfLines; i++) {
+				if (cpuPCTrace[i] == cpuTraceCur)
+					cpuTraceCur = cpuPCTrace[i - 1];
+			}
+		}
+		else
+			cpuTraceTop = cpuTraceCur = FindPeviousInstruction(cpuTraceCur, 1);
+	}
+	else if (key == K_DOWN) {
+		for (i = 0; i < currentNumberOfLines; i++) {
+			if (cpuPCTrace[i] == cpuTraceCur) {
+				cpuTraceCur = cpuPCTrace[i + 1];
+
+				if (i == currentNumberOfLines - 1)
+					cpuTraceTop = cpuPCTrace[1];
+				break;
+			}
+		}
+	}
+	else if (key == K_PAGEUP) {
+		for (i = 0; i < currentNumberOfLines; i++)
+			if (cpuTraceCur == cpuPCTrace[i])
+				curs = i;
+
+		cpuTraceTop = FindPeviousInstruction(cpuTraceTop, currentNumberOfLines - 1);
+		updatePCTrace();
+
+		reqUpdateRefresh = URQ_PAGE_SW | curs;
+	}
+	else if (key == K_PAGEDOWN) {
+		for (i = 0; i < currentNumberOfLines; i++)
+			if (cpuTraceCur == cpuPCTrace[i])
+				curs = i;
+
+		cpuTraceTop = cpuPCTrace[currentNumberOfLines - 1];
+		updatePCTrace();
+
+		reqUpdateRefresh = URQ_PAGE_SW | curs;
+	}
+	else if (key == K_HOME) {
+		cpuTraceTop = cpuTraceCur = cpu->GetPC();
+
+		updatePCTrace();
+		reqUpdateRefresh = URQ_PAGE_SW;
+	}
+}
+//---------------------------------------------------------------------------
 void TDebugger::DoStepInto()
 {
 	cpu->DoInstruction();
@@ -587,6 +624,13 @@ void TDebugger::DoStepOver()
 //---------------------------------------------------------------------------
 void TDebugger::DoStepOut()
 {
+	WORD adr = cpu->GetPC();
+	BYTE opcode = memory->ReadByte(adr);
+	if (opcode == 0xC9 || opcode == 0xD9 || (opcode & 0xC7) == 0xC0) { // RET, Rx
+		cpu->DoInstruction();
+		return;
+	}
+
 	wsp = cpu->GetSP();
 	bp[0].active = false;
 	if (CheckBreakPoint(cpu->GetPC()))
@@ -608,12 +652,41 @@ void TDebugger::DoStepToNext()
 	flag = 9;
 }
 //---------------------------------------------------------------------------
-void TDebugger::SetBreakPoint(int index, bool active, const char *addr)
+void TDebugger::ToggleBreakPoint(int index, bool active)
 {
+	ToggleBreakPoint(nullptr, index, &active);
+}
+void TDebugger::ToggleBreakPoint(const char *addr, int index, bool *active)
+{
+	int newAddr = addr ? strtoul(addr, nullptr, radix ? 16 : 10) & 0xFFFF : -1;
+
+	// if index < 0 find the one with newAddr OR first inactive breakpoint slot
+	if (index < 0) {
+		if (newAddr < 0)
+			return;
+
+		for (int ii = 1; ii < MAX_BREAK_POINTS; ii++) {
+			if (bp[ii].addr == newAddr) {
+				index = ii;
+				break;
+			}
+		}
+	}
+	if (index < 0) {
+		for (int ii = 1; ii < MAX_BREAK_POINTS; ii++) {
+			if (!bp[ii].active) {
+				index = ii;
+				break;
+			}
+		}
+	}
 	if (index >= 0 && index < MAX_BREAK_POINTS) {
-		bp[index].active = active;
-		if (addr)
-			bp[index].addr = strtoul(addr, nullptr, radix ? 16 : 10);
+		if (active)
+			bp[index].active = *active;
+		else
+			bp[index].active = !bp[index].active;
+		if (newAddr >= 0)
+			bp[index].addr = newAddr;
 	}
 }
 //---------------------------------------------------------------------------
@@ -628,15 +701,13 @@ bool TDebugger::CheckBreakPoint(WORD addr)
 //---------------------------------------------------------------------------
 bool TDebugger::CheckDebugRet(int *t)
 {
-	BYTE oc = memory->ReadByte(cpu->GetPC());
+	BYTE opcode = memory->ReadByte(cpu->GetPC());
 	*t = cpu->DoInstruction();
 
-	if (
-	  (oc == 0xC9 || oc == 0xD9 ||
-	  ((oc & 0xC7) == 0xC0 && *t == 11)
-	  ) && wsp < cpu->GetSP()
-	)
-		return true;
+	if ((opcode == 0xC9 || opcode == 0xD9 ||
+		((opcode & 0xC7) == 0xC0 && *t == 11)) &&
+			wsp < cpu->GetSP())
+				return true;
 
 	return false;
 }

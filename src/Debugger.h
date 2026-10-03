@@ -58,6 +58,12 @@ typedef struct TDisassLine {
 	WORD branchTarget;      // address of the branch target (if applicable)
 } TDisassLine;
 //-----------------------------------------------------------------------------
+enum TKeyInput {
+	K_UP = 1, K_DOWN, K_LEFT, K_RIGHT,
+	K_PAGEUP, K_PAGEDOWN, K_HOME, K_END,
+	K_INSERT, K_DELETE,	K_BACKSPACE, K_SPACE
+};
+//-----------------------------------------------------------------------------
 class TDebugger
 {
 	private:
@@ -100,8 +106,6 @@ class TDebugger
 		WORD  FindPeviousInstruction(WORD pc, int howmany);
 		WORD  FindNextInstruction(WORD pc, int howmany);
 		char *MakeInstrLine(WORD *addr);
-		char *MakeDumpLine(WORD *addr);
-		WORD  GetCurrentSourceAddress();
 
 	public:
 		int flag;
@@ -113,6 +117,7 @@ class TDebugger
 		inline bool GetMem(BYTE *dest, int addr, int size) { return memory->GetMem(dest, addr, size); }
 		inline void WriteByte(int addr, BYTE value) { memory->WriteByte(addr, value); }
 		inline BYTE *GetChangingMemState() { return memory->GetChangingMemState(); }
+		inline void SetTraceCursor(unsigned index) { cpuTraceCur = cpuPCTrace[index]; }
 
 		void FillDisass(std::vector<TDisassLine> &result, unsigned numberOfItems);
 		void FillRegs(std::vector<std::string> &result, bool memEdit = false);
@@ -122,11 +127,13 @@ class TDebugger
 		void FillBreakpoints(std::vector<std::pair<std::string, bool>> &result);
 
 		void RefreshRequest(bool firstTime = false);
+		void HandleKeyboardInput(TKeyInput key);
 		void DoStepInto();
 		void DoStepOver();
 		void DoStepOut();
 		void DoStepToNext();
-		void SetBreakPoint(int index, bool active, const char *addr = NULL);
+		void ToggleBreakPoint(int index, bool active = false);
+		void ToggleBreakPoint(const char *addr = NULL, int index = -1, bool *active = NULL);
 		bool CheckBreakPoint(WORD addr);
 		bool CheckDebugRet(int *t);
 };

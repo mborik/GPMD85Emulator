@@ -679,7 +679,7 @@ void TEmulator::CpuTimerCallback()
 		}
 
 		// back to debugger after RET, Rx instructions
-		if (Debugger->flag == 9 && Debugger->CheckDebugRet(&tci)) {
+		if (Debugger->flag && Debugger->CheckDebugRet(&tci)) {
 			Debugger->Reset();
 			ActionDebugger();
 			return;
