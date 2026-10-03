@@ -103,8 +103,10 @@ void IifTapeMato::TapeClockService(int ticks, int dur)
 //					debug("block: %d", (int) dataLen);
 				}
 				else if (tapeRxState == TP_RX_BLOCK_END) {
-					TapeCommand(CMD_NEXT, nullptr);
+					// CMD_NEXT prepares the next block (state LEADER) or stops the tape (state IDLE)
 					tapeRxState = TP_RX_IDLE;
+					counter = -1;
+					TapeCommand(CMD_NEXT, nullptr);
 				}
 				else {
 					tapeRxState = TP_RX_LOG_1;
@@ -113,6 +115,12 @@ void IifTapeMato::TapeClockService(int ticks, int dur)
 			}
 			else
 				tapeRxState = TP_RX_LOG_0;
+			break;
+
+		case TP_RX_GAP :
+			// gap before a header block (CMD_NEXT without autostop): go straight to the leader
+			counter = -1;
+			tapeRxState = TP_RX_LEADER;
 			break;
 
 		case TP_RX_PULSE_0 :
