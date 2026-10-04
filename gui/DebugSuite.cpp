@@ -53,6 +53,12 @@ static ImGuiItemFlags item_flags =
 	ImGuiItemFlags_NoNav |
 	ImGuiItemFlags_NoTabStop |
 	ImGuiItemFlags_NoNavDefaultFocus;
+
+static ImGuiPopupFlags popup_flags =
+	ImGuiWindowFlags_AlwaysAutoResize |
+	ImGuiWindowFlags_NoMove |
+	ImGuiWindowFlags_NoDecoration |
+	ImGuiWindowFlags_NoSavedSettings;
 //-----------------------------------------------------------------------------
 void UserInterface::InitDebugSuite()
 {
@@ -215,9 +221,6 @@ void UserInterface::DrawDebugWidgetDisass(int numberOfItems)
 			ImGui::PopStyleColor(2);
 
 		if (ImGui::BeginPopupContextItem()) {
-			static char bpAddrInputBuf[12];
-			strcpy(bpAddrInputBuf, line.text.substr(7, 6).c_str());
-
 			if (ImGui::MenuItem("Toggle Breakpoint", "Space")) {
 				Debugger->ToggleBreakPoint(addr.c_str(), -1);
 			}
@@ -228,27 +231,8 @@ void UserInterface::DrawDebugWidgetDisass(int numberOfItems)
 			if (ImGui::MenuItem("Goto Address", "G")) {
 				// TODO
 			}
-			if (ImGui::MenuItem("Move Cursor to Address", "M")) {
-				// TODO
-			}
 			if (ImGui::MenuItem("Set PC to Address", "Z")) {
 				// TODO
-			}
-			ImGui::Separator();
-			ImGui::LabelText("##instEditLabel", "Edit Instruction:");
-			ImGui::SameLine(GetMonoTextWidth(18, 4.0f));
-			ImGui::SetNextItemWidth(GetMonoTextWidth(7, 4.0f));
-			ImGui::InputText(
-				"##instEdit",
-				bpAddrInputBuf, 7,
-				ImGuiInputTextFlags_AlwaysOverwrite |
-				ImGuiInputTextFlags_CharsHexadecimal |
-				ImGuiInputTextFlags_EnterReturnsTrue
-			);
-			ImGui::SameLine();
-			if (ImGui::Button("\u2713")) {
-				// TODO: Handle instruction edit here
-				ImGui::CloseCurrentPopup();
 			}
 			ImGui::EndPopup();
 		}
@@ -286,7 +270,9 @@ void UserInterface::DrawDebugWidgetDisass(int numberOfItems)
 //-----------------------------------------------------------------------------
 void UserInterface::DrawDebugWidgetRegs()
 {
+	static char regEditorValue[8], regEditorKey[3];
 	static std::vector<std::string> regs, flags;
+	const ImGuiStyle& style = ImGui::GetStyle();
 
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
 	ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.0f, 0.0f));
@@ -310,6 +296,45 @@ void UserInterface::DrawDebugWidgetRegs()
 				ImVec2(GetMonoTextWidth(8), 0)
 			);
 
+			ImVec2 button_pos = ImGui::GetItemRectMin();
+
+			if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+				std::string reg = regs[i].substr(3, 5);
+				if (Settings->Debugger->hex)
+					reg = reg.substr(1);
+				strcpy(regEditorKey, regs[i].substr(0, 2).c_str());
+				strcpy(regEditorValue, reg.c_str());
+
+				ImGui::OpenPopup("DebugRegsEdit");
+			}
+
+			ImGui::SetNextWindowPos(ImVec2(
+				button_pos.x + GetMonoTextWidth(Settings->Debugger->hex ? 3.5f : 2.5f),
+				button_pos.y - (style.ItemInnerSpacing.y + style.FramePadding.y - 1.0f)
+			));
+			if (ImGui::BeginPopup("DebugRegsEdit", popup_flags)) {
+				unsigned width = Settings->Debugger->hex ? 5 : 6;
+				ImGui::SetNextItemWidth(GetMonoTextWidth(width, style.FramePadding.x));
+
+				bool enterPressed = ImGui::InputText(
+					"##regAddressEditor",
+					regEditorValue, width,
+					ImGuiInputTextFlags_AlwaysOverwrite |
+					ImGuiInputTextFlags_EnterReturnsTrue |
+					(Settings->Debugger->hex ?
+						ImGuiInputTextFlags_CharsHexadecimal :
+						ImGuiInputTextFlags_CharsDecimal)
+				);
+
+				ImGui::SameLine(0, 0.05f);
+				if (ImGui::Button("\u2713") || enterPressed) {
+					Debugger->ModifyRegister(regEditorKey, regEditorValue);
+					ImGui::CloseCurrentPopup();
+				}
+
+				ImGui::EndPopup();
+			}
+
 			ImGui::PopID();
 		}
 
@@ -318,6 +343,10 @@ void UserInterface::DrawDebugWidgetRegs()
 		for (int i = 0; i < flags.size(); i++) {
 			ImGui::PushID(i);
 			ImGui::Selectable(flags[i].c_str(), false, selectable_flags);
+
+			if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+				Debugger->ModifyFlag(i);
+
 			ImGui::PopID();
 		}
 
@@ -586,7 +615,7 @@ void UserInterface::DrawDebugWindow()
 				}
 				ImGui::SetItemTooltip("Leave routine (Shift+F8)");
 				ImGui::SameLine(0.0f, spacing);
-				if (ImGui::Button("Until Next")) {
+				if (ImGui::Button("Next")) {
 					Debugger->DoStepToNext();
 				}
 				ImGui::SetItemTooltip("Run until next instruction (Shift+F7)");
@@ -679,7 +708,7 @@ void UserInterface::DrawMemEditDialog()
 
 			auto ProcessGotoAddr = [&](const char *c) {
 				size_t gotoAddr;
-				if (sscanf(c, "%zX", &gotoAddr) == 1) {
+				if (sscanf(c, "%" _pfSizeT "X", &gotoAddr) == 1) {
 					memEditor->GotoAddr = gotoAddr;
 					memEditor->HighlightMin = memEditor->HighlightMax = (size_t) -1;
 				}

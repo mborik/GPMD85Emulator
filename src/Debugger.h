@@ -45,6 +45,11 @@
 #include "ChipCpu8080.h"
 #include "ChipMemory.h"
 #include <vector>
+#if defined(_MSC_VER) && !defined(__clang__)
+#define _pfSizeT "I"
+#else
+#define _pfSizeT "z"
+#endif
 //-----------------------------------------------------------------------------
 enum TDisassLineColor { COL_NORMAL, COL_CURSOR, COL_CURRENT, COL_BREAKPT };
 typedef struct TDisassLine {
@@ -96,9 +101,9 @@ class TDebugger
 
 		static char instr8080[256][11];     // 8080 mnemonic
 		static char instrZ80[256][14];      // Z80 mnemonic
-
 		static char asm8080[][5];           // assembler instruction array
 		static char asmZ80[][5];
+		static char regs[6][3];             // register names
 
 		char lineBuffer[256];
 
@@ -132,6 +137,9 @@ class TDebugger
 		void DoStepOver();
 		void DoStepOut();
 		void DoStepToNext();
+		void ModifyRegister(const char *reg, const char *value);
+		void ModifyRegister(const char *reg, unsigned value);
+		void ModifyFlag(int index);
 		void ToggleBreakPoint(int index, bool active = false);
 		void ToggleBreakPoint(const char *addr = NULL, int index = -1, bool *active = NULL);
 		bool CheckBreakPoint(WORD addr);

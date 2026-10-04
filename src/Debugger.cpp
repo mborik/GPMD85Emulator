@@ -139,6 +139,8 @@ char TDebugger::asmZ80[][5] = {
 	/* 53 */ "(bc)", "(de)", "(sp)"
 };
 //-----------------------------------------------------------------------------
+char TDebugger::regs[6][3] = { "AF", "BC", "DE", "HL", "PC", "SP" };
+//-----------------------------------------------------------------------------
 TDebugger::TDebugger()
 {
 	cpu = NULL;
@@ -196,7 +198,7 @@ unsigned TDebugger::GetFlagState()
 	static const BYTE flags[] = { 0x40, 0x01, 0x04, 0x80 }; // ZF,CF,PV,SF
 	WORD readptr = cpu->GetPC();
 	BYTE opcode = memory->ReadByte(readptr),
-	     fstate = cpu->GetAF() & 0xFF;
+		 fstate = cpu->GetAF() & 0xFF;
 
 	auto doRet = [&]() -> unsigned {
 		WORD ptr = cpu->GetSP();
@@ -407,8 +409,6 @@ void TDebugger::FillDisass(std::vector<TDisassLine> &result, unsigned numberOfIt
 //-----------------------------------------------------------------------------
 void TDebugger::FillRegs(std::vector<std::string> &result, bool memEdit)
 {
-	static char regs[6][3] = { "AF", "BC", "DE", "HL", "PC", "SP" };
-
 	if (cpu == NULL || memory == NULL)
 		return;
 	const char *fmt = radix ? "%s:#%04X" : "%s:%05d";
@@ -650,6 +650,75 @@ void TDebugger::DoStepToNext()
 	bp[0].addr = FindNextInstruction(adr, 1);
 	bp[0].active = true;
 	flag = 9;
+}
+//---------------------------------------------------------------------------
+void TDebugger::ModifyRegister(const char *reg, const char *value)
+{
+	size_t gotoAddr;
+	const char *fmt = radix ? "%" _pfSizeT "X" : "%" _pfSizeT "u";
+
+	if (sscanf(value, fmt, &gotoAddr) == 1) {
+		ModifyRegister(reg, gotoAddr);
+	}
+}
+//---------------------------------------------------------------------------
+void TDebugger::ModifyRegister(const char *reg, unsigned value)
+{
+	int regCode = -1;
+	for (int i = 0; i < 6; i++) {
+		if (strncmp(reg, regs[i], 2) == 0) {
+			regCode = i;
+			break;
+		}
+	}
+
+	value &= 0xFFFF;
+	switch (regCode) {
+		case 0: // AF
+			cpu->SetAF(value);
+			break;
+		case 1: // BC
+			cpu->SetBC(value);
+			break;
+		case 2: // DE
+			cpu->SetDE(value);
+			break;
+		case 3: // HL
+			cpu->SetHL(value);
+			break;
+		case 4: // PC
+			cpu->SetPC(value);
+			break;
+		case 5: // SP
+			cpu->SetSP(value);
+			break;
+	}
+}
+//---------------------------------------------------------------------------
+void TDebugger::ModifyFlag(int index)
+{
+	WORD af = cpu->GetAF();
+
+	switch (index) {
+		case 0: // Sign flag
+			cpu->SetAF(af ^ FLAG_S);
+			break;
+		case 1: // Zero flag
+			cpu->SetAF(af ^ FLAG_Z);
+			break;
+		case 2: // Auxiliary carry flag
+			cpu->SetAF(af ^ FLAG_AC);
+			break;
+		case 3: // Parity flag
+			cpu->SetAF(af ^ FLAG_PE);
+			break;
+		case 4: // Carry flag
+			cpu->SetAF(af ^ FLAG_CY);
+			break;
+		case 5: // Interrupt flag
+			cpu->SetIff(!cpu->IsInterruptEnabled());
+			break;
+	}
 }
 //---------------------------------------------------------------------------
 void TDebugger::ToggleBreakPoint(int index, bool active)
