@@ -36,9 +36,10 @@
 #define MEMMAP_TEX_SIZE 256
 #define MEMMAP_TEX_SCALE 2
 //-----------------------------------------------------------------------------
+#define radix Settings->Debugger->hex
+//-----------------------------------------------------------------------------
 static ImGuiTabBarFlags tab_bar_flags =
 	ImGuiTabBarFlags_FittingPolicyMixed |
-	ImGuiTabBarFlags_Reorderable |
 	ImGuiTabBarFlags_NoCloseWithMiddleMouseButton |
 	ImGuiTabBarFlags_NoTabListScrollingButtons |
 	ImGuiTabBarFlags_DrawSelectedOverline;
@@ -152,8 +153,7 @@ void UserInterface::DrawDebugWidgetDisass(int numberOfItems)
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
 	ImGui::BeginChild("DebugDisass", ImVec2(-FLT_MIN, 0.0f),
 		ImGuiChildFlags_Borders |
-		ImGuiChildFlags_AutoResizeY |
-		ImGuiWindowFlags_NoScrollWithMouse);
+		ImGuiChildFlags_AutoResizeY);
 
 	if (ImGui::IsWindowHovered() || ImGui::IsWindowFocused()) {
 		float wheel = ImGui::GetIO().MouseWheel;
@@ -166,16 +166,13 @@ void UserInterface::DrawDebugWidgetDisass(int numberOfItems)
 	float widthWidth = ImGui::GetContentRegionAvail().x;
 	float breakpointOffset = GetMonoTextWidth(14.5, 0.0f);
 
-	ImGui::PushItemFlag(
-		ImGuiItemFlags_NoNav |
-		ImGuiItemFlags_NoTabStop |
-		ImGuiItemFlags_NoNavDefaultFocus, true);
+	ImGui::PushItemFlag(item_flags, true);
 
 	Debugger->FillDisass(disassLines, numberOfItems);
 	for (int i = 0; i < disassLines.size(); i++) {
 		TDisassLine line = disassLines[i];
 		std::string addr = line.text.substr(1, 5);
-		if (Settings->Debugger->hex)
+		if (radix)
 			addr = addr.substr(1);
 
 		ImGuiSelectableFlags selectableFlags = selectable_flags;
@@ -243,7 +240,7 @@ void UserInterface::DrawDebugWidgetDisass(int numberOfItems)
 			if (line.isBranchTarget) {
 				ImGui::SameLine(widthWidth - GetMonoTextWidth(6, 0.0f));
 				ImGui::TextColored(branchColor,
-					Settings->Debugger->hex ? "#%02X%s" : "%03d%s",
+					radix ? "#%02X%s" : "%03d%s",
 					line.branchTarget, direction);
 			}
 			else if (line.isBranchSource) {
@@ -270,14 +267,14 @@ void UserInterface::DrawDebugWidgetDisass(int numberOfItems)
 //-----------------------------------------------------------------------------
 void UserInterface::DrawDebugWidgetRegs()
 {
-	static char regEditorValue[8], regEditorKey[3];
+	static char regEditorValue[8], regEditorKey[3], tStatesText[16];
 	static std::vector<std::string> regs, flags;
 	const ImGuiStyle& style = ImGui::GetStyle();
 
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
 	ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.0f, 0.0f));
 
-	ImGui::BeginChild("DebugRegs", ImVec2(0, 6.25 * ImGui::GetTextLineHeightWithSpacing()), ImGuiChildFlags_Borders);
+	ImGui::BeginChild("DebugRegs", ImVec2(0, GetTextLineHeight(8)), ImGuiChildFlags_Borders);
 
 	ImGui::PushItemFlag(item_flags, true);
 	if (ImGui::BeginTable("RegsLayout", 2, ImGuiTableFlags_NoSavedSettings)) {
@@ -300,7 +297,7 @@ void UserInterface::DrawDebugWidgetRegs()
 
 			if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
 				std::string reg = regs[i].substr(3, 5);
-				if (Settings->Debugger->hex)
+				if (radix)
 					reg = reg.substr(1);
 				strcpy(regEditorKey, regs[i].substr(0, 2).c_str());
 				strcpy(regEditorValue, reg.c_str());
@@ -309,11 +306,11 @@ void UserInterface::DrawDebugWidgetRegs()
 			}
 
 			ImGui::SetNextWindowPos(ImVec2(
-				button_pos.x + GetMonoTextWidth(Settings->Debugger->hex ? 3.5f : 2.5f),
+				button_pos.x + GetMonoTextWidth(radix ? 3.5f : 2.5f),
 				button_pos.y - (style.ItemInnerSpacing.y + style.FramePadding.y - 1.0f)
 			));
 			if (ImGui::BeginPopup("DebugRegsEdit", popup_flags)) {
-				unsigned width = Settings->Debugger->hex ? 5 : 6;
+				unsigned width = radix ? 5 : 6;
 				ImGui::SetNextItemWidth(GetMonoTextWidth(width, style.FramePadding.x));
 
 				bool enterPressed = ImGui::InputText(
@@ -321,7 +318,7 @@ void UserInterface::DrawDebugWidgetRegs()
 					regEditorValue, width,
 					ImGuiInputTextFlags_AlwaysOverwrite |
 					ImGuiInputTextFlags_EnterReturnsTrue |
-					(Settings->Debugger->hex ?
+					(radix ?
 						ImGuiInputTextFlags_CharsHexadecimal :
 						ImGuiInputTextFlags_CharsDecimal)
 				);
@@ -353,35 +350,155 @@ void UserInterface::DrawDebugWidgetRegs()
 		ImGui::EndTable();
 	}
 
+	std::snprintf(tStatesText, sizeof(tStatesText), "T:%010d", Debugger->GetTCycles());
+	ImGui::PushID("##tcycles");
+	ImGui::Selectable(tStatesText, false, selectable_flags);
+	if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+		Debugger->ResetTCycles();
+	ImGui::PopID();
+
+	ImGui::TextUnformatted(Debugger->GetMemoryState());
+
 	ImGui::PopItemFlag();
 	ImGui::EndChild();
 	ImGui::PopStyleVar(2);
 }
 //-----------------------------------------------------------------------------
-void UserInterface::DrawDebugWidgetStackNests()
+void UserInterface::DrawDebugWidgetStackBreakNest()
 {
-	static std::vector<std::string> stack;
-	static std::vector<std::string> nests;
+	static char stackEditorValue[8];
+	static int stackEditorOffset;
+	static char breakpointId[16];
+	static char breakpointEditorValue[8];
+	static int breakpointEditorIndex = -1;
+	static std::vector<std::string> stack, nests;
+	static std::vector<std::pair<std::string, bool>> breaks;
+	const ImGuiStyle& style = ImGui::GetStyle();
 
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
 
 	if (ImGui::BeginTabBar("DebugStackNests", tab_bar_flags)) {
-		if (ImGui::BeginTabItem("Stack")) {
+		if (ImGui::BeginTabItem("SP")) {
 			ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.0f, 0.0f));
-			ImGui::BeginChild("DebugStack", ImVec2(0, 6.25 * ImGui::GetTextLineHeightWithSpacing()), ImGuiChildFlags_Borders);
+			ImGui::BeginChild("DebugStack", ImVec2(0, GetTextLineHeight(6)), ImGuiChildFlags_Borders);
 
 			ImGui::PushItemFlag(item_flags, true);
 
 			Debugger->FillStack(stack);
 			for (int i = 0; i < stack.size(); i++) {
 				ImGui::PushID(i);
+				ImGui::Selectable(stack[i].c_str(), false, selectable_flags);
 
-				if (
-					ImGui::Selectable(stack[i].c_str(), false, selectable_flags) &&
-					ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)
-				) {
-					// TODO handle edit
-					// strcpy(stack_addrInputBuf, stack[i].substr(Settings->Debugger->hex ? 8 : 7).c_str());
+				ImVec2 button_pos = ImGui::GetItemRectMin();
+
+				if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+					std::string value = stack[i].substr(7, 5);
+					if (radix)
+						value = value.substr(1);
+					strcpy(stackEditorValue, value.c_str());
+					stackEditorOffset = (i - 1) * 2;
+
+					ImGui::OpenPopup("DebugStackEdit");
+				}
+
+				ImGui::SetNextWindowPos(ImVec2(
+					button_pos.x + GetMonoTextWidth(radix ? 7.5f : 6.5f),
+					button_pos.y - (style.ItemInnerSpacing.y + style.FramePadding.y - 1.0f)
+				));
+				if (ImGui::BeginPopup("DebugStackEdit", popup_flags)) {
+					unsigned width = radix ? 5 : 6;
+					ImGui::SetNextItemWidth(GetMonoTextWidth(width, style.FramePadding.x));
+
+					bool enterPressed = ImGui::InputText(
+						"##stackValueEditor",
+						stackEditorValue, width,
+						ImGuiInputTextFlags_AlwaysOverwrite |
+						ImGuiInputTextFlags_EnterReturnsTrue |
+						(radix ?
+							ImGuiInputTextFlags_CharsHexadecimal :
+							ImGuiInputTextFlags_CharsDecimal)
+					);
+
+					ImGui::SameLine(0, 0.05f);
+					if (ImGui::Button("\u2713") || enterPressed) {
+						Debugger->ModifyStack(stackEditorOffset, stackEditorValue);
+						ImGui::CloseCurrentPopup();
+					}
+
+					ImGui::EndPopup();
+				}
+
+				ImGui::PopID();
+			}
+
+			ImGui::PopItemFlag();
+			ImGui::EndChild();
+			ImGui::PopStyleVar();
+			ImGui::EndTabItem();
+		}
+
+		if (ImGui::BeginTabItem("BP")) {
+			ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.0f, 0.0f));
+			ImGui::BeginChild("DebugBreakpoints", ImVec2(0, GetTextLineHeight(6)), ImGuiChildFlags_Borders);
+
+			ImGui::PushItemFlag(item_flags, true);
+
+			Debugger->FillBreakpoints(breaks);
+			for (int i = 0; i < breaks.size(); i++) {
+				std::snprintf(breakpointId, sizeof(breakpointId), "##bpCheck%d", i);
+
+				ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
+				if (ImGui::Checkbox(breakpointId, &breaks[i].second))
+					Debugger->ToggleBreakPoint(i + 1, breaks[i].second);
+
+				ImGui::PopStyleVar();
+				ImGui::SameLine();
+
+				std::snprintf(breakpointId, sizeof(breakpointId), "bpValue%d", i);
+				ImGui::PushID(breakpointId);
+				ImGui::Selectable(breaks[i].first.c_str(), false, selectable_flags);
+
+				ImVec2 button_pos = ImGui::GetItemRectMin();
+
+				if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+					std::string value = breaks[i].first.substr(radix ? 5 : 4);
+					strcpy(breakpointEditorValue, value.c_str());
+					breakpointEditorIndex = i + 1;
+
+					ImGui::OpenPopup("DebugBreakpointEdit");
+				}
+
+				ImGui::SetNextWindowPos(ImVec2(
+					button_pos.x + GetMonoTextWidth(radix ? 4.5f : 3.5f),
+					button_pos.y - (style.ItemInnerSpacing.y + style.FramePadding.y - 1.0f)
+				));
+				if (ImGui::BeginPopup("DebugBreakpointEdit", popup_flags)) {
+					unsigned width = radix ? 5 : 6;
+					ImGui::SetNextItemWidth(GetMonoTextWidth(width, style.FramePadding.x));
+
+					bool enterPressed = ImGui::InputText(
+						"##breakpointValueEditor",
+						breakpointEditorValue, width,
+						ImGuiInputTextFlags_AlwaysOverwrite |
+						ImGuiInputTextFlags_EnterReturnsTrue |
+						(radix ?
+							ImGuiInputTextFlags_CharsHexadecimal :
+							ImGuiInputTextFlags_CharsDecimal)
+					);
+
+					ImGui::SameLine(0, 0.05f);
+					if (ImGui::Button("\u2713") || enterPressed) {
+						bool active = true;
+						Debugger->ToggleBreakPoint(
+							breakpointEditorValue,
+							breakpointEditorIndex,
+							&active
+						);
+
+						ImGui::CloseCurrentPopup();
+					}
+
+					ImGui::EndPopup();
 				}
 
 				ImGui::PopID();
@@ -395,7 +512,7 @@ void UserInterface::DrawDebugWidgetStackNests()
 
 		if (ImGui::BeginTabItem("Nests")) {
 			ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.0f, 0.0f));
-			ImGui::BeginChild("DebugNests", ImVec2(0, 6.25 * ImGui::GetTextLineHeightWithSpacing()), ImGuiChildFlags_Borders);
+			ImGui::BeginChild("DebugNests", ImVec2(0, GetTextLineHeight(6)), ImGuiChildFlags_Borders);
 
 			if (ImGui::BeginTable("NestsLayout", 2, ImGuiTableFlags_NoSavedSettings)) {
 				ImGui::TableSetupColumn("##nesthdr1", ImGuiTableColumnFlags_NoHide);
@@ -457,64 +574,98 @@ void UserInterface::DrawDebugWidgetStackNests()
 	ImGui::PopStyleVar();
 }
 //-----------------------------------------------------------------------------
-void UserInterface::DrawDebugWidgetBreaksWatchers()
+void UserInterface::DrawDebugWidgetWatchers(int maxLineHeight)
 {
-	static std::vector<std::pair<std::string, bool>> breaks;
-	static char bpAddrInputBuf[MAX_BREAK_POINTS][8];
-
-	static ImGuiMultiSelectFlags ms_flags =
-		ImGuiMultiSelectFlags_NoAutoSelect |
-		ImGuiMultiSelectFlags_NoAutoClear |
-		ImGuiMultiSelectFlags_ClearOnEscape;
+	static char watcherEditorValue[8];
+	static std::vector<std::string> watcher, regs;
+	const ImGuiStyle& style = ImGui::GetStyle();
 
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
 
-	if (ImGui::BeginTabBar("DebugBreaksWatchers", tab_bar_flags)) {
-		if (ImGui::BeginTabItem("Breaks")) {
+	if (ImGui::BeginTabBar("DebugWatchers", tab_bar_flags)) {
+		ImGui::PushID("DebugWatchers");
+
+		Debugger->FillRegs(regs);
+		Debugger->FillWatchMemory(watcher, maxLineHeight);
+
+		if (ImGui::TabItemButton("\u2193", ImGuiTabItemFlags_Trailing | ImGuiTabItemFlags_NoTooltip))
+			ImGui::OpenPopup("DebugWatchSrc");
+
+		ImGui::SetNextWindowSize(ImVec2(GetMonoTextWidth(9), 0));
+		if (ImGui::BeginPopup("DebugWatchSrc")) {
+			unsigned width = radix ? 5 : 6;
+			std::snprintf(
+				watcherEditorValue, sizeof(watcherEditorValue),
+				radix ? "%04X" : "%05d",
+				Settings->Debugger->listMemoryAddress
+			);
+
+			ImGui::SetNextItemWidth(GetMonoTextWidth(width, style.FramePadding.x));
+			bool enterPressed = ImGui::InputText(
+				"##watcherValueEditor",
+				watcherEditorValue, width,
+				ImGuiInputTextFlags_AlwaysOverwrite |
+				ImGuiInputTextFlags_EnterReturnsTrue |
+				(radix ?
+					ImGuiInputTextFlags_CharsHexadecimal :
+					ImGuiInputTextFlags_CharsDecimal)
+			);
+
+			ImGui::SameLine(0, 0.05f);
+			if (ImGui::Button("\u2713") || enterPressed) {
+				Settings->Debugger->listSource = LS_MEM;
+				Settings->Debugger->listMemoryAddress = strtoul(watcherEditorValue, nullptr, radix ? 16 : 10);
+				Settings->Debugger->listOffset = 0;
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::Separator();
+			if (ImGui::MenuItem(regs[3].c_str())) {
+				Settings->Debugger->listSource = LS_HL;
+				Settings->Debugger->listOffset = 0;
+			}
+			if (ImGui::MenuItem(regs[2].c_str())) {
+				Settings->Debugger->listSource = LS_DE;
+				Settings->Debugger->listOffset = 0;
+			}
+			if (ImGui::MenuItem(regs[1].c_str())) {
+				Settings->Debugger->listSource = LS_BC;
+				Settings->Debugger->listOffset = 0;
+			}
+			if (ImGui::MenuItem(regs[5].c_str())) {
+				Settings->Debugger->listSource = LS_SP;
+				Settings->Debugger->listOffset = 0;
+			}
+			if (ImGui::MenuItem(regs[4].c_str())) {
+				Settings->Debugger->listSource = LS_PC;
+				Settings->Debugger->listOffset = 0;
+			}
+			ImGui::EndPopup();
+		}
+
+		if (ImGui::BeginTabItem(watcher.front().c_str())) {
 			ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.0f, 0.0f));
-			ImGui::BeginChild("DebugBreaks", ImVec2(0, 0),
-				ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
-/*
-			if (breaks.empty())
-				Debugger->FillBreakpoints(breaks);
+			ImGui::BeginChild("DebugWatch", ImVec2(0, GetTextLineHeight(maxLineHeight)), ImGuiChildFlags_Borders);
 
-			ImGuiMultiSelectIO* ms_io = ImGui::BeginMultiSelect(ms_flags, -1, breaks.size());
-			ImGuiSelectionExternalStorage storage_wrapper;
-
-			storage_wrapper.UserData = (void*) Debugger;
-			storage_wrapper.AdapterSetItemSelected = [](ImGuiSelectionExternalStorage* self, int n, bool selected) {
-				TDebugger* debugger = (TDebugger*) self->UserData;
-				debugger->SetBreakPoint(n, selected);
-			};
-
-			storage_wrapper.ApplyRequests(ms_io);
-			for (int n = 0; n < breaks.size(); n++) {
-				ImGui::PushID(n);
-
-				ImGui::SetNextItemSelectionUserData(n);
-				ImGui::Checkbox("##bpchk", &breaks[n].second);
-				ImGui::SameLine();
-
-				strcpy(bpAddrInputBuf[n], breaks[n].first.c_str());
-				ImGui::InputText(
-					"##bpaddr",
-					bpAddrInputBuf[n], Settings->Debugger->hex ? 4 : 5,
-					ImGuiInputTextFlags_AlwaysOverwrite |
-					(Settings->Debugger->hex ?
-						ImGuiInputTextFlags_CharsHexadecimal :
-						ImGuiInputTextFlags_CharsDecimal)
-				);
-
-				ImGui::PopID();
+			if (ImGui::IsWindowHovered() || ImGui::IsWindowFocused()) {
+				float wheel = ImGui::GetIO().MouseWheel;
+				if (wheel > 0.0f)
+					Settings->Debugger->listOffset = std::max(-128, Settings->Debugger->listOffset - 2);
+				if (wheel < 0.0f)
+					Settings->Debugger->listOffset = std::min(128, Settings->Debugger->listOffset + 2);
 			}
 
-			storage_wrapper.ApplyRequests((ms_io = ImGui::EndMultiSelect()));
-*/
+			for (int ii = 1; ii < watcher.size(); ii++) {
+				ImGui::TextUnformatted(watcher[ii].c_str());
+				if (ii == 1 && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+					Settings->Debugger->listOffset = 0;
+			}
+
 			ImGui::EndChild();
 			ImGui::PopStyleVar();
 			ImGui::EndTabItem();
 		}
 
+		ImGui::PopID();
 		ImGui::EndTabBar();
 	}
 
@@ -533,9 +684,8 @@ void UserInterface::DrawDebugWindow()
 		ImGuiIO& io = ImGui::GetIO();
 
 		ImVec2 framePadding = style.FramePadding * 2.0f;
-		float lineHeight = ImGui::GetTextLineHeightWithSpacing();
 		float widthWidth = GetMonoTextWidth(52, framePadding.x);
-		float minHeight = widthWidth * 0.60f;
+		float minHeight = GetTextLineHeight(27);
 
 		if (isOpening)
 			ImGui::SetNextWindowFocus();
@@ -635,22 +785,23 @@ void UserInterface::DrawDebugWindow()
 
 				ImGui::SameLine();
 				ImGui::SetNextItemWidth(GetMonoTextWidth(4, framePadding.x));
-				int hexdecIdx = (int) Settings->Debugger->hex;
+				int hexdecIdx = (int) radix;
 				if (ImGui::SliderInt("##hexdec", &hexdecIdx, 0, 1, hexItems[hexdecIdx]))
-					Settings->Debugger->hex = (bool) hexdecIdx;
+					radix = (bool) hexdecIdx;
 
 				ImGui::TableNextRow(ImGuiTableColumnFlags_WidthStretch);
 
 				float cursorPos = ImGui::GetCursorPosY();
 				float childHeight = ImGui::GetCurrentWindow()->Size.y - cursorPos - framePadding.y;
-				int numberOfItems = static_cast<int>(ceil(childHeight / (lineHeight + 1.0f)));
+				int numberOfItems = static_cast<int>(ceil(childHeight / GetTextLineHeight(1)));
 
 				ImGui::TableNextColumn();
 				DrawDebugWidgetDisass(numberOfItems);
 
 				ImGui::TableNextColumn();
 				DrawDebugWidgetRegs();
-				DrawDebugWidgetStackNests();
+				DrawDebugWidgetStackBreakNest();
+				DrawDebugWidgetWatchers(numberOfItems - 18);
 
 				ImGui::EndTable();
 			}
@@ -797,7 +948,7 @@ void UserInterface::DrawMemMapDialog()
 				if (px >= 0 && px < MEMMAP_TEX_SIZE && py >= 0 && py < MEMMAP_TEX_SIZE) {
 					WORD addr = (WORD) (py * MEMMAP_TEX_SIZE + px);
 					ImGui::SetTooltip(
-						Settings->Debugger->hex ? "#%04X:#%02X" : "%05d:%03d",
+						radix ? "#%04X:#%02X" : "%05d:%03d",
 						addr, memMapReadBuffer[addr]
 					);
 				}

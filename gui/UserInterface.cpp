@@ -95,6 +95,14 @@ float UserInterface::GetMonoTextWidth(float textLength, float padding)
 	return (charWidth * textLength) + (padding * 2.0f);
 }
 //-----------------------------------------------------------------------------
+float UserInterface::GetTextLineHeight(float lines, float spacing)
+{
+	if (lines <= 0)
+		return 0.0f;
+
+	return (ImGui::GetTextLineHeightWithSpacing() + spacing) * lines;
+}
+//-----------------------------------------------------------------------------
 void UserInterface::DrawEmulatorWindow()
 {
 	static ImGuiWindowFlags window_flags =

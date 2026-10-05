@@ -135,11 +135,17 @@ class TSettings
 			SetPMD32Drive driveD;
 			char *sdRoot;
 		};
+		struct SetDebuggerBreakpoint {
+			bool active;
+			int memory;
+		};
 		struct SetDebugger {
 			bool hex;
 			bool z80;
-			TDebugListSource listSource;
 			int listOffset;
+			int listMemoryAddress;
+			TDebugListSource listSource;
+			SetDebuggerBreakpoint breakpoint[6];
 		};
 		struct SetMemoryBlock {
 			int start;

@@ -164,8 +164,14 @@ TDebugger::TDebugger()
 	}
 
 	for (ii = 0; ii < MAX_BREAK_POINTS; ii++) {
-		bp[ii].addr = 0;
-		bp[ii].active = false;
+		if (ii) {
+			bp[ii].addr = Settings->Debugger->breakpoint[ii - 1].memory & 0xFFFF;
+			bp[ii].active = Settings->Debugger->breakpoint[ii - 1].active;
+		}
+		else {
+			bp[ii].addr = 0;
+			bp[ii].active = false;
+		}
 	}
 
 	flag = 0;
@@ -337,12 +343,42 @@ WORD TDebugger::FindNextInstruction(WORD pc, int howmany)
 	return pc;
 }
 //-----------------------------------------------------------------------------
+const char *TDebugger::GetMemoryState()
+{
+	static char allRAMState[16] = {0};
+
+	if (memory == NULL)
+		return "";
+	if (memory->IsInReset())
+		return "Memory Reset";
+
+	std::snprintf(allRAMState, sizeof(allRAMState), "AllRAM:%s ",
+		memory->HasAllRAM() ? (memory->IsAllRAM() ? "1" : "0") : "-");
+
+	if (memory->IsMem256())
+		std::snprintf(allRAMState + 9, 4, "P:%x", memory->GetPage());
+	else if (model == CM_C2717) {
+		// if (systemPIO->width384) // TODO
+		// 	strcpy(allRAMState + 9, "384");
+		std::snprintf(allRAMState + 9, 4, "R:%d",
+			memory->IsRemapped() ? memory->GetRemapType() : 0);
+	}
+
+	return allRAMState;
+}
+//-----------------------------------------------------------------------------
 void TDebugger::FillDisass(std::vector<TDisassLine> &result, unsigned numberOfItems)
 {
 	if (cpu == NULL || memory == NULL)
 		return;
 
-	currentNumberOfLines = SDL_min(numberOfItems, MAX_TRACE_LINES - 1);
+	unsigned newNumberOfLines = SDL_min(numberOfItems, MAX_TRACE_LINES - 1);
+	if (newNumberOfLines != currentNumberOfLines) {
+		// if number of lines was changed, fix cpuTraceTop+cpuTraceCur (to keep in view)
+		currentNumberOfLines = newNumberOfLines;
+		RefreshRequest(true);
+	}
+
 	result.resize(currentNumberOfLines);
 
 	WORD realPC = cpu->GetPC(), nextPC;
@@ -492,11 +528,71 @@ void TDebugger::FillBreakpoints(std::vector<std::pair<std::string, bool>> &resul
 		return;
 
 	result.clear();
-	for (int i = 0; i < 6; i++) {
-		std::string lineBuffer(8, 0);
+	std::string lineBuffer(16, 0);
+	for (int i = 1; i < MAX_BREAK_POINTS; i++) {
 		std::snprintf(lineBuffer.data(), lineBuffer.size(),
-			(radix ? "%04X" : "%05d"), bp[i].addr);
+			(radix ? "BP%d:#%04X" : "BP%d:%05d"), i, bp[i].addr);
 		result.emplace_back(lineBuffer, bp[i].active);
+	}
+}
+//-----------------------------------------------------------------------------
+void TDebugger::FillWatchMemory(std::vector<std::string> &result, unsigned numberOfItems)
+{
+	std::string line(16, 0);
+	const char *reg;
+	WORD addr;
+
+	switch (Settings->Debugger->listSource) {
+		case 0: // MEM
+			addr = Settings->Debugger->listMemoryAddress;
+			reg = "MEM";
+			break;
+		case 4: // SP
+			addr = cpu->GetSP();
+			reg = regs[5];
+			break;
+		case 5: // PC
+			addr = cpu->GetPC();
+			reg = regs[4];
+			break;
+		case 1: // HL
+			addr = cpu->GetHL();
+			reg = regs[3];
+			break;
+		case 2: // DE
+			addr = cpu->GetDE();
+			reg = regs[2];
+			break;
+		case 3: // BC
+			addr = cpu->GetBC();
+			reg = regs[1];
+			break;
+	}
+
+	std::snprintf(
+		line.data(), line.size(),
+		(radix ? "%s:#%04X" : "%s:%05d"),
+		reg, addr
+	);
+
+	result.clear();
+	result.push_back(line);
+
+	int i = 0, offset = Settings->Debugger->listOffset;
+	for (; i < numberOfItems; i++, offset += 2) {
+		WORD val = memory->ReadWord(addr + offset);
+		BYTE lo = val & 0xFF;
+		BYTE hi = (val >> 8) & 0xFF;
+		char ch1 = (lo >= 32 && lo <= 126) ? lo : '.';
+		char ch2 = (hi >= 32 && hi <= 126) ? hi : '.';
+
+		std::snprintf(
+			line.data(), line.size(),
+			"%c%02X %02X %02X %c%c",
+			offset < 0 ? '-' : '+', abs(offset),
+			lo, hi, ch1, ch2
+		);
+		result.push_back(line);
 	}
 }
 //-----------------------------------------------------------------------------
@@ -657,9 +753,8 @@ void TDebugger::ModifyRegister(const char *reg, const char *value)
 	size_t gotoAddr;
 	const char *fmt = radix ? "%" _pfSizeT "X" : "%" _pfSizeT "u";
 
-	if (sscanf(value, fmt, &gotoAddr) == 1) {
+	if (sscanf(value, fmt, &gotoAddr) == 1)
 		ModifyRegister(reg, gotoAddr);
-	}
 }
 //---------------------------------------------------------------------------
 void TDebugger::ModifyRegister(const char *reg, unsigned value)
@@ -721,10 +816,25 @@ void TDebugger::ModifyFlag(int index)
 	}
 }
 //---------------------------------------------------------------------------
+void TDebugger::ModifyStack(int offset, const char *value)
+{
+	unsigned val;
+	const char *fmt = radix ? "%" _pfSizeT "X" : "%" _pfSizeT "u";
+
+	if (sscanf(value, fmt, &val) == 1)
+		ModifyStack(offset, val);
+}
+//---------------------------------------------------------------------------
+void TDebugger::ModifyStack(int offset, unsigned value)
+{
+	memory->WriteWord(cpu->GetSP() + offset, value);
+}
+//---------------------------------------------------------------------------
 void TDebugger::ToggleBreakPoint(int index, bool active)
 {
 	ToggleBreakPoint(nullptr, index, &active);
 }
+//---------------------------------------------------------------------------
 void TDebugger::ToggleBreakPoint(const char *addr, int index, bool *active)
 {
 	int newAddr = addr ? strtoul(addr, nullptr, radix ? 16 : 10) & 0xFFFF : -1;
@@ -754,8 +864,10 @@ void TDebugger::ToggleBreakPoint(const char *addr, int index, bool *active)
 			bp[index].active = *active;
 		else
 			bp[index].active = !bp[index].active;
+
+		Settings->Debugger->breakpoint[index].active = bp[index].active;
 		if (newAddr >= 0)
-			bp[index].addr = newAddr;
+			Settings->Debugger->breakpoint[index].memory = (bp[index].addr = newAddr);
 	}
 }
 //---------------------------------------------------------------------------

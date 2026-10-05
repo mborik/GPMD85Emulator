@@ -123,6 +123,9 @@ class TDebugger
 		inline void WriteByte(int addr, BYTE value) { memory->WriteByte(addr, value); }
 		inline BYTE *GetChangingMemState() { return memory->GetChangingMemState(); }
 		inline void SetTraceCursor(unsigned index) { cpuTraceCur = cpuPCTrace[index]; }
+		inline int  GetTCycles() { return cpu->GetTCyclesTotal(); }
+		inline void ResetTCycles() { cpu->ClearTCyclesTotal(); }
+		const char *GetMemoryState();
 
 		void FillDisass(std::vector<TDisassLine> &result, unsigned numberOfItems);
 		void FillRegs(std::vector<std::string> &result, bool memEdit = false);
@@ -130,6 +133,7 @@ class TDebugger
 		void FillStack(std::vector<std::string> &result);
 		void FillNestings(std::vector<std::string> &result);
 		void FillBreakpoints(std::vector<std::pair<std::string, bool>> &result);
+		void FillWatchMemory(std::vector<std::string> &result, unsigned numberOfItems);
 
 		void RefreshRequest(bool firstTime = false);
 		void HandleKeyboardInput(TKeyInput key);
@@ -140,6 +144,8 @@ class TDebugger
 		void ModifyRegister(const char *reg, const char *value);
 		void ModifyRegister(const char *reg, unsigned value);
 		void ModifyFlag(int index);
+		void ModifyStack(int offset, const char *value);
+		void ModifyStack(int offset, unsigned value);
 		void ToggleBreakPoint(int index, bool active = false);
 		void ToggleBreakPoint(const char *addr = NULL, int index = -1, bool *active = NULL);
 		bool CheckBreakPoint(WORD addr);

@@ -155,7 +155,7 @@ enum TProcessSettingsMode { PS_MACHINE = 1, PS_SCREEN_SIZE = 2, PS_SCREEN_MODE =
 enum TMenuItemType { MENU_END = -1, MI_TITLE = 0, MI_STANDARD, MI_SUBMENU, MI_DIALOG, MI_VALUE, MI_CHECKBOX, MI_RADIO, MI_FIXED = 16, MI_SEPARATOR = 32 };
 enum TMenuQueryType { GUI_QUERY_CANCEL = -1, GUI_QUERY_NO = 0, GUI_QUERY_YES, GUI_QUERY_SAVE, GUI_QUERY_DONTSAVE };
 enum TFileSelectType { GUI_FS_OPEN, GUI_FS_SAVE, GUI_FS_DIR };
-enum TDebugListSource { MEM, HL, DE, BC, AF, SP, PC };
+enum TDebugListSource { LS_MEM, LS_HL, LS_DE, LS_BC, LS_SP, LS_PC };
 enum TDebugControl { DBGCTL_STOPPED = -1, DBGCTL_RUNNING = 0, FORM_DBG_WAIT_STOP = 5, FORM_DBG_STEP_OVER, FORM_DBG_STEP_OUT, FORM_DBG_TAKE_RUN };
 //-----------------------------------------------------------------------------
 // screen offsets of top-left -> bottom-right corner
