@@ -108,12 +108,12 @@ class TDebugger
 		char lineBuffer[256];
 
 		unsigned GetFlagState();
-		WORD  FindPeviousInstruction(WORD pc, int howmany);
+		WORD  FindPreviousInstruction(WORD pc, int howmany);
 		WORD  FindNextInstruction(WORD pc, int howmany);
 		char *MakeInstrLine(WORD *addr);
 
 	public:
-		int flag;
+		int emulationControl;
 
 		TDebugger();
 		void SetParams(ChipCpu8080 *cpu, ChipMemory *mem, TComputerModel model);
@@ -137,6 +137,7 @@ class TDebugger
 
 		void RefreshRequest(bool firstTime = false);
 		void HandleKeyboardInput(TKeyInput key);
+		bool DoTrace(bool run);
 		void DoStepInto();
 		void DoStepOver();
 		void DoStepOut();
@@ -148,7 +149,7 @@ class TDebugger
 		void ModifyStack(int offset, unsigned value);
 		void ToggleBreakPoint(int index, bool active = false);
 		void ToggleBreakPoint(const char *addr = NULL, int index = -1, bool *active = NULL);
-		bool CheckBreakPoint(WORD addr);
+		bool CheckBreakPoint(WORD addr, bool userOnly = false);
 		bool CheckDebugRet(int *t);
 };
 //-----------------------------------------------------------------------------

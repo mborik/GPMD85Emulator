@@ -240,7 +240,7 @@ void UserInterface::DrawDebugWidgetDisass(int numberOfItems)
 			if (line.isBranchTarget) {
 				ImGui::SameLine(widthWidth - GetMonoTextWidth(6, 0.0f));
 				ImGui::TextColored(branchColor,
-					radix ? "#%02X%s" : "%03d%s",
+					radix ? "#%04X%s" : "%5d%s",
 					line.branchTarget, direction);
 			}
 			else if (line.isBranchSource) {
@@ -687,8 +687,12 @@ void UserInterface::DrawDebugWindow()
 		float widthWidth = GetMonoTextWidth(52, framePadding.x);
 		float minHeight = GetTextLineHeight(27);
 
-		if (isOpening)
+		if (isOpening) {
+			Debugger->Reset();
 			ImGui::SetNextWindowFocus();
+		}
+
+		bool isRunning = Emulator->isRunning;
 
 		ImGui::SetNextWindowSize(ImVec2(widthWidth, minHeight), ImGuiCond_FirstUseEver);
 		ImGui::SetNextWindowSizeConstraints(ImVec2(widthWidth, minHeight), ImVec2(widthWidth, FLT_MAX));
@@ -715,6 +719,9 @@ void UserInterface::DrawDebugWindow()
 				if (ImGui::IsKeyPressed(ImGuiKey_Home)) {
 					Debugger->HandleKeyboardInput(K_HOME);
 				}
+				if (ImGui::IsKeyPressed(ImGuiKey_F5)) {
+					Debugger->DoTrace(!isRunning);
+				}
 				if (ImGui::IsKeyPressed(ImGuiKey_F7)) {
 					Debugger->DoStepInto();
 				}
@@ -739,14 +746,14 @@ void UserInterface::DrawDebugWindow()
 				ImGui::TableNextRow(ImGuiTableColumnFlags_WidthStretch);
 				ImGui::TableNextColumn();
 
-				if (ImGui::Button(Emulator->isRunning ? " \u23F9 " : " \u2023 "))
-					Emulator->ActionPlayPause(!Emulator->isRunning, false);
+				if (ImGui::Button(isRunning ? " \u23F9 " : " \u2023 "))
+					isRunning = Debugger->DoTrace(!isRunning);
 
 				ImGui::SameLine();
 				ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
 				ImGui::SameLine();
 
-				if (Emulator->isRunning)
+				if (isRunning)
 					ImGui::BeginDisabled();
 
 				float spacing = style.ItemInnerSpacing.x;
@@ -770,7 +777,7 @@ void UserInterface::DrawDebugWindow()
 				}
 				ImGui::SetItemTooltip("Run until next instruction (Shift+F7)");
 
-				if (Emulator->isRunning)
+				if (isRunning)
 					ImGui::EndDisabled();
 
 				ImGui::TableNextColumn();
@@ -795,6 +802,9 @@ void UserInterface::DrawDebugWindow()
 				float childHeight = ImGui::GetCurrentWindow()->Size.y - cursorPos - framePadding.y;
 				int numberOfItems = static_cast<int>(ceil(childHeight / GetTextLineHeight(1)));
 
+				if (isRunning)
+					ImGui::BeginDisabled();
+
 				ImGui::TableNextColumn();
 				DrawDebugWidgetDisass(numberOfItems);
 
@@ -802,6 +812,9 @@ void UserInterface::DrawDebugWindow()
 				DrawDebugWidgetRegs();
 				DrawDebugWidgetStackBreakNest();
 				DrawDebugWidgetWatchers(numberOfItems - 18);
+
+				if (isRunning)
+					ImGui::EndDisabled();
 
 				ImGui::EndTable();
 			}
@@ -812,6 +825,7 @@ void UserInterface::DrawDebugWindow()
 	}
 	else if (dialogDebugFocused) {
 		dialogDebugFocused = false;
+		Debugger->emulationControl = DBGCTL_RUNNING;
 		Emulator->ActionPlayPause(true);
 
 		if (!isOpening)

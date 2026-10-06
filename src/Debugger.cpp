@@ -174,7 +174,7 @@ TDebugger::TDebugger()
 		}
 	}
 
-	flag = 0;
+	emulationControl = DBGCTL_RUNNING;
 }
 //-----------------------------------------------------------------------------
 void TDebugger::SetParams(ChipCpu8080 *cpu, ChipMemory *mem, TComputerModel model)
@@ -186,7 +186,9 @@ void TDebugger::SetParams(ChipCpu8080 *cpu, ChipMemory *mem, TComputerModel mode
 //-----------------------------------------------------------------------------
 void TDebugger::Reset()
 {
-	flag = 0;
+	emulationControl = DBGCTL_STOPPED;
+	Emulator->ActionPlayPause(false, false);
+
 	bp[0].addr = 0;
 	bp[0].active = false;
 	reqUpdateRefresh = URQ_LOAD_PC;
@@ -320,7 +322,7 @@ char *TDebugger::MakeInstrLine(WORD *addr)
 	return lineBuffer;
 }
 //-----------------------------------------------------------------------------
-WORD TDebugger::FindPeviousInstruction(WORD pc, int howmany)
+WORD TDebugger::FindPreviousInstruction(WORD pc, int howmany)
 {
 	while (howmany-- > 0) {
 		pc -= (WORD) 3;
@@ -414,7 +416,7 @@ void TDebugger::FillDisass(std::vector<TDisassLine> &result, unsigned numberOfIt
 				cpuNextPC = nextPC;
 		}
 
-		if (CheckBreakPoint(pc)) {
+		if (CheckBreakPoint(pc, true)) {
 			disassLine.isBreakPoint = true;
 			if (pc == realPC)
 				disassLine.color = COL_BREAKPT;
@@ -452,30 +454,30 @@ void TDebugger::FillRegs(std::vector<std::string> &result, bool memEdit)
 		fmt = "%s:%04X";
 
 	result.clear();
-	for (int i = 0, k = 0; i < 6; i++) {
+	for (int i = 0, value = 0; i < 6; i++) {
 		switch (i) {
 			case 0:
-				k = cpu->GetAF();
+				value = cpu->GetAF();
 				break;
 			case 1:
-				k = cpu->GetBC();
+				value = cpu->GetBC();
 				break;
 			case 2:
-				k = cpu->GetDE();
+				value = cpu->GetDE();
 				break;
 			case 3:
-				k = cpu->GetHL();
+				value = cpu->GetHL();
 				break;
 			case 4:
-				k = cpu->GetPC();
+				value = cpu->GetPC();
 				break;
 			case 5:
-				k = cpu->GetSP();
+				value = cpu->GetSP();
 				break;
 		}
 
 		std::string regLine(10, 0);
-		std::snprintf(regLine.data(), regLine.size(), fmt, regs[i], k);
+		std::snprintf(regLine.data(), regLine.size(), fmt, regs[i], value);
 		result.push_back(regLine);
 	}
 }
@@ -649,7 +651,7 @@ void TDebugger::HandleKeyboardInput(TKeyInput key)
 			}
 		}
 		else
-			cpuTraceTop = cpuTraceCur = FindPeviousInstruction(cpuTraceCur, 1);
+			cpuTraceTop = cpuTraceCur = FindPreviousInstruction(cpuTraceCur, 1);
 	}
 	else if (key == K_DOWN) {
 		for (i = 0; i < currentNumberOfLines; i++) {
@@ -667,7 +669,7 @@ void TDebugger::HandleKeyboardInput(TKeyInput key)
 			if (cpuTraceCur == cpuPCTrace[i])
 				curs = i;
 
-		cpuTraceTop = FindPeviousInstruction(cpuTraceTop, currentNumberOfLines - 1);
+		cpuTraceTop = FindPreviousInstruction(cpuTraceTop, currentNumberOfLines - 1);
 		updatePCTrace();
 
 		reqUpdateRefresh = URQ_PAGE_SW | curs;
@@ -690,6 +692,24 @@ void TDebugger::HandleKeyboardInput(TKeyInput key)
 	}
 }
 //---------------------------------------------------------------------------
+bool TDebugger::DoTrace(bool run)
+{
+	if ((run && emulationControl != DBGCTL_STOPPED) ||
+	   (!run && emulationControl != DBGCTL_RUNNING))
+			return Emulator->isRunning;
+
+	if (run) {
+		bp[0].active = false;
+		if (CheckBreakPoint(cpu->GetPC()))
+			cpu->DoInstruction();
+		emulationControl = DBGCTL_TAKE_RUN;
+	}
+	else
+		Reset();
+
+	return Emulator->isRunning;
+}
+//---------------------------------------------------------------------------
 void TDebugger::DoStepInto()
 {
 	cpu->DoInstruction();
@@ -701,8 +721,9 @@ void TDebugger::DoStepOver()
 	WORD adr = cpu->GetPC();
 	BYTE opcode = memory->ReadByte(adr);
 
-	if (opcode == 0xCD || opcode == 0xDD || opcode == 0xED || opcode == 0xFD ||
-			(opcode & 0xC7) == 0xC4 || (opcode & 0xC7) == 0xC7) {
+	if ((opcode & 0xCD) == 0xCD || // CALL
+	    (opcode & 0xC7) == 0xC4 || // Cx
+	    (opcode & 0xC7) == 0xC7) { // RST x
 
 		bp[0].active = false;
 		if (CheckBreakPoint(adr))
@@ -710,7 +731,7 @@ void TDebugger::DoStepOver()
 
 		bp[0].addr = FindNextInstruction(adr, 1);
 		bp[0].active = true;
-		flag = 9;
+		emulationControl = DBGCTL_STEP_OVER;
 	}
 	else {
 		cpu->DoInstruction();
@@ -724,6 +745,7 @@ void TDebugger::DoStepOut()
 	BYTE opcode = memory->ReadByte(adr);
 	if (opcode == 0xC9 || opcode == 0xD9 || (opcode & 0xC7) == 0xC0) { // RET, Rx
 		cpu->DoInstruction();
+		Reset();
 		return;
 	}
 
@@ -732,7 +754,7 @@ void TDebugger::DoStepOut()
 	if (CheckBreakPoint(cpu->GetPC()))
 		cpu->DoInstruction();
 
-	flag = 8;
+	emulationControl = DBGCTL_STEP_OUT;
 }
 //---------------------------------------------------------------------------
 void TDebugger::DoStepToNext()
@@ -745,7 +767,7 @@ void TDebugger::DoStepToNext()
 
 	bp[0].addr = FindNextInstruction(adr, 1);
 	bp[0].active = true;
-	flag = 9;
+	emulationControl = DBGCTL_TAKE_RUN;
 }
 //---------------------------------------------------------------------------
 void TDebugger::ModifyRegister(const char *reg, const char *value)
@@ -865,15 +887,18 @@ void TDebugger::ToggleBreakPoint(const char *addr, int index, bool *active)
 		else
 			bp[index].active = !bp[index].active;
 
-		Settings->Debugger->breakpoint[index].active = bp[index].active;
 		if (newAddr >= 0)
-			Settings->Debugger->breakpoint[index].memory = (bp[index].addr = newAddr);
+			bp[index].addr = newAddr;
+		if (index > 0) {
+			Settings->Debugger->breakpoint[index - 1].active = bp[index].active;
+			Settings->Debugger->breakpoint[index - 1].memory = bp[index].addr;
+		}
 	}
 }
 //---------------------------------------------------------------------------
-bool TDebugger::CheckBreakPoint(WORD addr)
+bool TDebugger::CheckBreakPoint(WORD addr, bool userOnly)
 {
-	for (int ii = 0; ii < MAX_BREAK_POINTS; ii++)
+	for (int ii = userOnly ? 1 : 0; ii < MAX_BREAK_POINTS; ii++)
 		if (bp[ii].active && addr == bp[ii].addr)
 			return true;
 
@@ -885,10 +910,11 @@ bool TDebugger::CheckDebugRet(int *t)
 	BYTE opcode = memory->ReadByte(cpu->GetPC());
 	*t = cpu->DoInstruction();
 
-	if ((opcode == 0xC9 || opcode == 0xD9 ||
-		((opcode & 0xC7) == 0xC0 && *t == 11)) &&
-			wsp < cpu->GetSP())
+	if (opcode == 0xC9 || opcode == 0xD9 || ((opcode & 0xC7) == 0xC0 && *t == 11)) {
+		if ((emulationControl == DBGCTL_STEP_OVER && wsp == cpu->GetSP()) ||
+		    (emulationControl == DBGCTL_STEP_OUT && wsp < cpu->GetSP()))
 				return true;
+	}
 
 	return false;
 }
