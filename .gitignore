@@ -4,6 +4,7 @@
 !.gitignore
 
 # prerequisites
+/build
 .deps
 *.d
 

@@ -25,39 +25,17 @@
 //-----------------------------------------------------------------------------
 #include "config.h"
 //-----------------------------------------------------------------------------
-#ifdef HAVE_STDIO_H
-#  include <stdio.h>
-#endif
-#ifdef HAVE_SYS_TYPES_H
-#  include <sys/types.h>
-#endif
-#ifdef HAVE_SYS_STAT_H
-#  include <sys/stat.h>
-#endif
-#ifdef STDC_HEADERS
-#  include <stdlib.h>
-#  include <stddef.h>
-#elif HAVE_STDLIB_H
-#  include <stdlib.h>
-#endif
-#ifdef HAVE_STRING_H
-#  if !defined STDC_HEADERS && defined HAVE_MEMORY_H
-#    include <memory.h>
-#  endif
-#  include <string.h>
-#endif
-#ifdef HAVE_STRINGS_H
-#  include <strings.h>
-#endif
-#ifdef HAVE_INTTYPES_H
-#  include <inttypes.h>
-#endif
-#ifdef HAVE_STDINT_H
-#  include <stdint.h>
-#endif
-#ifdef HAVE_UNISTD_H
-#  include <unistd.h>
-#endif
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <stdlib.h>
+#include <stddef.h>
+#include <string.h>
+#include <strings.h>
+#include <inttypes.h>
+#include <stdint.h>
+#include <limits.h>
+#include <unistd.h>
 #if HAVE_DIRENT_H
 #  include <dirent.h>
 #  define NAMLEN(dirent) strlen((dirent)->d_name)
@@ -77,9 +55,6 @@
 #ifdef HAVE_SYS_SYSLIMITS_H
 #  include <sys/syslimits.h>
 #endif
-#ifdef HAVE_STDBOOL_H
-#  include <stdbool.h>
-#endif
 //-----------------------------------------------------------------------------
 #if defined(WIN32) || defined(_WIN32) || defined(WIN64) || defined(__BORLANDC__)
 #  define DIR_DELIMITER '\\'
@@ -88,10 +63,16 @@
 #  define DIR_DELIMITER '/'
 #endif
 //-----------------------------------------------------------------------------
-#ifdef FILENAME_MAX
+#if defined(PATH_MAX)
+#  define MAX_PATH PATH_MAX
+#elif defined(FILENAME_MAX)
 #  define MAX_PATH FILENAME_MAX
+#elif defined(_POSIX_PATH_MAX)
+#  define MAX_PATH _POSIX_PATH_MAX
+#elif defined(_MAX_PATH)
+#  define MAX_PATH _MAX_PATH
 #else
-#  define MAX_PATH 4096
+#  define MAX_PATH 1024
 #endif
 //-----------------------------------------------------------------------------
 #ifdef __GNUC__

@@ -221,10 +221,8 @@ void UserInterface::DrawTapeDialog()
 
 			for (int i = 0; i < count; ++i) {
 				const TTapeBrowser::TDialogItem &item = tapeDialogEntries[i];
-				sprintf(label, "##item%05d", i);
-
 				ImGui::TableNextRow();
-				ImGui::PushID(label);
+				ImGui::PushID(i);
 				ImGui::TableNextColumn();
 				ImGui::BeginDisabled(TapeBrowser->playing);
 

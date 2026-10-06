@@ -34,18 +34,20 @@ an 8-bit personal microcomputer produced in 1980s in former Czechoslovakia
 ```bash
 # clone with all submodules:
 git clone --recurse-submodules [url]
-# generate configuration scripts with autotools
-autoreconf -vfi
 # configure and build
-./configure
-make
+cmake -S . -B build
+cmake --build build
 # (optional) install into system dirs
-sudo make install
+sudo cmake --install build
 ```
 
 ## CONFIGURATION PARAMETERS:
-- to enable debug mode, use `./configure --enable-debug`
-- to disable all trace messages, use `./configure --disable-trace` (size optimization)
+- to enable debug mode:
+  `cmake -S . -B build -DDEBUG=ON`
+- to disable all trace messages (size optimization):
+  `cmake -S . -B build -DTRACE=OFF`
+- when switching options in an existing build directory, rerun the configure command
+  with updated `-D...` values; remove `build/` only if cache state becomes problematic
 
 ## COMMAND-LINE ARGUMENTS:
 | short / full form of argument    | meaning |

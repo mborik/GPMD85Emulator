@@ -176,7 +176,6 @@ bool ChipMemory::PutMem(int physAddr, BYTE *src, int size)
 		size -= count;
 	} while (size > 0);
 
-	memset(memChanging + physAddr, 0, size);
 	return true;
 }
 //---------------------------------------------------------------------------
@@ -212,7 +211,6 @@ bool ChipMemory::GetMem(BYTE *dest, int physAddr, int size)
 		size -= count;
 	} while (size > 0);
 
-	memset(memChanging + physAddr, 0, size);
 	return true;
 }
 //---------------------------------------------------------------------------
@@ -244,7 +242,6 @@ bool ChipMemory::FillMem(int destAddr, BYTE value, int size)
 		size -= count;
 	} while (size > 0);
 
-	memset(memChanging + destAddr, 0, size);
 	return true;
 }
 //---------------------------------------------------------------------------
