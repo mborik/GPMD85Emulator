@@ -51,6 +51,7 @@
 #endif
 //-----------------------------------------------------------------------------
 typedef struct TDisassLine {
+	unsigned addr;          // address of the disassembly line
 	std::string text;       // rendered disassembly line
 	TDisassLineColor color; // color of the disassembly line
 	bool hasLookupAddress;  // indicates if the instruction has an 16-bit argument (&/*)
@@ -104,8 +105,6 @@ class TDebugger
 		static char asmZ80[][5];
 		static char regs[6][3];             // register names
 
-		char lineBuffer[256];
-
 		unsigned GetFlagState();
 		WORD FindPreviousInstruction(WORD pc, int howmany);
 		WORD FindNextInstruction(WORD pc, int howmany);
@@ -118,11 +117,14 @@ class TDebugger
 		TDebugger();
 		void SetParams(ChipCpu8080 *cpu, ChipMemory *mem, TComputerModel model);
 		void Reset();
+
 		BYTE GetMemState(int addr, BYTE *value = nullptr);
 		inline bool GetMem(BYTE *dest, int addr, int size) { return memory->GetMem(dest, addr, size); }
 		inline void WriteByte(int addr, BYTE value) { memory->WriteByte(addr, value); }
 		inline BYTE *GetChangingMemState() { return memory->GetChangingMemState(); }
 		inline void SetTraceCursor(unsigned index) { cpuTraceCur = cpuPCTrace[index]; }
+		inline void SetPC(WORD addr) { cpu->SetPC(addr); Reset(); }
+		inline WORD GetPC() { return cpu->GetPC(); }
 		inline int  GetTCycles() { return cpu->GetTCyclesTotal(); }
 		inline void ResetTCycles() { cpu->ClearTCyclesTotal(); }
 		const char *GetMemoryState();
@@ -142,6 +144,7 @@ class TDebugger
 		void DoStepOver();
 		void DoStepOut();
 		void DoStepToNext();
+		void DoGotoAddress(const char *addr);
 		void DoGotoAddress(WORD addr);
 		void NestPush();
 		void NestPop();

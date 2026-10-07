@@ -268,6 +268,7 @@ void TDebugger::MakeInstrLine(WORD *addr, TDisassLine *line)
 	int ilen = cpu->GetLength(opcode);
 	unsigned i = 1, j = 15, l;
 
+	static char lineBuffer[32];
 	memset(lineBuffer, ' ', j);
 	i += sprintf(lineBuffer + i, radix ? "#%04X" : "%05d", *addr);
 
@@ -400,6 +401,7 @@ void TDebugger::FillDisass(std::vector<TDisassLine> &result, unsigned numberOfIt
 
 	for (ii = 0; ii < currentNumberOfLines; ii++) {
 		TDisassLine disassLine;
+		disassLine.addr = pc;
 		disassLine.color = COL_NORMAL;
 		disassLine.hasLookupAddress = false;
 		disassLine.lookupAddress = 0;
@@ -794,6 +796,15 @@ void TDebugger::DoStepToNext()
 
 	flowControl = DBGCTL_TAKE_RUN;
 	reqUpdateRefresh = URQ_BREAKPT;
+}
+//---------------------------------------------------------------------------
+void TDebugger::DoGotoAddress(const char *addr)
+{
+	size_t waddr;
+	const char *fmt = radix ? "%" _pfSizeT "X" : "%" _pfSizeT "u";
+
+	if (sscanf(addr, fmt, &waddr) == 1)
+		DoGotoAddress(waddr & 0xFFFF);
 }
 //---------------------------------------------------------------------------
 void TDebugger::DoGotoAddress(WORD addr)

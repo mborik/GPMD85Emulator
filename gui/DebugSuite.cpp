@@ -229,7 +229,7 @@ void UserInterface::DrawDebugWidgetDisass(int numberOfItems)
 					Debugger->DoGotoAddress(line.lookupAddress);
 				std::snprintf(lookupMenuItem, sizeof(lookupMenuItem),
 					radix ? "Watch #%04X" : "Watch %05d", line.lookupAddress);
-				if (ImGui::MenuItem(lookupMenuItem, "\u02C4+G")) {
+				if (ImGui::MenuItem(lookupMenuItem, "\u02C4+M")) {
 					Settings->Debugger->listSource = LS_MEM;
 					Settings->Debugger->listMemoryAddress = line.lookupAddress;
 					Settings->Debugger->listOffset = 0;
@@ -237,7 +237,7 @@ void UserInterface::DrawDebugWidgetDisass(int numberOfItems)
 			}
 			ImGui::Separator();
 			if (ImGui::MenuItem("Set PC to Address", "Z")) {
-				// TODO
+				Debugger->SetPC(line.addr);
 			}
 			ImGui::EndPopup();
 		}
@@ -689,6 +689,7 @@ void UserInterface::DrawDebugWidgetWatchers(int maxLineHeight)
 void UserInterface::DrawDebugWindow()
 {
 	static bool isOpening = true;
+	static char gotoMemEditor[8];
 	static ImGuiWindowFlags flags =
 		ImGuiWindowFlags_NoScrollbar |
 		ImGuiWindowFlags_NoNavInputs;
@@ -754,6 +755,9 @@ void UserInterface::DrawDebugWindow()
 				if (ImGui::IsKeyPressed(ImGuiKey_F8)) {
 					Debugger->DoStepOver();
 				}
+				if (ImGui::IsKeyPressed(ImGuiKey_Z) && Debugger->lineAtCursor) {
+					Debugger->SetPC(Debugger->lineAtCursor->addr);
+				}
 				if (io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_F8)) {
 					Debugger->DoStepOut();
 				}
@@ -800,6 +804,7 @@ void UserInterface::DrawDebugWindow()
 
 				if (ImGui::Button(isRunning ? " \u23F9 " : " \u2023 "))
 					isRunning = Debugger->DoTrace(!isRunning);
+				ImGui::SetItemTooltip("Trace (F5)");
 
 				ImGui::SameLine();
 				ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
@@ -822,26 +827,56 @@ void UserInterface::DrawDebugWindow()
 				if (ImGui::Button("Leave")) {
 					Debugger->DoStepOut();
 				}
-				ImGui::SetItemTooltip("Leave routine (Shift+F8)");
+				ImGui::SetItemTooltip("Leave routine\n(Shift+F8)");
 				ImGui::SameLine(0.0f, spacing);
 				if (ImGui::Button("Next")) {
 					Debugger->DoStepToNext();
 				}
-				ImGui::SetItemTooltip("Run until next instruction (Shift+F7)");
+				ImGui::SetItemTooltip("Run until next\ninstruction (Shift+F7)");
 
 				ImGui::SameLine();
 				ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
 				ImGui::SameLine();
 
-				if (ImGui::Button("Goto")) {
-					// TODO: Implement Goto functionality
+				if (ImGui::Button("Mem") || ImGui::IsKeyPressed(ImGuiKey_M)) {
+					std::snprintf(gotoMemEditor, sizeof(gotoMemEditor),
+						radix ? "%04X" : "%05d", Debugger->GetPC());
+					ImGui::OpenPopup("DebugGotoMem");
 				}
-				ImGui::SetItemTooltip("Goto address (M)");
+				ImGui::SetItemTooltip("Move cursor to\nmemory address (M)");
+
+				ImGui::SetNextWindowPos(ImGui::GetItemRectMin() - ImVec2(style.FramePadding.x * 2, 0.0f));
+				if (ImGui::BeginPopup("DebugGotoMem", popup_flags)) {
+					unsigned width = radix ? 5 : 6;
+					ImGui::SetNextItemWidth(GetMonoTextWidth(width, style.FramePadding.x));
+
+					bool enterPressed = ImGui::InputText(
+						"##gotoMemEditor",
+						gotoMemEditor, width,
+						ImGuiInputTextFlags_AlwaysOverwrite |
+						ImGuiInputTextFlags_EnterReturnsTrue |
+						(radix ?
+							ImGuiInputTextFlags_CharsHexadecimal :
+							ImGuiInputTextFlags_CharsDecimal)
+					);
+
+					ImGui::SameLine(0, 0.05f);
+					if (ImGui::Button("\u2713") || enterPressed) {
+						Debugger->DoGotoAddress(gotoMemEditor);
+						ImGui::CloseCurrentPopup();
+					}
+
+					ImGui::EndPopup();
+				}
+
 				ImGui::SameLine(0.0f, spacing);
 				if (ImGui::Button(" \u02c4 ")) {
 					Debugger->HandleKeyboardInput(K_HOME);
 				}
 				ImGui::SetItemTooltip("Back to PC (Home)");
+
+				ImGui::SameLine();
+				ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
 
 				if (isRunning)
 					ImGui::EndDisabled();
