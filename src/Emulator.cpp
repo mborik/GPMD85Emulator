@@ -518,6 +518,11 @@ void TEmulator::BaseTimerCallback(bool guiWantCapture)
 				ProcessRawFile(false);
 		}
 	}
+	else if (Debugger->flowControl > DBGCTL_RUNNING) {
+		if (Debugger->flowControl == DBGCTL_TAKE_RUN)
+			Debugger->flowControl = DBGCTL_RUNNING;
+		ActionPlayPause(true, false);
+	}
 
 	// status bar FPS and CPU indicators
 	if (thisTime >= nextTick) {
@@ -552,6 +557,13 @@ void TEmulator::CpuTimerCallback()
 	if (sound)
 		sound->PrepareBuffer();
 
+	bool flashload =
+		Debugger->flowControl != DBGCTL_STOPPED &&
+		(ifTape && ifTape->IsFlashLoadOn());
+	bool returnToDebug =
+		Debugger->flowControl == DBGCTL_STEP_OVER ||
+		Debugger->flowControl == DBGCTL_STEP_OUT;
+
 	do {
 		pc = cpu->GetPC();
 
@@ -567,7 +579,7 @@ void TEmulator::CpuTimerCallback()
 			cpu->SetPC(0xFFF0);
 
 		// tape flash loading - ROM entry-point mappings
-		if (ifTape && ifTape->IsFlashLoadOn()) {
+		if (flashload) {
 			// block
 			if (pc == 0x8DC4 || (pc == 0xEDC4 && model == CM_V3)) {
 				val1 = memory->ReadByte((pc & 0xFF00) | 0xD3);
@@ -679,10 +691,12 @@ void TEmulator::CpuTimerCallback()
 		}
 
 		// back to debugger after RET, Rx instructions
-		if (Debugger->flag == 9 && Debugger->CheckDebugRet(&tci)) {
-			Debugger->Reset();
-			ActionDebugger();
-			return;
+		if (returnToDebug) {
+			if (Debugger->CheckDebugRet(&tci)) {
+				Debugger->Reset();
+				ActionDebugger();
+				return;
+			}
 		}
 		else
 			tci = cpu->DoInstruction();
@@ -964,8 +978,7 @@ void TEmulator::ActionExit()
 //---------------------------------------------------------------------------
 void TEmulator::ActionDebugger()
 {
-	ActionPlayPause(false, false);
-	GUI->Execute(GE_DEBUGGER);
+	GUI->Execute(GE_DEBUGGER, true);
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionTapeBrowser()

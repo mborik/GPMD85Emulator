@@ -24,20 +24,58 @@
 #ifndef DEBUGGER_H_
 #define DEBUGGER_H_
 //-----------------------------------------------------------------------------
-#define MAX_BREAK_POINTS      7   // one "stop-point", six break-points
-#define MAX_NESTINGS          11
-#define OFFSETS               7
+#define MAX_BREAK_POINTS   7   // one "stop-point", six break-points
+#define MAX_NESTINGS      11
+#define MAX_TRACE_LINES  256
+//-----------------------------------------------------------------------------
+#define TWF_BRANCH  0x010000
+#define TWF_BRADDR  0x020000
+#define TWF_LOOPCMD 0x040000
+#define TWF_CALLCMD 0x080000
+#define TWF_BLKCMD  0x100000
+#define TWF_HALTCMD 0x200000
+#define TWF_STEPOVR (TWF_HALTCMD | TWF_BLKCMD | TWF_CALLCMD)
+//-----------------------------------------------------------------------------
+#define URQ_FORCE   0x0100
+#define URQ_LOAD_PC 0x0200
+#define URQ_PAGE_SW 0x0400
+#define URQ_BREAKPT 0x0800
 //-----------------------------------------------------------------------------
 #include "globals.h"
 #include "ChipCpu8080.h"
 #include "ChipMemory.h"
+#if defined(_MSC_VER) && !defined(__clang__)
+#define _pfSizeT "I"
+#else
+#define _pfSizeT "z"
+#endif
+//-----------------------------------------------------------------------------
+typedef struct TDisassLine {
+	unsigned addr;          // address of the disassembly line
+	std::string text;       // rendered disassembly line
+	TDisassLineColor color; // color of the disassembly line
+	bool hasLookupAddress;  // indicates if the instruction has an 16-bit argument (&/*)
+	int  lookupAddress;     // address to nest-into in the disassembly (if applicable)
+	bool isBreakPoint;      // indicates breakpoint on the line
+	bool isBranch;          // indicates if the line is a branch instruction
+	bool isBranchFwdDir;    // direction of the branch (true forward `v`, false backward `^`)
+	bool isBranchSource;    // indicates if the line is a source of a branch
+	bool isBranchTarget;    // indicates if the line is a target of a branch
+	WORD branchTarget;      // address of the branch target (if applicable)
+} TDisassLine;
+//-----------------------------------------------------------------------------
+enum TKeyInput {
+	K_UP = 1, K_DOWN, K_LEFT, K_RIGHT,
+	K_PAGEUP, K_PAGEDOWN, K_HOME, K_END,
+	K_INSERT, K_DELETE,	K_BACKSPACE, K_SPACE
+};
 //-----------------------------------------------------------------------------
 class TDebugger
 {
 	private:
 		typedef struct {
-			WORD addr;        // nesting address
-			int offset;       // active offset
+			unsigned cur;     // trace cursor
+			unsigned top;     // top position
 		} NESTING;
 
 		typedef struct {
@@ -47,11 +85,15 @@ class TDebugger
 
 		BREAK_POINT bp[MAX_BREAK_POINTS];   // breakpoints array
 		NESTING na[MAX_NESTINGS];           // nestings array
-		int  na_depth;                      // depth of nest
-		WORD memadr;                        // listing address
-		int  offsets[OFFSETS];              // offsets of each listing pointer
+		int nestDepth;                      // depth of nest
 
 		WORD wsp;                           // stack pointer for "routine exit"
+		WORD cpuPCTrace[MAX_TRACE_LINES];   // buffer for PC trace
+		unsigned cpuCursorY;                // cursor position in PC trace
+		unsigned cpuTraceCur, cpuTraceTop;  // trace cursor and top position
+		unsigned cpuTraceFlags, cpuNextPC;  // flag state and next PC
+		unsigned currentNumberOfLines;      // current number of lines in the disassembly view
+		unsigned reqUpdateRefresh;          // request update refresh flags
 
 		ChipCpu8080 *cpu;
 		ChipMemory *memory;
@@ -59,43 +101,61 @@ class TDebugger
 
 		static char instr8080[256][11];     // 8080 mnemonic
 		static char instrZ80[256][14];      // Z80 mnemonic
-
 		static char asm8080[][5];           // assembler instruction array
 		static char asmZ80[][5];
+		static char regs[6][3];             // register names
 
-		char lineBuffer[256];
-
-		WORD  FindPeviousInstruction(WORD pc, int howmany);
-		WORD  FindNextInstruction(WORD pc, int howmany);
-		void  FillList();
-		char *MakeInstrLine(WORD *addr);
-		char *MakeDumpLine(WORD *addr);
-		WORD  GetCurrentSourceAddress();
-		void  FillBreakpoints();
-		void  FillNesting();
+		unsigned GetFlagState();
+		WORD FindPreviousInstruction(WORD pc, int howmany);
+		WORD FindNextInstruction(WORD pc, int howmany);
+		void MakeInstrLine(WORD *addr, TDisassLine *line = NULL);
 
 	public:
-		int flag;
+		int flowControl;
+		TDisassLine *lineAtCursor;
 
 		TDebugger();
 		void SetParams(ChipCpu8080 *cpu, ChipMemory *mem, TComputerModel model);
 		void Reset();
+
 		BYTE GetMemState(int addr, BYTE *value = nullptr);
 		inline bool GetMem(BYTE *dest, int addr, int size) { return memory->GetMem(dest, addr, size); }
 		inline void WriteByte(int addr, BYTE value) { memory->WriteByte(addr, value); }
 		inline BYTE *GetChangingMemState() { return memory->GetChangingMemState(); }
+		inline void SetTraceCursor(unsigned index) { cpuTraceCur = cpuPCTrace[index]; }
+		inline void SetPC(WORD addr) { cpu->SetPC(addr); Reset(); }
+		inline WORD GetPC() { return cpu->GetPC(); }
+		inline int  GetTCycles() { return cpu->GetTCyclesTotal(); }
+		inline void ResetTCycles() { cpu->ClearTCyclesTotal(); }
+		const char *GetMemoryState();
 
-		char *FillDisass(BYTE *ctrl);
-		char *FillRegs(bool memEdit = false);
-		char *FillFlags();
-		char *FillStack();
-		char *FillBreakpoints(BYTE *ctrl);
+		void FillDisass(std::vector<TDisassLine> &result, unsigned numberOfItems);
+		void FillRegs(std::vector<std::string> &result, bool memEdit = false);
+		void FillFlags(std::vector<std::string> &result);
+		void FillStack(std::vector<std::string> &result);
+		void FillNestings(std::vector<std::string> &result);
+		void FillBreakpoints(std::vector<std::pair<std::string, bool>> &result);
+		void FillWatchMemory(std::vector<std::string> &result, unsigned numberOfItems);
 
+		void RefreshRequest(bool firstTime = false);
+		void HandleKeyboardInput(TKeyInput key);
+		bool DoTrace(bool run);
 		void DoStepInto();
 		void DoStepOver();
 		void DoStepOut();
 		void DoStepToNext();
-		bool CheckBreakPoint(WORD addr);
+		void DoGotoAddress(const char *addr);
+		void DoGotoAddress(WORD addr);
+		void NestPush();
+		void NestPop();
+		void ModifyRegister(const char *reg, const char *value);
+		void ModifyRegister(const char *reg, unsigned value);
+		void ModifyFlag(int index);
+		void ModifyStack(int offset, const char *value);
+		void ModifyStack(int offset, unsigned value);
+		void ToggleBreakPoint(int index, bool active = false);
+		void ToggleBreakPoint(const char *addr = NULL, int index = -1, bool *active = NULL);
+		bool CheckBreakPoint(WORD addr, bool userOnly = false);
 		bool CheckDebugRet(int *t);
 };
 //-----------------------------------------------------------------------------

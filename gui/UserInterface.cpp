@@ -42,6 +42,8 @@ UserInterface::UserInterface()
 	isEmulatorWindowFocused = false;
 	triggerMachineMenuOpen = false;
 	dialogAboutOpened = false;
+	dialogDebugOpened = false;
+	dialogDebugFocused = false;
 
 	queryDialogTitle = NULL;
 	queryDialogMessage = NULL;
@@ -70,8 +72,6 @@ UserInterface::~UserInterface()
 //-----------------------------------------------------------------------------
 void UserInterface::InitFont(float size, bool oversample)
 {
-	ImGuiIO& io = ImGui::GetIO();
-
 	ImFontConfig config;
 	config.OversampleH = (ImS8) oversample;
 	config.OversampleV = (ImS8) oversample;
@@ -79,20 +79,28 @@ void UserInterface::InitFont(float size, bool oversample)
 	config.EllipsisChar = 0x2026;
 	config.GlyphOffset = ImVec2(0.0f, -1.0f);
 
-	io.Fonts->AddFontFromMemoryCompressedTTF(
+	ImGui::GetIO().Fonts->AddFontFromMemoryCompressedTTF(
 		GPMD85Emulator_font_compressed_data,
 		GPMD85Emulator_font_compressed_size,
 		size, &config
 	);
 }
 //-----------------------------------------------------------------------------
-float UserInterface::GetMonoTextWidth(int textLength, float padding)
+float UserInterface::GetMonoTextWidth(float textLength, float padding)
 {
 	if (textLength <= 0)
 		return 0.0f;
 
 	float charWidth = ImGui::CalcTextSize("W").x;
 	return (charWidth * textLength) + (padding * 2.0f);
+}
+//-----------------------------------------------------------------------------
+float UserInterface::GetTextLineHeight(float lines, float spacing)
+{
+	if (lines <= 0)
+		return 0.0f;
+
+	return (ImGui::GetTextLineHeightWithSpacing() + spacing) * lines;
 }
 //-----------------------------------------------------------------------------
 void UserInterface::DrawEmulatorWindow()
@@ -137,7 +145,10 @@ void UserInterface::DrawEmulatorWindow()
 
 	ImGui::InvisibleButton("Screen", screen_size + (border_offset * 2), ImGuiButtonFlags_MouseButtonMask_);
 	if (ImGui::IsItemHovered()) {
-		ImGui::SetMouseCursor(Settings->Mouse->hideCursor ? ImGuiMouseCursor_None : ImGuiMouseCursor_Arrow);
+		ImGui::SetMouseCursor(
+			Emulator->isRunning && Settings->Mouse->hideCursor ?
+				ImGuiMouseCursor_None : ImGuiMouseCursor_Arrow
+		);
 
 		int leftBtn = 0, rightBtn = 0, middleBtn = 0;
 		ImVec2 mousePos = ImGui::GetMousePos();
@@ -192,6 +203,10 @@ void UserInterface::Execute(TGuiElementType type, bool forceOpen)
 
 		case GE_TAPEBROWSER:
 			Settings->GUI->dialogTapeBrowserOpened = forceOpen || !Settings->GUI->dialogTapeBrowserOpened;
+			break;
+
+		case GE_DEBUGGER:
+			dialogDebugOpened = forceOpen || !dialogDebugOpened;
 			break;
 
 		case GE_MEMBLOCK_READ:

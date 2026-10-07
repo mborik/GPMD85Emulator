@@ -302,33 +302,18 @@ TSettings::TSettings(bool userCfg)
 	else
 		cfgInsertNewLine(n->next, "notation", LT_NOTATION, (void *) &(Debugger->z80));
 
-	Debugger->listType = DL_DUMP;
-	if ((m = cfgGetLine(n, "list-type")) != NULL) {
-		if (strcmp(m->value, "ascii") == 0)
-			Debugger->listType = DL_ASCII;
-		else if (strcmp(m->value, "disassembly") == 0)
-			Debugger->listType = DL_DISASM;
-
-		m->type = LT_DEBUGLIST;
-		m->ptr = (void *) &(Debugger->listType);
-	}
-	else
-		cfgInsertNewLine(n->next, "list-type", LT_DEBUGLIST, (void *) &(Debugger->listType));
-
-	Debugger->listSource = MEM;
+	Debugger->listSource = LS_MEM;
 	if ((m = cfgGetLine(n, "list-source")) != NULL) {
 		if (strcmp(m->value, "hl") == 0)
-			Debugger->listSource = HL;
+			Debugger->listSource = LS_HL;
 		else if (strcmp(m->value, "de") == 0)
-			Debugger->listSource = DE;
+			Debugger->listSource = LS_DE;
 		else if (strcmp(m->value, "bc") == 0)
-			Debugger->listSource = BC;
-		else if (strcmp(m->value, "af") == 0)
-			Debugger->listSource = AF;
+			Debugger->listSource = LS_BC;
 		else if (strcmp(m->value, "sp") == 0)
-			Debugger->listSource = SP;
+			Debugger->listSource = LS_SP;
 		else if (strcmp(m->value, "pc") == 0)
-			Debugger->listSource = PC;
+			Debugger->listSource = LS_PC;
 
 		m->type = LT_DEBUGSRC;
 		m->ptr = (void *) &(Debugger->listSource);
@@ -337,6 +322,20 @@ TSettings::TSettings(bool userCfg)
 		cfgInsertNewLine(n->next, "list-source", LT_DEBUGSRC, (void *) &(Debugger->listSource));
 
 	Debugger->listOffset = cfgGetIntValue(n, "list-offset", 0, &(Debugger->listOffset));
+	Debugger->listMemoryAddress = cfgGetIntValue(n, "list-memory-address", 0, &(Debugger->listMemoryAddress));
+
+	Debugger->breakpoint[0].active = cfgGetBoolValue(n, "bp1-active", false, &(Debugger->breakpoint[0].active));
+	Debugger->breakpoint[0].memory = cfgGetIntValue(n, "bp1-memory", 0, &(Debugger->breakpoint[0].memory));
+	Debugger->breakpoint[1].active = cfgGetBoolValue(n, "bp2-active", false, &(Debugger->breakpoint[1].active));
+	Debugger->breakpoint[1].memory = cfgGetIntValue(n, "bp2-memory", 0, &(Debugger->breakpoint[1].memory));
+	Debugger->breakpoint[2].active = cfgGetBoolValue(n, "bp3-active", false, &(Debugger->breakpoint[2].active));
+	Debugger->breakpoint[2].memory = cfgGetIntValue(n, "bp3-memory", 0, &(Debugger->breakpoint[2].memory));
+	Debugger->breakpoint[3].active = cfgGetBoolValue(n, "bp4-active", false, &(Debugger->breakpoint[3].active));
+	Debugger->breakpoint[3].memory = cfgGetIntValue(n, "bp4-memory", 0, &(Debugger->breakpoint[3].memory));
+	Debugger->breakpoint[4].active = cfgGetBoolValue(n, "bp5-active", false, &(Debugger->breakpoint[4].active));
+	Debugger->breakpoint[4].memory = cfgGetIntValue(n, "bp5-memory", 0, &(Debugger->breakpoint[4].memory));
+	Debugger->breakpoint[5].active = cfgGetBoolValue(n, "bp6-active", false, &(Debugger->breakpoint[5].active));
+	Debugger->breakpoint[5].memory = cfgGetIntValue(n, "bp6-memory", 0, &(Debugger->breakpoint[5].memory));
 
 //# Memory Block read/write settings
 	n = cfgFindSection(cfgRoot, "MemoryBlock");
@@ -1084,41 +1083,22 @@ void TSettings::storeSettings()
 					std = b = true;
 					break;
 
-				case LT_DEBUGLIST:
-					i = *((uintptr_t *) entry->ptr);
-					switch ((TDebugListType) i) {
-						case DL_ASCII:
-							buf = (char *) "ascii";
-							break;
-						case DL_DISASM:
-							buf = (char *) "disassembly";
-							break;
-						default:
-							buf = (char *) "dump";
-							break;
-					}
-					std = true;
-					break;
-
 				case LT_DEBUGSRC:
 					i = *((uintptr_t *) entry->ptr);
 					switch ((TDebugListSource) i) {
-						case HL:
+						case LS_HL:
 							buf = (char *) "hl";
 							break;
-						case DE:
+						case LS_DE:
 							buf = (char *) "de";
 							break;
-						case BC:
+						case LS_BC:
 							buf = (char *) "bc";
 							break;
-						case AF:
-							buf = (char *) "af";
-							break;
-						case SP:
+						case LS_SP:
 							buf = (char *) "sp";
 							break;
-						case PC:
+						case LS_PC:
 							buf = (char *) "pc";
 							break;
 						default:

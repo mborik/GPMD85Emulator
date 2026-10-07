@@ -288,6 +288,7 @@ int main(int argc, char** argv)
 		GUI->DrawMemDumpDialog();
 		GUI->DrawMemEditDialog();
 		GUI->DrawMemMapDialog();
+		GUI->DrawDebugWindow();
 		GUI->DrawEmulatorWindow();
 
 		Emulator->actionCallback();

@@ -108,6 +108,8 @@ class UserInterface
 		bool triggerMachineMenuOpen;
 		bool dialogAboutOpened;
 		bool dialogMemDumpOpened;
+		bool dialogDebugOpened;
+		bool dialogDebugFocused;
 
 		ScreenPMD85 *screenInstance;
 		MemoryEditor *memEditor;
@@ -158,12 +160,14 @@ class UserInterface
 
 		void InitDebugSuite();
 		void DestroyDebugSuite();
-		void DrawDebugWidgetDisass(bool full);
-		void DrawDebugWidgetRegs();
-		void DrawDebugWidgetStack();
-		void DrawDebugWidgetBreaks();
 
-		float GetMonoTextWidth(int textLength, float padding = 0.0f);
+		void DrawDebugWidgetDisass(int numberOfItems);
+		void DrawDebugWidgetRegs();
+		void DrawDebugWidgetStackBreakNest();
+		void DrawDebugWidgetWatchers(int maxLineHeight);
+
+		float GetMonoTextWidth(float textLength, float padding = 0.0f);
+		float GetTextLineHeight(float lines, float spacing = 1.0f);
 };
 //-----------------------------------------------------------------------------
 #endif
