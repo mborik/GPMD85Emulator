@@ -55,6 +55,8 @@
 #ifdef HAVE_SYS_SYSLIMITS_H
 #  include <sys/syslimits.h>
 #endif
+#include <string>
+#include <vector>
 //-----------------------------------------------------------------------------
 #if defined(WIN32) || defined(_WIN32) || defined(WIN64) || defined(__BORLANDC__)
 #  define DIR_DELIMITER '\\'
@@ -156,6 +158,7 @@ enum TMenuItemType { MENU_END = -1, MI_TITLE = 0, MI_STANDARD, MI_SUBMENU, MI_DI
 enum TMenuQueryType { GUI_QUERY_CANCEL = -1, GUI_QUERY_NO = 0, GUI_QUERY_YES, GUI_QUERY_SAVE, GUI_QUERY_DONTSAVE };
 enum TFileSelectType { GUI_FS_OPEN, GUI_FS_SAVE, GUI_FS_DIR };
 enum TDebugListSource { LS_MEM, LS_HL, LS_DE, LS_BC, LS_SP, LS_PC };
+enum TDisassLineColor { COL_NORMAL, COL_CURSOR, COL_CURRENT, COL_BREAKPT };
 enum TDebugControl { DBGCTL_STOPPED = -1, DBGCTL_RUNNING = 0, DBGCTL_TAKE_RUN = 5, DBGCTL_STEP_OVER = 8, DBGCTL_STEP_OUT };
 //-----------------------------------------------------------------------------
 // screen offsets of top-left -> bottom-right corner

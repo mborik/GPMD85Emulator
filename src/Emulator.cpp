@@ -518,9 +518,9 @@ void TEmulator::BaseTimerCallback(bool guiWantCapture)
 				ProcessRawFile(false);
 		}
 	}
-	else if (Debugger->emulationControl > DBGCTL_RUNNING) {
-		if (Debugger->emulationControl == DBGCTL_TAKE_RUN)
-			Debugger->emulationControl = DBGCTL_RUNNING;
+	else if (Debugger->flowControl > DBGCTL_RUNNING) {
+		if (Debugger->flowControl == DBGCTL_TAKE_RUN)
+			Debugger->flowControl = DBGCTL_RUNNING;
 		ActionPlayPause(true, false);
 	}
 
@@ -558,11 +558,11 @@ void TEmulator::CpuTimerCallback()
 		sound->PrepareBuffer();
 
 	bool flashload =
-		Debugger->emulationControl != DBGCTL_STOPPED &&
+		Debugger->flowControl != DBGCTL_STOPPED &&
 		(ifTape && ifTape->IsFlashLoadOn());
 	bool returnToDebug =
-		Debugger->emulationControl == DBGCTL_STEP_OVER ||
-		Debugger->emulationControl == DBGCTL_STEP_OUT;
+		Debugger->flowControl == DBGCTL_STEP_OVER ||
+		Debugger->flowControl == DBGCTL_STEP_OUT;
 
 	do {
 		pc = cpu->GetPC();

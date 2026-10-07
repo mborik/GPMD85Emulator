@@ -155,15 +155,11 @@ TDebugger::TDebugger()
 
 	reqUpdateRefresh = URQ_FORCE;
 	currentNumberOfLines = 0;
+
 	nestDepth = 0;
+	memset(na, 0, sizeof(na));
 
-	int ii;
-	for (ii = 0; ii < MAX_NESTINGS; ii++) {
-		na[ii].addr = 0;
-		na[ii].offset = 0;
-	}
-
-	for (ii = 0; ii < MAX_BREAK_POINTS; ii++) {
+	for (int ii = 0; ii < MAX_BREAK_POINTS; ii++) {
 		if (ii) {
 			bp[ii].addr = Settings->Debugger->breakpoint[ii - 1].memory & 0xFFFF;
 			bp[ii].active = Settings->Debugger->breakpoint[ii - 1].active;
@@ -174,7 +170,8 @@ TDebugger::TDebugger()
 		}
 	}
 
-	emulationControl = DBGCTL_RUNNING;
+	flowControl = DBGCTL_RUNNING;
+	lineAtCursor = NULL;
 }
 //-----------------------------------------------------------------------------
 void TDebugger::SetParams(ChipCpu8080 *cpu, ChipMemory *mem, TComputerModel model)
@@ -186,7 +183,7 @@ void TDebugger::SetParams(ChipCpu8080 *cpu, ChipMemory *mem, TComputerModel mode
 //-----------------------------------------------------------------------------
 void TDebugger::Reset()
 {
-	emulationControl = DBGCTL_STOPPED;
+	flowControl = DBGCTL_STOPPED;
 	Emulator->ActionPlayPause(false, false);
 
 	bp[0].addr = 0;
@@ -264,7 +261,7 @@ unsigned TDebugger::GetFlagState()
 	return 0;
 }
 //-----------------------------------------------------------------------------
-char *TDebugger::MakeInstrLine(WORD *addr)
+void TDebugger::MakeInstrLine(WORD *addr, TDisassLine *line)
 {
 	BYTE opcode = memory->ReadByte(*addr);
 	WORD oper = memory->ReadWord(*addr + 1);
@@ -300,6 +297,10 @@ char *TDebugger::MakeInstrLine(WORD *addr)
 		switch (mnemo[i]) {
 			case '@':
 				oper = (WORD)(opcode & 0x38);
+				if (line) {
+					line->hasLookupAddress = true;
+					line->lookupAddress = oper;
+				}
 			// ... and continue in next case
 
 			case '%':
@@ -308,6 +309,10 @@ char *TDebugger::MakeInstrLine(WORD *addr)
 
 			case '*':
 			case '&':
+				if (line) {
+					line->hasLookupAddress = true;
+					line->lookupAddress = oper;
+				}
 				j += std::sprintf(lineBuffer + j, radix ? "#%04X" : "%5d", oper);
 				break;
 
@@ -319,7 +324,9 @@ char *TDebugger::MakeInstrLine(WORD *addr)
 
 	lineBuffer[j] = '\0';
 	*addr += (WORD) ilen;
-	return lineBuffer;
+
+	if (line)
+		line->text = std::string(lineBuffer);
 }
 //-----------------------------------------------------------------------------
 WORD TDebugger::FindPreviousInstruction(WORD pc, int howmany)
@@ -381,6 +388,7 @@ void TDebugger::FillDisass(std::vector<TDisassLine> &result, unsigned numberOfIt
 		RefreshRequest(true);
 	}
 
+	lineAtCursor = NULL;
 	result.resize(currentNumberOfLines);
 
 	WORD realPC = cpu->GetPC(), nextPC;
@@ -393,6 +401,8 @@ void TDebugger::FillDisass(std::vector<TDisassLine> &result, unsigned numberOfIt
 	for (ii = 0; ii < currentNumberOfLines; ii++) {
 		TDisassLine disassLine;
 		disassLine.color = COL_NORMAL;
+		disassLine.hasLookupAddress = false;
+		disassLine.lookupAddress = 0;
 		disassLine.isBreakPoint = false;
 		disassLine.isBranch = false;
 		disassLine.isBranchFwdDir = false;
@@ -403,7 +413,7 @@ void TDebugger::FillDisass(std::vector<TDisassLine> &result, unsigned numberOfIt
 		nextPC = (pc &= 0xFFFF);
 		cpuPCTrace[ii] = nextPC;
 
-		disassLine.text = MakeInstrLine(&nextPC);
+		MakeInstrLine(&nextPC, &disassLine);
 
 		if (pc == cpuTraceCur) {
 			disassLine.color = COL_CURSOR;
@@ -439,6 +449,9 @@ void TDebugger::FillDisass(std::vector<TDisassLine> &result, unsigned numberOfIt
 		}
 
 		result[ii] = disassLine;
+		if (disassLine.color == COL_CURSOR)
+			lineAtCursor = &result[ii];
+
 		pc = nextPC;
 	}
 
@@ -519,7 +532,7 @@ void TDebugger::FillNestings(std::vector<std::string> &result)
 	for (int i = 0; i < nestDepth; i++) {
 		std::string nestLine(6, 0);
 		std::snprintf(nestLine.data(), nestLine.size(),
-			(radix ? "#%04X" : "%05d"), na[i].addr);
+			(radix ? "#%04X" : "%05d"), na[i].cur);
 		result.push_back(nestLine);
 	}
 }
@@ -600,22 +613,30 @@ void TDebugger::FillWatchMemory(std::vector<std::string> &result, unsigned numbe
 //-----------------------------------------------------------------------------
 void TDebugger::RefreshRequest(bool firstTime)
 {
+	WORD newpc = cpu->GetPC();
+
 	if (reqUpdateRefresh & URQ_LOAD_PC || firstTime) {
-		WORD newpc = cpu->GetPC();
 		cpuTraceCur = newpc;
 
 		if (firstTime ||
 			newpc < cpuTraceTop ||
 			newpc >= cpuPCTrace[currentNumberOfLines] ||
-			cpuCursorY == -1U)
+			cpuCursorY == -1U) {
 
 			cpuTraceTop = newpc;
+		}
 	}
 	else if (reqUpdateRefresh & URQ_PAGE_SW)
 		cpuTraceCur = cpuPCTrace[reqUpdateRefresh & (URQ_LOAD_PC - 1)];
 
-	if (reqUpdateRefresh & URQ_BREAKPT)
-		bp[0].active = false;
+	if (reqUpdateRefresh & URQ_BREAKPT && bp[0].active) {
+		cpuTraceCur = newpc;
+
+		if (newpc < cpuTraceTop || newpc >= cpuPCTrace[currentNumberOfLines])
+			cpuTraceTop = newpc;
+		if (bp[0].addr != newpc)
+			return;
+	}
 
 	reqUpdateRefresh = 0;
 }
@@ -694,15 +715,15 @@ void TDebugger::HandleKeyboardInput(TKeyInput key)
 //---------------------------------------------------------------------------
 bool TDebugger::DoTrace(bool run)
 {
-	if ((run && emulationControl != DBGCTL_STOPPED) ||
-	   (!run && emulationControl != DBGCTL_RUNNING))
+	if ((run && flowControl != DBGCTL_STOPPED) ||
+	   (!run && flowControl != DBGCTL_RUNNING))
 			return Emulator->isRunning;
 
 	if (run) {
 		bp[0].active = false;
 		if (CheckBreakPoint(cpu->GetPC()))
 			cpu->DoInstruction();
-		emulationControl = DBGCTL_TAKE_RUN;
+		flowControl = DBGCTL_TAKE_RUN;
 	}
 	else
 		Reset();
@@ -731,7 +752,9 @@ void TDebugger::DoStepOver()
 
 		bp[0].addr = FindNextInstruction(adr, 1);
 		bp[0].active = true;
-		emulationControl = DBGCTL_STEP_OVER;
+
+		flowControl = DBGCTL_STEP_OVER;
+		reqUpdateRefresh = URQ_BREAKPT;
 	}
 	else {
 		cpu->DoInstruction();
@@ -754,7 +777,8 @@ void TDebugger::DoStepOut()
 	if (CheckBreakPoint(cpu->GetPC()))
 		cpu->DoInstruction();
 
-	emulationControl = DBGCTL_STEP_OUT;
+	flowControl = DBGCTL_STEP_OUT;
+	reqUpdateRefresh = URQ_BREAKPT;
 }
 //---------------------------------------------------------------------------
 void TDebugger::DoStepToNext()
@@ -767,7 +791,39 @@ void TDebugger::DoStepToNext()
 
 	bp[0].addr = FindNextInstruction(adr, 1);
 	bp[0].active = true;
-	emulationControl = DBGCTL_TAKE_RUN;
+
+	flowControl = DBGCTL_TAKE_RUN;
+	reqUpdateRefresh = URQ_BREAKPT;
+}
+//---------------------------------------------------------------------------
+void TDebugger::DoGotoAddress(WORD addr)
+{
+	NestPush();
+
+	cpuTraceCur = addr;
+	if (addr < cpuTraceTop || addr >= cpuPCTrace[currentNumberOfLines])
+		cpuTraceTop = addr;
+}
+//---------------------------------------------------------------------------
+void TDebugger::NestPush()
+{
+	if (nestDepth == MAX_NESTINGS) {
+		memcpy(&na[0], &na[1], sizeof na - sizeof *na);
+		nestDepth--;
+	}
+
+	na[nestDepth].cur = cpuTraceCur;
+	na[nestDepth].top = cpuTraceTop;
+	nestDepth++;
+}
+//---------------------------------------------------------------------------
+void TDebugger::NestPop()
+{
+	if (nestDepth > 0) {
+		nestDepth--;
+		cpuTraceCur = na[nestDepth].cur;
+		cpuTraceTop = na[nestDepth].top;
+	}
 }
 //---------------------------------------------------------------------------
 void TDebugger::ModifyRegister(const char *reg, const char *value)
@@ -911,8 +967,8 @@ bool TDebugger::CheckDebugRet(int *t)
 	*t = cpu->DoInstruction();
 
 	if (opcode == 0xC9 || opcode == 0xD9 || ((opcode & 0xC7) == 0xC0 && *t == 11)) {
-		if ((emulationControl == DBGCTL_STEP_OVER && wsp == cpu->GetSP()) ||
-		    (emulationControl == DBGCTL_STEP_OUT && wsp < cpu->GetSP()))
+		if ((flowControl == DBGCTL_STEP_OVER && wsp == cpu->GetSP()) ||
+		    (flowControl == DBGCTL_STEP_OUT && wsp < cpu->GetSP()))
 				return true;
 	}
 

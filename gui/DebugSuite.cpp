@@ -218,16 +218,24 @@ void UserInterface::DrawDebugWidgetDisass(int numberOfItems)
 			ImGui::PopStyleColor(2);
 
 		if (ImGui::BeginPopupContextItem()) {
+			static char lookupMenuItem[32];
 			if (ImGui::MenuItem("Toggle Breakpoint", "Space")) {
 				Debugger->ToggleBreakPoint(addr.c_str(), -1);
 			}
-			if (ImGui::MenuItem("Look-up operand", "`")) {
-				// TODO Debugger->PushAddress(line.branchTarget);
+			if (line.hasLookupAddress) {
+				std::snprintf(lookupMenuItem, sizeof(lookupMenuItem),
+					radix ? "Look-up #%04X" : "Look-up %05d", line.lookupAddress);
+				if (ImGui::MenuItem(lookupMenuItem, "Enter"))
+					Debugger->DoGotoAddress(line.lookupAddress);
+				std::snprintf(lookupMenuItem, sizeof(lookupMenuItem),
+					radix ? "Watch #%04X" : "Watch %05d", line.lookupAddress);
+				if (ImGui::MenuItem(lookupMenuItem, "\u02C4+G")) {
+					Settings->Debugger->listSource = LS_MEM;
+					Settings->Debugger->listMemoryAddress = line.lookupAddress;
+					Settings->Debugger->listOffset = 0;
+				}
 			}
 			ImGui::Separator();
-			if (ImGui::MenuItem("Goto Address", "G")) {
-				// TODO
-			}
 			if (ImGui::MenuItem("Set PC to Address", "Z")) {
 				// TODO
 			}
@@ -533,7 +541,10 @@ void UserInterface::DrawDebugWidgetStackBreakNest()
 				for (int i = 0; i < nestCountLeft; i++, n++) {
 					ImGui::PushID(n);
 					if (nests[n].empty()) {
-						ImGui::SmallButton(" Pop ");
+						if (ImGui::SmallButton(" Pop ")) {
+							Debugger->NestPop();
+						}
+						ImGui::SetItemTooltip("Back to previous view (Backspace)");
 					}
 					else {
 						ImGui::Selectable(
@@ -549,7 +560,10 @@ void UserInterface::DrawDebugWidgetStackBreakNest()
 				for (int i = 0; i < nestCountRight; i++, n++) {
 					ImGui::PushID(n);
 					if (nests[n].empty()) {
-						ImGui::SmallButton(" Pop ");
+						if (ImGui::SmallButton(" Pop ")) {
+							Debugger->NestPop();
+						}
+						ImGui::SetItemTooltip("Back to previous view (Backspace)");
 					}
 					else {
 						ImGui::Selectable(
@@ -719,6 +733,18 @@ void UserInterface::DrawDebugWindow()
 				if (ImGui::IsKeyPressed(ImGuiKey_Home)) {
 					Debugger->HandleKeyboardInput(K_HOME);
 				}
+				if (ImGui::IsKeyPressed(ImGuiKey_Enter) && Debugger->lineAtCursor) {
+					Debugger->DoGotoAddress(Debugger->lineAtCursor->lookupAddress);
+				}
+				if (ImGui::IsKeyPressed(ImGuiKey_Space) && Debugger->lineAtCursor) {
+					std::string addr = Debugger->lineAtCursor->text.substr(1, 5);
+					if (radix)
+						addr = addr.substr(1);
+					Debugger->ToggleBreakPoint(addr.c_str(), -1);
+				}
+				if (ImGui::IsKeyPressed(ImGuiKey_Backspace)) {
+					Debugger->NestPop();
+				}
 				if (ImGui::IsKeyPressed(ImGuiKey_F5)) {
 					Debugger->DoTrace(!isRunning);
 				}
@@ -733,6 +759,32 @@ void UserInterface::DrawDebugWindow()
 				}
 				if (io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_F7)) {
 					Debugger->DoStepToNext();
+				}
+				if (io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_M)) {
+					Settings->Debugger->listSource = LS_MEM;
+					Settings->Debugger->listOffset = 0;
+					if (Debugger->lineAtCursor)
+						Settings->Debugger->listMemoryAddress = Debugger->lineAtCursor->lookupAddress;
+				}
+				if (io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_H)) {
+					Settings->Debugger->listSource = LS_HL;
+					Settings->Debugger->listOffset = 0;
+				}
+				if (io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_D)) {
+					Settings->Debugger->listSource = LS_DE;
+					Settings->Debugger->listOffset = 0;
+				}
+				if (io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_B)) {
+					Settings->Debugger->listSource = LS_BC;
+					Settings->Debugger->listOffset = 0;
+				}
+				if (io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_P)) {
+					Settings->Debugger->listSource = LS_PC;
+					Settings->Debugger->listOffset = 0;
+				}
+				if (io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_S)) {
+					Settings->Debugger->listSource = LS_SP;
+					Settings->Debugger->listOffset = 0;
 				}
 			}
 
@@ -776,6 +828,20 @@ void UserInterface::DrawDebugWindow()
 					Debugger->DoStepToNext();
 				}
 				ImGui::SetItemTooltip("Run until next instruction (Shift+F7)");
+
+				ImGui::SameLine();
+				ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+				ImGui::SameLine();
+
+				if (ImGui::Button("Goto")) {
+					// TODO: Implement Goto functionality
+				}
+				ImGui::SetItemTooltip("Goto address (M)");
+				ImGui::SameLine(0.0f, spacing);
+				if (ImGui::Button(" \u02c4 ")) {
+					Debugger->HandleKeyboardInput(K_HOME);
+				}
+				ImGui::SetItemTooltip("Back to PC (Home)");
 
 				if (isRunning)
 					ImGui::EndDisabled();
@@ -825,7 +891,7 @@ void UserInterface::DrawDebugWindow()
 	}
 	else if (dialogDebugFocused) {
 		dialogDebugFocused = false;
-		Debugger->emulationControl = DBGCTL_RUNNING;
+		Debugger->flowControl = DBGCTL_RUNNING;
 		Emulator->ActionPlayPause(true);
 
 		if (!isOpening)

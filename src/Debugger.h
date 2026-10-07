@@ -24,9 +24,9 @@
 #ifndef DEBUGGER_H_
 #define DEBUGGER_H_
 //-----------------------------------------------------------------------------
-#define MAX_BREAK_POINTS      7   // one "stop-point", six break-points
-#define MAX_NESTINGS         11
-#define MAX_TRACE_LINES     256
+#define MAX_BREAK_POINTS   7   // one "stop-point", six break-points
+#define MAX_NESTINGS      11
+#define MAX_TRACE_LINES  256
 //-----------------------------------------------------------------------------
 #define TWF_BRANCH  0x010000
 #define TWF_BRADDR  0x020000
@@ -44,17 +44,17 @@
 #include "globals.h"
 #include "ChipCpu8080.h"
 #include "ChipMemory.h"
-#include <vector>
 #if defined(_MSC_VER) && !defined(__clang__)
 #define _pfSizeT "I"
 #else
 #define _pfSizeT "z"
 #endif
 //-----------------------------------------------------------------------------
-enum TDisassLineColor { COL_NORMAL, COL_CURSOR, COL_CURRENT, COL_BREAKPT };
 typedef struct TDisassLine {
 	std::string text;       // rendered disassembly line
 	TDisassLineColor color; // color of the disassembly line
+	bool hasLookupAddress;  // indicates if the instruction has an 16-bit argument (&/*)
+	int  lookupAddress;     // address to nest-into in the disassembly (if applicable)
 	bool isBreakPoint;      // indicates breakpoint on the line
 	bool isBranch;          // indicates if the line is a branch instruction
 	bool isBranchFwdDir;    // direction of the branch (true forward `v`, false backward `^`)
@@ -73,8 +73,8 @@ class TDebugger
 {
 	private:
 		typedef struct {
-			WORD addr;        // nesting address
-			int offset;       // active offset
+			unsigned cur;     // trace cursor
+			unsigned top;     // top position
 		} NESTING;
 
 		typedef struct {
@@ -86,14 +86,13 @@ class TDebugger
 		NESTING na[MAX_NESTINGS];           // nestings array
 		int nestDepth;                      // depth of nest
 
+		WORD wsp;                           // stack pointer for "routine exit"
 		WORD cpuPCTrace[MAX_TRACE_LINES];   // buffer for PC trace
 		unsigned cpuCursorY;                // cursor position in PC trace
 		unsigned cpuTraceCur, cpuTraceTop;  // trace cursor and top position
 		unsigned cpuTraceFlags, cpuNextPC;  // flag state and next PC
 		unsigned currentNumberOfLines;      // current number of lines in the disassembly view
 		unsigned reqUpdateRefresh;          // request update refresh flags
-
-		WORD wsp;                           // stack pointer for "routine exit"
 
 		ChipCpu8080 *cpu;
 		ChipMemory *memory;
@@ -108,12 +107,13 @@ class TDebugger
 		char lineBuffer[256];
 
 		unsigned GetFlagState();
-		WORD  FindPreviousInstruction(WORD pc, int howmany);
-		WORD  FindNextInstruction(WORD pc, int howmany);
-		char *MakeInstrLine(WORD *addr);
+		WORD FindPreviousInstruction(WORD pc, int howmany);
+		WORD FindNextInstruction(WORD pc, int howmany);
+		void MakeInstrLine(WORD *addr, TDisassLine *line = NULL);
 
 	public:
-		int emulationControl;
+		int flowControl;
+		TDisassLine *lineAtCursor;
 
 		TDebugger();
 		void SetParams(ChipCpu8080 *cpu, ChipMemory *mem, TComputerModel model);
@@ -142,6 +142,9 @@ class TDebugger
 		void DoStepOver();
 		void DoStepOut();
 		void DoStepToNext();
+		void DoGotoAddress(WORD addr);
+		void NestPush();
+		void NestPop();
 		void ModifyRegister(const char *reg, const char *value);
 		void ModifyRegister(const char *reg, unsigned value);
 		void ModifyFlag(int index);
