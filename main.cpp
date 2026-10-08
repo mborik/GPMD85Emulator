@@ -64,7 +64,7 @@ int main(int argc, char** argv)
 	PathGuiConfig = new char[strlen(PATH_WEBHOME) + 16];
 	strcpy(PathResources, PATH_STORAGE);
 	strcpy(PathAppConfig, PATH_WEBHOME);
-	sprintf(PathGuiConfig, "%s%cimgui.conf", PATH_WEBHOME, DIR_DELIMITER);
+	sprintf(PathGuiConfig, "%s/imgui.conf", PATH_WEBHOME);
 #else
 	PathUserHome = SDL_getenv("HOME");
 	PathApplication = getcwd(NULL, MAX_PATH);
