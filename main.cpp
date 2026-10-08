@@ -31,15 +31,7 @@
 #include "CommonUtils.h"
 #include "Emulator.h"
 //-----------------------------------------------------------------------------
-#ifdef __EMSCRIPTEN__
-#  include <emscripten.h>
-// ASYNCIFY-based loop: yield to the browser after every frame
-#  define EMSCRIPTEN_MAINLOOP_BEGIN  while (Emulator->isActive) {
-#  define EMSCRIPTEN_MAINLOOP_END    emscripten_sleep(0); }
-#else
-#  define EMSCRIPTEN_MAINLOOP_BEGIN  while (Emulator->isActive) {
-#  define EMSCRIPTEN_MAINLOOP_END    }
-#endif
+#include "emscripten_mainloop_stub.h"
 //-----------------------------------------------------------------------------
 #if defined(IMGUI_IMPL_OPENGL_ES2)
 #  include "SDL_opengles2.h"
@@ -222,7 +214,12 @@ int main(int argc, char** argv)
 
 	debug("", "Starting main CPU %dHz loop", CPU_FRAMES_PER_SEC);
 
+#ifdef __EMSCRIPTEN__
 	EMSCRIPTEN_MAINLOOP_BEGIN
+#else
+	while (Emulator->isActive)
+#endif
+	{
 		currentTime = SDL_GetPerformanceCounter();
 		deltaTime = (double)((currentTime - lastTime) * 1000) / (double) SDL_GetPerformanceFrequency();
 		lastTime = currentTime;
@@ -311,7 +308,8 @@ int main(int argc, char** argv)
 		glClear(GL_COLOR_BUFFER_BIT);
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 		SDL_GL_SwapWindow(gdc.window);
-	EMSCRIPTEN_MAINLOOP_END
+	}
+	EMSCRIPTEN_MAINLOOP_END;
 
 	SDL_GetWindowPosition(gdc.window,
 			&Settings->GUI->position.x, &Settings->GUI->position.y);

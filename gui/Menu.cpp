@@ -92,9 +92,11 @@ void UserInterface::DrawMenu()
 			if (ImGui::MenuItem("About…", MOD_KEY("F1"))) {
 				Execute(GE_ABOUT);
 			}
+#ifndef __EMSCRIPTEN__
 			if (ImGui::MenuItem("Exit", MOD_KEY("F4"))) {
 				Emulator->ActionExit();
 			}
+#endif
 			ImGui::EndMenu();
 		}
 

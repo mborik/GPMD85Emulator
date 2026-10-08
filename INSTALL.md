@@ -31,8 +31,8 @@
 ## Building for the web (WebAssembly via Emscripten):
 The emulator can be compiled with [Emscripten](https://emscripten.org) into a single page
 with the whole emulator GUI (menu, dialogs, emulator window) running in the browser canvas
-(SDL2 is provided by Emscripten ports, rendering uses WebGL 2, the main loop is yielded
-to the browser via ASYNCIFY).
+(SDL2 is provided by Emscripten ports, rendering uses WebGL 2, the main loop is driven
+by the browser via `emscripten_set_main_loop`).
 
 ### Prerequisites:
 - Python 3, `git`, CMake (3.20+) and `make` (or `ninja`)
