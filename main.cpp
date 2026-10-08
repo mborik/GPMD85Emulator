@@ -31,8 +31,14 @@
 #include "CommonUtils.h"
 #include "Emulator.h"
 //-----------------------------------------------------------------------------
-#ifdef IMGUI_IMPL_OPENGL_ES2
+#ifdef __EMSCRIPTEN__
+#  include <emscripten.h>
+#endif
+//-----------------------------------------------------------------------------
+#if defined(IMGUI_IMPL_OPENGL_ES2)
 #  include "SDL_opengles2.h"
+#elif defined(IMGUI_IMPL_OPENGL_ES3)
+#  include <GLES3/gl3.h>
 #else
 #  include "SDL_opengl.h"
 #endif
@@ -192,10 +198,12 @@ int main(int argc, char** argv)
 	Emulator->ProcessSettings(-1);
 	Emulator->ProcessArgvOptions(true);
 
+#ifndef __EMSCRIPTEN__
 	if (Settings->GUI->position.x >= 0 || Settings->GUI->position.y >= 0)
 		SDL_SetWindowPosition(gdc.window, Settings->GUI->position.x, Settings->GUI->position.y);
 	if (Settings->GUI->windowSize.x >= 0 || Settings->GUI->windowSize.y >= 0)
 		SDL_SetWindowSize(gdc.window, Settings->GUI->windowSize.x, Settings->GUI->windowSize.y);
+#endif
 	SDL_ShowWindow(gdc.window);
 
 	Emulator->ActionPlayPause(true);
@@ -210,7 +218,7 @@ int main(int argc, char** argv)
 
 	debug("", "Starting main CPU %dHz loop", CPU_FRAMES_PER_SEC);
 
-	while (Emulator->isActive) {
+	auto frame = [&]() {
 		currentTime = SDL_GetPerformanceCounter();
 		deltaTime = (double)((currentTime - lastTime) * 1000) / (double) SDL_GetPerformanceFrequency();
 		lastTime = currentTime;
@@ -279,7 +287,9 @@ int main(int argc, char** argv)
 		ImGui_ImplSDL2_NewFrame();
 		ImGui::NewFrame();
 
+#ifndef __EMSCRIPTEN__
 		GUI->DrawMenu();
+#endif
 		GUI->DrawTapeDialog();
 		GUI->DrawAboutDialog();
 		GUI->DrawQueryDialog();
@@ -290,7 +300,15 @@ int main(int argc, char** argv)
 		GUI->DrawMemMapDialog();
 		GUI->DrawDebugWindow();
 		GUI->DrawEmulatorWindow();
-
+#ifdef __EMSCRIPTEN__
+		// canvas follows the size of the emulator window (no menu, no title bar)
+		if (ImGuiWindow *emuWindow = ImGui::FindWindowByName(PACKAGE_NAME)) {
+			int cw, ch;
+			SDL_GetWindowSize(gdc.window, &cw, &ch);
+			if (cw != (int) emuWindow->Size.x || ch != (int) emuWindow->Size.y)
+				SDL_SetWindowSize(gdc.window, (int) emuWindow->Size.x, (int) emuWindow->Size.y);
+		}
+#endif
 		Emulator->actionCallback();
 		ImGui::Render();
 
@@ -299,7 +317,17 @@ int main(int argc, char** argv)
 		glClear(GL_COLOR_BUFFER_BIT);
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 		SDL_GL_SwapWindow(gdc.window);
-	}
+	};
+
+#ifdef __EMSCRIPTEN__
+	// the browser owns the main loop; this call never returns
+	emscripten_set_main_loop_arg([](void *arg) {
+		(*static_cast<decltype(frame) *>(arg))();
+	}, &frame, 0, 1);
+#else
+	while (Emulator->isActive)
+		frame();
+#endif
 
 	SDL_GetWindowPosition(gdc.window,
 			&Settings->GUI->position.x, &Settings->GUI->position.y);

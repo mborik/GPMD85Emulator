@@ -110,7 +110,12 @@ void UserInterface::DrawEmulatorWindow()
 		ImGuiWindowFlags_NoCollapse |
 		ImGuiWindowFlags_NoScrollbar |
 		ImGuiWindowFlags_NoScrollWithMouse |
-		ImGuiWindowFlags_NoBringToFrontOnFocus;
+		ImGuiWindowFlags_NoBringToFrontOnFocus
+#ifdef __EMSCRIPTEN__
+		| ImGuiWindowFlags_NoTitleBar
+		| ImGuiWindowFlags_NoMove
+#endif
+	;
 
 	if (!screenInstance)
 		return;
@@ -123,6 +128,9 @@ void UserInterface::DrawEmulatorWindow()
 	window_size.y += ImGui::GetTextLineHeightWithSpacing() + STATUSBAR_HEIGHT;
 
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+#ifdef __EMSCRIPTEN__
+	ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f), ImGuiCond_Always);
+#endif
 	ImGui::SetNextWindowSize(window_size, ImGuiCond_Always);
 	ImGui::Begin(PACKAGE_NAME, NULL, window_flags);
 

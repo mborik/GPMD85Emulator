@@ -27,3 +27,35 @@
   _(for all available options/switches type `cmake -L -N build` after configuration)_
 - build with `cmake --build build`
 - _(optional)_ install to the system directories with `sudo cmake --install build`
+
+## Building for the web (WebAssembly via Emscripten):
+The emulator can be compiled with [Emscripten](https://emscripten.org) into a single page
+containing only the emulator window (no menu bar; SDL2 is provided by Emscripten ports,
+rendering uses WebGL 2).
+
+### Prerequisites:
+- Python 3, `git`, CMake (3.20+) and `make` (or `ninja`)
+- Emscripten SDK (`emsdk`), installed the same way on every platform:
+  ```
+  git clone https://github.com/emscripten-core/emsdk.git ~/emsdk
+  cd ~/emsdk && ./emsdk install latest && ./emsdk activate latest
+  source ~/emsdk/emsdk_env.sh
+  ```
+- **Ubuntu/Debian**: `sudo apt-get install build-essential cmake python3 git`
+- **Fedora**: `sudo dnf install gcc make cmake python3 git`
+- **macOS**: `xcode-select --install` and `brew install cmake python git`
+  (Brew also offers `brew install emscripten` as an alternative to `emsdk`)
+
+### Building:
+- `emcmake cmake -S . -B build-web`
+- `cmake --build build-web`
+- result is `build-web/index.html` + `index.js`, `index.wasm`, `index.data`
+  (ROMs and resources are preloaded into the virtual filesystem)
+- test locally with `python3 -m http.server -d build-web 8000` and open <http://localhost:8000>
+  _(opening the file directly via `file://` doesn't work)_
+
+### Hosting on GitHub Pages:
+- the page template is `res/web/shell.html` (fullscreen canvas only)
+- workflow `.github/workflows/pages.yml` builds the project with Emscripten and publishes
+  `index.*` files; enable it in repository **Settings → Pages → Source: GitHub Actions**
+- the page is then served at `https://<user>.github.io/GPMD85Emulator/`

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>GPMD85emu - Tesla PMD 85 emulator</title>
+	<style>
+		html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+		body { display: flex; align-items: center; justify-content: center; }
+		canvas.emscripten { display: block; border: 0; outline: none; max-width: 100vw; max-height: 100vh; object-fit: contain; image-rendering: pixelated; }
+		#status { position: fixed; color: #aaa; font: 14px sans-serif; }
+	</style>
+</head>
+<body>
+	<div id="status">Downloading...</div>
+	<canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+	<script>
+		var statusEl = document.getElementById('status');
+		var Module = {
+			canvas: document.getElementById('canvas'),
+			print: function (t) { console.log(t); },
+			printErr: function (t) { console.error(t); },
+			setStatus: function (t) { statusEl.textContent = t; statusEl.style.display = t ? 'block' : 'none'; }
+		};
+	</script>
+	{{{ SCRIPT }}}
+</body>
+</html>
