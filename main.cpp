@@ -52,6 +52,20 @@ int main(int argc, char** argv)
 
 	IntroMessage();
 
+#ifdef __EMSCRIPTEN__
+#  define PATH_WEBHOME  "/home/web_user"
+#  define PATH_STORAGE  "/storage"
+	// /storage is a read-only preloaded bundle (resources, ROMs, software library),
+	// /home/web_user is persistent (IndexedDB) and holds settings
+	PathUserHome = strdup(PATH_WEBHOME);
+	PathApplication = strdup(PATH_STORAGE);
+	PathResources = new char[strlen(PATH_STORAGE) + 1];
+	PathAppConfig = new char[strlen(PATH_WEBHOME) + 1];
+	PathGuiConfig = new char[strlen(PATH_WEBHOME) + 16];
+	strcpy(PathResources, PATH_STORAGE);
+	strcpy(PathAppConfig, PATH_WEBHOME);
+	sprintf(PathGuiConfig, "%s%cimgui.conf", PATH_WEBHOME, DIR_DELIMITER);
+#else
 	PathUserHome = SDL_getenv("HOME");
 	PathApplication = getcwd(NULL, MAX_PATH);
 	PathResources = new char[strlen(DIR_RESOURCES) + 1];
@@ -60,7 +74,7 @@ int main(int argc, char** argv)
 	strcpy(PathResources, DIR_RESOURCES);
 	sprintf(PathAppConfig, "%s%c.%s", PathUserHome, DIR_DELIMITER, PACKAGE_TARNAME);
 	sprintf(PathGuiConfig, "%s%c.%s/imgui.conf", PathUserHome, DIR_DELIMITER, PACKAGE_TARNAME);
-
+#endif
 	debug("",   "Resource path: %s", PathResources);
 	debug(NULL, "Application path: %s", PathApplication);
 	debug(NULL, "Application config path: %s", PathAppConfig);

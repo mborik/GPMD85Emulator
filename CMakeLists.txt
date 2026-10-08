@@ -250,7 +250,7 @@ endif()
 test_big_endian(WORDS_BIGENDIAN)
 
 if(EMSCRIPTEN)
-	set(DIR_RESOURCES "/res")
+	set(DIR_RESOURCES "/storage")
 elseif(INSTALLED_RESOURCES)
 	set(DIR_RESOURCES "${CMAKE_INSTALL_FULL_DATADIR}/${PACKAGE_TARNAME}")
 else()
@@ -388,6 +388,9 @@ target_link_libraries(GPMD85emu PRIVATE
 )
 
 if(EMSCRIPTEN)
+	if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/storage/rom")
+		message(FATAL_ERROR "Missing storage submodule (res, rom and software library). Run: git submodule update --init storage")
+	endif()
 	set_target_properties(GPMD85emu PROPERTIES OUTPUT_NAME "index" SUFFIX ".html")
 	target_link_options(GPMD85emu PRIVATE
 		-sUSE_SDL=2
@@ -396,8 +399,9 @@ if(EMSCRIPTEN)
 		-sALLOW_MEMORY_GROWTH=1
 		-sEXIT_RUNTIME=0
 		-sFORCE_FILESYSTEM=1
-		"--preload-file=${CMAKE_CURRENT_SOURCE_DIR}/res@/res"
-		"--preload-file=${CMAKE_CURRENT_SOURCE_DIR}/rom@/rom"
+		-lidbfs.js
+		"--preload-file=${CMAKE_CURRENT_SOURCE_DIR}/storage@/storage"
+		"--pre-js=${CMAKE_CURRENT_SOURCE_DIR}/res/web/persist.js"
 		"--shell-file=${CMAKE_CURRENT_SOURCE_DIR}/res/web/shell.html"
 	)
 	set_target_properties(GPMD85emu PROPERTIES LINK_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/res/web/shell.html")

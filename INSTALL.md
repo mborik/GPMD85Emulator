@@ -56,6 +56,10 @@ by the browser via `emscripten_set_main_loop`).
   _(opening the file directly via `file://` doesn't work)_
 
 ### Hosting on GitHub Pages:
+- `/storage` in the virtual filesystem is the `storage` git submodule (contents of `res` and `rom`
+  directories plus PMD 85 software library/demos); it is preloaded into `index.data`
+  _(initialize with `git submodule update --init storage`)_
+- `/home/web_user` (settings, `imgui.conf`) is persisted in browser's IndexedDB by `res/web/persist.js`
 - the page template is `res/web/shell.html` (fullscreen canvas only)
 - workflow `.github/workflows/pages.yml` builds the project with Emscripten and publishes
   `index.*` files; enable it in repository **Settings → Pages → Source: GitHub Actions**
