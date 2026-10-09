@@ -55,7 +55,8 @@ int main(int argc, char** argv)
 	PathGuiConfig = new char[strlen(PathUserHome) + 32];
 	strcpy(PathResources, DIR_RESOURCES);
 	sprintf(PathAppConfig, "%s%c.%s", PathUserHome, DIR_DELIMITER, PACKAGE_TARNAME);
-	sprintf(PathGuiConfig, "%s%c.%s/imgui.conf", PathUserHome, DIR_DELIMITER, PACKAGE_TARNAME);
+	sprintf(PathGuiConfig, "%s%c.%s%cimgui.conf",
+		PathUserHome, DIR_DELIMITER, PACKAGE_TARNAME, DIR_DELIMITER);
 
 	debug("",   "Resource path: %s", PathResources);
 	debug(NULL, "Application path: %s", PathApplication);
