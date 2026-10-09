@@ -37,7 +37,6 @@ void UserInterface::DrawDiskImagesDialog()
 void UserInterface::DiskImagesMenuItems(bool inMenu)
 {
 	static char buf[FILENAME_MAX];
-	ImVec4 bbase, hover;
 	static TSettings::SetPMD32Drive *drives[4] = {
 		&Settings->PMD32->driveA,
 		&Settings->PMD32->driveB,
@@ -45,6 +44,7 @@ void UserInterface::DiskImagesMenuItems(bool inMenu)
 		&Settings->PMD32->driveD
 	};
 
+	ImVec4 bbase, hover;
 	for (char i = 0, letter = 'A'; i < 4; i++, letter++) {
 		TSettings::SetPMD32Drive *drive = drives[i];
 		const char *imagePath = ExtractFileName(drive->image);
@@ -56,8 +56,8 @@ void UserInterface::DiskImagesMenuItems(bool inMenu)
 		if (ImGui::MenuItem(buf + 8))
 			Emulator->ActionPMD32LoadDisk((int) i + 1);
 
-		bbase = imagePath ? ImColor::HSV(0.6f, 0.7f, 0.8f) : ImColor::HSV(0.5f, 0.2f, 0.2f);
-		hover = imagePath ? ImColor::HSV(0.6f, 0.9f, 1.0f) : ImColor::HSV(0.5f, 0.2f, 0.5f);
+		bbase = imagePath ? Color[GCCol_ButtonEject] : Color[GCCol_ButtonBase];
+		hover = imagePath ? Color[GCCol_ButtonEjectHover] : Color[GCCol_ButtonBaseHover];
 		ImGui::PushStyleColor(ImGuiCol_Button, bbase);
 		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, hover);
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, hover);
@@ -71,8 +71,8 @@ void UserInterface::DiskImagesMenuItems(bool inMenu)
 			InvokeSettingsChange |= PS_CLOSEALL;
 		}
 
-		bbase = drive->writeProtect ? ImColor::HSV(0.0f, 0.6f, 0.6f) : ImColor::HSV(0.5f, 0.2f, 0.2f);
-		hover = drive->writeProtect ? ImColor::HSV(0.0f, 0.8f, 0.8f) : ImColor::HSV(0.5f, 0.2f, 0.5f);
+		bbase = drive->writeProtect ? Color[GCCol_ButtonWP] : Color[GCCol_ButtonBase];
+		hover = drive->writeProtect ? Color[GCCol_ButtonWPHover] : Color[GCCol_ButtonBaseHover];
 		ImGui::PushStyleColor(ImGuiCol_Button, bbase);
 		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, hover);
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, hover);
@@ -110,7 +110,7 @@ void UserInterface::DrawQueryDialog()
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.0f, 8.0f));
 
 		if (queryDialogTitle && queryDialogTitle[0] != '\0') {
-			ImGui::PushStyleColor(ImGuiCol_Text, (ImVec4) ImColor::HSV(0.6f, 0.7f, 0.8f));
+			ImGui::PushStyleColor(ImGuiCol_Text, Color[GCCol_DialogTitleText]);
 			ImGui::SeparatorText(queryDialogTitle);
 			ImGui::PopStyleColor();
 		}

@@ -178,24 +178,24 @@ void UserInterface::DrawDebugWidgetDisass(int numberOfItems)
 		ImGuiSelectableFlags selectableFlags = selectable_flags;
 		if (line.color == COL_CURSOR) {
 			selectableFlags |= ImGuiSelectableFlags_Highlight;
-			ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.3f, 0.3f, 0.3f, 0.8f));
-			ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.3f, 0.3f, 0.3f, 0.6f));
+			ImGui::PushStyleColor(ImGuiCol_HeaderActive, Color[GCCol_ItemCursor]);
+			ImGui::PushStyleColor(ImGuiCol_HeaderHovered, DimColorAlpha(Color[GCCol_ItemCursor]));
 		}
 		else if (line.color == COL_CURRENT) {
 			selectableFlags |= ImGuiSelectableFlags_Highlight;
-			ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.9f, 0.9f, 0.9f, 1.0f));
-			ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.9f, 0.9f, 0.9f, 0.8f));
-			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+			ImGui::PushStyleColor(ImGuiCol_HeaderActive, Color[GCCol_ItemPC]);
+			ImGui::PushStyleColor(ImGuiCol_HeaderHovered, DimColorAlpha(Color[GCCol_ItemPC]));
+			ImGui::PushStyleColor(ImGuiCol_Text, Color[GCCol_TextBlack]);
 		}
 		else if (line.color == COL_BREAKPT) {
 			selectableFlags |= ImGuiSelectableFlags_Highlight;
-			ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.8f, 0.4f, 0.2f, 1.0f));
-			ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.8f, 0.4f, 0.2f, 0.8f));
-			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+			ImGui::PushStyleColor(ImGuiCol_HeaderActive, Color[GCCol_ItemBreakpoint]);
+			ImGui::PushStyleColor(ImGuiCol_HeaderHovered, DimColorAlpha(Color[GCCol_ItemBreakpoint]));
+			ImGui::PushStyleColor(ImGuiCol_Text, Color[GCCol_TextBlack]);
 		}
 		else {
-			ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-			ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+			ImGui::PushStyleColor(ImGuiCol_HeaderActive, Color[GCCol_Transparent]);
+			ImGui::PushStyleColor(ImGuiCol_HeaderHovered, Color[GCCol_Transparent]);
 		}
 
 		ImGui::PushID(i);
@@ -209,10 +209,10 @@ void UserInterface::DrawDebugWidgetDisass(int numberOfItems)
 			}
 		}
 
-		ImVec4 branchColor = ImVec4(0.9f, 0.7f, 0.0f, 1.0f);
+		ImVec4 branchColor = Color[GCCol_SignBranch];
 		if (line.color >= COL_CURRENT) {
 			ImGui::PopStyleColor(3);
-			branchColor = ImVec4(0.3f, 0.1f, 0.0f, 1.0f);
+			branchColor = Color[GCCol_SignBranchOpaque];
 		}
 		else
 			ImGui::PopStyleColor(2);
@@ -253,7 +253,7 @@ void UserInterface::DrawDebugWidgetDisass(int numberOfItems)
 			}
 			else if (line.isBranchSource) {
 				ImGui::SameLine(widthWidth - GetMonoTextWidth(1, 0.0f));
-				ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "<");
+				ImGui::TextDisabled("<");
 			}
 			else {
 				ImGui::SameLine(widthWidth - GetMonoTextWidth(1, 0.0f));
@@ -262,7 +262,7 @@ void UserInterface::DrawDebugWidgetDisass(int numberOfItems)
 		}
 		if (line.isBreakPoint) {
 			ImGui::SameLine(breakpointOffset);
-			ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "\u2022");
+			ImGui::TextColored(Color[GCCol_SignBreakpoint], "\u2022");
 		}
 
 		ImGui::PopID();

@@ -31,6 +31,7 @@ UserInterface *GUI;
 UserInterface::UserInterface()
 {
 	debug("GUI", "Initializing...");
+	InitCustomColors();
 
 	ledState = 0;
 	iconState = 0;
@@ -84,6 +85,37 @@ void UserInterface::InitFont(float size, bool oversample)
 		GPMD85Emulator_font_compressed_size,
 		size, &config
 	);
+}
+//-----------------------------------------------------------------------------
+void UserInterface::InitCustomColors()
+{
+	Color[GCCol_Transparent] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+	Color[GCCol_TextBlack] = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);
+	Color[GCCol_ProgressBackground] = ImVec4(0.1f, 0.1f, 0.1f, 0.5f);
+	Color[GCCol_ProgressForeground] = ImVec4(0.16f, 0.4f, 0.2f, 1.0f);
+	Color[GCCol_PauseText] = ImVec4(0.875f, 0.1f, 0.3f, 1.0f);
+	Color[GCCol_DialogTitleText] = ImColor::HSV(0.6f, 0.7f, 0.8f).Value;
+	Color[GCCol_IconYellow] = ImVec4(0.25f, 0.25f, 0.5f, 1.0f);
+	Color[GCCol_IconRed] = ImVec4(0.75f, 0.0f, 0.0f, 1.0f);
+	Color[GCCol_IconBlue] = ImVec4(0.75f, 0.75f, 0.0f, 1.0f);
+	Color[GCCol_ItemCursor] = ImVec4(0.3f, 0.3f, 0.3f, 0.8f);
+	Color[GCCol_ItemPC] = ImVec4(0.9f, 0.9f, 0.9f, 1.0f);
+	Color[GCCol_ItemBreakpoint] = ImVec4(0.8f, 0.4f, 0.2f, 1.0f);
+	Color[GCCol_SignBranch] = ImVec4(0.9f, 0.7f, 0.0f, 1.0f);
+	Color[GCCol_SignBranchOpaque] = ImVec4(0.3f, 0.1f, 0.0f, 1.0f);
+	Color[GCCol_SignBreakpoint] = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
+	Color[GCCol_SignCRCError] = ImVec4(1.0f, 0.3f, 0.3f, 1.0f);
+	Color[GCCol_ButtonBase] = ImColor::HSV(0.5f, 0.2f, 0.2f).Value;
+	Color[GCCol_ButtonBaseHover] = ImColor::HSV(0.5f, 0.2f, 0.5f).Value;
+	Color[GCCol_ButtonEject] = ImColor::HSV(0.6f, 0.7f, 0.8f).Value;
+	Color[GCCol_ButtonEjectHover] = ImColor::HSV(0.6f, 0.9f, 1.0f).Value;
+	Color[GCCol_ButtonWP] = ImColor::HSV(0.0f, 0.6f, 0.6f).Value;
+	Color[GCCol_ButtonWPHover] = ImColor::HSV(0.0f, 0.8f, 0.8f).Value;
+	Color[GCCol_ButtonGreen] = ImColor::HSV(0.35f, 1.0f, 0.6f, 0.9f).Value;
+	Color[GCCol_ButtonGreenHover] = ImColor::HSV(0.35f, 1.0f, 0.6f, 0.5f).Value;
+	Color[GCCol_ButtonStop] = ImVec4(1.0f, 0.2f, 0.2f, 0.9f);
+	Color[GCCol_ButtonStopHover] = ImVec4(1.0f, 0.2f, 0.2f, 0.5f);
+	Color[GCCol_ButtonCursorHover] = ImColor::HSV(0.5f, 0.3f, 0.3f, 0.3f).Value;
 }
 //-----------------------------------------------------------------------------
 float UserInterface::GetMonoTextWidth(float textLength, float padding)

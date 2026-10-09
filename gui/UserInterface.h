@@ -43,9 +43,41 @@ enum TGuiElementType {
 	GE_DEBUGGER,          // Debugger dialog
 };
 //-----------------------------------------------------------------------------
+enum TGuiCustomColor {
+	GCCol_Transparent,
+	GCCol_TextBlack,
+	GCCol_ProgressBackground,
+	GCCol_ProgressForeground,
+	GCCol_PauseText,
+	GCCol_DialogTitleText,
+	GCCol_IconYellow,
+	GCCol_IconRed,
+	GCCol_IconBlue,
+	GCCol_ItemCursor,
+	GCCol_ItemPC,
+	GCCol_ItemBreakpoint,
+	GCCol_SignBranch,
+	GCCol_SignBranchOpaque,
+	GCCol_SignBreakpoint,
+	GCCol_SignCRCError,
+	GCCol_ButtonBase,
+	GCCol_ButtonBaseHover,
+	GCCol_ButtonEject,
+	GCCol_ButtonEjectHover,
+	GCCol_ButtonWP,
+	GCCol_ButtonWPHover,
+	GCCol_ButtonGreen,
+	GCCol_ButtonGreenHover,
+	GCCol_ButtonStop,
+	GCCol_ButtonStopHover,
+	GCCol_ButtonCursorHover,
+	GCCol_COUNT,
+};
+//-----------------------------------------------------------------------------
 class UserInterface
 {
 	public:
+		ImVec4 Color[GCCol_COUNT];
 		BYTE InvokeSettingsChange;
 		sigslot::signal<> ProcessSettingsCallback;
 		sigslot::signal<TMenuQueryType> QueryDialogCallback;
@@ -54,7 +86,13 @@ class UserInterface
 		UserInterface();
 		virtual ~UserInterface();
 
+		static void InitFont(float size, bool oversample = true);
 		inline void SetScreenInstance(ScreenPMD85 *video) { screenInstance = video; }
+
+		void InitCustomColors();
+		inline ImVec4 DimColorAlpha(ImVec4 color, float minusAlpha = 0.2f)
+			{ color.w -= minusAlpha; return color; }
+
 		inline bool InMenu() { return isMenuHovered; }
 		inline bool InEmulatorWindow() { return isEmulatorWindowFocused; }
 		inline bool InAnyWindowExceptEmulator() {
@@ -93,7 +131,6 @@ class UserInterface
 		void SetComputerModel(TComputerModel model);
 		inline void SetStatusPercentage(int val) { statusPercentage = val; }
 		inline void SetStatusFPS(int val) { statusFPS = val; }
-		static void InitFont(float size, bool oversample = true);
 
 	private:
 		int ledState;
