@@ -102,19 +102,8 @@ class UserInterface
 				!isEmulatorWindowFocused;
 		}
 
+		void Draw();
 		bool OnMenuLeave();
-		void DrawMenu();
-		void DrawAboutDialog();
-		void DrawQueryDialog();
-		void DrawFileSelector();
-		void DrawDiskImagesDialog();
-		void DrawTapeDialog();
-		void DrawMemDumpDialog();
-		void DrawMemEditDialog();
-		void DrawMemMapDialog();
-		void DrawDebugWindow();
-		void DrawEmulatorWindow();
-
 		void QueryDialog(const char *title, const char *message, bool save);
 		void MessageBox(const char *text, ...);
 		void FileSelector(
@@ -181,6 +170,18 @@ class UserInterface
 		std::vector<TTapeBrowser::TDialogItem> tapeDialogEntries;
 		ImGuiSelectionBasicStorage *tapeDialogSelection;
 		ImGuiSelectionExternalStorage *tapeDialogSelectionAdapter;
+
+		void DrawMenu();
+		void DrawAboutDialog();
+		void DrawQueryDialog();
+		void DrawFileSelector();
+		void DrawDiskImagesDialog();
+		void DrawTapeDialog();
+		void DrawMemDumpDialog();
+		void DrawMemEditDialog();
+		void DrawMemMapDialog();
+		void DrawDebugWindow();
+		void DrawEmulatorWindow();
 
 		void SetButtonColor(int icon);
 		void MachineMenuItem(const char *name, TComputerModel model);

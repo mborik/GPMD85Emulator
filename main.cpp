@@ -279,18 +279,7 @@ int main(int argc, char** argv)
 		ImGui_ImplSDL2_NewFrame();
 		ImGui::NewFrame();
 
-		GUI->DrawMenu();
-		GUI->DrawTapeDialog();
-		GUI->DrawAboutDialog();
-		GUI->DrawQueryDialog();
-		GUI->DrawFileSelector();
-		GUI->DrawDiskImagesDialog();
-		GUI->DrawMemDumpDialog();
-		GUI->DrawMemEditDialog();
-		GUI->DrawMemMapDialog();
-		GUI->DrawDebugWindow();
-		GUI->DrawEmulatorWindow();
-
+		GUI->Draw();
 		Emulator->actionCallback();
 		ImGui::Render();
 

@@ -135,6 +135,21 @@ float UserInterface::GetTextLineHeight(float lines, float spacing)
 	return (ImGui::GetTextLineHeightWithSpacing() + spacing) * lines;
 }
 //-----------------------------------------------------------------------------
+void UserInterface::Draw()
+{
+	DrawMenu();
+	DrawTapeDialog();
+	DrawAboutDialog();
+	DrawQueryDialog();
+	DrawFileSelector();
+	DrawDiskImagesDialog();
+	DrawMemDumpDialog();
+	DrawMemEditDialog();
+	DrawMemMapDialog();
+	DrawDebugWindow();
+	DrawEmulatorWindow();
+}
+//-----------------------------------------------------------------------------
 void UserInterface::DrawEmulatorWindow()
 {
 	static ImGuiWindowFlags window_flags =
