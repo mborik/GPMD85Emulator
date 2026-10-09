@@ -171,34 +171,39 @@ class UserInterface
 		ImGuiSelectionBasicStorage *tapeDialogSelection;
 		ImGuiSelectionExternalStorage *tapeDialogSelectionAdapter;
 
-		void DrawMenu();
+		void DrawEmulatorWindow();
+		void SetButtonColor(int icon);
+
 		void DrawAboutDialog();
 		void DrawQueryDialog();
-		void DrawFileSelector();
-		void DrawDiskImagesDialog();
-		void DrawTapeDialog();
-		void DrawMemDumpDialog();
-		void DrawMemEditDialog();
-		void DrawMemMapDialog();
-		void DrawDebugWindow();
-		void DrawEmulatorWindow();
 
-		void SetButtonColor(int icon);
+		void DrawMenu();
 		void MachineMenuItem(const char *name, TComputerModel model);
 		void AttributeMenuItems(bool enabled = false);
 		void DiskImagesMenuItems(bool inMenu = false);
-		void MemDumpDialogContent(bool saveType);
+		void DrawDiskImagesDialog();
 
 		void InitFileSelector();
 		void DestroyFileSelector();
+		void DrawFileSelector();
 
 		void InitTapeDialog();
 		void DestroyTapeDialog();
+		void DrawTapeDialog();
 		void DrawTapeDialogContextMenu(int &index);
 
-		void InitDebugSuite();
-		void DestroyDebugSuite();
+		void DrawMemDumpDialog();
+		void MemDumpDialogContent(bool saveType);
 
+		void InitMemEditDialog();
+		void DestroyMemEditDialog();
+		void DrawMemEditDialog();
+
+		void InitMemMapDialog();
+		void DestroyMemMapDialog();
+		void DrawMemMapDialog();
+
+		void DrawDebugDialog();
 		void DrawDebugWidgetDisass(int numberOfItems);
 		void DrawDebugWidgetRegs();
 		void DrawDebugWidgetStackBreakNest();

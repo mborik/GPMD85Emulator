@@ -56,7 +56,8 @@ UserInterface::UserInterface()
 
 	InitFileSelector();
 	InitTapeDialog();
-	InitDebugSuite();
+	InitMemEditDialog();
+	InitMemMapDialog();
 
 	screenInstance = NULL;
 	InvokeSettingsChange = 0;
@@ -68,7 +69,8 @@ UserInterface::~UserInterface()
 
 	DestroyFileSelector();
 	DestroyTapeDialog();
-	DestroyDebugSuite();
+	DestroyMemEditDialog();
+	DestroyMemMapDialog();
 }
 //-----------------------------------------------------------------------------
 void UserInterface::InitFont(float size, bool oversample)
@@ -146,7 +148,7 @@ void UserInterface::Draw()
 	DrawMemDumpDialog();
 	DrawMemEditDialog();
 	DrawMemMapDialog();
-	DrawDebugWindow();
+	DrawDebugDialog();
 	DrawEmulatorWindow();
 }
 //-----------------------------------------------------------------------------

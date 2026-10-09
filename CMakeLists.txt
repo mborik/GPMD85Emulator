@@ -328,10 +328,13 @@ add_library(gpmd85emu_gui STATIC
 	gui/imgui/misc/cpp/imgui_stdlib.cpp
 	gui/AboutDialog.cpp
 	gui/CommonDialog.cpp
-	gui/DebugSuite.cpp
-	gui/Menu.cpp
-	gui/MemDumpDialog.cpp
+	gui/DebugDialog.cpp
+	gui/DiskImagesDialog.cpp
 	gui/FileSelector.cpp
+	gui/MemDumpDialog.cpp
+	gui/MemEditDialog.cpp
+	gui/MemMapDialog.cpp
+	gui/Menu.cpp
 	gui/StatusBar.cpp
 	gui/TapeDialog.cpp
 	gui/UserInterface.cpp

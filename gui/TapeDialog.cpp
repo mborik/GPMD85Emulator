@@ -378,7 +378,9 @@ void UserInterface::DrawTapeDialogContextMenu(int &index) {
 
 			if (ImGui::MenuItem("Change to Headerless Block", NULL, false, blk->cType)) { }
 			if (ImGui::MenuItem("Change to Header Block", NULL, false, !blk->cType)) { }
+			if (ImGui::MenuItem("Edit Block Header", NULL, false, !blk->cType)) { }
 
+/*			// TODO Separate to a dedicated "Edit Block Header" modal dialog
 			if (blk->cType) {
 				ImGui::SeparatorText("Block Header");
 
@@ -417,7 +419,7 @@ void UserInterface::DrawTapeDialogContextMenu(int &index) {
 				ImGui::SetNextItemWidth(GetMonoTextWidth(12, 4.0f));
 				ImGui::InputScalar("##blklen", ImGuiDataType_U16, &blockLength, NULL, NULL, "%04X");
 			}
-
+*/
 			ImGui::EndDisabled();
 		}
 

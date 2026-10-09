@@ -1,0 +1,168 @@
+/*	MemEditDialog.cpp: Part of GUI rendering class: Memory editor
+	Copyright (c) 2026 Martin Borik <martin@borik.net>
+
+	Based on ImGui Mini memory editor: http://www.github.com/ocornut/imgui_club
+
+	Permission is hereby granted, free of charge, to any person obtaining
+	a copy of this software and associated documentation files (the "Software"),
+	to deal in the Software without restriction, including without limitation
+	the rights to use, copy, modify, merge, publish, distribute, sublicense,
+	and/or sell copies of the Software, and to permit persons to whom
+	the Software is furnished to do so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included
+	in all copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+	OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+	THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES
+	OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+	ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
+	OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+//-----------------------------------------------------------------------------
+#include "UserInterface.h"
+#include "Emulator.h"
+#include "imgui-mods/imgui_memory_editor.h"
+#include "imgui/imgui_internal.h"
+//-----------------------------------------------------------------------------
+void UserInterface::InitMemEditDialog()
+{
+	memEditor = new MemoryEditor();
+	memEditorBuffer = new BYTE[MEM_MAX]; // 64KB working buffer for memEditor
+	memset(memEditorBuffer, 0, MEM_MAX);
+
+	memEditor->Open = Settings->GUI->dialogMemEditOpened;
+	memEditor->Cols = Settings->GUI->memEditColumns;
+	memEditor->OptShowAscii = Settings->GUI->memEditAscii;
+	memEditor->OptAddrDigitsCount = 4;
+	memEditor->OptShowOptions = false;
+	memEditor->GotoAddr = 0;
+
+	memEditorDataContext = new MemEditorDataContext { Debugger, memEditorBuffer, NULL };
+	memEditor->UserData = (void *) memEditorDataContext;
+	memEditor->ReadFn = [](const ImU8* mem, size_t off, void* user_data) -> ImU8 {
+		auto* ctx = static_cast<MemEditorDataContext*>(user_data);
+		BYTE value;
+		ctx->dbg->GetMemState(off, &value);
+		ctx->buffer[off] = value;
+		return value;
+	};
+	memEditor->WriteFn = [](ImU8* mem, size_t off, ImU8 val, void* user_data) {
+		auto* ctx = static_cast<MemEditorDataContext*>(user_data);
+		ctx->dbg->WriteByte(off, val);
+		mem[off] = val;
+	};
+	memEditor->BgColorFn = [](const ImU8* mem, size_t off, void* user_data) -> ImU32 {
+		auto* ctx = static_cast<MemEditorDataContext *>(const_cast<void *>(user_data));
+		ImU8 changing = ctx->changingBuffer[off], changingQ = changing / 4;
+		ImU32 color = IM_COL32(changingQ, changing / 2, changing, 64 + changingQ);
+		BYTE state = ctx->dbg->GetMemState(off);
+		if ((state & MA_RW) == 0)
+			color |= IM_COL32(128, 0, 0, 0); // unaccessible
+		if ((state & MA_RW) != MA_RW)
+			color |= IM_COL32(64, 64, 0, 0); // partially blocked (RO/WO)
+		else if (state & MA_VRAM_B)
+			color |= IM_COL32(0, 32, 16, 0); // VRAM aside buffer
+		else if (state & MA_VRAM)
+			color |= IM_COL32(0, 64, 0, 0); // VRAM
+		return color;
+	};
+}
+//-----------------------------------------------------------------------------
+void UserInterface::DestroyMemEditDialog()
+{
+	if (memEditor) {
+		delete memEditor;
+		memEditor = NULL;
+	}
+	if (memEditorBuffer) {
+		delete[] memEditorBuffer;
+		memEditorBuffer = NULL;
+	}
+	if (memEditorDataContext) {
+		delete memEditorDataContext;
+		memEditorDataContext = NULL;
+	}
+}
+//-----------------------------------------------------------------------------
+void UserInterface::DrawMemEditDialog()
+{
+	static MemoryEditor::Sizes s;
+
+	if (Settings->GUI->dialogMemEditOpened) {
+		ImGuiStyle& style = ImGui::GetStyle();
+
+		memEditorDataContext->changingBuffer = Debugger->GetChangingMemState();
+		memEditor->OptFooterExtraHeight = ImGui::GetTextLineHeightWithSpacing() + style.FramePadding.y * 3.0f;
+		memEditor->CalcSizes(s, MEM_MAX, 0);
+
+		float minHeight = s.WindowWidth * 0.60f;
+		ImGui::SetNextWindowSize(ImVec2(s.WindowWidth, minHeight), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSizeConstraints(ImVec2(s.WindowWidth, minHeight), ImVec2(s.WindowWidth, FLT_MAX));
+
+		if (ImGui::Begin("Memory Editor", &Settings->GUI->dialogMemEditOpened, ImGuiWindowFlags_NoScrollbar)) {
+			memEditor->DrawContents(memEditorBuffer, MEM_MAX, 0);
+
+			ImGui::Separator();
+			ImGui::SetNextItemWidth(4 * s.GlyphWidth + style.FramePadding.x * 2.0f);
+
+			static const char* widthItems[] = { NULL, "8", "16" };
+			int widthIdx = (int) Settings->GUI->memEditColumns / 8;
+			if (ImGui::SliderInt("##medcols", &widthIdx, 1, 2, widthItems[widthIdx])) {
+				memEditor->ContentsWidthChanged = true;
+				memEditor->Cols = Settings->GUI->memEditColumns = widthIdx * 8;
+			}
+
+			ImGui::SameLine();
+			if (ImGui::Checkbox("ASCII", &Settings->GUI->memEditAscii)) {
+				memEditor->ContentsWidthChanged = true;
+				memEditor->OptShowAscii = Settings->GUI->memEditAscii;
+			}
+
+			ImGui::SameLine();
+			ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+			ImGui::SameLine();
+
+			auto ProcessGotoAddr = [&](const char *c) {
+				size_t gotoAddr;
+				if (sscanf(c, "%" _pfSizeT "X", &gotoAddr) == 1) {
+					memEditor->GotoAddr = gotoAddr;
+					memEditor->HighlightMin = memEditor->HighlightMax = (size_t) -1;
+				}
+			};
+
+			float addrInputWidth = (s.AddrDigitsCount + 1) * s.GlyphWidth + style.FramePadding.x * 2.0f;
+			ImGui::SetNextItemWidth(addrInputWidth);
+			ImGui::InputText("##medaddr",
+				memEditor->AddrInputBuf, 5,
+				ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_AlwaysOverwrite);
+			ImGui::SameLine();
+			if (ImGui::Button("MEM"))
+				ProcessGotoAddr(memEditor->AddrInputBuf);
+
+			static std::vector<std::string> regsLine(6, "");
+			static short regUpdateCounter = 0;
+
+			if (--regUpdateCounter <= 0) {
+				regUpdateCounter = 10;
+				Debugger->FillRegs(regsLine, true);
+			}
+
+			// SP, PC, HL, DE, BC
+			for (int i = 5; i > 0; i--) {
+				ImGui::SameLine();
+				if (ImGui::Button(regsLine[i].c_str()))
+					ProcessGotoAddr(regsLine[i].c_str() + 3);
+			}
+
+			if (memEditor->ContentsWidthChanged) {
+				memEditor->CalcSizes(s, MEM_MAX, 0);
+				ImGui::SetWindowSize(ImVec2(s.WindowWidth, ImGui::GetWindowSize().y));
+			}
+		}
+		ImGui::End();
+	}
+}
+//-----------------------------------------------------------------------------

@@ -22,19 +22,7 @@
 //-----------------------------------------------------------------------------
 #include "UserInterface.h"
 #include "Emulator.h"
-#include "imgui-mods/imgui_memory_editor.h"
 #include "imgui/imgui_internal.h"
-#define GL_GLEXT_PROTOTYPES
-#ifdef IMGUI_IMPL_OPENGL_ES2
-#  include "SDL_opengles2.h"
-#  define MEMMAP_TEX_FORMAT GL_RGBA
-#else
-#  include "SDL_opengl.h"
-#  define MEMMAP_TEX_FORMAT GL_RGBA8
-#endif
-//-----------------------------------------------------------------------------
-#define MEMMAP_TEX_SIZE 256
-#define MEMMAP_TEX_SCALE 2
 //-----------------------------------------------------------------------------
 #define radix Settings->Debugger->hex
 //-----------------------------------------------------------------------------
@@ -61,88 +49,251 @@ static ImGuiPopupFlags popup_flags =
 	ImGuiWindowFlags_NoDecoration |
 	ImGuiWindowFlags_NoSavedSettings;
 //-----------------------------------------------------------------------------
-void UserInterface::InitDebugSuite()
+void UserInterface::DrawDebugDialog()
 {
-	memEditor = new MemoryEditor();
-	memEditorBuffer = new BYTE[MEM_MAX]; // 64KB working buffer for memEditor
-	memMapReadBuffer = new BYTE[MEM_MAX];
-	memMapPixelBuffer = new DWORD[MEM_MAX];
-	memMapTexture = 0;
-	memset(memEditorBuffer, 0, MEM_MAX);
-	memset(memMapReadBuffer, 0, MEM_MAX);
-	memset(memMapPixelBuffer, 0, MEM_MAX * sizeof(DWORD));
+	static bool isOpening = true;
+	static char gotoMemEditor[8];
+	static ImGuiWindowFlags flags =
+		ImGuiWindowFlags_NoScrollbar |
+		ImGuiWindowFlags_NoNavInputs;
 
-	memEditor->Open = Settings->GUI->dialogMemEditOpened;
-	memEditor->Cols = Settings->GUI->memEditColumns;
-	memEditor->OptShowAscii = Settings->GUI->memEditAscii;
-	memEditor->OptAddrDigitsCount = 4;
-	memEditor->OptShowOptions = false;
-	memEditor->GotoAddr = 0;
+	if (dialogDebugOpened) {
+		ImGuiStyle& style = ImGui::GetStyle();
+		ImGuiIO& io = ImGui::GetIO();
 
-	memEditorDataContext = new MemEditorDataContext { Debugger, memEditorBuffer, NULL };
-	memEditor->UserData = (void *) memEditorDataContext;
-	memEditor->ReadFn = [](const ImU8* mem, size_t off, void* user_data) -> ImU8 {
-		auto* ctx = static_cast<MemEditorDataContext*>(user_data);
-		BYTE value;
-		ctx->dbg->GetMemState(off, &value);
-		ctx->buffer[off] = value;
-		return value;
-	};
-	memEditor->WriteFn = [](ImU8* mem, size_t off, ImU8 val, void* user_data) {
-		auto* ctx = static_cast<MemEditorDataContext*>(user_data);
-		ctx->dbg->WriteByte(off, val);
-		mem[off] = val;
-	};
-	memEditor->BgColorFn = [](const ImU8* mem, size_t off, void* user_data) -> ImU32 {
-		auto* ctx = static_cast<MemEditorDataContext *>(const_cast<void *>(user_data));
-		ImU8 changing = ctx->changingBuffer[off], changingQ = changing / 4;
-		ImU32 color = IM_COL32(changingQ, changing / 2, changing, 64 + changingQ);
-		BYTE state = ctx->dbg->GetMemState(off);
-		if ((state & MA_RW) == 0)
-			color |= IM_COL32(128, 0, 0, 0); // unaccessible
-		if ((state & MA_RW) != MA_RW)
-			color |= IM_COL32(64, 64, 0, 0); // partially blocked (RO/WO)
-		else if (state & MA_VRAM_B)
-			color |= IM_COL32(0, 32, 16, 0); // VRAM aside buffer
-		else if (state & MA_VRAM)
-			color |= IM_COL32(0, 64, 0, 0); // VRAM
-		return color;
-	};
+		ImVec2 framePadding = style.FramePadding * 2.0f;
+		float widthWidth = GetMonoTextWidth(52, framePadding.x);
+		float minHeight = GetTextLineHeight(27);
 
-	glGenTextures(1, &memMapTexture);
-	glBindTexture(GL_TEXTURE_2D, memMapTexture);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexImage2D(GL_TEXTURE_2D, 0, MEMMAP_TEX_FORMAT, MEMMAP_TEX_SIZE, MEMMAP_TEX_SIZE, 0,
-		GL_RGBA, GL_UNSIGNED_BYTE, (BYTE *)(memMapPixelBuffer));
-	glBindTexture(GL_TEXTURE_2D, 0);
-}
-//-----------------------------------------------------------------------------
-void UserInterface::DestroyDebugSuite()
-{
-	if (memEditor) {
-		delete memEditor;
-		memEditor = NULL;
+		if (isOpening) {
+			Debugger->Reset();
+			ImGui::SetNextWindowFocus();
+		}
+
+		bool isRunning = Emulator->isRunning;
+
+		ImGui::SetNextWindowSize(ImVec2(widthWidth, minHeight), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSizeConstraints(ImVec2(widthWidth, minHeight), ImVec2(widthWidth, FLT_MAX));
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 0.0f));
+		ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(5.0f, 10.0f));
+
+		if (ImGui::Begin("Debugger", &dialogDebugOpened, flags)) {
+			if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows))
+				dialogDebugFocused = true;
+
+			if (dialogDebugFocused && !ImGui::IsAnyItemActive()) {
+				if (ImGui::IsKeyPressed(ImGuiKey_UpArrow, true)) {
+					Debugger->HandleKeyboardInput(K_UP);
+				}
+				if (ImGui::IsKeyPressed(ImGuiKey_DownArrow, true)) {
+					Debugger->HandleKeyboardInput(K_DOWN);
+				}
+				if (ImGui::IsKeyPressed(ImGuiKey_PageUp, true)) {
+					Debugger->HandleKeyboardInput(K_PAGEUP);
+				}
+				if (ImGui::IsKeyPressed(ImGuiKey_PageDown, true)) {
+					Debugger->HandleKeyboardInput(K_PAGEDOWN);
+				}
+				if (ImGui::IsKeyPressed(ImGuiKey_Home)) {
+					Debugger->HandleKeyboardInput(K_HOME);
+				}
+				if (ImGui::IsKeyPressed(ImGuiKey_Enter) && Debugger->lineAtCursor) {
+					Debugger->DoGotoAddress(Debugger->lineAtCursor->lookupAddress);
+				}
+				if (ImGui::IsKeyPressed(ImGuiKey_Space) && Debugger->lineAtCursor) {
+					std::string addr = Debugger->lineAtCursor->text.substr(1, 5);
+					if (radix)
+						addr = addr.substr(1);
+					Debugger->ToggleBreakPoint(addr.c_str(), -1);
+				}
+				if (ImGui::IsKeyPressed(ImGuiKey_Backspace)) {
+					Debugger->NestPop();
+				}
+				if (ImGui::IsKeyPressed(ImGuiKey_F5)) {
+					Debugger->DoTrace(!isRunning);
+				}
+				if (ImGui::IsKeyPressed(ImGuiKey_F7)) {
+					Debugger->DoStepInto();
+				}
+				if (ImGui::IsKeyPressed(ImGuiKey_F8)) {
+					Debugger->DoStepOver();
+				}
+				if (ImGui::IsKeyPressed(ImGuiKey_Z) && Debugger->lineAtCursor) {
+					Debugger->SetPC(Debugger->lineAtCursor->addr);
+				}
+				if (io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_F8)) {
+					Debugger->DoStepOut();
+				}
+				if (io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_F7)) {
+					Debugger->DoStepToNext();
+				}
+				if (io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_M)) {
+					Settings->Debugger->listSource = LS_MEM;
+					Settings->Debugger->listOffset = 0;
+					if (Debugger->lineAtCursor)
+						Settings->Debugger->listMemoryAddress = Debugger->lineAtCursor->lookupAddress;
+				}
+				if (io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_H)) {
+					Settings->Debugger->listSource = LS_HL;
+					Settings->Debugger->listOffset = 0;
+				}
+				if (io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_D)) {
+					Settings->Debugger->listSource = LS_DE;
+					Settings->Debugger->listOffset = 0;
+				}
+				if (io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_B)) {
+					Settings->Debugger->listSource = LS_BC;
+					Settings->Debugger->listOffset = 0;
+				}
+				if (io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_P)) {
+					Settings->Debugger->listSource = LS_PC;
+					Settings->Debugger->listOffset = 0;
+				}
+				if (io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_S)) {
+					Settings->Debugger->listSource = LS_SP;
+					Settings->Debugger->listOffset = 0;
+				}
+			}
+
+			Debugger->RefreshRequest(isOpening);
+			isOpening = false;
+
+			if (ImGui::BeginTable("DebuggerLayout", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_BordersInnerH)) {
+				ImGui::TableSetupColumn("##dbghdr1", ImGuiTableColumnFlags_NoHide);
+				ImGui::TableSetupColumn("##dbghdr2", ImGuiTableColumnFlags_WidthFixed, GetMonoTextWidth(12, framePadding.x));
+
+				ImGui::TableNextRow(ImGuiTableColumnFlags_WidthStretch);
+				ImGui::TableNextColumn();
+
+				if (ImGui::Button(isRunning ? " \u23F9 " : " \u2023 "))
+					isRunning = Debugger->DoTrace(!isRunning);
+				ImGui::SetItemTooltip("Trace (F5)");
+
+				ImGui::SameLine();
+				ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+				ImGui::SameLine();
+
+				if (isRunning)
+					ImGui::BeginDisabled();
+
+				float spacing = style.ItemInnerSpacing.x;
+				if (ImGui::Button("Step")) {
+					Debugger->DoStepInto();
+				}
+				ImGui::SetItemTooltip("Step into (F7)");
+				ImGui::SameLine(0.0f, spacing);
+				if (ImGui::Button("Over")) {
+					Debugger->DoStepOver();
+				}
+				ImGui::SetItemTooltip("Step over (F8)");
+				ImGui::SameLine(0.0f, spacing);
+				if (ImGui::Button("Leave")) {
+					Debugger->DoStepOut();
+				}
+				ImGui::SetItemTooltip("Leave routine\n(Shift+F8)");
+				ImGui::SameLine(0.0f, spacing);
+				if (ImGui::Button("Next")) {
+					Debugger->DoStepToNext();
+				}
+				ImGui::SetItemTooltip("Run until next\ninstruction (Shift+F7)");
+
+				ImGui::SameLine();
+				ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+				ImGui::SameLine();
+
+				if (ImGui::Button("Mem") || ImGui::IsKeyPressed(ImGuiKey_M)) {
+					std::snprintf(gotoMemEditor, sizeof(gotoMemEditor),
+						radix ? "%04X" : "%05d", Debugger->GetPC());
+					ImGui::OpenPopup("DebugGotoMem");
+				}
+				ImGui::SetItemTooltip("Move cursor to\nmemory address (M)");
+
+				ImGui::SetNextWindowPos(ImGui::GetItemRectMin() - ImVec2(style.FramePadding.x * 2, 0.0f));
+				if (ImGui::BeginPopup("DebugGotoMem", popup_flags)) {
+					unsigned width = radix ? 5 : 6;
+					ImGui::SetNextItemWidth(GetMonoTextWidth(width, style.FramePadding.x));
+
+					bool enterPressed = ImGui::InputText(
+						"##gotoMemEditor",
+						gotoMemEditor, width,
+						ImGuiInputTextFlags_AlwaysOverwrite |
+						ImGuiInputTextFlags_EnterReturnsTrue |
+						(radix ?
+							ImGuiInputTextFlags_CharsHexadecimal :
+							ImGuiInputTextFlags_CharsDecimal)
+					);
+
+					ImGui::SameLine(0, 0.05f);
+					if (ImGui::Button("\u2713") || enterPressed) {
+						Debugger->DoGotoAddress(gotoMemEditor);
+						ImGui::CloseCurrentPopup();
+					}
+
+					ImGui::EndPopup();
+				}
+
+				ImGui::SameLine(0.0f, spacing);
+				if (ImGui::Button(" \u02c4 ")) {
+					Debugger->HandleKeyboardInput(K_HOME);
+				}
+				ImGui::SetItemTooltip("Back to PC (Home)");
+
+				ImGui::SameLine();
+				ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+
+				if (isRunning)
+					ImGui::EndDisabled();
+
+				ImGui::TableNextColumn();
+				ImGui::SameLine();
+
+				static const char* cpuItems[] = { "8080", "Z80" };
+				static const char* hexItems[] = { "DEC", "HEX" };
+				int cputypeIdx = (int) Settings->Debugger->z80;
+				ImGui::SetNextItemWidth(GetMonoTextWidth(4, framePadding.x));
+				if (ImGui::SliderInt("##cputype", &cputypeIdx, 0, 1, cpuItems[cputypeIdx]))
+					Settings->Debugger->z80 = (bool) cputypeIdx;
+
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(GetMonoTextWidth(4, framePadding.x));
+				int hexdecIdx = (int) radix;
+				if (ImGui::SliderInt("##hexdec", &hexdecIdx, 0, 1, hexItems[hexdecIdx]))
+					radix = (bool) hexdecIdx;
+
+				ImGui::TableNextRow(ImGuiTableColumnFlags_WidthStretch);
+
+				float cursorPos = ImGui::GetCursorPosY();
+				float childHeight = ImGui::GetCurrentWindow()->Size.y - cursorPos - framePadding.y;
+				int numberOfItems = static_cast<int>(ceil(childHeight / GetTextLineHeight(1)));
+
+				if (isRunning)
+					ImGui::BeginDisabled();
+
+				ImGui::TableNextColumn();
+				DrawDebugWidgetDisass(numberOfItems);
+
+				ImGui::TableNextColumn();
+				DrawDebugWidgetRegs();
+				DrawDebugWidgetStackBreakNest();
+				DrawDebugWidgetWatchers(numberOfItems - 18);
+
+				if (isRunning)
+					ImGui::EndDisabled();
+
+				ImGui::EndTable();
+			}
+		}
+
+		ImGui::End();
+		ImGui::PopStyleVar(2);
 	}
-	if (memEditorBuffer) {
-		delete[] memEditorBuffer;
-		memEditorBuffer = NULL;
-	}
-	if (memEditorDataContext) {
-		delete memEditorDataContext;
-		memEditorDataContext = NULL;
-	}
-	if (memMapReadBuffer) {
-		delete[] memMapReadBuffer;
-		memMapReadBuffer = NULL;
-	}
-	if (memMapPixelBuffer) {
-		delete[] memMapPixelBuffer;
-		memMapPixelBuffer = NULL;
-	}
-	if (memMapTexture) {
-		glDeleteTextures(1, &memMapTexture);
-		memMapTexture = 0;
+	else if (dialogDebugFocused) {
+		dialogDebugFocused = false;
+		Debugger->flowControl = DBGCTL_RUNNING;
+		Emulator->ActionPlayPause(true);
+
+		if (!isOpening)
+			isOpening = true;
 	}
 }
 //-----------------------------------------------------------------------------
@@ -224,7 +375,7 @@ void UserInterface::DrawDebugWidgetDisass(int numberOfItems)
 			}
 			if (line.hasLookupAddress) {
 				std::snprintf(lookupMenuItem, sizeof(lookupMenuItem),
-					radix ? "Look-up #%04X" : "Look-up %05d", line.lookupAddress);
+					radix ? "Inspect #%04X" : "Inspect %05d", line.lookupAddress);
 				if (ImGui::MenuItem(lookupMenuItem, "Enter"))
 					Debugger->DoGotoAddress(line.lookupAddress);
 				std::snprintf(lookupMenuItem, sizeof(lookupMenuItem),
@@ -684,393 +835,5 @@ void UserInterface::DrawDebugWidgetWatchers(int maxLineHeight)
 	}
 
 	ImGui::PopStyleVar();
-}
-//-----------------------------------------------------------------------------
-void UserInterface::DrawDebugWindow()
-{
-	static bool isOpening = true;
-	static char gotoMemEditor[8];
-	static ImGuiWindowFlags flags =
-		ImGuiWindowFlags_NoScrollbar |
-		ImGuiWindowFlags_NoNavInputs;
-
-	if (dialogDebugOpened) {
-		ImGuiStyle& style = ImGui::GetStyle();
-		ImGuiIO& io = ImGui::GetIO();
-
-		ImVec2 framePadding = style.FramePadding * 2.0f;
-		float widthWidth = GetMonoTextWidth(52, framePadding.x);
-		float minHeight = GetTextLineHeight(27);
-
-		if (isOpening) {
-			Debugger->Reset();
-			ImGui::SetNextWindowFocus();
-		}
-
-		bool isRunning = Emulator->isRunning;
-
-		ImGui::SetNextWindowSize(ImVec2(widthWidth, minHeight), ImGuiCond_FirstUseEver);
-		ImGui::SetNextWindowSizeConstraints(ImVec2(widthWidth, minHeight), ImVec2(widthWidth, FLT_MAX));
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 0.0f));
-		ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(5.0f, 10.0f));
-
-		if (ImGui::Begin("Debugger", &dialogDebugOpened, flags)) {
-			if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows))
-				dialogDebugFocused = true;
-
-			if (dialogDebugFocused && !ImGui::IsAnyItemActive()) {
-				if (ImGui::IsKeyPressed(ImGuiKey_UpArrow, true)) {
-					Debugger->HandleKeyboardInput(K_UP);
-				}
-				if (ImGui::IsKeyPressed(ImGuiKey_DownArrow, true)) {
-					Debugger->HandleKeyboardInput(K_DOWN);
-				}
-				if (ImGui::IsKeyPressed(ImGuiKey_PageUp, true)) {
-					Debugger->HandleKeyboardInput(K_PAGEUP);
-				}
-				if (ImGui::IsKeyPressed(ImGuiKey_PageDown, true)) {
-					Debugger->HandleKeyboardInput(K_PAGEDOWN);
-				}
-				if (ImGui::IsKeyPressed(ImGuiKey_Home)) {
-					Debugger->HandleKeyboardInput(K_HOME);
-				}
-				if (ImGui::IsKeyPressed(ImGuiKey_Enter) && Debugger->lineAtCursor) {
-					Debugger->DoGotoAddress(Debugger->lineAtCursor->lookupAddress);
-				}
-				if (ImGui::IsKeyPressed(ImGuiKey_Space) && Debugger->lineAtCursor) {
-					std::string addr = Debugger->lineAtCursor->text.substr(1, 5);
-					if (radix)
-						addr = addr.substr(1);
-					Debugger->ToggleBreakPoint(addr.c_str(), -1);
-				}
-				if (ImGui::IsKeyPressed(ImGuiKey_Backspace)) {
-					Debugger->NestPop();
-				}
-				if (ImGui::IsKeyPressed(ImGuiKey_F5)) {
-					Debugger->DoTrace(!isRunning);
-				}
-				if (ImGui::IsKeyPressed(ImGuiKey_F7)) {
-					Debugger->DoStepInto();
-				}
-				if (ImGui::IsKeyPressed(ImGuiKey_F8)) {
-					Debugger->DoStepOver();
-				}
-				if (ImGui::IsKeyPressed(ImGuiKey_Z) && Debugger->lineAtCursor) {
-					Debugger->SetPC(Debugger->lineAtCursor->addr);
-				}
-				if (io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_F8)) {
-					Debugger->DoStepOut();
-				}
-				if (io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_F7)) {
-					Debugger->DoStepToNext();
-				}
-				if (io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_M)) {
-					Settings->Debugger->listSource = LS_MEM;
-					Settings->Debugger->listOffset = 0;
-					if (Debugger->lineAtCursor)
-						Settings->Debugger->listMemoryAddress = Debugger->lineAtCursor->lookupAddress;
-				}
-				if (io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_H)) {
-					Settings->Debugger->listSource = LS_HL;
-					Settings->Debugger->listOffset = 0;
-				}
-				if (io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_D)) {
-					Settings->Debugger->listSource = LS_DE;
-					Settings->Debugger->listOffset = 0;
-				}
-				if (io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_B)) {
-					Settings->Debugger->listSource = LS_BC;
-					Settings->Debugger->listOffset = 0;
-				}
-				if (io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_P)) {
-					Settings->Debugger->listSource = LS_PC;
-					Settings->Debugger->listOffset = 0;
-				}
-				if (io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_S)) {
-					Settings->Debugger->listSource = LS_SP;
-					Settings->Debugger->listOffset = 0;
-				}
-			}
-
-			Debugger->RefreshRequest(isOpening);
-			isOpening = false;
-
-			if (ImGui::BeginTable("DebuggerLayout", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_BordersInnerH)) {
-				ImGui::TableSetupColumn("##dbghdr1", ImGuiTableColumnFlags_NoHide);
-				ImGui::TableSetupColumn("##dbghdr2", ImGuiTableColumnFlags_WidthFixed, GetMonoTextWidth(12, framePadding.x));
-
-				ImGui::TableNextRow(ImGuiTableColumnFlags_WidthStretch);
-				ImGui::TableNextColumn();
-
-				if (ImGui::Button(isRunning ? " \u23F9 " : " \u2023 "))
-					isRunning = Debugger->DoTrace(!isRunning);
-				ImGui::SetItemTooltip("Trace (F5)");
-
-				ImGui::SameLine();
-				ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
-				ImGui::SameLine();
-
-				if (isRunning)
-					ImGui::BeginDisabled();
-
-				float spacing = style.ItemInnerSpacing.x;
-				if (ImGui::Button("Step")) {
-					Debugger->DoStepInto();
-				}
-				ImGui::SetItemTooltip("Step into (F7)");
-				ImGui::SameLine(0.0f, spacing);
-				if (ImGui::Button("Over")) {
-					Debugger->DoStepOver();
-				}
-				ImGui::SetItemTooltip("Step over (F8)");
-				ImGui::SameLine(0.0f, spacing);
-				if (ImGui::Button("Leave")) {
-					Debugger->DoStepOut();
-				}
-				ImGui::SetItemTooltip("Leave routine\n(Shift+F8)");
-				ImGui::SameLine(0.0f, spacing);
-				if (ImGui::Button("Next")) {
-					Debugger->DoStepToNext();
-				}
-				ImGui::SetItemTooltip("Run until next\ninstruction (Shift+F7)");
-
-				ImGui::SameLine();
-				ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
-				ImGui::SameLine();
-
-				if (ImGui::Button("Mem") || ImGui::IsKeyPressed(ImGuiKey_M)) {
-					std::snprintf(gotoMemEditor, sizeof(gotoMemEditor),
-						radix ? "%04X" : "%05d", Debugger->GetPC());
-					ImGui::OpenPopup("DebugGotoMem");
-				}
-				ImGui::SetItemTooltip("Move cursor to\nmemory address (M)");
-
-				ImGui::SetNextWindowPos(ImGui::GetItemRectMin() - ImVec2(style.FramePadding.x * 2, 0.0f));
-				if (ImGui::BeginPopup("DebugGotoMem", popup_flags)) {
-					unsigned width = radix ? 5 : 6;
-					ImGui::SetNextItemWidth(GetMonoTextWidth(width, style.FramePadding.x));
-
-					bool enterPressed = ImGui::InputText(
-						"##gotoMemEditor",
-						gotoMemEditor, width,
-						ImGuiInputTextFlags_AlwaysOverwrite |
-						ImGuiInputTextFlags_EnterReturnsTrue |
-						(radix ?
-							ImGuiInputTextFlags_CharsHexadecimal :
-							ImGuiInputTextFlags_CharsDecimal)
-					);
-
-					ImGui::SameLine(0, 0.05f);
-					if (ImGui::Button("\u2713") || enterPressed) {
-						Debugger->DoGotoAddress(gotoMemEditor);
-						ImGui::CloseCurrentPopup();
-					}
-
-					ImGui::EndPopup();
-				}
-
-				ImGui::SameLine(0.0f, spacing);
-				if (ImGui::Button(" \u02c4 ")) {
-					Debugger->HandleKeyboardInput(K_HOME);
-				}
-				ImGui::SetItemTooltip("Back to PC (Home)");
-
-				ImGui::SameLine();
-				ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
-
-				if (isRunning)
-					ImGui::EndDisabled();
-
-				ImGui::TableNextColumn();
-				ImGui::SameLine();
-
-				static const char* cpuItems[] = { "8080", "Z80" };
-				static const char* hexItems[] = { "DEC", "HEX" };
-				int cputypeIdx = (int) Settings->Debugger->z80;
-				ImGui::SetNextItemWidth(GetMonoTextWidth(4, framePadding.x));
-				if (ImGui::SliderInt("##cputype", &cputypeIdx, 0, 1, cpuItems[cputypeIdx]))
-					Settings->Debugger->z80 = (bool) cputypeIdx;
-
-				ImGui::SameLine();
-				ImGui::SetNextItemWidth(GetMonoTextWidth(4, framePadding.x));
-				int hexdecIdx = (int) radix;
-				if (ImGui::SliderInt("##hexdec", &hexdecIdx, 0, 1, hexItems[hexdecIdx]))
-					radix = (bool) hexdecIdx;
-
-				ImGui::TableNextRow(ImGuiTableColumnFlags_WidthStretch);
-
-				float cursorPos = ImGui::GetCursorPosY();
-				float childHeight = ImGui::GetCurrentWindow()->Size.y - cursorPos - framePadding.y;
-				int numberOfItems = static_cast<int>(ceil(childHeight / GetTextLineHeight(1)));
-
-				if (isRunning)
-					ImGui::BeginDisabled();
-
-				ImGui::TableNextColumn();
-				DrawDebugWidgetDisass(numberOfItems);
-
-				ImGui::TableNextColumn();
-				DrawDebugWidgetRegs();
-				DrawDebugWidgetStackBreakNest();
-				DrawDebugWidgetWatchers(numberOfItems - 18);
-
-				if (isRunning)
-					ImGui::EndDisabled();
-
-				ImGui::EndTable();
-			}
-		}
-
-		ImGui::End();
-		ImGui::PopStyleVar(2);
-	}
-	else if (dialogDebugFocused) {
-		dialogDebugFocused = false;
-		Debugger->flowControl = DBGCTL_RUNNING;
-		Emulator->ActionPlayPause(true);
-
-		if (!isOpening)
-			isOpening = true;
-	}
-}
-//-----------------------------------------------------------------------------
-void UserInterface::DrawMemEditDialog()
-{
-	static MemoryEditor::Sizes s;
-
-	if (Settings->GUI->dialogMemEditOpened) {
-		ImGuiStyle& style = ImGui::GetStyle();
-
-		memEditorDataContext->changingBuffer = Debugger->GetChangingMemState();
-		memEditor->OptFooterExtraHeight = ImGui::GetTextLineHeightWithSpacing() + style.FramePadding.y * 3.0f;
-		memEditor->CalcSizes(s, MEM_MAX, 0);
-
-		float minHeight = s.WindowWidth * 0.60f;
-		ImGui::SetNextWindowSize(ImVec2(s.WindowWidth, minHeight), ImGuiCond_FirstUseEver);
-		ImGui::SetNextWindowSizeConstraints(ImVec2(s.WindowWidth, minHeight), ImVec2(s.WindowWidth, FLT_MAX));
-
-		if (ImGui::Begin("Memory Editor", &Settings->GUI->dialogMemEditOpened, ImGuiWindowFlags_NoScrollbar)) {
-			memEditor->DrawContents(memEditorBuffer, MEM_MAX, 0);
-
-			ImGui::Separator();
-			ImGui::SetNextItemWidth(4 * s.GlyphWidth + style.FramePadding.x * 2.0f);
-
-			static const char* widthItems[] = { NULL, "8", "16" };
-			int widthIdx = (int) Settings->GUI->memEditColumns / 8;
-			if (ImGui::SliderInt("##medcols", &widthIdx, 1, 2, widthItems[widthIdx])) {
-				memEditor->ContentsWidthChanged = true;
-				memEditor->Cols = Settings->GUI->memEditColumns = widthIdx * 8;
-			}
-
-			ImGui::SameLine();
-			if (ImGui::Checkbox("ASCII", &Settings->GUI->memEditAscii)) {
-				memEditor->ContentsWidthChanged = true;
-				memEditor->OptShowAscii = Settings->GUI->memEditAscii;
-			}
-
-			ImGui::SameLine();
-			ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
-			ImGui::SameLine();
-
-			auto ProcessGotoAddr = [&](const char *c) {
-				size_t gotoAddr;
-				if (sscanf(c, "%" _pfSizeT "X", &gotoAddr) == 1) {
-					memEditor->GotoAddr = gotoAddr;
-					memEditor->HighlightMin = memEditor->HighlightMax = (size_t) -1;
-				}
-			};
-
-			float addrInputWidth = (s.AddrDigitsCount + 1) * s.GlyphWidth + style.FramePadding.x * 2.0f;
-			ImGui::SetNextItemWidth(addrInputWidth);
-			ImGui::InputText("##medaddr",
-				memEditor->AddrInputBuf, 5,
-				ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_AlwaysOverwrite);
-			ImGui::SameLine();
-			if (ImGui::Button("MEM"))
-				ProcessGotoAddr(memEditor->AddrInputBuf);
-
-			static std::vector<std::string> regsLine(6, "");
-			static short regUpdateCounter = 0;
-
-			if (--regUpdateCounter <= 0) {
-				regUpdateCounter = 10;
-				Debugger->FillRegs(regsLine, true);
-			}
-
-			// SP, PC, HL, DE, BC
-			for (int i = 5; i > 0; i--) {
-				ImGui::SameLine();
-				if (ImGui::Button(regsLine[i].c_str()))
-					ProcessGotoAddr(regsLine[i].c_str() + 3);
-			}
-
-			if (memEditor->ContentsWidthChanged) {
-				memEditor->CalcSizes(s, MEM_MAX, 0);
-				ImGui::SetWindowSize(ImVec2(s.WindowWidth, ImGui::GetWindowSize().y));
-			}
-		}
-		ImGui::End();
-	}
-}
-//-----------------------------------------------------------------------------
-void UserInterface::DrawMemMapDialog()
-{
-	static ImGuiWindowFlags memmap_dialog_flags =
-		ImGuiWindowFlags_NoResize |
-		ImGuiWindowFlags_NoCollapse |
-		ImGuiWindowFlags_NoScrollbar |
-		ImGuiWindowFlags_NoScrollWithMouse;
-
-	if (Settings->GUI->dialogMemMapOpened) {
-		ImGuiStyle& style = ImGui::GetStyle();
-		float titleBarHeight = ImGui::GetTextLineHeightWithSpacing() + style.FramePadding.y;
-		ImVec2 windowSize = ImVec2(
-			MEMMAP_TEX_SIZE * MEMMAP_TEX_SCALE,
-			MEMMAP_TEX_SIZE * MEMMAP_TEX_SCALE + titleBarHeight
-		) + (style.WindowPadding * 2.0f);
-
-		ImGui::SetNextWindowSize(windowSize, ImGuiCond_FirstUseEver);
-		ImGui::SetNextWindowSizeConstraints(windowSize, windowSize);
-
-		if (ImGui::Begin("Memory Map", &Settings->GUI->dialogMemMapOpened, memmap_dialog_flags)) {
-			if (!Debugger->GetMem(memMapReadBuffer, 0, MEM_MAX))
-				memset(memMapReadBuffer, 0, MEM_MAX);
-
-			for (int i = 0; i < MEM_MAX; i++) {
-				BYTE value = memMapReadBuffer[i];
-				memMapPixelBuffer[i] = DWORD_COLOR_ENTRY(value, value, value);
-			}
-
-			glBindTexture(GL_TEXTURE_2D, memMapTexture);
-			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, MEMMAP_TEX_SIZE, MEMMAP_TEX_SIZE,
-				GL_RGBA, GL_UNSIGNED_BYTE, (BYTE *)(memMapPixelBuffer));
-			glBindTexture(GL_TEXTURE_2D, 0);
-
-			ImVec2 imagePos = ImGui::GetCursorScreenPos();
-			ImGui::Image(
-				(ImTextureID) (intptr_t) memMapTexture,
-				ImVec2(
-					MEMMAP_TEX_SIZE * MEMMAP_TEX_SCALE,
-					MEMMAP_TEX_SIZE * MEMMAP_TEX_SCALE
-				)
-			);
-
-			if (ImGui::IsItemHovered()) {
-				ImVec2 mousePos = ImGui::GetMousePos();
-				int px = (int) (mousePos.x - imagePos.x) / MEMMAP_TEX_SCALE;
-				int py = (int) (mousePos.y - imagePos.y) / MEMMAP_TEX_SCALE;
-
-				if (px >= 0 && px < MEMMAP_TEX_SIZE && py >= 0 && py < MEMMAP_TEX_SIZE) {
-					WORD addr = (WORD) (py * MEMMAP_TEX_SIZE + px);
-					ImGui::SetTooltip(
-						radix ? "#%04X:#%02X" : "%05d:%03d",
-						addr, memMapReadBuffer[addr]
-					);
-				}
-			}
-		}
-
-		ImGui::End();
-	}
 }
 //-----------------------------------------------------------------------------
