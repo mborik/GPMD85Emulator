@@ -395,6 +395,22 @@ if(EMSCRIPTEN)
 		message(FATAL_ERROR "Missing storage submodule (res, rom and software library). Run: git submodule update --init storage")
 	endif()
 	set_target_properties(GPMD85emu PROPERTIES OUTPUT_NAME "index" SUFFIX ".html")
+	if(NOT CMAKE_RUNTIME_OUTPUT_DIRECTORY)
+		set(TARGET_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+	else()
+		set(TARGET_OUTPUT_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+	endif()
+	add_custom_command(TARGET GPMD85emu POST_BUILD
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different
+			"${CMAKE_CURRENT_SOURCE_DIR}/res/web/basefont.ttf"
+			"${TARGET_OUTPUT_DIR}/basefont.ttf"
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different
+			"${CMAKE_CURRENT_SOURCE_DIR}/res/web/favicon.ico"
+			"${TARGET_OUTPUT_DIR}/favicon.ico"
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different
+			"${CMAKE_CURRENT_SOURCE_DIR}/res/icon.png"
+			"${TARGET_OUTPUT_DIR}/icon.png"
+	)
 	target_link_options(GPMD85emu PRIVATE
 		-sUSE_SDL=2
 		-sMIN_WEBGL_VERSION=2
