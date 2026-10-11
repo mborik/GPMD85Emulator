@@ -1,0 +1,749 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Busy soft %% ZXrom02 port pre PMD85 %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%            Verzia 02
+
+ZXrom02 je standartna romka zo ZX Spektra 16/48k preportovana na platformu PMD85.
+Po platformach C64 a Ondra si takto uz aj na PMD85 mozete uzivat vyhody
+skveleho ZX Spektrum basicu :)
+
+Romka je zaroven doplnena o jednoduchu funcionalitu ktorej cielom je zjednodusit
+import programov z okoliteho sveta a taktiez ich export do okoliteho sveta.
+
+
+Obsah
+~~~~~
+Spustenie ................... ako si romku spustit aby sa s nou dalo pracovat
+Hardwerove odlisnosti ........... popis odlisnosti kvoli ineho hardweru PMD85
+Implementacne odlisnosti ...... co bolo naprogramovane odlisne a funguje inak
+Konfiguracny blok ................ ako si romku pred spustenim nakonfigurovat
+Rezimy cinnosti .............. popis zakladnych uzivatelskych nastaveni romky
+Klavesnica ................. mapovanie klavesnice ZX Spektra na klavesy PMD85
+Pametovy model .............. ako a kde romka obsadzuje a vyuziva pamet PMD85
+Uzitocne volania .............. rozne uzitocne adresy pre volanie pomocou USR
+Informacie o systeme .......... vypis zakladnych informacii o obsadeni pameti
+Co je noveho ............................. cim sa verzia 02 lisi od verzie 01
+Tape emulacia ............ ako do PMD85 nahrat vlastne programy zo ZX Spektra
+
+
+Spustenie
+~~~~~~~~~
+ZX romka je distribuovana ako klasicky TAP subor ZXrom02.ptp
+alebo cista binarka ZXrom02.cod bez akychkolvek hlaviciek.
+Z PTP suboru sa romka nahraje do pamati klasiky pomocou MGLD 00,
+subor COD treba nahrat do pamati od adresy 0. Spustenie je pomocou
+prikazu JUMP 0000 alebo stlacenim Shift+DEL. 
+
+
+Hardwerove odlisnosti
+~~~~~~~~~~~~~~~~~~~~~
+Vzhladom na HW rozdiely medzi PMD85 a ZX Spektrom,
+su v porte romky nasledujuce odlisnosti:
+
+1. Atributove kolizie - Vzhladom na 6-bodovu sirku atributu na PMD85 sa moze stat
+   ze sa farbou pouzitou v danom znaku mozu zafarBit aj casti susednych znakov.
+
+2. Farby v atribute - Kedze jednou z dvoch farieb, ktore PMD85 moze zobrazit v jednom
+   atribute, musi byt cierna, nie je mozne mat naraz PAPER aj INK rozny od ciernej.
+   Bud je INK cierny a PAPER moze byt inej farby, alebo PAPER cierny a INK iny.
+   Ktory bude natvrdo cierny, zavisi od aktivacie inverzneho rezimu (pozri dalej).
+
+4. S farbami suvisi aj BRIGHT a FLASH - tieto prikazy
+   su ignorovane a na vyslednom obraze sa nijak neprejavia.
+
+3. S inou HW realizaciou farieb suvisi aj odlisna cinnost funkcie ATTR(a,b).
+   Tato funkcia by mala vracat hodnotu ZX atributu, avsak vzhladom na inu
+   organizaciu PMD85 videoramky nie je mozne vratit presnu hodnotu atributu podla
+   toho aky PAPER/INK/BRIGHT/FLASH obsahuje. Hodnota atributu je len priblizna -
+   vzdy je bud INK alebo PAPER nulovy (podla zvoleneho rezimu zobrazovania).
+   BRIGHT a FLASH (bity 6 a 7) sa vracaju vzdy nulove.
+
+
+Implementacne odlisnosti
+~~~~~~~~~~~~~~~~~~~~~~~~
+1. ZX Printer bol uplne zruseny. Preto uz nefunguje
+   vypis 8x vyssieho pisma pomocou POKE 23681,x
+
+2. Vzhladom na zmeneny kod v romke nemusia spravne fungovat
+   usporne formy zapisu cisel zalozene na funkcii PEEK,
+   kde adresa pre PEEK je vecsia ako 7.
+
+3. Taktiez vzhladom na zmeneny (a tym aj poposuvany) kod
+   uz neplatia ziadne standartne pouzivane vstupne body pre USR.
+   Napriklad klasicke zistenie volneho miesta PRINT 65535-USR 7962.
+   Ak chcete zistit volne miesto v basicu, mozete pouzit PRINT USR 45.
+
+
+Konfiguracny blok
+~~~~~~~~~~~~~~~~~
+V binarnom subore romky "ZXrom02.cod" sa od offsetu +12 nachadza
+blok o dlzke 4 bajty, ktory sluzi na uzivatelsku konfiguraciu romky:
+
+ +12 ... Nastavenie rezimov cinnosti (pozrie nasledujucu cast) (defaultne: #0F)
+ +13 ... Vyssi bajt adresy, od ktorej romka uz nepouziva pamet (defaultne: #C0)
+ +14 ... Rezerva
+ +15 ... Rezerva
+
+Tieto styri bajty si uzivatel moze priamo v subore romky prednastavit
+na pozadovane hodnoty. Ked potom subor s romkou nahra do PMD85 a spusti,
+romka bude pracovat podla tychto uzivatelom zvolenych nastaveni.
+
+Nastavenie rezimov cinnosti na offsete +12 specifikuje ako bude romka zobrazovat
+farby, ako sa budu v pameti mapovat ZX videoramka a systemove premenne basicu.
+Presny popis je v nasledujucej kapitole.
+
+Pomocou vyssieho bajtu adresy na offsete +13 sa romke urcuje horna hranica pameti
+Ktoru moze pre basic pouzit. V skutocnosti je to iba limit, po ktory ide uvodny test
+pameti pri jej testovani. Standartne je tu hodnota #C0 co je zaciatok videoramky
+a znamena to ze romka moze pouzivat celu dostupnu ramku az do adresy #BFFF.
+
+Priklad: Ak romku spustame pomocou programu RUNNER, ktory sa nahrava
+od adresy #9C00 a chceme aby po spusteni RUNNER ostal v pameti k dispozicii,
+nastavime bajt na offsete +13 na hodnotu #9C. Tymto padom bude romka vyuzivat
+iba pamet po adresu #9BFF a RUNNER zostane neposkodeny.
+
+Poznamka: Tento limit pouzivanej pameti sa nevztahuje na prikaz POKE.
+Prikazom POKE teda mozno modifikovat pamet aj nad touto adresou,
+napriklad da sa priamo zapisovat do PMD85 videoramky.
+
+
+Rezimy cinnosti
+~~~~~~~~~~~~~~~
+ZXrom02 ma niekolko rezimov cinnosti. Po spusteni romky sa rezimy nastavia
+podla aktualnej hodnoty bajtu na offsete +12 v konfiguracnom bloku (pozri vyssie).
+Tieto rezimy je mozne menit priamo z basicu pomocou prikazu OUT 256,X
+kde X je nova hodnota bajtu na offsete +12.
+
+Jednotlive bity hodnoty maju nasledujuci vyznam:
+
+  Bit.0 ... Inverzny rezim 0:vypnuty 1:zapnuty
+  Bit.1 ... Pouzitie ColorACE farieb 0:nie 1:ano
+  Bit.2 ... Virtualne mapovanie systemovych premennych basicu 0:nie 1:ano
+  Bit.3 ... Virtualne mapovanie videoramky a print buffera #4000-#5BFF 0:nie 1:ano
+  Bit.4 ... Povolenie emulacie matematickych chyb: delenie a -65536
+
+Aky rezim je aktualne nastaveny, sa da zistit pomocou IN 256.
+Dalej nasleduje podrobnejsie vysvetlenie jednotlivych rezimov.
+
+
+Bit.0 ... Inverzny rezim 0:vypnuty 1:zapnuty
+
+  ZX Spectrum defaultne zobrazuje cierne pismo na svetlom podklade.
+  Naproti tomu u PMD85 je zvykom mat svetle pismo na ciernom podklade.
+  Dalo by sa napisat, ze tento filozoficky rozpor riesi inverzny rezim.
+
+  Inverzny rezim urcuje, ci sa defaultne bude zobrazovat tmava kresba (INK)
+  na svetlom podklade (PAPER) alebo svetla kresba na tmavom podklade.
+  V pripade, ze je povolene pouzivanie farieb (vid Bit 1), svetla farba sa da
+  nastavit na jednu zo standartnych ZX farieb od 1 (tmavomodra) az do 7 (biela).
+
+  Bit.0 = 0 ... svetle pismo na tmavom pozadi. PAPER je vzdy 0, INK je od 1 do 7.
+  Bit.0 = 1 ... tmave pismo na svetlom pozadi. INK je vzdy 0, PAPER je od 1 do 7.
+
+  V pripade, ak nieco (PAPER alebo INK) moze mat hodnoty farieb od 1 do 7,
+  pri jeho nastaveni na ciernu farbu (0) bude zobrazena tmavomodra farba (1).
+
+
+Bit.1 ... Pouzitie ColorACE farieb: 0:nie, 1:ano
+
+  V pripade ze mate RGB vystup (zelena,cervena,modra,fialova) alebo idealne ColorACE,
+  nastavte tento Bit na 1 a mozete vyuzivat vsetkych osem farieb ZX Spektra.
+
+  Ak ale mate iba monochromaticky vystup, nastavte tento bit na 0 a potom cierna farba
+  (0) bude zobrazena ako tmava a vsetky ostatne farby (1 az 7) ako svetla farba.
+  Prikazy PAPER aj INK budu v tomto rezime ignorovane.
+
+
+Bit.2 ... Virtualne mapovanie systemovych premennych basicu: 0:nie, 1:ano
+
+  V basicovych programoch byvaju casto POKE do systemovych premennych (sysvars).
+  Vzhladom na to ze sysvars su umiestnene v pameti inde (vid pametovy model nizsie),
+  je mozne zapnut tzv. virtualne mapovanie. Po zapnuti tohto rezimu (Bit.2=1) budu
+  sysvars v prikazoch POKE a PEEK viditelne na svojich obvyklych a znamych adresach
+  od 23552 presne tak ako na ZX Spektre. Mapovanie plati pre 256 bajtov na adresach
+  23552-23807, takze je tu vidno aj zaciatok basicu - moze to byt uzitocne napr.
+  ked chcete pomocou POKE vytvorit nulty riadok, alebo nieco ulozit za REM.
+
+  V pripade, ze mate v pameti svoje data ktore si spravujete z basicu pomocou POKE
+  a ktore zrovna zasahuju do tychto 256 bajtov, nastavenim Bit.2=0 virtualne mapovanie
+  vypneme a potom POKE / PEEK do oblasti od 23556 budu normalne pracovat s vasimi datami.
+
+
+Bit.3 ... Virtualne mapovanie videoramky a print buffera #4000-#5BFF 0:nie 1:ano
+
+  V basicovych programoch sa okrem POKE do systemovych premennych sem-tam vyskytnu
+  aj POKE do oblasti videoramky #4000-#5AFF a ZX printer buffera #5B00-#5BFF.
+  Kedze PMD85 ma videoramku inde, takeho POKE by sa v obraze nielenze nijak
+  neprejavilo, ale dokonca by mohlo byt nebezpecne ak by sa zrovna strafilo
+  do oblasti kde realne lezia systemove premenne a basic program. Preto bolo
+  zavedene virtualne mapovanie videoramky a ZX Printer buffera, ktore toto osetruje.
+
+  Pri zapnutom virtualnom mapovani (Bit.3 = 1) sa v prikazoch POKE a PEEK vsetky
+  adresy do tychto oblasti odchytia a spracuju nasledujucim sposobom:
+
+  #4000-#57FF Pixelova cast videoramky: Vsetky POKE sa prepocitaju na osmice pixelov
+  a zapisu do videoramky PMD85 tak, aby obraz bol presne taky isty ako na ZX Spektre.
+  Pri citani hodnot pomocou PEEK sa vezmu udaje z videoramky PMD85 a spetne prepocitaju
+  tak, aby funkcia PEEK vratila presne taku istu hodnotu ako by vratila na ZX Spektre.
+  To znamena, ze co do pixelov prikazom POKE zapisete, to tam uvidite a to odtial
+  aj funkciou PEEK nacitate.
+
+  #5800-#5AFF Atributova cast videoramky: POKE do atributov funguje presne tak isto
+  ako nastavenie farieb v atributoch pri vypise znaku. Vzhladom na iny hardware tu
+  platia dva nasledujuce rozdiely (vid uvodna cast "Hardwerove odlisnosti"):
+
+   - Okrem samotneho meneneho atributu sa mozu zmenit farby aj v susednych atributoch
+   - V normalnom rezime sa da nastavit len INK, v inverznom len PAPER
+
+  V pripade ze nie je povolene pouzitie ColorACE farieb (Bit.1=0), vsetky zapisy
+  do atributov su ignorovane.
+
+  Pri citani atributu funkciou PEEK, vzhladom na spomenute HW odlisnosti, zial
+  nie je mozne zrekonstruovat povodnu hodnotu ktora bola do atributu zapisana.
+  Funkcia PEEK preto vrati hodnotu, ktora obsahuje nenulovy INK (normalny rezim)
+  alebo nenulovy PAPER (inverzny rezim). Vsetky ostatne farby su v hodnote nulove.
+  Presne tymto istym sposobom pracuje aj funkcia ATTR(a,b).
+
+  #5B00-#5BFF ZX Printer buffer: V aktualnej verzii romky nie je podporovany,
+  to znamena ze akekolvek POKE do tejto oblasti je ignorovane a akykolvek PEEK
+  z tejto oblasti vrati natvrdo nulu.
+
+  Poznamka: Niektore samomodifikujuce sa basicove programy si mozu citanim
+  systemovej premennej PROG (23635) zistovat kde prave lezia a od tejto adresy
+  sa modifikovat pomocou POKE. Kedze basic v tejto preportovanej romke na PMD85
+  zacina na nizsich adresach ako na ZX Spektre (vid pametovy model nizsie),
+  moze sa stat, ze sa taketo samomodifikacne POKE strafi zrovna do mapovaneho
+  priestoru #4000-#5BFF. V takomto pripade sa doporucuje virtualne mapovanie
+  videoramky vypnut, aby sa basic mohol zmodifikovat ako potrebuje.
+
+
+Bit.4 ... Povolenie emulacie matematickych chyb: delenie a -65536
+
+  Originalne matematicke rutinky v ZX romke obsahuju tieto dve chyby:
+
+   - Delenie: Pri deleni sa v zavislosti od argumentov strati 33-ty bit vysledku,
+     co sposobi ze mantisa vysledku sa zaokruhluje vzdy smerom dole, bez ohladu
+     na vysledok. Chyba sa prejavi napriklad pri deleni 1/10. Spravny vysledok 0.1
+     by mal byt kodovany ako "7D 4C CC CC CD", ale kvoli chybe delenia bude vysledok
+     zakodovany ako "7D 4C CC CC CC" co v skutocnosti predstavuje hodnotu 0.09999999976.
+
+   - Kodovanie cisla -65536: Hodnota -65535 moze byt kodovana dvomi roznymi sposobmi:
+     Prvy je integer "00 FF 00 00 00" a druhy foating point "91 00 00 00 00".
+     Problem je v tom, ze niektore vypoctove rutinky pocitaju s tym ze toto cislo
+     bude kodovanie iba ako integer, a ine zase ze bude iba ako floating point.
+     Pokial toto cislo vstupi ako argument do vypoctovej rutinky v sice spravnom,
+     ale rutinkou nepodporovanom formate, vysledok vypoctu bude nespravny.
+     Typicky priklad je funkcia INT, kde PRINT INT -65536 vypise nespravny vysledok -1.
+
+  ZXrom02 obsahuje uplne prepracovane a zoptimalizovane matematicke rutinky, ktore
+  dokazu pocitat bez vyssie spominanych chyb. Avsak ak by sa nejaky basic program
+  spoliehal na tieto chyby, a bez nich by nebol schopny spravne fungovat, je mozne
+  bitom 4 v nastaveni povolit emulaciu oboch chyb.
+
+
+Klavesnica
+~~~~~~~~~~
+ZX Spektrum (gumak) ma 40 klaves, Plusko (Delta, 128...) ma
+pre pohodlnejsie pisanie az 58 klaves, avsak PMD85 ma az 77 klaves !
+Vdaka tomu je pisanie na PMD85 castokrat este pohodlnejsie, nez na plusku :)
+
+
+Shifty
+
+ZX Spektrum ma dva shifty - caps shift a symbol shift.
+PMD85 ma sice iba jeden shift, avsak je tu klavesa STOP, ktora
+na modeloch 2A a 3 sluzi ako druhy pomocny shift pre specialne ucely.
+Preto zakladny shift sluzi ako caps shift a STOP ako symbol shift.
+
+
+Gumak
+
+Zakladna klavesnica ZX Spektra sa sklada z 26 pismen, 10 cislic,
+medzery, enteru a dvoch shiftov (na PMD85 je to Shift a STOP).
+Tychto 40 klaves funguje PRESNE tak isto ako klavesy na ZX Spektre.
+Tym padom kazdy kto vie / je zvyknuty pisat na gumakovej klavesnici,
+uz vie automaticky cokolvek napisat aj na PMD85 a vsetky dalsie
+informacie o klavesnici moze (ak chce) kludne preskocit ... :)
+
+
+Plusko
+
+Kto je zvyknuty na pluskovu klavesnicu, moze vyuzit dalsie klavesy
+pre ulahcenie pisania - edit, sipky vsetkymi styrmi smermi, klavesy
+pre zmeny rezimov (Caps lock, Extend mode, Graph), a rozne symboly
+ako bodka, ciarka, bodkociarka... Uplny zoznam vsetkych klaves a ich
+mapovanie je uvedene v tabulke nizsie.
+
+
+Klavesy so symbolmi
+
+Napravo od pismen a cislic sa nachadza zopar klaves so symbolmi,
+samozrejme aj tieto funguju a mozete pomocou nich pisat symboly,
+ktore su na nich zobrazene. A to dokonca aj symboly \ [ ] ktore
+sa normalne pisu cez Extend mode. Prazdna klavesa na PMD85-1
+(na dalsich PMD su to zlozene zatvorky) sluzi ako Caps lock.
+
+
+Kluce K0-K11
+
+Aby sa vam este lahsie pisalo, mozete pouzit kluce K0-K11.
+K dispozicii mate 24 klucov (prvych 12 bez shiftu a dalsich 12 so shiftom),
+do kazdeho kluca si mozete ulozit lubovolny znak alebo prikaz, a stlacenim kluca
+sa tento znak napise. Typicky priklad: Chcete casto pouzivat prikaz OUT, ale
+nechce sa vam ho zakazdym zlozito vypisovat cez Extend mode a symbol shift.
+Ked si prikaz OUT zadefinujete do nejakeho kluca, stlacenim tohto kluca
+sa vam prikaz vypise, a to dokonca bez nutnosti predtym pouzit Extend mode.
+
+
+Definovanie obsahu klucov
+
+Na rozdiel od PMD85, obsah sa do klucov nezapisuje klavesou WRK, ale
+na toto teraz sluzi klavesa STOP. Ak stlacite STOP, drzite ho stlaceny,
+a stlacite niektory z klucov (so shiftom alebo bez) tak sa znak, nachadzajuci
+sa v editacnej zone bezprostredne pred kurzorom, zapise do tohto kluca.
+Na dokaz, ze sa znak do kluca uspesne zapisal, sa tento znak vypise tak
+isto ako keby ste dany kluc normalne stlacili.
+
+Alternativny sposob definovania obsahu klucov je pomocou prikazu POKE.
+Ked spravite:
+                      POKE 100 + cislo_kluca, kod_znaku
+
+tak sa do daneho kluca zapise zvoleny znak. Cisla klucov su 0 az 11
+pre kluce bez shiftu a 12 az 23 pre kluce so shiftom. Vyhodou tohto
+alternativneho sposobu je, ze do klucov si mozete zadefinovat uplne
+akykolvek znak vratane riadiacich, napriklad delete, enter, edit...
+
+Analogicky funkcia PEEK (100 + cislo_kluca) vrati kod znaku v danom kluci.
+
+Oficialne distribuovana verzia romky ma v sebe kluce preddefinovane takto:
+
+Cislo kluca:  K0   K1  K2  K3   K4   K5      K6      K7  K8   K9   K10  K11
+ Bez shiftu:  BEEP OUT IN  LINE OVER INVERSE CIRCLE  {   }    ~    |    (c)
+ So shiftom:  PEEK LEN INT ABS  SGN  SQR     RND     VAL STR$ CHR$ CODE INKEY$
+
+
+Mapovanie klavesnice
+
+Nasleduje prehladna tabulka mapovania vsetkych klaves PMD85 na klavesy ZX Spektra:
+
+PMD85	ZX Spektrum
+=====	===========
+Shift	Caps shift	Mozete pouzit lubovolnu z oboch shiftovych klaves
+STOP	Symbol shift
+
+A..Z	A..Z	Pismena su proste pismena
+0..9	0..9	Podobne tak aj cisla
+Space	Space	A samozrejme aj medzera
+EOL1,2	Enter	Ako enter mozete pouzit lubovolny z oboch EOL-ov
+
+ <--	Vlavo	Sipky vsetkymi styrmi smermi
+ -->	Vpravo
+|<--	Hore
+ -->|	Dole
+
+INS	True video  Normalny vypis
+<-,	Inv video   Inverzny vypis (klavesa so sipkou sikmo hore)
+{}	Caps lock   Prepnutie z/do velkych pismen [C] (prazdna klavesa pod K11)
+
+DEL	Delete	Zmazanie znaku pred kurzorom
+END	Break	Zastavenie beziaceho basic programu
+C-D	Graph	Prepnutie do/z grafickeho rezimu [G]
+WRK	Extend	Prepnutie do/z extend modu [E]
+RCL	Edit	Editnutie basic riadku. V INPUT iba zmaze editacnu zonu.
+CLR		Zmazanie editovaneho riadku (Specialitka PMD85, na ZX nie je !)
+
+Klavesy  =-  ^\  +;  *: []  <,  >.  ?/  `@  pisu dane znaky (bez/so shiftom).
+
+Dolezita poznamka k funkcii INKEY$. Tato funkcia vracia iba tie znaky,
+ktore dokaze vratit aj na ZX Spektre. To znamena, ze pomocou nej nie je mozne
+testovat znaky  \ [ ] ktore sa normalne musia pisat cez Externd mode.
+Tak isto funkcia INKEY$ nevracia ani obsah klucov.
+
+Stlacenie klavesy END pri pisani riadku/prikazu/v inpute sposobi vypis medzery.
+Toto je normalne spravanie prevzate zo ZX Spektra, kde klavesa Break predstavuje
+kombinaciu Caps shift + Space.
+
+
+Pametovy model
+~~~~~~~~~~~~~~
+Tato cast popisuje ako su rozmiestnene objekty po pameti PMD85.
+
+Od zaciatku ramky (adresa 0) lezi samotna modifikovana "romka".
+Romka zabera cca 19 kB pameti (podla cisla aktualnej verzie).
+
+Hned za romkou nasleduje 2 kB tabulka pre akceleraciu pristupu do PMD85 videoramky.
+Pouziva sa pre rychle vykreslovanie grafiky - vypis znakov na obrazovke
+v prikaze PRINT a pre graficke prikazy a funkcie PLOT, DRAW, CIRCLE, POINT.
+
+Potom nasleduje pamet pre basic system tak ako na ZX Spektre,
+t.j. systemove premenne, basic program, premenne basicu,
+editacne buffery, volne miesto a zasobniky, RAMTOP, UDG, PRAMT.
+
+Systemova premenna PRAMT predstavuje koniec pameti vyuzitelnej pre uzivatela.
+Je to vlastne adresa, ktoru test pameti pri uvodnej inicializacii vyhodnotil
+ako poslednu pouzitelnu. Moze to byt bud posledny bajt ramky pred zaciatkom
+ROM monitora na #8000 alebo pred adresou definovanou v konfiguracnom bloku
+na offsete +13.
+
+Pre defaultnu hodnotu #C0 bajtu na offsete +13
+sa PRAMT pri studenom starte inicializuje nasledovne:
+
+  PMD85 modely bez all-ram rezimu: #7FFF
+  PMD85 modely  s all-ram rezimom: #BFFF
+
+
+Uzitocne volania
+~~~~~~~~~~~~~~~~
+Rozne volania vyuzitelne pre USR alebo pri volani z rom monitora.
+
+  0 ... Studeny start romky (ako na ZX). Vsetko od sysvars vymaze a zinicializuje.
+  5 ... Teply start romky. Nemaze basic a jeho premenne, zachova RAMTOP, UDG, PRAMT.
+ 45 ... Vrati aktualne volne miesto v basicu presne ako 65535-USR7962 na ZX Spektre.
+
+Teply start je uzitocny vtedy ked z romky vyskocite do nejakej inej aplikacie
+(napr. do rom monitora pomocou RANDOMIZE USR 32768) a chcete sa vratit nazad
+do ZX romky bez zmazania pameti a basicoveho programu. Pri teplom starte si
+romka znovu (pre istotu) inicalizuje vsetky periferie (8255,8253,prerusenia...).
+
+Poznamka: Ak chcete zavolat romkovy monitor a ste v all-ram rezime,
+je postup podobny ako pri prepinani pametovych baniek na ZX Spektre:
+
+ 1. CLEAR 32767 ....... presun RAMTOP-u pod adresu od ktorej sa prepina pamet
+ 2. OUT 247,9 ......... vypnutie all-ram rezimu a nastrankovanie rom monitora
+ 3. PRINT USR 32768 ... zavolanie monitora
+
+Ak je RAMTOP uz nastaveny pod 32768, tak ho samozrejme menit netreba.
+
+
+Informacie o systeme
+~~~~~~~~~~~~~~~~~~~~
+Nad ramec povodnej funkcionality, tato romka umoznuje uzivatelovi zobrazit
+rozne systemove informacie o obsadeni pameti. Ak uzivatel do dialogoveho
+riadku napise namiesto prikazu otaznik, romka vypise nasledujuce informacie:
+
+ Prg ... dlzka samotneho basicoveho programu bez premennych
+ Var ... dlzka vsetkych basicovych premennych (bez basicu)
+ Fre ... volne miesto pre basic (od konca dialogoveho riadku po zasobnik)
+ Rmt ... systemova premenna RAMTOP - nastavitelna prikazom CLEAR xxxxx
+ Udg ... systemova premenna UDG - umiestnenie uzivatelskych grafickych znakov
+ Top ... systemova premenna PRAMT - horna hranica romkou pouzitelnej pameti
+
+Znak '?' funguje ako normalny regulerny prikaz, je mozne ho pouzit aj v programe.
+
+
+Co je noveho
+~~~~~~~~~~~~
+ Zmeny v ZXrom02 voci ZXrom01:
+
+ * Oprava chyby sporadickeho objavenia sa blikajuceho kurzora za chybovym hlasenim
+
+   Tato chyba sa neprejavuje casto, ale obcas sa stane, ze sa objavi. Je zapricinena
+   nekorektnym nastavenim systemovych premennych, konkretne bitu ktory signalizuje
+   ze editacna zona nebola zmazana. Pri nespravnom nastaveni tohto bitu sa zobrazene
+   chybove hlasenie nezmaze a editacny riadok pre novy prikaz je umiestneny nie
+   od zaciatku riadku, ale az a tymto hlasenim. V ZXrom02 by sa toto uz nemalo stavat.
+
+ * Kompletne prepracovane matematike rutinky
+
+   Povodne matematicke rutinky v ZX romke boli pisane tak, aby si co najviac udajov drzali
+   v registroch (velmi casto vyuzivali instrukciu EXX). Procesor 8080 nema tolko registrov,
+   preto si musi niektore udaje odkladat do pameti. Toto sposobilo ze mnohe matematicke rutinky
+   prepisane na 8080 bezali podstatne pomalsie. V ZXrom02 su rutinky prepracovane a optimalizovane
+   priamo na mieru instrukcneho suboru 8080 a tym padom bezia podstatne rychlejsie nez v ZXrom01.
+   Navyse, pre niektore rutinky boli pouzite ine, rychlejsie algoritmy na vypocet, tieto rutinky
+   dokazu na 2 MHz 8080 bezat dokonca este rychlejsie ako originalne rutinky na 3.5 MHz Z80.
+
+   Napriklad bezne vedecke funkcie (SIN,COS,LN,EXP,SQR...) bezia v priemere 6-krat rychlejsie,
+   nasobenie bezi (v zavislosti od argumentov) az 40-krat rychlejsie, generovanie nahodnych cisel
+   50 az 60-krat rychlejsie, take delenie az 96-krat rychlejsie a absolutnym rekorderom je premena
+   textovej formy cisla na hodnotu (napr. funkcia VAL) ktora v urcitych pripadoch bezi az 360-krat
+   rychlejsie nez bezali povodne rutinky v ZXrom01 !
+
+ * Novy nastavovaci bit.4: Povolenie emulacie matematickych chyb: delenie a -65536
+
+   Nove prepracovane matematicke rutinky uz netrpia znamymi chybami z povodnej romky ZX Spektra.
+   Pre kazdy pripad, ak by bolo nutne, je mozne zapnut emulaciu tychto chyb nastavenim
+   bitu 4 na hodnotu 1 v bajte pre nastavenie rezimov cinnosti.
+
+ * Prepracovany linearny interpolator v prikazoch DRAW a CIRCLE
+
+   Povodny linearny interpolator v ZXrom01 fungoval presne ako original na ZX Spektre,
+   to znamena ze pocital suradnice bodov a pre kazdy bod volal rutinku prikazu PLOT.
+   Novy optimalizovany interpolator uz nevola PLOT, ale pristupuje priamo do videoramky,
+   vdaka comu prikazy DRAW a CIRCLE dokazu bezat 5 az 6-krat rychlejsie.
+
+
+
+%%%%%%%%%%%%%%%%%%%
+%% Tape emulacia %%
+%%%%%%%%%%%%%%%%%%%
+
+Aby sa dali vyuzit aj magnetofonove prikazy LOAD / SAVE, resp. aby vobec bolo mozne
+z vonku nahrat / ulozit nejaky basic (a data a bajty), je tento port romky vybaveny
+malickym tape emulatorom, ktory umoznuje navzajom prepojit standartny *.TAP subor
+zo ZX Spektra (dalej len 'tapka') s magnetofonovymi prikazmi LOAD / SAVE
+ - presne tak isto, ako je to zvykom v (temer) vsetkych emulatoroch ZX Spektra.
+
+Okrem toho romka umoznuje specialny alternativny sposob nahratia a ulozenia
+basic programu pomocou prikazov RUN a STOP, vhodny pre pripad ked je basic
+tak dlhy, ze uz nezostane dostatok miesta pre tapku.
+
+
+Ako funguje tape emulator
+~~~~~~~~~~~~~~~~~~~~~~~~~
+Tape emulator odchytava vsetky volania load rutinky na adrese #0556 a postupne
+jej "podstrkava" jednotlive bloky z tapky. Podobne tak odchytava volania
+save rutinky na adrese #04C2 a jednotlive bloky uklada na koniec spomenutej tapky.
+
+Samotna tapka musi byt umiestnena priamo v pameti. Jej nahratie z externeho media
+do pameti, popripade jej ulozenie z pameti na externe medium, samotna romka
+nijak neriesi, toto zostava na starosti samotneho uzivatela. Pokial uzivatel
+pracuje nie na realnom PMD85 ale v emulatore, moze vyuzit napriklad funkciu
+priameho nacitania / ulozenia bloku pameti na disk hostitelskeho systemu.
+
+
+Praca s tape emulatorom
+~~~~~~~~~~~~~~~~~~~~~~~
+Pre riadenie cinnosti tape emulatora su k dispozicii nasledujuce basicove prikazy:
+
+  CAT <cislo>
+  COPY <cislo> ... vypis hlaviciek v tapke, volitelne od N-tej hlavicky.
+	Prikaz COPY povodne sluzil pre vytlacenie obrazovky na ZX printer,
+	avsak kedze ZX printer nie je podporovany, bol tento prikaz pouzity ako
+	alternativa k CAT, aby sa uzivatel nemusel trapit so zlozitym pisanim CAT-u :)
+
+  MOVE cislo ... nastavenie load kurzora na dany blok (hlavicku),
+	t.j. ktory blok bude ako dalsi v poradi "podstrceny" load rutinke #0556.
+
+  ERASE cislo ... vymazanie daneho bloku z tapky. Maze hlavicku a s nou aj vsetky
+	nasledujuce bezhlavickove bloky az po dalsiu hlavicku alebo koniec tapky.
+
+  FORMAT adresa,<dlzka>  ... definovanie buffera v pameti pre ulozenie tapky
+	Umoznuje uzivatelovi nadefinovat miesto kde v pameti ma byt ulozena
+	tapka pouzita v tape emulatore a aka moze byt jej maximalna velkost.
+	Zadana adresa musi byt vyssia ako RAMTOP.
+	Dlzka je nepovinny parameter, v pripade ze ho uzivatel nezadna,
+	tape emulator si dlzku buffera sam nastavi na dlzku tapky v pameti.
+	FORMAT 0,0 prepne na build-in skusobnu tapku ktora je sucastou romky.
+
+Parametre uzavrete v zobakoch < > su nepovinne, namiesto ciselnej hodnoty
+je samozrejme mozne pouzit aj akykolvek vyraz s ciselnym vysledkom.
+
+Prikazy CAT a COPY najprv vypisu tieto aktualne informacie o tape bufferi:
+
+  A:xxxxx ... Adresa kde zacina tape buffer (urcena prikazom FORMAT)
+  L:xxxxx ... Celkova dlzka tape buffera    (urcena prikazom FORMAT)
+  U:xxxxx ... (Used) kolko z tape buffera je aktualne obsadene tapkou
+  F:xxxxx ... (Free) kolko volneho miesta je v tape bufferi pre SAVE
+
+Nasledne vypisu hlavicky v tomto FORMATe:
+
+              N>T:Meno     Adresa:Dlzka
+
+ N ... Poradove cislo hlavicky, pre prikazy MOVE, ERASE, CAT, LOAD <cislo>...
+ > ... Aktualna poloha load kurzora, t.j. co sa bude nahravat najblizsie
+ T ... Typ suboru: 0=basic, 1=ciselne pole, 2=znakove pole, 3=bajty
+ Meno ... Vypisu sa aj tokeny, riadiace kody pod 32 sa vypisu ako bodka
+ Adresa ... Druhy parameter z hlavicky: startovaci riadok, meno premennej, adresa
+
+
+Rozsirena syntax LOAD prikazov
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Tape emulator prinasa aj novu rozsirenu syntax pre prikazy LOAD / MERGE / VERIFY:
+
+  PRIKAZ <cislo> <,> <meno_suboru> ...dalsie parametre (LINE, CODE... presne ako ZX)
+
+To znamena, ze:
+
+ - Meno suboru je nepovinne. Nezadane meno suboru predstavuje prazdny retazec.
+ - V ramci prikazu je mozne nastavit load kurzor na blok 'cislo' presne ako prikaz MOVE.
+ - Cislo bloku moze aj nemusi byt od mena oddelene ciarkou.
+
+Prakticky to znamena, ze ak vas basic, ktory si chcete nahrat, pri vypise tapky
+(prikazmi CAT, COPY) vidno pod cislom 5, tak na jeho nahratie staci zadat  LOAD 5
+
+Akakolvek podobnost s MB02 a BSDOS-om je (samozrejme) absolutne cisto nahodna :-)))
+
+
+Build-in skusobna tapka
+~~~~~~~~~~~~~~~~~~~~~~~
+Sucastou tape emulatora je kratucka tapka so styrmi ukazkovymi subormi pre vyskusanie.
+
+  HelloWorld ...... kratucky jednoriadkovy basic 9999 PRINT "Hello world !"
+  DIM n(4) ........ stvorprvkove ciselne pole naplnene roznymi hodnotami
+  DIM t$(12) ...... retazec o dlzke 12 znakov s textom "Hello world"
+  CODE 49152,16 ... blok bajtov 00 11 22 33 44 55 66 77 88 99 AA BB CC DD EE FF
+
+Jednotlive subory je mozne vymazat prikazom ERASE a tym ziskat miesto
+pre ukladanie prikazom SAVE. Ale ak chcete subory ukladat, je lepsie
+si definovat novy vlastny buffer pre tapku - vid nasledujucu cast.
+
+
+Ukladanie dat do tapky
+~~~~~~~~~~~~~~~~~~~~~~
+Aby ste vobec mohli nieco ukladat, je potrebne mat v bufferi pre tapku volne miesto.
+Volne miesto pre ukladanie je priestor od konca tapky az po koniec buffera,
+popr. cely buffer ak v nom ziadnu tapku (este) nemate.
+
+Ak v bufferi uz mate nejaku tapku, prikaz SAVE pripoji ukladany blok vzdy na koniec
+tejto tapky. Pred samotnym ulozenim sa este skontroluje, ci je v bufferi dostatok
+miesta pre ulozenie noveho bloku. V pripade, ze nie je (a teda tapka by pretiekla),
+blok sa neulozi a vypise sa standartne chybove hlasenie 'Out of memory'.
+
+Koniec tapky a pripadne nasledujuce volne miesto v bufferi
+sa pozna podla nulovej dlzky nasledujuceho TAP bloku.
+To znamena, ze ked si do pameti (svojpomocne) nahrate nejaku tapku,
+a v pameti za nou nie su aspon dva nulove bajty, je potrebne tieto
+dva bajty pre istotu vynulovat, aby sa predislo pripadu, ze nasledujuce
+bajty (ak maju vhodne hodnoty) budu vyhodnotene ako dalsi platny blok v tapke.
+
+Pri mazani blokov prikazom ERASE sa dva bajty za novym koncom tapky automaticky vynuluju.
+
+
+Polopatisticky
+~~~~~~~~~~~~~~
+Kedze prakticky postup je castokrat ovela lepsi ako teoreticke definicie,
+tu je malicky navod, ako nahrat nejaky existujuci program zo sveta,
+a nasledne ako do sveta dostat nieco co chceme ulozit prikazom SAVE.
+
+1. Vezmeme *.TAP subor s nasim programom. Povedzme, ze subor je dlhy 2000 bajtov.
+
+2. Nahrame do PMD85 ZX romku a spustime od adresy 0. Prebehne uvodna inicializacia.
+
+3. Povedzme, ze tapku sa rozhodneme v pameti PMD85 umiestnit na adresu 30000.
+   Preto si prikazom CLEAR 29999 nastavime, aby nam basic do tejto oblasti pameti
+   nijak nezasahoval.
+
+4. Teraz nejakym sposobom nahrame nas TAP subor do pameti na adresu 30000.
+   Mozeme to urobit bud v emulatore funkciou na nahratie bloku pameti,
+   alebo na realnom PMD85 mozeme pomocou OUT 247,9 : RANDOMIZE USR 32768
+   skocit do monitora a urobit to tam. Navrat nazad do romky je JUMP 0005.
+
+5. Za tapkou nahranou do pameti, v nasom pripade na adrese 32000, by mali byt
+   aspon dva nulove bajty. Pokial sme nic velke predtym nerobili, mali by tam
+   uz byt (ZXromka pri studenom starte pamet nuluje), ale ak nie tak ich
+   (pre istotu) mozeme vynulovat my prikazmi POKE 32000,0 : POKE 32001,0
+
+V pripade ze ziadnu tapku z externeho zdroja nahravat nechceme, a chceme
+mat cely buffer k dispozicii pre SAVE, staci vynulovat prve dva bajty
+buffera (ak uz nulove nie su) prikazmi POKE 30000,0 : POKE 30001,0
+
+6. A teraz prikazom FORMAT 30000,2500 oznamime tape emulatoru, ze od adresy
+   30000 lezi nasa tapka, z ktorej ma nahravat bloky, a zaroven mu tym povieme,
+   ze za tapkou je az po adresu 32500 volne miesto, kam tape emulator moze
+   ukladat bloky ktore v buducnosti ulozime prikazom SAVE.
+
+Tymto mame vsetko pripravene a mozeme veselo pouzivat vsetky magnetofonove prikazy
+LOAD SAVE VERIFY MERGE a zaroven pracovat s tapkou prikazmi CAT COPY MOVE ERASE.
+
+7. Ak sme do tapky nieco pridali prikazom SAVE, a chceme to poslat do okoliteho sveta,
+   pomocou hodnoty U:xxxxx vypisanej v prikazoch CAT alebo COPY si zistime kolko prave
+   zabera tapka v tape bufferi a presne tolko bajtov od zaciatku tape buffera ulozime
+   na externe medium. V pripade, ze staru tapku ukladat nechceme, chceme len nove
+   bloky (tie ktore sme si ulozili prikazom SAVE), a ziadne bloky sme nemazali,
+   postaci ak ulozime novu cast tapky od adresy, kde konci stara tapka.
+   V nasom priklade to bude adresa 32000 (kedze stara tapka bola dlha 2000 bajtov).
+
+Na PMD85 verziach ktore maju all-ram rezim (2A a 3) mozeme samozrejme pre tap buffer
+vyuzit adresy az po zaciatok videoramky na #C000. Akurat ked potom skocime do monitora,
+nebude tapka dostupna lebo bude prekryta monitorom.
+
+
+Specialny alternativny sposob prace s dlhymi basicmi
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+V pripade, ze potrebujeme pracovat s basic programom tak dlhym, ze sa nam do pameti
+aj s prislusnou tapkou uz nevojde, mozeme pouzit tento specialny sposob prace.
+
+Aj v tomto pripade pracujeme s tapkou, avsak tapka nie je ulozena v tap bufferi
+nad RAMTOPom, ale v retazcovej premennej v basicu. Pri loadnuti basicoveho programu
+sa retazcova premenna zmaze a s nou prestane existovat aj tapka, a pri ulozeni
+programu do tapky sa tento program v pameti nahradi jednou retazcovou premennou
+ktora bude obsahovat tapku s tymto programom.
+
+Vyhoda:
+Tento sposob umoznuje nahravat a ukladat basic programy temer tak dlhe, ako
+je cele volne miesto v basic systeme. V all-ram rezime je to az cca 27500 bajtov.
+
+Nevyhoda:
+Loadnutim programu tapka prestane v pameti existovat, nie je preto mozne
+takto nahravat programy s dohravacimi blokmi (napr. ked si basic dohraje blok s UDG).
+
+
+Ovladacie prikazy (a jedna funkcia):
+
+ RUN a$
+  ... Nahratie (a pripadne spustenie) basicu z tapky ulozenej v prememnej a$
+
+ STOP a$,"Meno" <LINE autostart>
+  ... Ulozenie basicu s premennymi do tapky a ulozenie tapky do premennej a$
+
+ PEEK a$
+  ... Vrati adresu kde v pameti zacinaju data v premennej a$
+
+
+Namiesto a$ je samozrejme mozne pouzit akukolvek inu retazcovu premennu,
+ci uz klasicku, deklarovanu prikazom LET alebo dimenzovanu prikazom DIM.
+
+Nahratie basicu prikazom RUN a$ urobi presne to iste ako prikaz LOAD "".
+Vezme premennu a$ (popr. akukolvek inu zadanu retazcovu premennu), najde
+v premennej tapku, v tapke najde prvy basic program a ten nahra do pameti.
+V pripade, ze basic ma autostart, tak sa aj hned spusti.
+Retazcova premenna s tapkou sa nahranim basicu vymaze.
+
+Tapka nemusi zacinat od zaciatku premennej, system si tapku v premennej
+najde sam podla uvodneho bajtu #13 (nizsi bajt dlzky bloku s hlavickou).
+Je teda mozne si najprv pomocou DIM vytvorit dostatocne dlhu premennu
+a kamkolvek do nej nahrat tapku (zacinajucu hlavickou) z externeho media.
+
+Mozne chyby:
+
+ Invalid argument ... retazcova premena neobsahuje tapku
+ Invalid I/O stream ... tapka neobsahuje basic alebo je poskodena
+ Tape loading error ... hlavicka je v poriadku ale je poskodene telo basicu
+
+Prikaz STOP funguje presne ako SAVE - zabali basic do tapky pod zadanym menom
+(v pripade ze za menom nasleduje LINE tak basicu nastavi startovaci riadok),
+vytvori zadanu retazcovu premennu a ulozi do nej tapku s basicom. Dlzka
+retazcovej premennej sa nastavi presne na velkost tapky.
+
+Z hladiska uzivatela basic program a jeho premenne zmiznu, a v systeme
+zostane ako jedina iba zadana retazcova premenna obsahujuca tapku s basicom.
+Uzivatel si potom pomocou funkcii PEEK a LEN moze zistit adresu a dlzku
+Tapky (napr. PRINT PEEK a$,LEN a$) a ulozit si ju na svoje externe medium.
+
+Na zaciatku bola spomenuta nevyhoda, ze tento sposob nie je vhodny pre nahravanie
+programov, ktore si okrem basicu potrebuju dohrat nejake dalsie bloky (data, code...).
+Tuto nevyhodu je mozne ciatocne eliminovat rozdelenim tapky na samotny (dlhy) basic
+a (kratky) zvysok tapky s dohravanymi blokmi. Tapku s basicom umiestnime do retazcovej
+premennej, a zvysok tapky umiestnime do klasickeho tape buffera niekde nad RAMTOPom.
+V takomto pripade si po spusteni basicu z retazcovej premennej tento basic nasledne
+prikazmi LOAD bude moct dohrat dalsie potrebne bloky klasickym sposobom
+cez standartny tape emulator.
+
+
+Polopatisticky
+~~~~~~~~~~~~~~
+A znovu ukazka praktickeho postupu, ako nahrat nejaky existujuci program
+zo sveta, a nasledne ako ho zase do sveta ulozit.
+
+1. Vezmeme tapku s nasim programom. Povedzme, ze cela tapka je dlha 22000 bajtov.
+
+2. Prikazom  DIM t$(22000)  vytvorime retazcovu premennu.
+
+3. Prikazom  PRINT PEEK t$,LEN t$  si zistime kde v pameti su data premennej t$.
+   Prikaz nam vypise adresu a dlzku tychto dat. Dlzka by samozrejme mala byt 22000.
+
+4. Od zistenej adresy nahrame do pameti nasu tapku z externeho media.
+
+5. Prikazom  RUN t$  nahrame (a popr. spustime) basic program z nasej tapky.
+
+Teraz mame program (aj s jeho pripadnymi premennymi) v pameti a mozeme sa s nim hrat.
+Ked budeme chciet takyto program ulozit, postup bude nasledujuci:
+
+6. Prikazom  STOP t$,"Meno" LINE 10  ulozime program s autostartom na riadku 10.
+   Program z pameti zmizne a vytvori sa premenna t$ obsahujuca tapku s programom.
+   Ked autostart nepotrebujeme, mozeme LINE s cislom riadku vynechat.
+
+7. Prikazom  PRINT PEEK t$,LEN t$  si zistime kde presne v pameti lezi nasa
+   novovytvorena tapka a aka je dlha.
+
+8. Tapku si ulozime na externe medium.
