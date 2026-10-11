@@ -24,76 +24,6 @@
 #include "Emulator.h"
 #include "imgui/imgui_internal.h"
 //-----------------------------------------------------------------------------
-void UserInterface::DrawDiskImagesDialog()
-{
-	if (Settings->GUI->dialogDiskImagesOpened) {
-		ImGui::Begin("Disk Images", &Settings->GUI->dialogDiskImagesOpened,
-			ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize);
-		DiskImagesMenuItems();
-		ImGui::End();
-	}
-}
-//-----------------------------------------------------------------------------
-void UserInterface::DiskImagesMenuItems(bool inMenu)
-{
-	static char buf[FILENAME_MAX];
-	ImVec4 bbase, hover;
-	static TSettings::SetPMD32Drive *drives[4] = {
-		&Settings->PMD32->driveA,
-		&Settings->PMD32->driveB,
-		&Settings->PMD32->driveC,
-		&Settings->PMD32->driveD
-	};
-
-	for (char i = 0, letter = 'A'; i < 4; i++, letter++) {
-		TSettings::SetPMD32Drive *drive = drives[i];
-		const char *imagePath = ExtractFileName(drive->image);
-		sprintf(buf, "Drive%c  %c: %s", letter, letter, imagePath ? imagePath : "[empty]");
-		buf[6] = '\0';
-
-		ImGui::PushID(buf);
-		ImGui::SetNextItemAllowOverlap();
-		if (ImGui::MenuItem(buf + 8))
-			Emulator->ActionPMD32LoadDisk((int) i + 1);
-
-		bbase = imagePath ? ImColor::HSV(0.6f, 0.7f, 0.8f) : ImColor::HSV(0.5f, 0.2f, 0.2f);
-		hover = imagePath ? ImColor::HSV(0.6f, 0.9f, 1.0f) : ImColor::HSV(0.5f, 0.2f, 0.5f);
-		ImGui::PushStyleColor(ImGuiCol_Button, bbase);
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, hover);
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive, hover);
-
-		ImGui::SameLine();
-		sprintf(buf, "Eject##%c", letter);
-		if (ImGui::SmallButton(buf) && imagePath) {
-			delete [] drive->image;
-			drive->image = NULL;
-			ProcessSettingsCallback.connect(&TEmulator::ActionPMD32Update, Emulator);
-			InvokeSettingsChange |= PS_CLOSEALL;
-		}
-
-		bbase = drive->writeProtect ? ImColor::HSV(0.0f, 0.6f, 0.6f) : ImColor::HSV(0.5f, 0.2f, 0.2f);
-		hover = drive->writeProtect ? ImColor::HSV(0.0f, 0.8f, 0.8f) : ImColor::HSV(0.5f, 0.2f, 0.5f);
-		ImGui::PushStyleColor(ImGuiCol_Button, bbase);
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, hover);
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive, hover);
-
-		ImGui::SameLine();
-		sprintf(buf, "\u2302##WP%c", letter);
-		if (ImGui::SmallButton(buf) && imagePath) {
-			drive->writeProtect = !drive->writeProtect;
-			ProcessSettingsCallback.connect(&TEmulator::ActionPMD32Update, Emulator);
-			InvokeSettingsChange |= PS_CLOSEALL;
-		}
-
-		if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
-			ImGui::SetTooltip("Drive %c Write Protect: %s", letter, drive->writeProtect ? "ON" : "OFF");
-
-		ImGui::PopStyleColor(6);
-		ImGui::PopID();
-	};
-
-}
-//-----------------------------------------------------------------------------
 void UserInterface::DrawQueryDialog()
 {
 	if (queryDialogShouldOpen) {
@@ -110,7 +40,7 @@ void UserInterface::DrawQueryDialog()
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.0f, 8.0f));
 
 		if (queryDialogTitle && queryDialogTitle[0] != '\0') {
-			ImGui::PushStyleColor(ImGuiCol_Text, (ImVec4) ImColor::HSV(0.6f, 0.7f, 0.8f));
+			ImGui::PushStyleColor(ImGuiCol_Text, Color[GCCol_DialogTitleText]);
 			ImGui::SeparatorText(queryDialogTitle);
 			ImGui::PopStyleColor();
 		}

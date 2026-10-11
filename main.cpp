@@ -73,8 +73,10 @@ int main(int argc, char** argv)
 	PathGuiConfig = new char[strlen(PathUserHome) + 32];
 	strcpy(PathResources, DIR_RESOURCES);
 	sprintf(PathAppConfig, "%s%c.%s", PathUserHome, DIR_DELIMITER, PACKAGE_TARNAME);
-	sprintf(PathGuiConfig, "%s%c.%s/imgui.conf", PathUserHome, DIR_DELIMITER, PACKAGE_TARNAME);
+	sprintf(PathGuiConfig, "%s%c.%s%cimgui.conf",
+		PathUserHome, DIR_DELIMITER, PACKAGE_TARNAME, DIR_DELIMITER);
 #endif
+
 	debug("",   "Resource path: %s", PathResources);
 	debug(NULL, "Application path: %s", PathApplication);
 	debug(NULL, "Application config path: %s", PathAppConfig);
@@ -302,18 +304,7 @@ int main(int argc, char** argv)
 		ImGui_ImplSDL2_NewFrame();
 		ImGui::NewFrame();
 
-		GUI->DrawMenu();
-		GUI->DrawTapeDialog();
-		GUI->DrawAboutDialog();
-		GUI->DrawQueryDialog();
-		GUI->DrawFileSelector();
-		GUI->DrawDiskImagesDialog();
-		GUI->DrawMemDumpDialog();
-		GUI->DrawMemEditDialog();
-		GUI->DrawMemMapDialog();
-		GUI->DrawDebugWindow();
-		GUI->DrawEmulatorWindow();
-
+		GUI->Draw();
 		Emulator->actionCallback();
 		ImGui::Render();
 

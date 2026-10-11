@@ -43,9 +43,41 @@ enum TGuiElementType {
 	GE_DEBUGGER,          // Debugger dialog
 };
 //-----------------------------------------------------------------------------
+enum TGuiCustomColor {
+	GCCol_Transparent,
+	GCCol_TextBlack,
+	GCCol_ProgressBackground,
+	GCCol_ProgressForeground,
+	GCCol_PauseText,
+	GCCol_DialogTitleText,
+	GCCol_IconYellow,
+	GCCol_IconRed,
+	GCCol_IconBlue,
+	GCCol_ItemCursor,
+	GCCol_ItemPC,
+	GCCol_ItemBreakpoint,
+	GCCol_SignBranch,
+	GCCol_SignBranchOpaque,
+	GCCol_SignBreakpoint,
+	GCCol_SignCRCError,
+	GCCol_ButtonBase,
+	GCCol_ButtonBaseHover,
+	GCCol_ButtonEject,
+	GCCol_ButtonEjectHover,
+	GCCol_ButtonWP,
+	GCCol_ButtonWPHover,
+	GCCol_ButtonGreen,
+	GCCol_ButtonGreenHover,
+	GCCol_ButtonStop,
+	GCCol_ButtonStopHover,
+	GCCol_ButtonCursorHover,
+	GCCol_COUNT,
+};
+//-----------------------------------------------------------------------------
 class UserInterface
 {
 	public:
+		ImVec4 Color[GCCol_COUNT];
 		BYTE InvokeSettingsChange;
 		sigslot::signal<> ProcessSettingsCallback;
 		sigslot::signal<TMenuQueryType> QueryDialogCallback;
@@ -54,7 +86,13 @@ class UserInterface
 		UserInterface();
 		virtual ~UserInterface();
 
+		static void InitFont(float size, bool oversample = true);
 		inline void SetScreenInstance(ScreenPMD85 *video) { screenInstance = video; }
+
+		void InitCustomColors();
+		inline ImVec4 DimColorAlpha(ImVec4 color, float minusAlpha = 0.2f)
+			{ color.w -= minusAlpha; return color; }
+
 		inline bool InMenu() { return isMenuHovered; }
 		inline bool InEmulatorWindow() { return isEmulatorWindowFocused; }
 		inline bool InAnyWindowExceptEmulator() {
@@ -64,19 +102,8 @@ class UserInterface
 				!isEmulatorWindowFocused;
 		}
 
+		void Draw();
 		bool OnMenuLeave();
-		void DrawMenu();
-		void DrawAboutDialog();
-		void DrawQueryDialog();
-		void DrawFileSelector();
-		void DrawDiskImagesDialog();
-		void DrawTapeDialog();
-		void DrawMemDumpDialog();
-		void DrawMemEditDialog();
-		void DrawMemMapDialog();
-		void DrawDebugWindow();
-		void DrawEmulatorWindow();
-
 		void QueryDialog(const char *title, const char *message, bool save);
 		void MessageBox(const char *text, ...);
 		void FileSelector(
@@ -93,7 +120,6 @@ class UserInterface
 		void SetComputerModel(TComputerModel model);
 		inline void SetStatusPercentage(int val) { statusPercentage = val; }
 		inline void SetStatusFPS(int val) { statusFPS = val; }
-		static void InitFont(float size, bool oversample = true);
 
 	private:
 		int ledState;
@@ -145,22 +171,39 @@ class UserInterface
 		ImGuiSelectionBasicStorage *tapeDialogSelection;
 		ImGuiSelectionExternalStorage *tapeDialogSelectionAdapter;
 
+		void DrawEmulatorWindow();
 		void SetButtonColor(int icon);
+
+		void DrawAboutDialog();
+		void DrawQueryDialog();
+
+		void DrawMenu();
 		void MachineMenuItem(const char *name, TComputerModel model);
 		void AttributeMenuItems(bool enabled = false);
 		void DiskImagesMenuItems(bool inMenu = false);
-		void MemDumpDialogContent(bool saveType);
+		void DrawDiskImagesDialog();
 
 		void InitFileSelector();
 		void DestroyFileSelector();
+		void DrawFileSelector();
 
 		void InitTapeDialog();
 		void DestroyTapeDialog();
+		void DrawTapeDialog();
 		void DrawTapeDialogContextMenu(int &index);
 
-		void InitDebugSuite();
-		void DestroyDebugSuite();
+		void DrawMemDumpDialog();
+		void MemDumpDialogContent(bool saveType);
 
+		void InitMemEditDialog();
+		void DestroyMemEditDialog();
+		void DrawMemEditDialog();
+
+		void InitMemMapDialog();
+		void DestroyMemMapDialog();
+		void DrawMemMapDialog();
+
+		void DrawDebugDialog();
 		void DrawDebugWidgetDisass(int numberOfItems);
 		void DrawDebugWidgetRegs();
 		void DrawDebugWidgetStackBreakNest();

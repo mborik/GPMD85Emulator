@@ -82,8 +82,8 @@ void UserInterface::MemDumpDialogContent(bool saveType)
 	ImGui::TextUnformatted("Selected file:");
 
 	if (!saveType) {
-		ImVec4 bbase = fileExists ? ImColor::HSV(0.35f, 1.0f, 0.6f, 0.9f) : ImColor::HSV(0.5f, 0.2f, 0.2f);
-		ImVec4 hover = fileExists ? ImColor::HSV(0.35f, 1.0f, 0.6f, 0.5f) : ImColor::HSV(0.5f, 0.2f, 0.3f);
+		ImVec4 bbase = fileExists ? Color[GCCol_ButtonGreen] : Color[GCCol_ButtonBase];
+		ImVec4 hover = fileExists ? Color[GCCol_ButtonGreenHover] : Color[GCCol_ButtonBaseHover];
 		ImGui::PushStyleColor(ImGuiCol_Button, bbase);
 		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, hover);
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, hover);

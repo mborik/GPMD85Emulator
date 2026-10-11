@@ -52,7 +52,10 @@ void UserInterface::RedrawStatusBar(float horizontalPadding)
 
 //	status text, cpu meter and blinking pause...
 	if (statusPercentage < 0) {
-		ImVec4 color(0.875f, 0.1f, 0.3f, (pauseBlinker < 10) ? 1.0f : 0.1f);
+		ImVec4 color = Color[GCCol_PauseText];
+		if (pauseBlinker >= 10)
+			color.w = 0.1f;
+
 		ImGui::PushStyleColor(ImGuiCol_Text, color);
 		ImGui::TextUnformatted("PAUSED");
 		ImGui::PopStyleColor();
@@ -78,8 +81,8 @@ void UserInterface::RedrawStatusBar(float horizontalPadding)
 	TTapeBrowser::TProgressBar *progress = TapeBrowser->ProgressBar;
 	if (progressWidth > 50.0f && !Settings->GUI->dialogTapeBrowserOpened && *progress->Active) {
 		ImGui::PushID("##progress");
-		ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.1f, 0.1f, 0.1f, 0.5f));
-		ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.16f, 0.4f, 0.2f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_FrameBg, Color[GCCol_ProgressBackground]);
+		ImGui::PushStyleColor(ImGuiCol_PlotHistogram, Color[GCCol_ProgressForeground]);
 		ImGui::ProgressBar(((float) progress->Position / (float) progress->Max), progressBarSize, "");
 		ImGui::PopStyleColor(2);
 		ImGui::PopID();
@@ -145,27 +148,22 @@ void UserInterface::RedrawStatusBar(float horizontalPadding)
 //-----------------------------------------------------------------------------
 void UserInterface::SetButtonColor(int icon)
 {
-	static const ImVec4 blue(0.25f, 0.25f, 0.5f, 1.0f);
-	static const ImVec4 red(0.75f, 0.0f, 0.0f, 1.0f);
-	static const ImVec4 yellow(0.75f, 0.75f, 0.0f, 1.0f);
-	static const ImVec4 grey(0.5f, 0.5f, 0.5f, 1.0f);
-
 	ImVec4 result;
 	switch (icon) {
 		case 11:
-			result = yellow;
+			result = Color[GCCol_IconYellow];
 			break;
 		case 5: case 6: case 7: case 8: case 10: case 12:
-			result = red;
+			result = Color[GCCol_IconRed];
 			break;
 		case 1: case 2: case 3: case 4: case 13:
-			result = blue;
+			result = Color[GCCol_IconBlue];
 			break;
 		case 9:
-			result = grey;
+			result = ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled);
 			break;
 		default:
-			result = grey;
+			result = ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled);
 			result.w = 0.2f;
 			break;
 	}

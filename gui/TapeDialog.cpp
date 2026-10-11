@@ -143,15 +143,15 @@ void UserInterface::DrawTapeDialog()
 			ImGui::TableNextColumn();
 
 			if (iconState >= 9) {
-				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 0.2f, 0.2f, 0.9f));
-				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 0.2f, 0.2f, 0.5f));
+				ImGui::PushStyleColor(ImGuiCol_Button, Color[GCCol_ButtonStop]);
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Color[GCCol_ButtonStopHover]);
 				if (ImGui::Button("\u23F9", buttonSize))
 					TapeBrowser->ActionStop();
 				ImGui::PopStyleColor(2);
 			}
 			else {
-				ImGui::PushStyleColor(ImGuiCol_Button, ImColor::HSV(0.35f, 1.0f, 0.6f, 0.9f).Value);
-				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImColor::HSV(0.35f, 1.0f, 0.6f, 0.5f).Value);
+				ImGui::PushStyleColor(ImGuiCol_Button, Color[GCCol_ButtonGreen]);
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Color[GCCol_ButtonGreenHover]);
 				if (ImGui::ArrowButtonEx("Play", ImGuiDir_Right, buttonSize))
 					TapeBrowser->ActionPlay();
 				ImGui::PopStyleColor(2);
@@ -161,8 +161,8 @@ void UserInterface::DrawTapeDialog()
 
 			const ImVec2 progressBarSize = ImVec2(ImGui::GetContentRegionAvail().x, buttonSize.y);
 			ImGui::PushID("##progress");
-			ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.1f, 0.1f, 0.1f, 0.5f));
-			ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.16f, 0.4f, 0.2f, 1.0f));
+			ImGui::PushStyleColor(ImGuiCol_FrameBg, Color[GCCol_ProgressBackground]);
+			ImGui::PushStyleColor(ImGuiCol_PlotHistogram, Color[GCCol_ProgressForeground]);
 
 			if (iconState >= 9)
 				sprintf(label, Settings->TapeBrowser->hex ? "#%04X" : "%5d", TapeBrowser->ProgressBar->Position);
@@ -229,8 +229,8 @@ void UserInterface::DrawTapeDialog()
 				ImVec2 szVec(ImGui::GetFrameHeight(), ImGui::GetFrameHeight());
 				ImGuiButtonFlags buttonFlags = ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight;
 
-				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4());
-				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImColor::HSV(0.5f, 0.3f, 0.3f, 0.3f).Value);
+				ImGui::PushStyleColor(ImGuiCol_Button, Color[GCCol_Transparent]);
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Color[GCCol_ButtonCursorHover]);
 				if (i == TapeBrowser->currBlockIdx)
 					ImGui::ArrowButtonEx("##cursor", ImGuiDir_Right, szVec, buttonFlags);
 				else if (i == TapeBrowser->stopBlockIdx)
@@ -269,7 +269,7 @@ void UserInterface::DrawTapeDialog()
 
 				ImGui::TableNextColumn();
 				if (item.headCrcError) {
-					ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "!");
+					ImGui::TextColored(Color[GCCol_SignCRCError], "!");
 					if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
 						ImGui::SetTooltip("CRC Error");
 				}
@@ -378,7 +378,9 @@ void UserInterface::DrawTapeDialogContextMenu(int &index) {
 
 			if (ImGui::MenuItem("Change to Headerless Block", NULL, false, blk->cType)) { }
 			if (ImGui::MenuItem("Change to Header Block", NULL, false, !blk->cType)) { }
+			if (ImGui::MenuItem("Edit Block Header", NULL, false, !blk->cType)) { }
 
+/*			// TODO Separate to a dedicated "Edit Block Header" modal dialog
 			if (blk->cType) {
 				ImGui::SeparatorText("Block Header");
 
@@ -417,7 +419,7 @@ void UserInterface::DrawTapeDialogContextMenu(int &index) {
 				ImGui::SetNextItemWidth(GetMonoTextWidth(12, 4.0f));
 				ImGui::InputScalar("##blklen", ImGuiDataType_U16, &blockLength, NULL, NULL, "%04X");
 			}
-
+*/
 			ImGui::EndDisabled();
 		}
 
