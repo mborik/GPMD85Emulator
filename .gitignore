@@ -6,8 +6,8 @@
 !.github/
 
 # prerequisites
-/build
-/build-*
+/build*
+/dist
 
 # compiled object files
 *.slo
@@ -32,6 +32,3 @@
 *.la
 *.a
 *.lib
-
-# executable
-/GPMD85emu
