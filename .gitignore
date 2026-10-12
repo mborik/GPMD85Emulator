@@ -2,11 +2,12 @@
 *~
 .*
 !.gitignore
+!.gitmodules
+!.github/
 
 # prerequisites
-/build
-.deps
-*.d
+/build*
+/dist
 
 # compiled object files
 *.slo
@@ -31,36 +32,3 @@
 *.la
 *.a
 *.lib
-
-# executable
-/GPMD85emu
-
-# autoconf
-/autom4te.cache
-/autoscan.log
-/autoscan-*.log
-/aclocal.m4
-/compile
-/config.h
-/config.guess
-/config.log
-/config.status
-/config.sub
-/configure
-/configure.scan
-/depcomp
-/install-sh
-/missing
-/stamp-*
-
-# automake
-Makefile
-Makefile.in
-/ar-lib
-/mdate-sh
-/py-compile
-/test-driver
-/ylwrap
-
-# libtool
-/ltmain.sh

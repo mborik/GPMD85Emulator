@@ -97,9 +97,9 @@ void UserInterface::InitCustomColors()
 	Color[GCCol_ProgressForeground] = ImVec4(0.16f, 0.4f, 0.2f, 1.0f);
 	Color[GCCol_PauseText] = ImVec4(0.875f, 0.1f, 0.3f, 1.0f);
 	Color[GCCol_DialogTitleText] = ImColor::HSV(0.6f, 0.7f, 0.8f).Value;
-	Color[GCCol_IconYellow] = ImVec4(0.25f, 0.25f, 0.5f, 1.0f);
+	Color[GCCol_IconYellow] = ImVec4(0.75f, 0.75f, 0.0f, 1.0f);
 	Color[GCCol_IconRed] = ImVec4(0.75f, 0.0f, 0.0f, 1.0f);
-	Color[GCCol_IconBlue] = ImVec4(0.75f, 0.75f, 0.0f, 1.0f);
+	Color[GCCol_IconBlue] = ImVec4(0.25f, 0.25f, 0.5f, 1.0f);
 	Color[GCCol_ItemCursor] = ImVec4(0.3f, 0.3f, 0.3f, 0.8f);
 	Color[GCCol_ItemPC] = ImVec4(0.9f, 0.9f, 0.9f, 1.0f);
 	Color[GCCol_ItemBreakpoint] = ImVec4(0.8f, 0.4f, 0.2f, 1.0f);
