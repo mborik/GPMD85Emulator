@@ -894,9 +894,11 @@ bool TEmulator::TestHotkeys()
 				ActionPlayPause();
 				break;
 
+#ifndef __EMSCRIPTEN__
 			case SDL_SCANCODE_F4:	// EXIT
 				ActionExit();
 				return true;
+#endif
 
 			case SDL_SCANCODE_F5:	// RESET
 				if (key & KM_SHIFT)

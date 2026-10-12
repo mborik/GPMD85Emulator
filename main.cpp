@@ -31,10 +31,18 @@
 #include "CommonUtils.h"
 #include "Emulator.h"
 //-----------------------------------------------------------------------------
-#ifdef IMGUI_IMPL_OPENGL_ES2
+#if defined(IMGUI_IMPL_OPENGL_ES2)
 #  include "SDL_opengles2.h"
+#elif defined(IMGUI_IMPL_OPENGL_ES3)
+#  include <GLES3/gl3.h>
 #else
 #  include "SDL_opengl.h"
+#endif
+//-----------------------------------------------------------------------------
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#include <emscripten/html5.h>
+#include "imgui-mods/emscripten_mainloop_stub.h"
 #endif
 //-----------------------------------------------------------------------------
 int main(int argc, char** argv)
@@ -48,6 +56,20 @@ int main(int argc, char** argv)
 
 	IntroMessage();
 
+#ifdef __EMSCRIPTEN__
+// `/home/web_user` is persistent (IndexedDB) and holds settings
+#define PATH_WEBHOME "/home/web_user"
+// `/storage` is a read-only preloaded bundle (resources, ROMs, software library),
+#define PATH_STORAGE "/storage"
+	PathUserHome = strdup(PATH_WEBHOME);
+	PathApplication = strdup(PATH_STORAGE);
+	PathResources = new char[strlen(PATH_STORAGE) + 1];
+	PathAppConfig = new char[strlen(PATH_WEBHOME) + 1];
+	PathGuiConfig = new char[strlen(PATH_WEBHOME) + 16];
+	strcpy(PathResources, PATH_STORAGE);
+	strcpy(PathAppConfig, PATH_WEBHOME);
+	sprintf(PathGuiConfig, "%s/imgui.conf", PATH_WEBHOME);
+#else
 	PathUserHome = SDL_getenv("HOME");
 	PathApplication = getcwd(NULL, MAX_PATH);
 	PathResources = new char[strlen(DIR_RESOURCES) + 1];
@@ -57,6 +79,7 @@ int main(int argc, char** argv)
 	sprintf(PathAppConfig, "%s%c.%s", PathUserHome, DIR_DELIMITER, PACKAGE_TARNAME);
 	sprintf(PathGuiConfig, "%s%c.%s%cimgui.conf",
 		PathUserHome, DIR_DELIMITER, PACKAGE_TARNAME, DIR_DELIMITER);
+#endif
 
 	debug("",   "Resource path: %s", PathResources);
 	debug(NULL, "Application path: %s", PathApplication);
@@ -193,10 +216,40 @@ int main(int argc, char** argv)
 	Emulator->ProcessSettings(-1);
 	Emulator->ProcessArgvOptions(true);
 
+#ifdef __EMSCRIPTEN__
+	auto updateWindowSize = [](
+		int eventType = 0,
+		const EmscriptenUiEvent *uiEvent = NULL,
+		void *userData = NULL
+	) -> EM_BOOL {
+
+		double width = 0, height = 0;
+		EMSCRIPTEN_RESULT res = emscripten_get_element_css_size("#canvas", &width, &height);
+		int w = static_cast<int>(width);
+		int h = static_cast<int>(height);
+
+		if (res < 0 || w <= 0 || h <= 0)
+			emscripten_get_screen_size(&w, &h);
+		if (w <= 0 || h <= 0)
+			w = h = 640;
+
+		Settings->GUI->position.x = 0;
+		Settings->GUI->position.y = 0;
+		Settings->GUI->windowSize.x = w;
+		Settings->GUI->windowSize.y = h;
+
+		SDL_SetWindowSize(gdc.window, w, h);
+		return EM_TRUE;
+	};
+
+	emscripten_set_resize_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, updateWindowSize);
+	updateWindowSize();
+#else
 	if (Settings->GUI->position.x >= 0 || Settings->GUI->position.y >= 0)
 		SDL_SetWindowPosition(gdc.window, Settings->GUI->position.x, Settings->GUI->position.y);
 	if (Settings->GUI->windowSize.x >= 0 || Settings->GUI->windowSize.y >= 0)
 		SDL_SetWindowSize(gdc.window, Settings->GUI->windowSize.x, Settings->GUI->windowSize.y);
+#endif
 	SDL_ShowWindow(gdc.window);
 
 	Emulator->ActionPlayPause(true);
@@ -211,7 +264,12 @@ int main(int argc, char** argv)
 
 	debug("", "Starting main CPU %dHz loop", CPU_FRAMES_PER_SEC);
 
-	while (Emulator->isActive) {
+#ifdef __EMSCRIPTEN__
+	EMSCRIPTEN_MAINLOOP_BEGIN
+#else
+	while (Emulator->isActive)
+#endif
+	{
 		currentTime = SDL_GetPerformanceCounter();
 		deltaTime = (double)((currentTime - lastTime) * 1000) / (double) SDL_GetPerformanceFrequency();
 		lastTime = currentTime;
@@ -290,11 +348,14 @@ int main(int argc, char** argv)
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 		SDL_GL_SwapWindow(gdc.window);
 	}
-
+#ifdef __EMSCRIPTEN__
+	EMSCRIPTEN_MAINLOOP_END;
+#else
 	SDL_GetWindowPosition(gdc.window,
 			&Settings->GUI->position.x, &Settings->GUI->position.y);
 	SDL_GetWindowSize(gdc.window,
 			&Settings->GUI->windowSize.x, &Settings->GUI->windowSize.y);
+#endif
 
 	SDL_HideWindow(gdc.window);
 	debug("", "Main loop terminated");
