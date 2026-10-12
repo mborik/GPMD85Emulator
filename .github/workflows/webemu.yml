@@ -1,0 +1,68 @@
+name: Web emulator deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: webemu-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: setup Emscripten
+      uses: mymindstorm/setup-emsdk@v14
+      with:
+        version: 3.1.74
+
+    # Build products (index.*, favicon.ico, icon.png, basefont.ttf) are placed
+    # by CMake into a separate "dist" directory, so intermediate CMake files
+    # (CMakeCache.txt, CMakeFiles/, generated/, cmake-probes/, *.a, ...) stay
+    # in the parent build-web directory and are never uploaded.
+    - name: configure
+      run: >
+        emcmake cmake -S . -B build-web
+        -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_RUNTIME_OUTPUT_DIRECTORY="${GITHUB_WORKSPACE}/build-web/dist"
+
+    - name: build
+      run: cmake --build build-web
+
+    - name: list deployed files
+      run: ls -l build-web/dist
+
+    - name: deploy via FTP
+      uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+      with:
+        server: ${{ secrets.FTP_SERVER }}
+        protocol: ${{ secrets.FTP_PROTOCOL }}
+        username: ${{ secrets.FTP_USERNAME }}
+        password: ${{ secrets.FTP_PASSWORD }}
+        port: ${{ secrets.FTP_PORT }}
+        server-dir: ${{ secrets.FTP_SERVER_DIR }}
+        local-dir: ./build-web/dist/
+        # safety net in case any CMake/Emscripten intermediates land in dist
+        exclude: |
+          **/.git*
+          **/.git*/**
+          **/CMakeFiles/**
+          **/CMakeCache.txt
+          **/cmake_install.cmake
+          **/CTestTestfile.cmake
+          **/Makefile
+          **/build.ninja
+          **/.ninja_*
+          **/*.a
+          **/*.cmake
+          **/*.map
+          **/generated/**
+          **/cmake-probes/**
