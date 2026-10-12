@@ -523,6 +523,16 @@ void TEmulator::BaseTimerCallback(bool guiWantCapture)
 			Debugger->flowControl = DBGCTL_RUNNING;
 		ActionPlayPause(true, false);
 	}
+	else if (Debugger->flowControl < DBGCTL_RUNNING &&
+		(GUI->InvokeSettingsChange & (PS_SCREEN_SIZE | PS_SCREEN_MODE)) ||
+		memory->WasVramModified()) {
+
+		ProcessSettings(GUI->InvokeSettingsChange);
+		GUI->InvokeSettingsChange = 0;
+
+		video->FillBuffer(memory->GetVramPointer());
+		video->RefreshDisplay();
+	}
 
 	// status bar FPS and CPU indicators
 	if (thisTime >= nextTick) {

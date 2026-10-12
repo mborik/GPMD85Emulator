@@ -230,6 +230,9 @@ void UserInterface::DrawMenu()
 			ImGui::EndMenu();
 		}
 
+		if (!Emulator->isRunning && !Settings->isPaused)
+			ImGui::BeginDisabled();
+
 		if (ImGui::BeginMenu("Emulation")) {
 			if (ImGui::MenuItem("Debugger…", MOD_KEY("F12"))) {
 				Emulator->ActionDebugger();
@@ -450,6 +453,10 @@ void UserInterface::DrawMenu()
 			delete [] currentFile;
 			ImGui::EndMenu();
 		}
+
+		if (!Emulator->isRunning && !Settings->isPaused)
+			ImGui::EndDisabled();
+
 		ImGui::EndMainMenuBar();
 	}
 }
