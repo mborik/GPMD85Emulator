@@ -1,9 +1,9 @@
-name: Web emulator deploy
+name: webemu-deploy
 
 on:
   push:
     branches:
-      - main
+      - webemu
   workflow_dispatch:
 
 concurrency:
@@ -32,13 +32,13 @@ jobs:
       run: >
         emcmake cmake -S . -B build-web
         -DCMAKE_BUILD_TYPE=Release
-        -DCMAKE_RUNTIME_OUTPUT_DIRECTORY="${GITHUB_WORKSPACE}/build-web/dist"
+        -DCMAKE_RUNTIME_OUTPUT_DIRECTORY="${GITHUB_WORKSPACE}/dist"
 
     - name: build
       run: cmake --build build-web
 
     - name: list deployed files
-      run: ls -l build-web/dist
+      run: ls -l dist
 
     - name: deploy via FTP
       uses: SamKirkland/FTP-Deploy-Action@v4.3.5
@@ -49,20 +49,10 @@ jobs:
         password: ${{ secrets.FTP_PASSWORD }}
         port: ${{ secrets.FTP_PORT }}
         server-dir: ${{ secrets.FTP_SERVER_DIR }}
-        local-dir: ./build-web/dist/
+        local-dir: ./dist/
         # safety net in case any CMake/Emscripten intermediates land in dist
         exclude: |
-          **/.git*
-          **/.git*/**
-          **/CMakeFiles/**
-          **/CMakeCache.txt
-          **/cmake_install.cmake
-          **/CTestTestfile.cmake
-          **/Makefile
-          **/build.ninja
-          **/.ninja_*
-          **/*.a
+          **/.*
+          **/CMake*
+          **/Makefile*
           **/*.cmake
-          **/*.map
-          **/generated/**
-          **/cmake-probes/**
