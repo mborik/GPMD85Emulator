@@ -16,7 +16,7 @@
 
 - **macOS** (tested since 10.12+)
   - first, "Xcode Command Line Tools" is required
-    (for `clang`, `make`, and core developer toolchain utilities)
+    (`xcode-select --install` for `clang`, `make`, and other toolchain)
   - in addition to that you will need install tools & libs using Brew:
     `brew install cmake pkg-config sdl2`,
     or with MacPorts: `sudo port install cmake pkgconfig libsdl2`
