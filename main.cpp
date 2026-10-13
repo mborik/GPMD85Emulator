@@ -49,22 +49,24 @@ int main(int argc, char** argv)
 	IntroMessage();
 
 	PathUserHome = SDL_getenv("HOME");
-	PathApplication = getcwd(NULL, MAX_PATH);
+	PathApplication = GetCurrentDir();
 	PathResources = new char[strlen(DIR_RESOURCES) + 1];
-	PathAppConfig = new char[strlen(PathUserHome) + 16];
-	PathGuiConfig = new char[strlen(PathUserHome) + 32];
 	strcpy(PathResources, DIR_RESOURCES);
-	sprintf(PathAppConfig, "%s%c.%s", PathUserHome, DIR_DELIMITER, PACKAGE_TARNAME);
-	sprintf(PathGuiConfig, "%s%c.%s%cimgui.conf",
-		PathUserHome, DIR_DELIMITER, PACKAGE_TARNAME, DIR_DELIMITER);
+
+	const std::filesystem::path appConfig = std::filesystem::path(PathUserHome) / ("." PACKAGE_TARNAME);
+	const std::string appConfigStr = appConfig.string();
+	const std::string guiConfigStr = (appConfig / "imgui.conf").string();
+	PathAppConfig = new char[appConfigStr.length() + 1];
+	PathGuiConfig = new char[guiConfigStr.length() + 1];
+	strcpy(PathAppConfig, appConfigStr.c_str());
+	strcpy(PathGuiConfig, guiConfigStr.c_str());
 
 	debug("",   "Resource path: %s", PathResources);
 	debug(NULL, "Application path: %s", PathApplication);
 	debug(NULL, "Application config path: %s", PathAppConfig);
 	debug(NULL, "ImGui config path: %s", PathGuiConfig);
 
-	if (stat(PathAppConfig, &filestat) != 0)
-		mkdir(PathAppConfig, 0755);
+	CreateDirIfNotExist(PathAppConfig);
 
 	// initialization of SDL
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER | SDL_INIT_TIMER | SDL_INIT_EVENTS) < 0)

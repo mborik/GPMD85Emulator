@@ -604,7 +604,7 @@ void UserInterface::DrawDebugWidgetStackBreakNest()
 
 			Debugger->FillBreakpoints(breaks);
 			for (int i = 0; i < breaks.size(); i++) {
-				std::snprintf(breakpointId, sizeof(breakpointId), "##bpCheck%d", i);
+				std::snprintf(breakpointId, sizeof(breakpointId), "##bpCheck%hu", (uint8_t) i);
 
 				ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
 				if (ImGui::Checkbox(breakpointId, &breaks[i].second))
@@ -613,7 +613,7 @@ void UserInterface::DrawDebugWidgetStackBreakNest()
 				ImGui::PopStyleVar();
 				ImGui::SameLine();
 
-				std::snprintf(breakpointId, sizeof(breakpointId), "bpValue%d", i);
+				std::snprintf(breakpointId, sizeof(breakpointId), "bpValue%hu", (uint8_t) i);
 				ImGui::PushID(breakpointId);
 				ImGui::Selectable(breaks[i].first.c_str(), false, selectable_flags);
 

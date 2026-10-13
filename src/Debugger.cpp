@@ -366,11 +366,11 @@ const char *TDebugger::GetMemoryState()
 		memory->HasAllRAM() ? (memory->IsAllRAM() ? "1" : "0") : "-");
 
 	if (memory->IsMem256())
-		std::snprintf(allRAMState + 9, 4, "P:%x", memory->GetPage());
+		std::snprintf(allRAMState + 9, 7, "P:%01X", memory->GetPage() & 0xF);
 	else if (model == CM_C2717) {
 		// if (systemPIO->width384) // TODO
 		// 	strcpy(allRAMState + 9, "384");
-		std::snprintf(allRAMState + 9, 4, "R:%d",
+		std::snprintf(allRAMState + 9, 7, "R:%01d",
 			memory->IsRemapped() ? memory->GetRemapType() : 0);
 	}
 

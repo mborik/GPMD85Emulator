@@ -62,7 +62,7 @@ void Joy4004482::Connect()
 		joy[1].map = settings->GPIO1;
 		joyCnt = 2;
 
-		if (strcasecmp(settings->GPIO0->guid, settings->GPIO1->guid) == 0)
+		if (CompareNoCase(settings->GPIO0->guid, settings->GPIO1->guid) == 0)
 			sameDev = true;
 	}
 	else if (settings->GPIO0->connected) {
@@ -166,7 +166,7 @@ void Joy4004482::ScanJoy(BYTE *KeyBuffer)
 
 			if (joy[ii].map->guid && joy[ii].map->guid[0] != '\0') {
 				for (int jj = 0; jj < devCount; jj++) {
-					if (strcasecmp(joy[ii].map->guid, SDL_GameControllerGetSerial(controllers[jj])) == 0) {
+					if (CompareNoCase(joy[ii].map->guid, SDL_GameControllerGetSerial(controllers[jj])) == 0) {
 						joy[ii].controller = controllers[jj];
 						break;
 					}
