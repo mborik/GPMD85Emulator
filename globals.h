@@ -55,6 +55,7 @@
 #ifdef HAVE_SYS_SYSLIMITS_H
 #  include <sys/syslimits.h>
 #endif
+#include <cctype>
 #include <string>
 #include <vector>
 //-----------------------------------------------------------------------------

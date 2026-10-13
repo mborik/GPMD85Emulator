@@ -21,7 +21,7 @@
 */
 //-----------------------------------------------------------------------------
 #include "CommonUtils.h"
-#include <ctype.h>
+#include <cctype>
 //-----------------------------------------------------------------------------
 static char buffer[MAX_PATH] = "";
 
@@ -133,8 +133,8 @@ bool RemoveFile(const char *path)
 int CompareNoCase(const char *a, const char *b, size_t maxLen)
 {
 	for (size_t i = 0; maxLen == 0 || i < maxLen; i++) {
-		int ca = tolower((unsigned char) a[i]);
-		int cb = tolower((unsigned char) b[i]);
+		int ca = std::tolower((unsigned char) a[i]);
+		int cb = std::tolower((unsigned char) b[i]);
 		if (ca != cb)
 			return ca - cb;
 		if (ca == 0)
