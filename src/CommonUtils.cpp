@@ -21,6 +21,7 @@
 */
 //-----------------------------------------------------------------------------
 #include "CommonUtils.h"
+#include <ctype.h>
 //-----------------------------------------------------------------------------
 static char buffer[MAX_PATH] = "";
 
@@ -84,6 +85,63 @@ char *ComposeFilePath(const char *filePath)
 	}
 
 	return buf;
+}
+//-----------------------------------------------------------------------------
+/*
+ * Returns current working directory as a newly allocated string (caller owns
+ * it and must release it by `delete[]`), or NULL on failure.
+ */
+char *GetCurrentDir()
+{
+	std::error_code ec;
+	std::string cwd = std::filesystem::current_path(ec).string();
+	if (ec)
+		return NULL;
+
+	char *result = new char[cwd.length() + 1];
+	strcpy(result, cwd.c_str());
+	return result;
+}
+//-----------------------------------------------------------------------------
+bool CreateDirIfNotExist(const char *path)
+{
+	if (path == NULL || *path == '\0')
+		return false;
+
+	std::error_code ec;
+	if (std::filesystem::is_directory(path, ec))
+		return true;
+
+	ec.clear();
+	std::filesystem::create_directories(path, ec);
+	return !ec;
+}
+//-----------------------------------------------------------------------------
+bool RemoveFile(const char *path)
+{
+	if (path == NULL)
+		return false;
+
+	std::error_code ec;
+	return std::filesystem::remove(path, ec);
+}
+//-----------------------------------------------------------------------------
+/*
+ * Case-insensitive (ASCII) comparison of two strings, optionally limited to
+ * `maxLen` characters (0 = unlimited). Replacement of POSIX strcasecmp().
+ */
+int CompareNoCase(const char *a, const char *b, size_t maxLen)
+{
+	for (size_t i = 0; maxLen == 0 || i < maxLen; i++) {
+		int ca = tolower((unsigned char) a[i]);
+		int cb = tolower((unsigned char) b[i]);
+		if (ca != cb)
+			return ca - cb;
+		if (ca == 0)
+			break;
+	}
+
+	return 0;
 }
 //-----------------------------------------------------------------------------
 char *LocateResource(const char *fileName, bool locateAtHome, bool copyToHome)

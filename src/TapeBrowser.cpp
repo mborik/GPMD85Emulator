@@ -92,7 +92,7 @@ void TTapeBrowser::FreeAllBlocks()
 			if (prevFileName != blk->orgFile) {
 				if (prevFileName != NULL) {
 					if (isTemp(prevFileName))
-						unlink(prevFileName);
+						RemoveFile(prevFileName);
 					delete [] prevFileName;
 				}
 
@@ -107,7 +107,7 @@ void TTapeBrowser::FreeAllBlocks()
 
 	if (prevFileName != NULL) {
 		if (isTemp(prevFileName))
-			unlink(prevFileName);
+			RemoveFile(prevFileName);
 		delete [] prevFileName;
 	}
 
@@ -855,7 +855,7 @@ int TTapeBrowser::SaveTape(const char *newFileName, TAPE_BLOCK *blks, bool asPTP
 		}
 
 		fclose(hDest);
-		unlink(newFileName);
+		RemoveFile(newFileName);
 		rename(tmpFile, newFileName);
 		delete [] tmpFile;
 

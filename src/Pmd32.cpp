@@ -73,8 +73,7 @@ Pmd32::~Pmd32()
 		delete [] sdFile;
 	sdFile = NULL;
 
-	if (hFind != NULL)
-		closedir(hFind);
+	delete hFind;
 	hFind = NULL;
 }
 //---------------------------------------------------------------------------
@@ -739,7 +738,7 @@ void Pmd32::Disk32ServiceSendResultCommand()
 bool Pmd32::FindFile()
 {
 	if (findType == 0 && hFind != NULL) {
-		closedir(hFind);
+		delete hFind;
 		hFind = NULL;
 	}
 
@@ -756,37 +755,48 @@ bool Pmd32::FindFile()
 			strcpy(hFindDir, sdRoot);
 		}
 
-		if ((hFind = opendir(hFindDir)) == NULL)
+		std::error_code ec;
+		hFind = new std::filesystem::directory_iterator(hFindDir, ec);
+		if (ec) {
+			delete hFind;
+			hFind = NULL;
 			return false;
+		}
 	}
 
-	bool dir;
-	struct dirent *dirent;
+	std::error_code ec;
+	const std::filesystem::directory_iterator end;
 
-	while ((dirent = readdir(hFind)) != NULL) {
-		if (!(dirent->d_type == DT_REG
-		   || dirent->d_type == DT_LNK
-		   || dirent->d_type == DT_DIR))
+	while (*hFind != end) {
+		const std::filesystem::directory_entry entry = **hFind;
+		hFind->increment(ec);
+		if (ec)
+			*hFind = end;
+
+		std::error_code sec;
+		bool dir = entry.is_directory(sec);
+		if (!dir && !entry.is_regular_file(sec))
 			continue;
 
-		dir = (dirent->d_type == DT_DIR);
+		const std::string name = entry.path().filename().string();
 
 		// exclude "dot dirs" and hidden files...
-		if (dirent->d_name[0] == '.')
+		if (name.empty() || name[0] == '.')
 			continue;
 
 		if (sdFile)
 			delete [] sdFile;
-		sdFile = new char[(strlen(dirent->d_name) + (dir ? 3 : 1))];
+		sdFile = new char[name.length() + (dir ? 3 : 1)];
 
 		if (dir)
-			sprintf(sdFile, "[%s]", dirent->d_name);
+			sprintf(sdFile, "[%s]", name.c_str());
 		else
-			strcpy(sdFile, dirent->d_name);
+			strcpy(sdFile, name.c_str());
 		return true;
 	}
 
-	closedir(hFind);
+	delete hFind;
+	hFind = NULL;
 	return false;
 }
 //---------------------------------------------------------------------------
@@ -851,26 +861,22 @@ int Pmd32::InsertDisk(int drive, char *file, bool WP)
 			xName = file;
 		}
 
-		struct dirent *dirent;
-		DIR *dir = opendir(xPath);
+		std::error_code ec;
+		std::filesystem::directory_iterator it(xPath, ec), end;
 
-		if (dir != NULL) {
-			while ((dirent = readdir(dir))) {
-				if (!(dirent->d_type == DT_REG
-				   || dirent->d_type == DT_LNK))
-					continue;
+		while (!ec && it != end) {
+			const std::filesystem::directory_entry entry = *it;
+			std::string name = entry.path().filename().string();
 
-				// exclude "dot dirs" and hidden files...
-				if (dirent->d_name[0] == '.')
-					continue;
-
-				if (strcasecmp(dirent->d_name, xName) == 0) {
-					strcpy(xName, dirent->d_name);
-					break;
-				}
+			std::error_code sec;
+			// exclude "dot dirs" and hidden files...
+			if (!name.empty() && name[0] != '.' && entry.is_regular_file(sec)
+				&& CompareNoCase(name.c_str(), xName) == 0) {
+				strcpy(xName, name.c_str());
+				break;
 			}
 
-			closedir(dir);
+			it.increment(ec);
 		}
 
 		delete [] xPath;

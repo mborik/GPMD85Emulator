@@ -52,6 +52,10 @@ long int FileSize(const char *fileName);
 int ReadFromFile(const char *fileName, int offset, int size, BYTE *dest);
 int WriteToFile(const char *fileName, int offset, int size, BYTE *src, bool createNew);
 bool CreateMedium(const char *fileName, DWORD size, BYTE fill);
+char *GetCurrentDir();
+bool CreateDirIfNotExist(const char *path);
+bool RemoveFile(const char *path);
+int CompareNoCase(const char *a, const char *b, size_t maxLen = 0);
 int PackBlock(BYTE *dest, BYTE *src, int len);
 int UnpackBlock(BYTE *dest, int destlen, BYTE *src, int srclen);
 
