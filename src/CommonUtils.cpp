@@ -25,7 +25,14 @@
 #include <random>
 //-----------------------------------------------------------------------------
 static char buffer[MAX_PATH] = "";
-
+struct TGraphicsDeviceContext gdc;
+//-----------------------------------------------------------------------------
+char *PathAppConfig = NULL;
+char *PathGuiConfig = NULL;
+char *PathApplication = NULL;
+char *PathResources = NULL;
+char *PathUserHome = NULL;
+//-----------------------------------------------------------------------------
 /*
  * Checks whether given path (file or directory) exists.
  *
@@ -37,13 +44,6 @@ static inline bool PathExists(const char *path)
 	std::error_code ec;
 	return std::filesystem::exists(path, ec);
 }
-struct TGraphicsDeviceContext gdc;
-//-----------------------------------------------------------------------------
-char *PathAppConfig = NULL;
-char *PathGuiConfig = NULL;
-char *PathApplication = NULL;
-char *PathResources = NULL;
-char *PathUserHome = NULL;
 //-----------------------------------------------------------------------------
 /*
  * Strips the leading `path` (default is the application path) from `filePath`
