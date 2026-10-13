@@ -46,6 +46,27 @@ static inline bool PathExists(const char *path)
 }
 //-----------------------------------------------------------------------------
 /*
+ * Joins up to three path components by the platform specific separator
+ * and stores the result to the internal static buffer.
+ *
+ * @param a first component
+ * @param b second component
+ * @param c third component, optional
+ * @return pointer to the internal static buffer
+ */
+static char *JoinToBuffer(const char *a, const char *b, const char *c = NULL)
+{
+	std::filesystem::path path = std::filesystem::path(a) / b;
+	if (c != NULL)
+		path /= c;
+
+	const std::string result = path.string();
+	strncpy(buffer, result.c_str(), MAX_PATH - 1);
+	buffer[MAX_PATH - 1] = '\0';
+	return buffer;
+}
+//-----------------------------------------------------------------------------
+/*
  * Strips the leading `path` (default is the application path) from `filePath`
  * to get a relative path. No allocation is made, result points into `filePath`.
  *
@@ -53,7 +74,7 @@ static inline bool PathExists(const char *path)
  * @param path prefix to be stripped, NULL means PathApplication
  * @return relative path, or unchanged `filePath` if it doesn't contain the prefix
  */
-const char *AdaptFilePath(const char *filePath, char *path)
+const char *AdaptFilePath(const char *filePath, const char *path)
 {
 	if (filePath == NULL)
 		return filePath;
@@ -69,7 +90,7 @@ const char *AdaptFilePath(const char *filePath, char *path)
 }
 //-----------------------------------------------------------------------------
 /*
- * Extracts the file name from a path (everything after the last '/').
+ * Extracts the file name from a path (the last path component).
  * No allocation is made, result points into `filePath`.
  *
  * @param filePath file path
@@ -80,11 +101,8 @@ const char *ExtractFileName(const char *filePath)
 	if (filePath == NULL)
 		return filePath;
 
-	const char *tail = strrchr(filePath, '/');
-	if (tail == NULL)
-		return filePath;
-
-	return ++tail;
+	const size_t nameLen = std::filesystem::path(filePath).filename().native().length();
+	return filePath + (strlen(filePath) - nameLen);
 }
 //-----------------------------------------------------------------------------
 /*
@@ -99,20 +117,17 @@ char *ComposeFilePath(const char *filePath)
 	if (filePath == NULL)
 		return NULL;
 
-	char *buf = NULL;
-
-	if (filePath[0] != '/') {
-		if (filePath[0] == '.' && filePath[1] == '/')
+	std::filesystem::path path(filePath);
+	if (!path.is_absolute()) {
+		if (filePath[0] == '.' && (filePath[1] == '/' || filePath[1] == '\\'))
 			filePath += 2;
 
-		buf = new char[strlen(PathApplication) + strlen(filePath) + 2];
-		sprintf(buf, "%s%c%s", PathApplication, DIR_DELIMITER, filePath);
-	}
-	else {
-		buf = new char[strlen(filePath) + 1];
-		strcpy(buf, filePath);
+		path = std::filesystem::path(PathApplication) / filePath;
 	}
 
+	const std::string result = path.string();
+	char *buf = new char[result.length() + 1];
+	strcpy(buf, result.c_str());
 	return buf;
 }
 //-----------------------------------------------------------------------------
@@ -247,36 +262,24 @@ char *LocateResource(const char *fileName, bool locateAtHome, bool copyToHome)
 		return NULL;
 
 	if (locateAtHome)
-		sprintf(buffer, "%s%c%s", PathAppConfig, DIR_DELIMITER, fileName);
+		JoinToBuffer(PathAppConfig, fileName);
 	if (!locateAtHome || !PathExists(buffer)) {
-		sprintf(buffer, "%s%c%s", PathResources, DIR_DELIMITER, fileName);
+		JoinToBuffer(PathResources, fileName);
 		if (!PathExists(buffer)) {
-			sprintf(buffer, "%s%c%s%c%s", PathApplication, DIR_DELIMITER, "res", DIR_DELIMITER, fileName);
+			JoinToBuffer(PathApplication, "res", fileName);
 			if (!PathExists(buffer))
 				return NULL;
 		}
 
 		if (copyToHome) {
-			FILE *in = fopen(buffer, "rb");
-			if (in == NULL)
-				return NULL;
+			const std::string source = buffer;
+			JoinToBuffer(PathAppConfig, fileName);
 
-			char *copybuf = new char[MAX_PATH];
-			strcpy(copybuf, buffer);
-			sprintf(buffer, "%s%c%s", PathAppConfig, DIR_DELIMITER, fileName);
-
-			FILE *out = fopen(buffer, "wb");
-			if (out == NULL) {
-				fclose(in);
-				return copybuf;
-			}
-
-			int i;
-			while ((i = fread(copybuf, sizeof(char), MAX_PATH, in)))
-				fwrite(copybuf, sizeof(char), i, out);
-
-			fclose(out);
-			fclose(in);
+			std::error_code ec;
+			std::filesystem::copy_file(source, buffer,
+				std::filesystem::copy_options::overwrite_existing, ec);
+			if (ec)
+				strncpy(buffer, source.c_str(), MAX_PATH - 1);
 		}
 	}
 
@@ -296,11 +299,11 @@ char *LocateROM(const char *fileName)
 	if (fileName == NULL)
 		return (char *) fileName;
 
-	sprintf(buffer, "%s%c%s", PathResources, DIR_DELIMITER, fileName);
+	JoinToBuffer(PathResources, fileName);
 	if (!PathExists(buffer)) {
-		sprintf(buffer, "%s%c%s%c%s", PathApplication, DIR_DELIMITER, "rom", DIR_DELIMITER, fileName);
+		JoinToBuffer(PathApplication, "rom", fileName);
 		if (!PathExists(buffer)) {
-			sprintf(buffer, "%s%c%s", PathAppConfig, DIR_DELIMITER, fileName);
+			JoinToBuffer(PathAppConfig, fileName);
 			if (!PathExists(buffer))
 				return NULL;
 		}

@@ -37,11 +37,10 @@
 #include <string>
 #include <vector>
 //-----------------------------------------------------------------------------
-#if defined(WIN32) || defined(_WIN32) || defined(WIN64) || defined(__BORLANDC__)
-#  define DIR_DELIMITER '\\'
-#  define WIN32 1
-#else
-#  define DIR_DELIMITER '/'
+#if defined(_WIN32) || defined(WIN64) || defined(__BORLANDC__)
+#  ifndef WIN32
+#    define WIN32 1
+#  endif
 #endif
 //-----------------------------------------------------------------------------
 #if defined(PATH_MAX)

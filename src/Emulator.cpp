@@ -2146,9 +2146,8 @@ void TEmulator::ChangeROMFile(const char *fileName)
 	if (ptr == fileName) {
 		ptr = (char *) AdaptFilePath(fileName, PathResources);
 		if (ptr == fileName) {
-			char res[MAX_PATH];
-			sprintf(res, "%s%c%s", PathApplication, DIR_DELIMITER, "rom");
-			ptr = (char *) AdaptFilePath(fileName, res);
+			std::string res = (std::filesystem::path(PathApplication) / "rom").string();
+			ptr = (char *) AdaptFilePath(fileName, res.c_str());
 			if (ptr == fileName)
 				ptr = (char *) AdaptFilePath(fileName);
 		}
@@ -2168,9 +2167,8 @@ void TEmulator::ChangeMegaRomFile(const char *fileName)
 	if (ptr == fileName) {
 		ptr = (char *) AdaptFilePath(fileName, PathResources);
 		if (ptr == fileName) {
-			char res[MAX_PATH];
-			sprintf(res, "%s%c%s", PathApplication, DIR_DELIMITER, "rom");
-			ptr = (char *) AdaptFilePath(fileName, res);
+			std::string res = (std::filesystem::path(PathApplication) / "rom").string();
+			ptr = (char *) AdaptFilePath(fileName, res.c_str());
 			if (ptr == fileName)
 				ptr = (char *) AdaptFilePath(fileName);
 		}

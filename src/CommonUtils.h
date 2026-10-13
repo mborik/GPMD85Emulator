@@ -43,7 +43,7 @@ extern char *PathApplication;
 extern char *PathResources;
 extern char *PathUserHome;
 
-const char *AdaptFilePath(const char *filePath, char *path = NULL);
+const char *AdaptFilePath(const char *filePath, const char *path = NULL);
 const char *ExtractFileName(const char *filePath);
 char *ComposeFilePath(const char *filePath);
 char *LocateResource(const char *fileName, bool locateAtHome = true, bool copyToHome = false);
