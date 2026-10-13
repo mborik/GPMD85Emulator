@@ -2,6 +2,7 @@
 #include "CommonUtils.h"
 #include "TapeBrowser.h"
 #include "Emulator.h"
+#include <unistd.h>
 //---------------------------------------------------------------------------
 #define isTemp(x) (strcmp(x + (strlen(x) - 4), ".tmp") == 0)
 //---------------------------------------------------------------------------

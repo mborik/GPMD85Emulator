@@ -25,17 +25,14 @@
 //-----------------------------------------------------------------------------
 #include "config.h"
 //-----------------------------------------------------------------------------
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <stdlib.h>
-#include <stddef.h>
-#include <string.h>
-#include <strings.h>
-#include <inttypes.h>
-#include <stdint.h>
-#include <limits.h>
-#include <unistd.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstddef>
+#include <cstdarg>
+#include <cstring>
+#include <cinttypes>
+#include <cstdint>
+#include <climits>
 #if HAVE_DIRENT_H
 #  include <dirent.h>
 #  define NAMLEN(dirent) strlen((dirent)->d_name)
