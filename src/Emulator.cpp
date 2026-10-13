@@ -2142,14 +2142,14 @@ void TEmulator::InsertPMD32Disk(const char *fileName)
 //---------------------------------------------------------------------------
 void TEmulator::ChangeROMFile(const char *fileName)
 {
-	char *ptr = (char *) AdaptFilePath(fileName, PathAppConfig);
+	const char *ptr = AdaptFilePath(fileName, PathAppConfig);
 	if (ptr == fileName) {
-		ptr = (char *) AdaptFilePath(fileName, PathResources);
+		ptr = AdaptFilePath(fileName, PathResources);
 		if (ptr == fileName) {
 			std::string res = (std::filesystem::path(PathApplication) / "rom").string();
-			ptr = (char *) AdaptFilePath(fileName, res.c_str());
+			ptr = AdaptFilePath(fileName, res.c_str());
 			if (ptr == fileName)
-				ptr = (char *) AdaptFilePath(fileName);
+				ptr = AdaptFilePath(fileName);
 		}
 	}
 
@@ -2163,14 +2163,14 @@ void TEmulator::ChangeROMFile(const char *fileName)
 //---------------------------------------------------------------------------
 void TEmulator::ChangeMegaRomFile(const char *fileName)
 {
-	char *ptr = (char *) AdaptFilePath(fileName, PathAppConfig);
+	const char *ptr = AdaptFilePath(fileName, PathAppConfig);
 	if (ptr == fileName) {
-		ptr = (char *) AdaptFilePath(fileName, PathResources);
+		ptr = AdaptFilePath(fileName, PathResources);
 		if (ptr == fileName) {
 			std::string res = (std::filesystem::path(PathApplication) / "rom").string();
-			ptr = (char *) AdaptFilePath(fileName, res.c_str());
+			ptr = AdaptFilePath(fileName, res.c_str());
 			if (ptr == fileName)
-				ptr = (char *) AdaptFilePath(fileName);
+				ptr = AdaptFilePath(fileName);
 		}
 	}
 

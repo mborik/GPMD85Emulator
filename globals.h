@@ -37,21 +37,9 @@
 #include <string>
 #include <vector>
 //-----------------------------------------------------------------------------
-#if defined(_WIN32) || defined(WIN64) || defined(__BORLANDC__)
-#  ifndef WIN32
-#    define WIN32 1
-#  endif
-#endif
-//-----------------------------------------------------------------------------
 #if defined(PATH_MAX)
 #  define MAX_PATH PATH_MAX
-#elif defined(FILENAME_MAX)
-#  define MAX_PATH FILENAME_MAX
-#elif defined(_POSIX_PATH_MAX)
-#  define MAX_PATH _POSIX_PATH_MAX
-#elif defined(_MAX_PATH)
-#  define MAX_PATH _MAX_PATH
-#else
+#elif !defined(MAX_PATH)
 #  define MAX_PATH 1024
 #endif
 //-----------------------------------------------------------------------------
