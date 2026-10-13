@@ -56,14 +56,6 @@
 #  define MAX_PATH 1024
 #endif
 //-----------------------------------------------------------------------------
-#ifdef __GNUC__
-#define UNUSED_VARIABLE __attribute__ ((unused))
-#elif __LCLINT__
-#define UNUSED_VARIABLE /\*@unused@*/
-#else
-#define UNUSED_VARIABLE
-#endif
-//-----------------------------------------------------------------------------
 #include "sigslot.hpp"
 //-----------------------------------------------------------------------------
 #include "SDL.h"
@@ -83,9 +75,6 @@
 #define WORD  uint16_t
 #define DWORD uint32_t
 #define QWORD uint64_t
-//-----------------------------------------------------------------------------
-#define strccnt(ptr, c, i) char *_strccnt_ptr = ptr; \
-	while (*_strccnt_ptr != '\0') if (*_strccnt_ptr++ == c) i++;
 //-----------------------------------------------------------------------------
 #define CPU_FREQ            2048000
 #define CPU_FRAMES_PER_SEC  50

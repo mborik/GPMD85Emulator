@@ -23,6 +23,9 @@
 #include "CommonUtils.h"
 #include "Settings.h"
 //-----------------------------------------------------------------------------
+#define strccnt(ptr, c, i) char *_strccnt_ptr = ptr; \
+	while (*_strccnt_ptr != '\0') if (*_strccnt_ptr++ == c) i++;
+//-----------------------------------------------------------------------------
 TSettings *Settings;
 //-----------------------------------------------------------------------------
 TSettings::TSettings(bool userCfg)

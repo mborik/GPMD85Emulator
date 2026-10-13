@@ -185,13 +185,13 @@ int ChipMemory2AEx::FindPointer(int physAddr, int len, int oper, BYTE **ptr)
 	return -1;
 }
 //---------------------------------------------------------------------------
-void ChipMemory2AEx::WriteToDevice(BYTE port, BYTE value, int UNUSED_VARIABLE ticks)
+void ChipMemory2AEx::WriteToDevice(BYTE port, BYTE value, [[maybe_unused]] int ticks)
 {
 	if ((port & MM256_REG_MASK) == MM256_REG_ADR)
 		SetPage(value);
 }
 //---------------------------------------------------------------------------
-BYTE ChipMemory2AEx::ReadFromDevice(BYTE port, int UNUSED_VARIABLE ticks)
+BYTE ChipMemory2AEx::ReadFromDevice(BYTE port, [[maybe_unused]] int ticks)
 {
 	return ((port & MM256_REG_MASK) == MM256_REG_ADR) ? GetPage() : 0xFF;
 }
