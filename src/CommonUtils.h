@@ -54,6 +54,7 @@ int WriteToFile(const char *fileName, int offset, int size, BYTE *src, bool crea
 bool CreateMedium(const char *fileName, DWORD size, BYTE fill);
 char *GetCurrentDir();
 bool CreateDirIfNotExist(const char *path);
+char *CreateTempFileName(const char *basePath = NULL);
 bool RemoveFile(const char *path);
 int CompareNoCase(const char *a, const char *b, size_t maxLen = 0);
 int PackBlock(BYTE *dest, BYTE *src, int len);

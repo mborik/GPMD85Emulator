@@ -22,6 +22,7 @@
 //-----------------------------------------------------------------------------
 #include "CommonUtils.h"
 #include <cctype>
+#include <random>
 //-----------------------------------------------------------------------------
 static char buffer[MAX_PATH] = "";
 
@@ -115,6 +116,43 @@ bool CreateDirIfNotExist(const char *path)
 	ec.clear();
 	std::filesystem::create_directories(path, ec);
 	return !ec;
+}
+//-----------------------------------------------------------------------------
+/*
+ * Composes a unique, not yet existing temporary file name ending with ".tmp".
+ * If `basePath` is NULL, system temporary directory with application name
+ * as prefix is used, otherwise name is `basePath` with unique suffix appended.
+ * Returned string is newly allocated (release it by `delete[]`), or NULL.
+ */
+char *CreateTempFileName(const char *basePath)
+{
+	std::string base;
+	if (basePath != NULL)
+		base = basePath;
+	else {
+		std::error_code ec;
+		std::filesystem::path dir = std::filesystem::temp_directory_path(ec);
+		if (ec)
+			return NULL;
+
+		base = (dir / PACKAGE_TARNAME).string();
+	}
+
+	std::random_device rd;
+	for (int attempt = 0; attempt < 100; attempt++) {
+		char suffix[32];
+		snprintf(suffix, sizeof(suffix), ".%08x%08x.tmp", (unsigned) rd(), (unsigned) SDL_GetTicks());
+
+		std::string name = base + suffix;
+		std::error_code ec;
+		if (!std::filesystem::exists(name, ec)) {
+			char *result = new char[name.length() + 1];
+			strcpy(result, name.c_str());
+			return result;
+		}
+	}
+
+	return NULL;
 }
 //-----------------------------------------------------------------------------
 bool RemoveFile(const char *path)

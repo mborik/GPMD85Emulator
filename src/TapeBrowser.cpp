@@ -2,7 +2,6 @@
 #include "CommonUtils.h"
 #include "TapeBrowser.h"
 #include "Emulator.h"
-#include <unistd.h>
 //---------------------------------------------------------------------------
 #define isTemp(x) (strcmp(x + (strlen(x) - 4), ".tmp") == 0)
 //---------------------------------------------------------------------------
@@ -746,9 +745,11 @@ void TTapeBrowser::PrepareSaveNewBlocks()
 	if (file)
 		delete [] file;
 
-	file = new char[64];
-	sprintf(file, "%s/%s.%08x%04x.tmp",
-		P_tmpdir, PACKAGE_TARNAME, SDL_GetTicks(), getpid());
+	file = CreateTempFileName();
+	if (file == NULL) {
+		warning("TapeBrowser", "PrepareSaveNewBlocks: Can't create temp file name");
+		return;
+	}
 
 	FILE *hDest = fopen(file, "wb");
 	if (hDest == NULL) {
@@ -808,9 +809,9 @@ int TTapeBrowser::SaveTape(const char *newFileName, TAPE_BLOCK *blks, bool asPTP
 		if (newFileName == NULL)
 			break;
 
-		tmpFile = new char[strlen(newFileName) + 16];
-		sprintf(tmpFile, "%s.%08x%04x.tmp",
-			newFileName, SDL_GetTicks(), getpid());
+		tmpFile = CreateTempFileName(newFileName);
+		if (tmpFile == NULL)
+			break;
 
 		FILE *hDest = fopen(tmpFile, "wb");
 		if (hDest == NULL) {
