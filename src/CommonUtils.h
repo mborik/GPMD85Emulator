@@ -24,6 +24,7 @@
 #define COMMONUTILS_H_
 //-----------------------------------------------------------------------------
 #include "globals.h"
+#include <filesystem>
 //-----------------------------------------------------------------------------
 extern struct TGraphicsDeviceContext {
 	SDL_Window *window;
@@ -35,8 +36,6 @@ extern struct TGraphicsDeviceContext {
 	int w;
 	int h;
 } gdc;
-
-extern struct stat filestat;
 
 extern char *PathAppConfig;
 extern char *PathGuiConfig;
@@ -57,8 +56,8 @@ int PackBlock(BYTE *dest, BYTE *src, int len);
 int UnpackBlock(BYTE *dest, int destlen, BYTE *src, int srclen);
 
 inline bool FileExists(const char *path)
-	{ return (stat(path, &filestat) == 0 && S_ISREG(filestat.st_mode)); }
+	{ std::error_code ec; return std::filesystem::is_regular_file(path, ec); }
 inline bool DirExists(const char *path)
-	{ return (stat(path, &filestat) == 0 && S_ISDIR(filestat.st_mode)); }
+	{ std::error_code ec; return std::filesystem::is_directory(path, ec); }
 //-----------------------------------------------------------------------------
 #endif

@@ -49,7 +49,11 @@ int main(int argc, char** argv)
 	IntroMessage();
 
 	PathUserHome = SDL_getenv("HOME");
-	PathApplication = getcwd(NULL, MAX_PATH);
+	{
+		std::string cwd = std::filesystem::current_path().string();
+		PathApplication = new char[cwd.length() + 1];
+		strcpy(PathApplication, cwd.c_str());
+	}
 	PathResources = new char[strlen(DIR_RESOURCES) + 1];
 	PathAppConfig = new char[strlen(PathUserHome) + 16];
 	PathGuiConfig = new char[strlen(PathUserHome) + 32];
@@ -63,8 +67,10 @@ int main(int argc, char** argv)
 	debug(NULL, "Application config path: %s", PathAppConfig);
 	debug(NULL, "ImGui config path: %s", PathGuiConfig);
 
-	if (stat(PathAppConfig, &filestat) != 0)
-		mkdir(PathAppConfig, 0755);
+	{
+		std::error_code ec;
+		std::filesystem::create_directories(PathAppConfig, ec);
+	}
 
 	// initialization of SDL
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER | SDL_INIT_TIMER | SDL_INIT_EVENTS) < 0)

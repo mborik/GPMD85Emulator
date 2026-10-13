@@ -23,8 +23,13 @@
 #include "CommonUtils.h"
 //-----------------------------------------------------------------------------
 static char buffer[MAX_PATH] = "";
+
+static inline bool PathExists(const char *path)
+{
+	std::error_code ec;
+	return std::filesystem::exists(path, ec);
+}
 struct TGraphicsDeviceContext gdc;
-struct stat filestat;
 //-----------------------------------------------------------------------------
 char *PathAppConfig = NULL;
 char *PathGuiConfig = NULL;
@@ -88,11 +93,11 @@ char *LocateResource(const char *fileName, bool locateAtHome, bool copyToHome)
 
 	if (locateAtHome)
 		sprintf(buffer, "%s%c%s", PathAppConfig, DIR_DELIMITER, fileName);
-	if (!locateAtHome || stat(buffer, &filestat) != 0) {
+	if (!locateAtHome || !PathExists(buffer)) {
 		sprintf(buffer, "%s%c%s", PathResources, DIR_DELIMITER, fileName);
-		if (stat(buffer, &filestat) != 0) {
+		if (!PathExists(buffer)) {
 			sprintf(buffer, "%s%c%s%c%s", PathApplication, DIR_DELIMITER, "res", DIR_DELIMITER, fileName);
-			if (stat(buffer, &filestat) != 0)
+			if (!PathExists(buffer))
 				return NULL;
 		}
 
@@ -129,11 +134,11 @@ char *LocateROM(const char *fileName)
 		return (char *) fileName;
 
 	sprintf(buffer, "%s%c%s", PathResources, DIR_DELIMITER, fileName);
-	if (stat(buffer, &filestat) != 0) {
+	if (!PathExists(buffer)) {
 		sprintf(buffer, "%s%c%s%c%s", PathApplication, DIR_DELIMITER, "rom", DIR_DELIMITER, fileName);
-		if (stat(buffer, &filestat) != 0) {
+		if (!PathExists(buffer)) {
 			sprintf(buffer, "%s%c%s", PathAppConfig, DIR_DELIMITER, fileName);
-			if (stat(buffer, &filestat) != 0)
+			if (!PathExists(buffer))
 				return NULL;
 		}
 	}
@@ -210,7 +215,7 @@ bool CreateMedium(const char *fileName, DWORD size, BYTE fill) {
 		} while (false);
 
 		if (buff)
-			delete buff;
+			delete[] buff;
 		buff = NULL;
 
 		fclose(f);
