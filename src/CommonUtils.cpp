@@ -26,6 +26,12 @@
 //-----------------------------------------------------------------------------
 static char buffer[MAX_PATH] = "";
 
+/*
+ * Checks whether given path (file or directory) exists.
+ *
+ * @param path path to be tested
+ * @return true if path exists, false otherwise (or on any error)
+ */
 static inline bool PathExists(const char *path)
 {
 	std::error_code ec;
@@ -39,6 +45,14 @@ char *PathApplication = NULL;
 char *PathResources = NULL;
 char *PathUserHome = NULL;
 //-----------------------------------------------------------------------------
+/*
+ * Strips the leading `path` (default is the application path) from `filePath`
+ * to get a relative path. No allocation is made, result points into `filePath`.
+ *
+ * @param filePath full file path
+ * @param path prefix to be stripped, NULL means PathApplication
+ * @return relative path, or unchanged `filePath` if it doesn't contain the prefix
+ */
 const char *AdaptFilePath(const char *filePath, char *path)
 {
 	if (filePath == NULL)
@@ -54,6 +68,13 @@ const char *AdaptFilePath(const char *filePath, char *path)
 	return tail + (strlen(path) + 1);
 }
 //-----------------------------------------------------------------------------
+/*
+ * Extracts the file name from a path (everything after the last '/').
+ * No allocation is made, result points into `filePath`.
+ *
+ * @param filePath file path
+ * @return file name part of the path, or NULL if `filePath` is NULL
+ */
 const char *ExtractFileName(const char *filePath)
 {
 	if (filePath == NULL)
@@ -66,6 +87,13 @@ const char *ExtractFileName(const char *filePath)
 	return ++tail;
 }
 //-----------------------------------------------------------------------------
+/*
+ * Composes an absolute file path. Relative paths are prefixed with the
+ * application path, absolute paths are just duplicated.
+ *
+ * @param filePath absolute or relative file path
+ * @return newly allocated string (release it by `delete[]`), or NULL
+ */
 char *ComposeFilePath(const char *filePath)
 {
 	if (filePath == NULL)
@@ -89,8 +117,9 @@ char *ComposeFilePath(const char *filePath)
 }
 //-----------------------------------------------------------------------------
 /*
- * Returns current working directory as a newly allocated string (caller owns
- * it and must release it by `delete[]`), or NULL on failure.
+ * Returns current working directory.
+ *
+ * @return newly allocated string (release it by `delete[]`), or NULL on failure
  */
 char *GetCurrentDir()
 {
@@ -104,6 +133,12 @@ char *GetCurrentDir()
 	return result;
 }
 //-----------------------------------------------------------------------------
+/*
+ * Creates the directory (including missing parents) if it doesn't exist yet.
+ *
+ * @param path directory path
+ * @return true if the directory exists or was created, false otherwise
+ */
 bool CreateDirIfNotExist(const char *path)
 {
 	if (path == NULL || *path == '\0')
@@ -122,7 +157,9 @@ bool CreateDirIfNotExist(const char *path)
  * Composes a unique, not yet existing temporary file name ending with ".tmp".
  * If `basePath` is NULL, system temporary directory with application name
  * as prefix is used, otherwise name is `basePath` with unique suffix appended.
- * Returned string is newly allocated (release it by `delete[]`), or NULL.
+ *
+ * @param basePath optional prefix of the temporary file name
+ * @return newly allocated string (release it by `delete[]`), or NULL on failure
  */
 char *CreateTempFileName(const char *basePath)
 {
@@ -155,6 +192,12 @@ char *CreateTempFileName(const char *basePath)
 	return NULL;
 }
 //-----------------------------------------------------------------------------
+/*
+ * Removes a file.
+ *
+ * @param path file path
+ * @return true if the file was removed, false otherwise
+ */
 bool RemoveFile(const char *path)
 {
 	if (path == NULL)
@@ -166,7 +209,12 @@ bool RemoveFile(const char *path)
 //-----------------------------------------------------------------------------
 /*
  * Case-insensitive (ASCII) comparison of two strings, optionally limited to
- * `maxLen` characters (0 = unlimited). Replacement of POSIX strcasecmp().
+ * `maxLen` characters. Replacement of POSIX strcasecmp() and strncasecmp().
+ *
+ * @param a first string
+ * @param b second string
+ * @param maxLen maximum number of compared characters, 0 means unlimited
+ * @return 0 if strings are equal, negative or positive value otherwise
  */
 int CompareNoCase(const char *a, const char *b, size_t maxLen)
 {
@@ -182,6 +230,17 @@ int CompareNoCase(const char *a, const char *b, size_t maxLen)
 	return 0;
 }
 //-----------------------------------------------------------------------------
+/*
+ * Locates a resource file in the user config directory (optional), in the
+ * resources directory or in the `res` subdirectory of the application path.
+ * Optionally copies the found resource to the user config directory.
+ * Returned pointer refers to an internal static buffer.
+ *
+ * @param fileName resource file name
+ * @param locateAtHome look into the user config directory first
+ * @param copyToHome copy a found resource to the user config directory
+ * @return full path of the resource, or NULL if not found
+ */
 char *LocateResource(const char *fileName, bool locateAtHome, bool copyToHome)
 {
 	if (fileName == NULL)
@@ -224,6 +283,14 @@ char *LocateResource(const char *fileName, bool locateAtHome, bool copyToHome)
 	return buffer;
 }
 //-----------------------------------------------------------------------------
+/*
+ * Locates a ROM file in the resources directory, in the `rom` subdirectory
+ * of the application path or in the user config directory.
+ * Returned pointer refers to an internal static buffer.
+ *
+ * @param fileName ROM file name
+ * @return full path of the ROM file, or NULL if not found
+ */
 char *LocateROM(const char *fileName)
 {
 	if (fileName == NULL)
@@ -242,6 +309,12 @@ char *LocateROM(const char *fileName)
 	return buffer;
 }
 //-----------------------------------------------------------------------------
+/*
+ * Gets the size of a file.
+ *
+ * @param fileName file path
+ * @return size in bytes, or -1 on error
+ */
 long FileSize(const char *fileName)
 {
 	long size = -1;
@@ -256,6 +329,15 @@ long FileSize(const char *fileName)
 	return size;
 }
 //-----------------------------------------------------------------------------
+/*
+ * Reads a block of data from a file.
+ *
+ * @param fileName file path
+ * @param offset position in the file where reading starts
+ * @param size number of bytes to read
+ * @param dest destination buffer of at least `size` bytes
+ * @return number of bytes actually read, or -1 on error
+ */
 int ReadFromFile(const char *fileName, int offset, int size, BYTE *dest)
 {
 	int dwR = -1;
@@ -271,6 +353,16 @@ int ReadFromFile(const char *fileName, int offset, int size, BYTE *dest)
 	return dwR;
 }
 //-----------------------------------------------------------------------------
+/*
+ * Writes a block of data to a file.
+ *
+ * @param fileName file path
+ * @param offset position in the file where writing starts
+ * @param size number of bytes to write
+ * @param src source buffer
+ * @param createNew true to create/truncate the file, false to update existing one
+ * @return number of bytes actually written, or -1 on error
+ */
 int WriteToFile(const char *fileName, int offset, int size, BYTE *src, bool createNew)
 {
 	int dwW = -1;
@@ -286,7 +378,16 @@ int WriteToFile(const char *fileName, int offset, int size, BYTE *src, bool crea
 	return dwW;
 }
 //-----------------------------------------------------------------------------
-bool CreateMedium(const char *fileName, DWORD size, BYTE fill) {
+/*
+ * Creates a new file of given size filled with a single byte value.
+ *
+ * @param fileName file path
+ * @param size size of the file in bytes
+ * @param fill byte value used to fill the file
+ * @return true on success, false otherwise
+ */
+bool CreateMedium(const char *fileName, DWORD size, BYTE fill)
+{
 	bool result = false;
 	BYTE *buff;
 	DWORD dwW, ii;
