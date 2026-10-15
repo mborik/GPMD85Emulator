@@ -94,7 +94,14 @@ endif()
 
 find_package(PkgConfig QUIET)
 set(GPMD85EMU_SDL_TARGET "")
-if(PkgConfig_FOUND)
+if(EMSCRIPTEN)
+	# SDL2 is provided by Emscripten ports, WebGL 2 (OpenGL ES 3.0) is used for rendering
+	add_library(GPMD85emu_sdl2 INTERFACE)
+	target_compile_options(GPMD85emu_sdl2 INTERFACE -sUSE_SDL=2)
+	target_link_options(GPMD85emu_sdl2 INTERFACE -sUSE_SDL=2)
+	set(GPMD85EMU_SDL_TARGET GPMD85emu_sdl2)
+	add_compile_definitions(IMGUI_IMPL_OPENGL_ES3)
+elseif(PkgConfig_FOUND)
 	pkg_check_modules(SDL2_PKG QUIET IMPORTED_TARGET sdl2)
 	if(NOT TARGET PkgConfig::SDL2_PKG)
 		pkg_check_modules(SDL2_PKG QUIET IMPORTED_TARGET SDL2)
@@ -119,7 +126,9 @@ if(NOT GPMD85EMU_SDL_TARGET)
 endif()
 
 set(GPMD85EMU_OPENGL_LIBS "")
-if(APPLE)
+if(EMSCRIPTEN)
+	# OpenGL is provided by the Emscripten runtime
+elseif(APPLE)
 	find_library(OPENGL_FRAMEWORK OpenGL REQUIRED)
 	list(APPEND GPMD85EMU_OPENGL_LIBS ${OPENGL_FRAMEWORK})
 else()
@@ -209,7 +218,7 @@ if(NOT HAVE_STD_FILESYSTEM AND NOT HAVE_STD_EXPERIMENTAL_FILESYSTEM)
 endif()
 
 set(GPMD85EMU_DL_LIB "")
-if(NOT WIN32)
+if(NOT WIN32 AND NOT EMSCRIPTEN)
 	check_include_file("dlfcn.h" HAVE_DLFCN_H)
 	if(HAVE_DLFCN_H)
 		if(CMAKE_DL_LIBS)
@@ -230,7 +239,9 @@ endif()
 
 test_big_endian(WORDS_BIGENDIAN)
 
-if(INSTALLED_RESOURCES)
+if(EMSCRIPTEN)
+	set(DIR_RESOURCES "/storage")
+elseif(INSTALLED_RESOURCES)
 	set(DIR_RESOURCES "${CMAKE_INSTALL_FULL_DATADIR}/${PACKAGE_TARNAME}")
 else()
 	set(DIR_RESOURCES "${CMAKE_CURRENT_SOURCE_DIR}/res")
@@ -368,6 +379,43 @@ target_link_libraries(GPMD85emu PRIVATE
 	${GPMD85EMU_FILESYSTEM_LIB}
 	${GPMD85EMU_DL_LIB}
 )
+
+if(EMSCRIPTEN)
+	if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/storage/rom")
+		message(FATAL_ERROR "Missing storage submodule (res, rom and software library). Run: git submodule update --init storage")
+	endif()
+	set_target_properties(GPMD85emu PROPERTIES OUTPUT_NAME "index" SUFFIX ".html")
+	if(NOT CMAKE_RUNTIME_OUTPUT_DIRECTORY)
+		set(TARGET_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+	else()
+		set(TARGET_OUTPUT_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+	endif()
+	add_custom_command(TARGET GPMD85emu POST_BUILD
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different
+			"${CMAKE_CURRENT_SOURCE_DIR}/res/web/basefont.ttf"
+			"${TARGET_OUTPUT_DIR}/basefont.ttf"
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different
+			"${CMAKE_CURRENT_SOURCE_DIR}/res/web/favicon.ico"
+			"${TARGET_OUTPUT_DIR}/favicon.ico"
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different
+			"${CMAKE_CURRENT_SOURCE_DIR}/res/icon.png"
+			"${TARGET_OUTPUT_DIR}/icon.png"
+	)
+	target_link_options(GPMD85emu PRIVATE
+		-sUSE_SDL=2
+		-sMIN_WEBGL_VERSION=2
+		-sMAX_WEBGL_VERSION=2
+		-sALLOW_MEMORY_GROWTH=1
+		-sEXIT_RUNTIME=0
+		-sFORCE_FILESYSTEM=1
+		-lidbfs.js
+		"--preload-file=${CMAKE_CURRENT_SOURCE_DIR}/storage@/storage"
+		"--pre-js=${CMAKE_CURRENT_SOURCE_DIR}/res/web/persist.js"
+		"--shell-file=${CMAKE_CURRENT_SOURCE_DIR}/res/web/shell.html"
+	)
+	set_target_properties(GPMD85emu PROPERTIES LINK_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/res/web/shell.html")
+	return()
+endif()
 
 install(TARGETS GPMD85emu
 	RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
