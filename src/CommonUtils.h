@@ -24,6 +24,7 @@
 #define COMMONUTILS_H_
 //-----------------------------------------------------------------------------
 #include "globals.h"
+#include <filesystem>
 //-----------------------------------------------------------------------------
 extern struct TGraphicsDeviceContext {
 	SDL_Window *window;
@@ -36,15 +37,13 @@ extern struct TGraphicsDeviceContext {
 	int h;
 } gdc;
 
-extern struct stat filestat;
-
 extern char *PathAppConfig;
 extern char *PathGuiConfig;
 extern char *PathApplication;
 extern char *PathResources;
 extern char *PathUserHome;
 
-const char *AdaptFilePath(const char *filePath, char *path = NULL);
+const char *AdaptFilePath(const char *filePath, const char *path = NULL);
 const char *ExtractFileName(const char *filePath);
 char *ComposeFilePath(const char *filePath);
 char *LocateResource(const char *fileName, bool locateAtHome = true, bool copyToHome = false);
@@ -53,12 +52,17 @@ long int FileSize(const char *fileName);
 int ReadFromFile(const char *fileName, int offset, int size, BYTE *dest);
 int WriteToFile(const char *fileName, int offset, int size, BYTE *src, bool createNew);
 bool CreateMedium(const char *fileName, DWORD size, BYTE fill);
+char *GetCurrentDir();
+bool CreateDirIfNotExist(const char *path);
+char *CreateTempFileName(const char *basePath = NULL);
+bool RemoveFile(const char *path);
+int CompareNoCase(const char *a, const char *b, size_t maxLen = 0);
 int PackBlock(BYTE *dest, BYTE *src, int len);
 int UnpackBlock(BYTE *dest, int destlen, BYTE *src, int srclen);
 
 inline bool FileExists(const char *path)
-	{ return (stat(path, &filestat) == 0 && S_ISREG(filestat.st_mode)); }
+	{ std::error_code ec; return std::filesystem::is_regular_file(path, ec); }
 inline bool DirExists(const char *path)
-	{ return (stat(path, &filestat) == 0 && S_ISDIR(filestat.st_mode)); }
+	{ std::error_code ec; return std::filesystem::is_directory(path, ec); }
 //-----------------------------------------------------------------------------
 #endif

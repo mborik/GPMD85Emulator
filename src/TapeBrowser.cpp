@@ -92,7 +92,7 @@ void TTapeBrowser::FreeAllBlocks()
 			if (prevFileName != blk->orgFile) {
 				if (prevFileName != NULL) {
 					if (isTemp(prevFileName))
-						unlink(prevFileName);
+						RemoveFile(prevFileName);
 					delete [] prevFileName;
 				}
 
@@ -107,7 +107,7 @@ void TTapeBrowser::FreeAllBlocks()
 
 	if (prevFileName != NULL) {
 		if (isTemp(prevFileName))
-			unlink(prevFileName);
+			RemoveFile(prevFileName);
 		delete [] prevFileName;
 	}
 
@@ -745,9 +745,11 @@ void TTapeBrowser::PrepareSaveNewBlocks()
 	if (file)
 		delete [] file;
 
-	file = new char[64];
-	sprintf(file, "%s/%s.%08x%04x.tmp",
-		P_tmpdir, PACKAGE_TARNAME, SDL_GetTicks(), getpid());
+	file = CreateTempFileName();
+	if (file == NULL) {
+		warning("TapeBrowser", "PrepareSaveNewBlocks: Can't create temp file name");
+		return;
+	}
 
 	FILE *hDest = fopen(file, "wb");
 	if (hDest == NULL) {
@@ -807,9 +809,9 @@ int TTapeBrowser::SaveTape(const char *newFileName, TAPE_BLOCK *blks, bool asPTP
 		if (newFileName == NULL)
 			break;
 
-		tmpFile = new char[strlen(newFileName) + 16];
-		sprintf(tmpFile, "%s.%08x%04x.tmp",
-			newFileName, SDL_GetTicks(), getpid());
+		tmpFile = CreateTempFileName(newFileName);
+		if (tmpFile == NULL)
+			break;
 
 		FILE *hDest = fopen(tmpFile, "wb");
 		if (hDest == NULL) {
@@ -855,7 +857,7 @@ int TTapeBrowser::SaveTape(const char *newFileName, TAPE_BLOCK *blks, bool asPTP
 		}
 
 		fclose(hDest);
-		unlink(newFileName);
+		RemoveFile(newFileName);
 		rename(tmpFile, newFileName);
 		delete [] tmpFile;
 

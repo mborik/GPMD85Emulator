@@ -154,7 +154,7 @@ class Pmd32
 		char *sdRoot;
 		char *sdPath;
 		char *sdFile;
-		DIR  *hFind;
+		std::filesystem::directory_iterator *hFind;
 		char *hFindDir;
 
 		void  Disk32ServiceStateCheck();

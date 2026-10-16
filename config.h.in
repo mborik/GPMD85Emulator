@@ -3,24 +3,6 @@
 /* Define if building universal (internal helper macro) */
 #cmakedefine AC_APPLE_UNIVERSAL_BUILD 1
 
-/* Define to 1 if you have the <dirent.h> header file, and it defines 'DIR'. */
-#cmakedefine HAVE_DIRENT_H 1
-
-/* Define to 1 if you have the <ndir.h> header file, and it defines 'DIR'. */
-#cmakedefine HAVE_NDIR_H 1
-
-/* Define to 1 if 'd_type' is a member of 'struct dirent'. */
-#cmakedefine HAVE_STRUCT_DIRENT_D_TYPE 1
-
-/* Define to 1 if you have the <sys/dir.h> header file, and it defines 'DIR'. */
-#cmakedefine HAVE_SYS_DIR_H 1
-
-/* Define to 1 if you have the <sys/ndir.h> header file, and it defines 'DIR'. */
-#cmakedefine HAVE_SYS_NDIR_H 1
-
-/* Define to 1 if you have the <sys/syslimits.h> header file. */
-#cmakedefine HAVE_SYS_SYSLIMITS_H 1
-
 /* Define to 1 if you have std::experimental::filesystem */
 #cmakedefine HAVE_STD_EXPERIMENTAL_FILESYSTEM 1
 

@@ -22,6 +22,7 @@
 //-----------------------------------------------------------------------------
 #include "ArgvParser.h"
 #include "globals.h"
+#include "CommonUtils.h"
 #include <errno.h>
 #include <limits.h>
 //-----------------------------------------------------------------------------
@@ -141,7 +142,7 @@ static bool ParseIntegerArgument(const char *value, int *result)
 	int base = 10;
 	const char *number = value;
 
-	if (strncasecmp(number, "0x", 2) == 0) {
+	if (CompareNoCase(number, "0x", 2) == 0) {
 		base = 16;
 		number += 2;
 		if (*number == '\0')

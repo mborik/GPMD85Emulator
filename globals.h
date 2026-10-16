@@ -25,64 +25,22 @@
 //-----------------------------------------------------------------------------
 #include "config.h"
 //-----------------------------------------------------------------------------
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <stdlib.h>
-#include <stddef.h>
-#include <string.h>
-#include <strings.h>
-#include <inttypes.h>
-#include <stdint.h>
-#include <limits.h>
-#include <unistd.h>
-#if HAVE_DIRENT_H
-#  include <dirent.h>
-#  define NAMLEN(dirent) strlen((dirent)->d_name)
-#else
-#  define dirent direct
-#  define NAMLEN(dirent) (dirent)->d_namlen
-#  if HAVE_SYS_NDIR_H
-#    include <sys/ndir.h>
-#  endif
-#  if HAVE_SYS_DIR_H
-#    include <sys/dir.h>
-#  endif
-#  if HAVE_NDIR_H
-#    include <ndir.h>
-#  endif
-#endif
-#ifdef HAVE_SYS_SYSLIMITS_H
-#  include <sys/syslimits.h>
-#endif
+#include <cstdio>
+#include <cstdlib>
+#include <cstddef>
+#include <cstdarg>
+#include <cstring>
+#include <cinttypes>
+#include <cstdint>
+#include <climits>
+#include <cctype>
 #include <string>
 #include <vector>
 //-----------------------------------------------------------------------------
-#if defined(WIN32) || defined(_WIN32) || defined(WIN64) || defined(__BORLANDC__)
-#  define DIR_DELIMITER '\\'
-#  define WIN32 1
-#else
-#  define DIR_DELIMITER '/'
-#endif
-//-----------------------------------------------------------------------------
 #if defined(PATH_MAX)
 #  define MAX_PATH PATH_MAX
-#elif defined(FILENAME_MAX)
-#  define MAX_PATH FILENAME_MAX
-#elif defined(_POSIX_PATH_MAX)
-#  define MAX_PATH _POSIX_PATH_MAX
-#elif defined(_MAX_PATH)
-#  define MAX_PATH _MAX_PATH
-#else
+#elif !defined(MAX_PATH)
 #  define MAX_PATH 1024
-#endif
-//-----------------------------------------------------------------------------
-#ifdef __GNUC__
-#define UNUSED_VARIABLE __attribute__ ((unused))
-#elif __LCLINT__
-#define UNUSED_VARIABLE /\*@unused@*/
-#else
-#define UNUSED_VARIABLE
 #endif
 //-----------------------------------------------------------------------------
 #include "sigslot.hpp"
@@ -104,9 +62,6 @@
 #define WORD  uint16_t
 #define DWORD uint32_t
 #define QWORD uint64_t
-//-----------------------------------------------------------------------------
-#define strccnt(ptr, c, i) char *_strccnt_ptr = ptr; \
-	while (*_strccnt_ptr != '\0') if (*_strccnt_ptr++ == c) i++;
 //-----------------------------------------------------------------------------
 #define CPU_FREQ            2048000
 #define CPU_FRAMES_PER_SEC  50

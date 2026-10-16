@@ -523,6 +523,16 @@ void TEmulator::BaseTimerCallback(bool guiWantCapture)
 			Debugger->flowControl = DBGCTL_RUNNING;
 		ActionPlayPause(true, false);
 	}
+	else if (Debugger->flowControl < DBGCTL_RUNNING &&
+		(GUI->InvokeSettingsChange & (PS_SCREEN_SIZE | PS_SCREEN_MODE)) ||
+		memory->WasVramModified()) {
+
+		ProcessSettings(GUI->InvokeSettingsChange);
+		GUI->InvokeSettingsChange = 0;
+
+		video->FillBuffer(memory->GetVramPointer());
+		video->RefreshDisplay();
+	}
 
 	// status bar FPS and CPU indicators
 	if (thisTime >= nextTick) {
@@ -2134,15 +2144,14 @@ void TEmulator::InsertPMD32Disk(const char *fileName)
 //---------------------------------------------------------------------------
 void TEmulator::ChangeROMFile(const char *fileName)
 {
-	char *ptr = (char *) AdaptFilePath(fileName, PathAppConfig);
+	const char *ptr = AdaptFilePath(fileName, PathAppConfig);
 	if (ptr == fileName) {
-		ptr = (char *) AdaptFilePath(fileName, PathResources);
+		ptr = AdaptFilePath(fileName, PathResources);
 		if (ptr == fileName) {
-			char res[MAX_PATH];
-			sprintf(res, "%s%c%s", PathApplication, DIR_DELIMITER, "rom");
-			ptr = (char *) AdaptFilePath(fileName, res);
+			std::string res = (std::filesystem::path(PathApplication) / "rom").string();
+			ptr = AdaptFilePath(fileName, res.c_str());
 			if (ptr == fileName)
-				ptr = (char *) AdaptFilePath(fileName);
+				ptr = AdaptFilePath(fileName);
 		}
 	}
 
@@ -2156,15 +2165,14 @@ void TEmulator::ChangeROMFile(const char *fileName)
 //---------------------------------------------------------------------------
 void TEmulator::ChangeMegaRomFile(const char *fileName)
 {
-	char *ptr = (char *) AdaptFilePath(fileName, PathAppConfig);
+	const char *ptr = AdaptFilePath(fileName, PathAppConfig);
 	if (ptr == fileName) {
-		ptr = (char *) AdaptFilePath(fileName, PathResources);
+		ptr = AdaptFilePath(fileName, PathResources);
 		if (ptr == fileName) {
-			char res[MAX_PATH];
-			sprintf(res, "%s%c%s", PathApplication, DIR_DELIMITER, "rom");
-			ptr = (char *) AdaptFilePath(fileName, res);
+			std::string res = (std::filesystem::path(PathApplication) / "rom").string();
+			ptr = AdaptFilePath(fileName, res.c_str());
 			if (ptr == fileName)
-				ptr = (char *) AdaptFilePath(fileName);
+				ptr = AdaptFilePath(fileName);
 		}
 	}
 
