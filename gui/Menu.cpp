@@ -400,14 +400,15 @@ void UserInterface::DrawMenu()
 			}
 
 			ImGui::PopItemFlag();
-
-			itemAccessible = accessibleForPMD85 || Settings->CurrentModel->type == CM_V3;
 			ImGui::SeparatorText("Peripherals");
-			if (ImGui::BeginMenu("Joystick 4004/482")) {
-				// TODO joysticks are too complex :/
-				ImGui::TextDisabled("TODO");
+
+			itemAccessible = Settings->CurrentModel->type != CM_MATO;
+			if (ImGui::BeginMenu("Joystick 4004/482", itemAccessible)) {
+				DrawJoystickMenuItems(itemAccessible);
 				ImGui::EndMenu();
 			}
+
+			itemAccessible = accessibleForPMD85 || Settings->CurrentModel->type == CM_C2717;
 			if (ImGui::BeginMenu("Mouse 602", itemAccessible)) {
 				bool state = Settings->Mouse->type == MT_M602;
 				if (ImGui::MenuItem("Connected", NULL, &state)) {

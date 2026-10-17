@@ -45,8 +45,16 @@ public:
 	Joy4004482(IifGPIO *pio, TSettings::SetJoystick* settings);
 	virtual ~Joy4004482();
 
+	int GetControllers(SDL_GameController ***controllers, bool refresh = false);
+	inline const std::map<std::string, std::string>& GetDeviceNames() const
+		{ return deviceNames; }
+	inline const char *GetControllerName(const char *guid) {
+		if (guid && deviceNames.find(guid) != deviceNames.end())
+			return deviceNames[guid].c_str();
+		return NULL;
+	}
+
 	void Connect();
-	int  GetControllers(SDL_GameController ***controllers, bool refresh = false);
 	void ScanJoy(BYTE *keyBuffer);
 
 protected:
@@ -65,14 +73,16 @@ private:
 	TSettings::SetJoystick *settings;
 
 	JOY joy[2];
-	uint8_t joyCnt;
-	bool sameDev;
+	uint8_t joyCnt = 0;
+	bool sameDev = false;
 
+	const char *GetControllerGUID(SDL_GameController *controller);
 	void ScanJoyKey(JOY *joy, BYTE *keyBuffer);
 	void ScanJoyButtons(JOY *joy, bool onlyFire);
 	void ScanJoyAxis(JOY *joy);
 
 	SDL_GameController **deviceList = NULL;
+	std::map<std::string, std::string> deviceNames = {};
 	unsigned deviceCount = 0;
 };
 //---------------------------------------------------------------------------

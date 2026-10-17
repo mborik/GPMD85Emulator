@@ -93,8 +93,15 @@ class TEmulator
 		void ActionPlayPause();
 		void ActionPlayPause(bool play, bool globalChange = true);
 		void ActionSizeChange(int mode);
-		void ActionMouseState(int x, int y, int leftBtn = 0, int rightBtn = 0, int middleBtn = 0);
-		int  ActionJoyControllers(SDL_GameController ***controllers = NULL, bool refresh = false);
+
+		inline void ActionMouseState(int x, int y, int leftBtn = 0, int rightBtn = 0, int middleBtn = 0)
+			{ if (mouse602) mouse602->SetMouseState(x, y, leftBtn, rightBtn, middleBtn); }
+		inline int ActionJoyControllers(SDL_GameController ***controllers = nullptr, bool refresh = false)
+			{ return joystick ? joystick->GetControllers(controllers, refresh) : 0; }
+		inline const char *GetControllerName(const char *guid)
+			{ return joystick ? joystick->GetControllerName(guid) : nullptr; }
+		inline const auto *GetControllerDeviceNames() const
+			{ return joystick ? &joystick->GetDeviceNames() : nullptr; }
 
 		sigslot::signal<> actionCallback;
 

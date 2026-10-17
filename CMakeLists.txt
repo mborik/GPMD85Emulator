@@ -321,6 +321,7 @@ add_library(gpmd85emu_gui STATIC
 	gui/DebugDialog.cpp
 	gui/DiskImagesDialog.cpp
 	gui/FileSelector.cpp
+	gui/JoystickConfig.cpp
 	gui/MemDumpDialog.cpp
 	gui/MemEditDialog.cpp
 	gui/MemMapDialog.cpp

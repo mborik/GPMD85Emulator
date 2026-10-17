@@ -1326,20 +1326,6 @@ int TEmulator::ActionMegaModulePage(bool set, BYTE page)
 	return result;
 }
 //---------------------------------------------------------------------------
-void TEmulator::ActionMouseState(int x, int y, int leftBtn, int rightBtn, int middleBtn)
-{
-	if (mouse602)
-		mouse602->SetMouseState(x, y, leftBtn, rightBtn, middleBtn);
-}
-//---------------------------------------------------------------------------
-int TEmulator::ActionJoyControllers(SDL_GameController ***controllers, bool refresh)
-{
-	if (!joystick)
-		return 0;
-
-	return joystick->GetControllers(controllers, refresh);
-}
-//---------------------------------------------------------------------------
 void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 {
 	int fileSize;

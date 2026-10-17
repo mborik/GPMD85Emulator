@@ -41,7 +41,9 @@ UserInterface::UserInterface()
 
 	isMenuHovered = false;
 	isEmulatorWindowFocused = false;
+	isAnyPopupWindowFocused = false;
 	triggerMachineMenuOpen = false;
+
 	dialogAboutOpened = false;
 	dialogDebugOpened = false;
 	dialogDebugFocused = false;
@@ -50,6 +52,9 @@ UserInterface::UserInterface()
 	queryDialogMessage = NULL;
 	queryDialogSaveType = false;
 	queryDialogShouldOpen = false;
+
+	joyConfigDialogShouldOpen = false;
+	joyConfigDialogForGPIO = GP_GPIO_0;
 
 	memDumpDialogSaveType = false;
 	memDumpDialogShouldOpen = false;
@@ -144,6 +149,7 @@ void UserInterface::Draw()
 	DrawAboutDialog();
 	DrawQueryDialog();
 	DrawFileSelector();
+	DrawJoystickConfigDialog();
 	DrawDiskImagesDialog();
 	DrawMemDumpDialog();
 	DrawMemEditDialog();
