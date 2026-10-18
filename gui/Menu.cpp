@@ -85,10 +85,12 @@ void UserInterface::DrawMenu()
 			}
 			ImGui::MenuItem("Memory Editor", NULL, &Settings->GUI->dialogMemEditOpened);
 			ImGui::MenuItem("Memory Map", NULL, &Settings->GUI->dialogMemMapOpened);
-/*
+
 			ImGui::Separator();
-			if (ImGui::MenuItem("Save Screenshot…")) { } // TODO
-*/
+			if (ImGui::MenuItem("Save Screenshot…")) {
+				Emulator->ActionScreenshot();
+			}
+
 			ImGui::Separator();
 			if (ImGui::MenuItem("About…", MOD_KEY("F1"))) {
 				Execute(GE_ABOUT);

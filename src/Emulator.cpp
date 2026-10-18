@@ -1242,6 +1242,32 @@ void TEmulator::ActionRawFile(bool save)
 	);
 }
 //---------------------------------------------------------------------------
+void TEmulator::ActionScreenshot()
+{
+	if (!video || !memory)
+		return;
+
+	ActionPlayPause(false, false);
+
+	GUI->FileSelectorCallback.connect(
+		[&](const char *fileName) {
+			if (fileName && !video->SaveScreenshot(fileName, memory->GetVramPointer()))
+				GUI->MessageBox("Failed to save screenshot!");
+
+			GUI->InvokeSettingsChange |= PS_CLOSEALL;
+			GUI->FileSelectorCallback.disconnect_all();
+			ActionPlayPause(!Settings->isPaused, false);
+		}
+	);
+
+	GUI->FileSelector(
+		GUI_FS_SAVE,
+		"Save screenshot file (*.png, *.bmp, *.bin…)",
+		Settings->Screen->fileName,
+		{".png", ".bmp", ".bin", ".scr"}
+	);
+}
+//---------------------------------------------------------------------------
 void TEmulator::ActionReset()
 {
 	cpu->DoReset();

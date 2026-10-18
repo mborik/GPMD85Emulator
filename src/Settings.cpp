@@ -454,6 +454,7 @@ TSettings::TSettings(bool userCfg)
 	Screen->attr11 = cfgGetColorValue(n, "attr11", YELLOW, &(Screen->attr11));
 
 	Screen->videoInterrupt = cfgGetBoolValue(n, "video-interrupt", false, &(Screen->videoInterrupt));
+	Screen->fileName = cfgGetStringValue(n, "recent-file", &(Screen->fileName));
 
 //# Sound settings
 	n = cfgFindSection(cfgRoot, "Sound");
@@ -688,9 +689,15 @@ TSettings::~TSettings()
 		delete GUI;
 	GUI = NULL;
 
-	if (Screen)
+	if (Screen) {
+		if (Screen->fileName) {
+			delete [] Screen->fileName;
+			Screen->fileName = NULL;
+		}
+
 		delete Screen;
-	Screen = NULL;
+		Screen = NULL;
+	}
 
 	if (Sound)
 		delete Sound;

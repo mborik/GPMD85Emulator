@@ -82,10 +82,10 @@ class TEmulator
 		void ActionPMD32Update();
 		void ActionSnapLoad();
 		void ActionSnapSave();
-		void ActionRawFile(bool save);
 		void ActionROMLoad();
 		void ActionMegaRomLoad();
-		int  ActionMegaModulePage(bool set = false, BYTE page = 0);
+		void ActionRawFile(bool save);
+		void ActionScreenshot();
 
 		void ActionReset();
 		void ActionHardReset();
@@ -93,6 +93,7 @@ class TEmulator
 		void ActionPlayPause();
 		void ActionPlayPause(bool play, bool globalChange = true);
 		void ActionSizeChange(int mode);
+		int  ActionMegaModulePage(bool set = false, BYTE page = 0);
 
 		inline void ActionMouseState(int x, int y, int leftBtn = 0, int rightBtn = 0, int middleBtn = 0)
 			{ if (mouse602) mouse602->SetMouseState(x, y, leftBtn, rightBtn, middleBtn); }

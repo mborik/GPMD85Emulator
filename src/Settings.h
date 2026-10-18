@@ -91,6 +91,7 @@ class TSettings
 			TColor attr10;
 			TColor attr11;
 			bool videoInterrupt;
+			char *fileName;
 		};
 		struct SetSound {
 			int  volume;
