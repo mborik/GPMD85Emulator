@@ -164,6 +164,9 @@ void TEmulator::SaveSnapshot(const char *fileName) {
 		memory->SetRemapped(remapped);
 		memory->SetPage(page);
 
+		debug("Snapshot", "Writing header, version %d, model %d, length %d",
+			snap.version, snap.model, snap.blocksOffset);
+
 		// write the snapshot header
 		len = static_cast<int>(snap.blocksOffset);
 		int offset = WriteToFile(fileName, 0, len, reinterpret_cast<BYTE *>(&snap), true);
@@ -175,6 +178,8 @@ void TEmulator::SaveSnapshot(const char *fileName) {
 		// ROM (Monitor)
 		if (Settings->Snapshot->saveWithMonitor) {
 			len = static_cast<int>(snap.romLength & 0x7FFF);
+			debug("Snapshot", "Writing ROM block, offset %d, length %d", offset, len);
+
 			if (WriteToFile(fileName, offset, len, romBuf, false) != len) {
 				err = SNAP_WRITE_ERROR;
 				break;
@@ -184,6 +189,8 @@ void TEmulator::SaveSnapshot(const char *fileName) {
 		}
 
 		for (int i = 0; i < ramBlocks; i++, offset += len) {
+			debug("Snapshot", "Writing RAM block %d, offset %d, length %d", i, offset, *blockLengthsPtrs[i]);
+
 			// skip block 8000h-BFFFh on non-AllRAM models
 			if (i == 2 && !(model == CM_V2A || model == CM_V3 || model == CM_C2717))
 				continue;
@@ -203,13 +210,17 @@ void TEmulator::SaveSnapshot(const char *fileName) {
 	if (ramBuf)
 		delete [] ramBuf;
 
-	if (err != SNAP_OK)
+	if (err != SNAP_OK) {
+		warning("Snapshot", "Error saving snapshot: %s", SNAPSHOT_ERR_MSG[err]);
 		GUI->MessageBox(SNAPSHOT_ERR_MSG[err]);
+	}
 	else {
 		if (Settings->Snapshot->fileName)
 			delete [] Settings->Snapshot->fileName;
 		Settings->Snapshot->fileName = new char[(strlen(fileName) + 1)];
 		strcpy(Settings->Snapshot->fileName, fileName);
+
+		debug("Snapshot", "Saving done...");
 	}
 
 	ActionPlayPause(!Settings->isPaused, false);
@@ -229,6 +240,8 @@ bool TEmulator::LoadSnapshot(const char *fileName) {
 	ActionPlayPause(false, false);
 
 	do {
+		debug("Snapshot", "Reading '%s'", fileName);
+
 		// read Snapshot header signature
 		if (ReadFromFile(fileName, 0, 7, reinterpret_cast<BYTE *>(snap)) != 7) {
 			err = SNAP_READ_ERROR;
@@ -240,6 +253,9 @@ bool TEmulator::LoadSnapshot(const char *fileName) {
 			err = SNAP_BAD_HEADER;
 			break;
 		}
+
+		debug("Snapshot", "PSN signature present, version: %d, header size: %d",
+			snap->version, snap->blocksOffset);
 
 		// version check
 		if (snap->version == 0 || snap->version > SNAP_VERSION_MAX) {
@@ -268,6 +284,8 @@ bool TEmulator::LoadSnapshot(const char *fileName) {
 			break;
 		}
 
+		debug("Snapshot", "Header read successfully (model: %d)", model);
+
 		// block size check
 		if ((snap->romLength & 0x7FFF) > SNAP_BLOCK_LEN ||
 		     snap->block0Length > SNAP_BLOCK_LEN ||
@@ -286,6 +304,8 @@ bool TEmulator::LoadSnapshot(const char *fileName) {
 		int len, lenX = static_cast<int>(snap->romLength);
 		if (lenX > 0) {
 			len = lenX & 0x7FFF; // lenX.b15 = 1, if the ROM is uncompressed
+
+			debug("Snapshot", "Reading ROM block (length: %d)", len);
 			if (ReadFromFile(fileName, offset, len, src) != len) {
 				err = SNAP_READ_ERROR;
 				break;
@@ -319,6 +339,7 @@ bool TEmulator::LoadSnapshot(const char *fileName) {
 		}
 
 		// set the computer model, cpu state
+		debug("Snapshot", "Reconfiguring computer model and state of chips...");
 		SetComputerModel((lenX > 0), lenX, dest);
 		ConnectMIF85(true);
 
@@ -373,6 +394,8 @@ bool TEmulator::LoadSnapshot(const char *fileName) {
 		memory->SetRemapped(false);
 
 		for (int i = 0; i < ramBlocks; i++) {
+			debug("Snapshot", "Processing RAM block %d: offset %d, length %d", i, offset, *blockLengthsPtrs[i]);
+
 			// skip block 8000h-BFFFh on non-AllRAM models
 			if (i == 2 && !(model == CM_V2A || model == CM_V3 || model == CM_C2717))
 				continue;
@@ -382,6 +405,7 @@ bool TEmulator::LoadSnapshot(const char *fileName) {
 				continue;
 
 			if (ReadFromFile(fileName, offset, len, src) != len) {
+				debug("Snapshot", "Error reading RAM block %d", i);
 				err = SNAP_READ_ERROR;
 				break;
 			}
@@ -389,6 +413,7 @@ bool TEmulator::LoadSnapshot(const char *fileName) {
 			offset += len;
 			len = UnpackBlock(dest, SNAP_BLOCK_LEN, src, len);
 			if (len < 0 || len != SNAP_BLOCK_LEN) {
+				debug("Snapshot", "Error unpacking RAM block %d (result: %d)", i, len);
 				err = SNAP_BAD_MEM_BLOCK;
 				break;
 			}
@@ -405,6 +430,7 @@ bool TEmulator::LoadSnapshot(const char *fileName) {
 	} while (false);
 
 	if (err != SNAP_OK) {
+		warning("Snapshot", "Loading failed: %s", SNAPSHOT_ERR_MSG[err]);
 		GUI->MessageBox(SNAPSHOT_ERR_MSG[err]);
 
 		for (int i = 0; i < Settings->modelsCount; i++) {
@@ -428,6 +454,8 @@ bool TEmulator::LoadSnapshot(const char *fileName) {
 			delete [] Settings->Snapshot->fileName;
 		Settings->Snapshot->fileName = new char[(strlen(fileName) + 1)];
 		strcpy(Settings->Snapshot->fileName, fileName);
+
+		debug("Snapshot", "Loading done...");
 	}
 
 	if (snap)

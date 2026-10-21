@@ -993,10 +993,7 @@ void TEmulator::ActionDebugger()
 //---------------------------------------------------------------------------
 void TEmulator::ActionTapeBrowser()
 {
-	actionCallback.connect([&]() {
-		GUI->Execute(GE_TAPEBROWSER);
-		actionCallback.disconnect_all();
-	});
+	GUI->Execute(GE_TAPEBROWSER);
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionTapePlayStop()
