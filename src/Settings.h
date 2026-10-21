@@ -54,6 +54,7 @@ class TSettings
 			char *mrmFile;
 		};
 		struct SetSnapshot {
+			bool saveOldVersion;
 			bool saveCompressed;
 			bool saveWithMonitor;
 			bool dontRunOnLoad;

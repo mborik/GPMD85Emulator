@@ -73,6 +73,7 @@ void UserInterface::DrawMenu()
 				ImGui::Separator();
 				ImGui::MenuItem("Save Compressed", NULL, &Settings->Snapshot->saveCompressed);
 				ImGui::MenuItem("Include ROM in Snapshot", NULL, &Settings->Snapshot->saveWithMonitor);
+				ImGui::MenuItem("Save old Snapshot format", NULL, &Settings->Snapshot->saveOldVersion);
 				ImGui::EndMenu();
 			}
 

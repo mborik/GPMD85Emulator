@@ -240,6 +240,7 @@ TSettings::TSettings(bool userCfg)
 	n = cfgFindSection(cfgRoot, "Snapshot");
 
 	Snapshot = new SetSnapshot;
+	Snapshot->saveOldVersion = cfgGetBoolValue(n, "save-old-version", false, &(Snapshot->saveOldVersion));
 	Snapshot->saveWithMonitor = cfgGetBoolValue(n, "save-snapshot-with-monitor", false, &(Snapshot->saveWithMonitor));
 	Snapshot->saveCompressed = cfgGetBoolValue(n, "save-snapshot-compressed", true, &(Snapshot->saveCompressed));
 	Snapshot->dontRunOnLoad = cfgGetBoolValue(n, "dont-run-snapshot-on-load", false, &(Snapshot->dontRunOnLoad));

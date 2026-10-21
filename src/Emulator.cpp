@@ -248,7 +248,7 @@ void TEmulator::ProcessArgvOptions(bool memModifiers)
 			BYTE flag;
 			char *fileName = ComposeFilePath(argv_config.snap);
 
-			if (!ProcessSnapshot(fileName)) {
+			if (!LoadSnapshot(fileName)) {
 				delete [] fileName;
 				fileName = NULL;
 
@@ -1146,7 +1146,7 @@ void TEmulator::ActionSnapLoad()
 	GUI->FileSelectorCallback.connect(
 		[&](const char *fileName) {
 			if (fileName)
-				ProcessSnapshot(fileName);
+				LoadSnapshot(fileName);
 
 			GUI->InvokeSettingsChange |= PS_CLOSEALL;
 			GUI->FileSelectorCallback.disconnect_all();
@@ -1166,7 +1166,7 @@ void TEmulator::ActionSnapSave()
 	GUI->FileSelectorCallback.connect(
 		[&](const char *fileName) {
 			if (fileName)
-				PrepareSnapshot(fileName);
+				SaveSnapshot(fileName);
 
 			GUI->InvokeSettingsChange |= PS_CLOSEALL;
 			GUI->FileSelectorCallback.disconnect_all();
@@ -1533,90 +1533,6 @@ void TEmulator::SetComputerModel(bool fromSnap, int snapRomLen, BYTE *snapRom)
 	GUI->SetComputerModel(model);
 }
 //---------------------------------------------------------------------------
-void TEmulator::InsertRomModule(bool inserted)
-{
-	int i, count, sizeKB;
-	DWORD romPackSizeKB, kBadr;
-	TSettings::SetRomModuleFile **rl;
-	BYTE *buff;
-
-	if (romModule) {
-		cpu->RemoveDevice(ROM_MODULE_ADR);
-		cpu->RemoveDevice(MEGA_MODULE_ADR);
-		delete romModule;
-		romModule = NULL;
-	}
-
-	if (!inserted)
-		return;
-
-	romModule = new RomModule();
-	cpu->AddDevice(ROM_MODULE_ADR, ROM_MODULE_MASK, romModule, true);
-	romModule->RemoveRomPack();
-	romPackSizeKB = ROM_PACK_SIZE_KB;
-
-	rl = Settings->CurrentModel->romModule->files;
-	count = Settings->CurrentModel->romModule->count;
-
-	kBadr = 0;
-	buff = new BYTE[romPackSizeKB * KB];
-	for (i = 0; i < count && kBadr < romPackSizeKB; i++) {
-		sizeKB = (rl[i]->size + KB - 1) / KB;
-		if ((kBadr + sizeKB) > romPackSizeKB)
-			sizeKB = romPackSizeKB - kBadr;
-
-		memset(buff, 0xFF, sizeKB * KB);
-		if (ReadFromFile(LocateROM(rl[i]->rmmFile), 0, sizeKB * KB, buff) > 0) {
-			romModule->InsertRom((BYTE) kBadr, (BYTE) sizeKB, buff);
-		}
-
-		kBadr += sizeKB;
-	}
-
-	delete[] buff;
-}
-//---------------------------------------------------------------------------
-void TEmulator::InsertRomMegaModule(bool inserted)
-{
-	long size;
-	BYTE *buff;
-
-	if (romModule) {
-		cpu->RemoveDevice(ROM_MODULE_ADR);
-		cpu->RemoveDevice(MEGA_MODULE_ADR);
-		delete romModule;
-		romModule = NULL;
-	}
-
-	if (!inserted)
-		return;
-
-	romModule = new RomMegaModule();
-	cpu->AddDevice(ROM_MODULE_ADR, ROM_MODULE_MASK, romModule, true);
-	cpu->AddDevice(MEGA_MODULE_ADR, MEGA_MODULE_MASK, romModule, false);
-
-	char *mrmFile = LocateROM(Settings->CurrentModel->mrmFile);
-	if (mrmFile == NULL)
-		mrmFile = Settings->CurrentModel->mrmFile;
-	size = FileSize(mrmFile);
-	if (size < 0) {
-		warning("Emulator", "MEGAModule ROM file not found: \"%s\"", mrmFile ? mrmFile : "");
-		return;
-	}
-	if (size > 8 * KB * KB) {
-		warning("Emulator", "MEGAModule ROM file too large: \"%s\"", mrmFile ? mrmFile : "");
-		size = 8 * KB * KB;
-	}
-	buff = new BYTE[size];
-	memset(buff, 0xFF, size);
-	if (ReadFromFile(mrmFile, 0, size, buff) > 0)
-		static_cast<RomMegaModule *>(romModule)->LoadRom(size, buff);
-	else
-		warning("Emulator", "Error reading MEGAModule ROM file: \"%s\"", mrmFile ? mrmFile : "");
-
-	delete[] buff;
-}
-//---------------------------------------------------------------------------
 void TEmulator::ConnectMIF85(bool init)
 {
 	if (init || (mif85connected != Settings->Sound->ifMIF85)) {
@@ -1741,334 +1657,34 @@ void TEmulator::ConnectPMD32(bool init)
 	}
 }
 //---------------------------------------------------------------------------
-bool TEmulator::ProcessSnapshot(const char *fileName)
+void TEmulator::InsertPMD32Disk(const char *fileName)
 {
-	BYTE *buf  = new BYTE[SNAP_HEADER_LEN + 1];
-	BYTE *src  = new BYTE[SNAP_BLOCK_LEN];
-	BYTE *dest = new BYTE[SNAP_BLOCK_LEN];
-
-	TComputerModel oldModel = model, newModel;
-	int flag = -1, version, offset, len;
-
-	do {
-		if (ReadFromFile(fileName, 0, SNAP_HEADER_LEN, buf) != SNAP_HEADER_LEN)
+	switch (pmd32workdrive) {
+		case 1:
+			delete [] Settings->PMD32->driveA.image;
+			Settings->PMD32->driveA.image = new char[strlen(fileName) + 1];
+			strcpy(Settings->PMD32->driveA.image, fileName);
 			break;
-
-		if (memcmp(buf, "PSN", 3) != 0)
+		case 2:
+			delete [] Settings->PMD32->driveB.image;
+			Settings->PMD32->driveB.image = new char[strlen(fileName) + 1];
+			strcpy(Settings->PMD32->driveB.image, fileName);
 			break;
-
-		version = (int) *(buf + 3);
-		offset = (int) *((WORD *) (buf + 4));
-
-		// we have only one version now...
-		if (version != 1 || offset != SNAP_HEADER_LEN)
+		case 3:
+			delete [] Settings->PMD32->driveC.image;
+			Settings->PMD32->driveC.image = new char[strlen(fileName) + 1];
+			strcpy(Settings->PMD32->driveC.image, fileName);
 			break;
-
-		newModel = (TComputerModel) *(buf + 6);
-		if (newModel > CM_LAST)
+		case 4:
+			delete [] Settings->PMD32->driveD.image;
+			Settings->PMD32->driveD.image = new char[strlen(fileName) + 1];
+			strcpy(Settings->PMD32->driveD.image, fileName);
 			break;
-
-		if ((*((WORD *) (buf + 20)) & 0x7FFF) > SNAP_BLOCK_LEN
-		  || *((WORD *) (buf + 22)) > SNAP_BLOCK_LEN
-		  || *((WORD *) (buf + 24)) > SNAP_BLOCK_LEN
-		  || *((WORD *) (buf + 26)) > SNAP_BLOCK_LEN
-		  || *((WORD *) (buf + 28)) > SNAP_BLOCK_LEN)
-			break;
-
-		// ROM - Monitor
-		int lenX = (int) *((WORD *) (buf + 20));
-		if (lenX > 0) {
-			len = lenX & 0x7FFF; // bit 15 of lenX is set, if ROM is in pure format
-			if (ReadFromFile(fileName, offset, len, src) != len)
-				break;
-
-			offset += len;
-			lenX = UnpackBlock(dest, (lenX & 0x8000) ? len : SNAP_BLOCK_LEN, src, len);
-			if (lenX < 0)
-				break;
-		}
-
-		flag = 1;
-		for (int i = 0; i < Settings->modelsCount; i++) {
-			if (Settings->AllModels[i]->type == newModel) {
-				Settings->CurrentModel = Settings->AllModels[i];
-				break;
-			}
-		}
-
-		model = newModel;
-		SetComputerModel((lenX > 0), lenX, dest);
-
-		if (cpu)
-			cpu->SetChipState(buf + 7);
-
-		if (model != CM_V3)
-			memory->ResetOn();
-
-		Debugger->SetParams(cpu, memory, model);
-
-		if (systemPIO) {
-			systemPIO->ResetDevice(0);
-			systemPIO->WriteToDevice(SYSTEM_REG_CWR, *(buf + 30), 0);
-			systemPIO->WriteToDevice(SYSTEM_REG_C, *(buf + 31), 0);
-			systemPIO->WriteToDevice(SYSTEM_REG_A, *(buf + 32), 0);
-			systemPIO->ReadFromDevice(SYSTEM_REG_B, 0); // set for C2717 repagination
-		}
-
-		if (ifGpio)
-			ifGpio->SetChipState(buf + 33);
-//		if (ifIms2)
-//			ifIms2->SetChipState(buf + 38);
-		if (ifTimer)
-			ifTimer->SetChipState(buf + 43);
-		if (ifTape) {
-			if (ifTape->GetModel() != CM_MATO)
-				((IifTapePMD85 *) ifTape)->SetChipState(buf + 52);
-		}
-
-		// block 0 - 3FFFh
-		len = (int) *((WORD *) (buf + 22));
-		if (len > 0) {
-			if (ReadFromFile(fileName, offset, len, src) != len)
-				break;
-
-			offset += len;
-			len = UnpackBlock(dest, SNAP_BLOCK_LEN, src, len);
-			if (len < 0 || len != SNAP_BLOCK_LEN)
-				break;
-
-			memory->PutMem(0x0000, dest, SNAP_BLOCK_LEN);
-		}
-
-		// block 4000h - 7FFFh
-		len = (int) *((WORD *) (buf + 24));
-		if (len > 0) {
-			if (ReadFromFile(fileName, offset, len, src) != len)
-				break;
-
-			offset += len;
-			len = UnpackBlock(dest, SNAP_BLOCK_LEN, src, len);
-			if (len < 0 || len != SNAP_BLOCK_LEN)
-				break;
-
-			memory->PutMem(0x4000, dest, SNAP_BLOCK_LEN);
-		}
-
-		// block 8000h - BFFFh
-		if (model == CM_V2A || model == CM_V3 || model == CM_C2717) {
-			len = (int) *((WORD *) (buf + 26));
-			if (len > 0) {
-				if (ReadFromFile(fileName, offset, len, src) != len)
-					break;
-
-				offset += len;
-				len = UnpackBlock(dest, SNAP_BLOCK_LEN, src, len);
-				if (len < 0 || len != SNAP_BLOCK_LEN)
-					break;
-
-				memory->PutMem(0x8000, dest, SNAP_BLOCK_LEN);
-			}
-		}
-
-		// block C000h - FFFFh
-		len = (int) *((WORD *) (buf + 28));
-		if (len > 0) {
-			if (ReadFromFile(fileName, offset, len, src) != len)
-				break;
-
-			len = UnpackBlock(dest, SNAP_BLOCK_LEN, src, len);
-			if (len < 0 || len != SNAP_BLOCK_LEN)
-				break;
-
-			memory->PutMem(0xC000, dest, SNAP_BLOCK_LEN);
-		}
-
-		flag = 0;
-	} while (false);
-
-	if (flag < 0)
-		GUI->MessageBox("Invalid snaphot format!");
-	else if (flag > 0) {
-		GUI->MessageBox("Corrupted snapshot!");
-
-		for (int i = 0; i < Settings->modelsCount; i++) {
-			if (Settings->AllModels[i]->type == oldModel) {
-				Settings->CurrentModel = Settings->AllModels[i];
-				break;
-			}
-		}
-
-		model = oldModel;
-		SetComputerModel();
-		Debugger->SetParams(cpu, memory, model);
-	}
-	else {
-		if (Settings->Snapshot->fileName)
-			delete [] Settings->Snapshot->fileName;
-		Settings->Snapshot->fileName = new char[(strlen(fileName) + 1)];
-		strcpy(Settings->Snapshot->fileName, fileName);
+		default:
+			return;
 	}
 
-	delete [] dest;
-	delete [] src;
-	delete [] buf;
-
-	return (flag == 0);
-}
-//---------------------------------------------------------------------------
-void TEmulator::PrepareSnapshot(const char *fileName)
-{
-	BYTE *buf  = new BYTE[SNAP_HEADER_LEN + 1];
-	BYTE *src  = new BYTE[SNAP_BLOCK_LEN];
-	BYTE *dest = new BYTE[SNAP_BLOCK_LEN];
-	int flag = -1, len, offset = SNAP_HEADER_LEN;
-
-	memset(buf, 0, SNAP_HEADER_LEN);
-	memcpy(buf, "PSN", 3);
-	*(buf + 3) = 1; // we have only one version now...
-	*(WORD *) (buf + 4) = SNAP_HEADER_LEN;
-	*(buf + 6) = (BYTE) model;
-
-	if (cpu)
-		cpu->GetChipState(buf + 7);
-	if (systemPIO)
-		systemPIO->GetChipState(buf + 30);
-
-	*(buf + 32) = *(buf + 33);
-	*(buf + 33) = 0;
-
-	if (ifGpio)
-		ifGpio->GetChipState(buf + 33);
-//	if (ifIms2)
-//		ifIms2->GetChipState(buf + 38);
-	if (ifTimer)
-		ifTimer->GetChipState(buf + 43);
-	if (ifTape) {
-		if (ifTape->GetModel() != CM_MATO)
-			((IifTapePMD85 *) ifTape)->GetChipState(buf + 52);
-	}
-
-	do {
-		if (WriteToFile(fileName, 0, SNAP_HEADER_LEN, buf, true) < 0)
-			break;
-
-		flag = 1;
-
-		// ROM block
-		if (Settings->Snapshot->saveWithMonitor) {
-			switch (model) {
-				case CM_V1:
-				case CM_V2:
-				case CM_ALFA:
-				case CM_ALFA2:
-				case CM_MATO:
-					memory->GetMem(src, 0x8000, monitorLength);
-					break;
-				case CM_V2A:
-				case CM_C2717:
-					memory->GetMem(src, 0x8000, monitorLength);
-					break;
-				case CM_V3:
-					memory->GetMem(src, 0xE000, monitorLength);
-					break;
-				default:
-					break;
-			}
-
-			if (Settings->Snapshot->saveCompressed)
-				len = PackBlock(dest, src, monitorLength);
-			else {
-				len = monitorLength;
-				memcpy(dest, src, len);
-			}
-
-			*(WORD *) (buf + 20) = (WORD) (len | ((len == monitorLength) ? 0x8000 : 0));
-			if (WriteToFile(fileName, offset, len, dest, false) != len)
-				break;
-
-			offset += len;
-		}
-
-		// block 0000h - 3FFFh
-		memory->GetMem(src, 0, SNAP_BLOCK_LEN);
-		if (Settings->Snapshot->saveCompressed)
-			len = PackBlock(dest, src, SNAP_BLOCK_LEN);
-		else {
-			len = SNAP_BLOCK_LEN;
-			memcpy(dest, src, len);
-		}
-
-		*(WORD *) (buf + 22) = (WORD) len;
-		if (WriteToFile(fileName, offset, len, dest, false) != len)
-			break;
-
-		offset += len;
-
-		// block 4000h - 7FFFh
-		memory->GetMem(src, 16384, SNAP_BLOCK_LEN);
-		if (Settings->Snapshot->saveCompressed)
-			len = PackBlock(dest, src, SNAP_BLOCK_LEN);
-		else {
-			len = SNAP_BLOCK_LEN;
-			memcpy(dest, src, len);
-		}
-
-		*(WORD *) (buf + 24) = (WORD) len;
-		if (WriteToFile(fileName, offset, len, dest, false) != len)
-			break;
-
-		offset += len;
-
-		// block 8000h - 0BFFFh
-		if (model == CM_V2A || model == CM_V3 || model == CM_C2717) {
-			memory->GetMem(src, 32768, SNAP_BLOCK_LEN);
-			if (Settings->Snapshot->saveCompressed)
-				len = PackBlock(dest, src, SNAP_BLOCK_LEN);
-			else {
-				len = SNAP_BLOCK_LEN;
-				memcpy(dest, src, len);
-			}
-
-			*(WORD *) (buf + 26) = (WORD) len;
-			if (WriteToFile(fileName, offset, len, dest, false) != len)
-				break;
-
-			offset += len;
-		}
-
-		// block 0C000h - 0FFFFh
-		memory->GetMem(src, 49152, SNAP_BLOCK_LEN);
-		if (Settings->Snapshot->saveCompressed)
-			len = PackBlock(dest, src, SNAP_BLOCK_LEN);
-		else {
-			len = SNAP_BLOCK_LEN;
-			memcpy(dest, src, len);
-		}
-
-		*(WORD *) (buf + 28) = (WORD) len;
-		if (WriteToFile(fileName, offset, len, dest, false) != len)
-			break;
-
-		if (WriteToFile(fileName, 0, SNAP_HEADER_LEN, buf, false) != SNAP_HEADER_LEN)
-			break;
-
-		flag = 0;
-	} while (false);
-
-	if (flag < 0)
-		GUI->MessageBox("Can't open file for writing!");
-	else if (flag > 1)
-		GUI->MessageBox("Error writing file!\nSnapshot could be corrupted!");
-	else {
-		if (Settings->Snapshot->fileName)
-			delete [] Settings->Snapshot->fileName;
-		Settings->Snapshot->fileName = new char[(strlen(fileName) + 1)];
-		strcpy(Settings->Snapshot->fileName, fileName);
-	}
-
-	delete [] dest;
-	delete [] src;
-	delete [] buf;
+	ConnectPMD32(false);
 }
 //---------------------------------------------------------------------------
 void TEmulator::InsertTape(const char *fileName, bool import)
@@ -2122,34 +1738,47 @@ void TEmulator::SaveTape(const char *fileName)
 	}
 }
 //---------------------------------------------------------------------------
-void TEmulator::InsertPMD32Disk(const char *fileName)
+void TEmulator::InsertRomModule(bool inserted)
 {
-	switch (pmd32workdrive) {
-		case 1:
-			delete [] Settings->PMD32->driveA.image;
-			Settings->PMD32->driveA.image = new char[strlen(fileName) + 1];
-			strcpy(Settings->PMD32->driveA.image, fileName);
-			break;
-		case 2:
-			delete [] Settings->PMD32->driveB.image;
-			Settings->PMD32->driveB.image = new char[strlen(fileName) + 1];
-			strcpy(Settings->PMD32->driveB.image, fileName);
-			break;
-		case 3:
-			delete [] Settings->PMD32->driveC.image;
-			Settings->PMD32->driveC.image = new char[strlen(fileName) + 1];
-			strcpy(Settings->PMD32->driveC.image, fileName);
-			break;
-		case 4:
-			delete [] Settings->PMD32->driveD.image;
-			Settings->PMD32->driveD.image = new char[strlen(fileName) + 1];
-			strcpy(Settings->PMD32->driveD.image, fileName);
-			break;
-		default:
-			return;
+	int i, count, sizeKB;
+	DWORD romPackSizeKB, kBadr;
+	TSettings::SetRomModuleFile **rl;
+	BYTE *buff;
+
+	if (romModule) {
+		cpu->RemoveDevice(ROM_MODULE_ADR);
+		cpu->RemoveDevice(MEGA_MODULE_ADR);
+		delete romModule;
+		romModule = NULL;
 	}
 
-	ConnectPMD32(false);
+	if (!inserted)
+		return;
+
+	romModule = new RomModule();
+	cpu->AddDevice(ROM_MODULE_ADR, ROM_MODULE_MASK, romModule, true);
+	romModule->RemoveRomPack();
+	romPackSizeKB = ROM_PACK_SIZE_KB;
+
+	rl = Settings->CurrentModel->romModule->files;
+	count = Settings->CurrentModel->romModule->count;
+
+	kBadr = 0;
+	buff = new BYTE[romPackSizeKB * KB];
+	for (i = 0; i < count && kBadr < romPackSizeKB; i++) {
+		sizeKB = (rl[i]->size + KB - 1) / KB;
+		if ((kBadr + sizeKB) > romPackSizeKB)
+			sizeKB = romPackSizeKB - kBadr;
+
+		memset(buff, 0xFF, sizeKB * KB);
+		if (ReadFromFile(LocateROM(rl[i]->rmmFile), 0, sizeKB * KB, buff) > 0) {
+			romModule->InsertRom((BYTE) kBadr, (BYTE) sizeKB, buff);
+		}
+
+		kBadr += sizeKB;
+	}
+
+	delete[] buff;
 }
 //---------------------------------------------------------------------------
 void TEmulator::ChangeROMFile(const char *fileName)
@@ -2171,6 +1800,47 @@ void TEmulator::ChangeROMFile(const char *fileName)
 	GUI->InvokeSettingsChange |= PS_MACHINE | PS_PERIPHERALS;
 
 	romChanged = true;
+}
+//---------------------------------------------------------------------------
+void TEmulator::InsertRomMegaModule(bool inserted)
+{
+	long size;
+	BYTE *buff;
+
+	if (romModule) {
+		cpu->RemoveDevice(ROM_MODULE_ADR);
+		cpu->RemoveDevice(MEGA_MODULE_ADR);
+		delete romModule;
+		romModule = NULL;
+	}
+
+	if (!inserted)
+		return;
+
+	romModule = new RomMegaModule();
+	cpu->AddDevice(ROM_MODULE_ADR, ROM_MODULE_MASK, romModule, true);
+	cpu->AddDevice(MEGA_MODULE_ADR, MEGA_MODULE_MASK, romModule, false);
+
+	char *mrmFile = LocateROM(Settings->CurrentModel->mrmFile);
+	if (mrmFile == NULL)
+		mrmFile = Settings->CurrentModel->mrmFile;
+	size = FileSize(mrmFile);
+	if (size < 0) {
+		warning("Emulator", "MEGAModule ROM file not found: \"%s\"", mrmFile ? mrmFile : "");
+		return;
+	}
+	if (size > 8 * KB * KB) {
+		warning("Emulator", "MEGAModule ROM file too large: \"%s\"", mrmFile ? mrmFile : "");
+		size = 8 * KB * KB;
+	}
+	buff = new BYTE[size];
+	memset(buff, 0xFF, size);
+	if (ReadFromFile(mrmFile, 0, size, buff) > 0)
+		static_cast<RomMegaModule *>(romModule)->LoadRom(size, buff);
+	else
+		warning("Emulator", "Error reading MEGAModule ROM file: \"%s\"", mrmFile ? mrmFile : "");
+
+	delete[] buff;
 }
 //---------------------------------------------------------------------------
 void TEmulator::ChangeMegaRomFile(const char *fileName)

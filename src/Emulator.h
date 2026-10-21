@@ -143,19 +143,21 @@ class TEmulator
 		int  loadRawFileTimeout;
 
 		void SetComputerModel(bool fromSnap = false, int snapRomLen = 0, BYTE *snapRom = NULL);
-		void InsertRomModule(bool inserted);
-		void InsertRomMegaModule(bool inserted);
 		void ConnectMIF85(bool init);
 		void ConnectMouse602(bool init);
 		void ConnectPMD32(bool init);
-		bool ProcessSnapshot(const char *fileName);
-		void PrepareSnapshot(const char *fileName);
+		void InsertPMD32Disk(const char *fileName);
 		void InsertTape(const char *fileName, bool import);
 		void SaveTape(const char *fileName);
-		void InsertPMD32Disk(const char *fileName);
+		void InsertRomModule(bool inserted);
 		void ChangeROMFile(const char *fileName);
+		void InsertRomMegaModule(bool inserted);
 		void ChangeMegaRomFile(const char *fileName);
 		void SelectRawFile(const char *fileName, bool save = false);
+
+		// Snapshot.cpp
+		bool LoadSnapshot(const char *fileName);
+		void SaveSnapshot(const char *fileName);
 };
 //---------------------------------------------------------------------------
 extern TEmulator *Emulator;
