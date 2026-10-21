@@ -83,10 +83,6 @@
 #define CHNL_TAPE           1
 #define CHNL_MIF85          2
 
-#define LED_YELLOW          1
-#define LED_RED             2
-#define LED_BLUE            4
-
 #define KM_SHIFT            0x200
 #define KM_CTRL             0x400
 #define KM_ALT              0x800
@@ -94,8 +90,6 @@
 #define KB                  1024
 #define CHUNK               128
 #define TAPE_BLOCK_SIZE     65535
-#define SNAP_BLOCK_LEN      16384
-#define SNAP_HEADER_LEN     56
 //-----------------------------------------------------------------------------
 enum TComputerModel { CM_UNKNOWN = -1, CM_V1 = 0, CM_V2, CM_V2A, CM_V3, CM_MATO, CM_ALFA, CM_ALFA2, CM_C2717, CM_LAST = CM_C2717 };
 enum TAutoStopType { AS_OFF = 0, AS_NEXTHEAD, AS_CURSOR };

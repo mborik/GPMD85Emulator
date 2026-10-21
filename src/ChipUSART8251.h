@@ -216,7 +216,7 @@ public:
 
 	sigslot::signal<bool> OnCwrWrite;
 
-	int GetChipState(BYTE *buffer);
+	int GetChipState(BYTE *buffer, bool extended);
 	void SetChipState(BYTE *buffer);
 
 protected:

@@ -276,6 +276,7 @@ add_library(gpmd85emu_core STATIC
 	src/RomMegaModule.cpp
 	src/Settings.cpp
 	src/ScreenPMD85.cpp
+	src/Snapshot.cpp
 	src/SoundDriver.cpp
 	src/SystemPIO.cpp
 	src/TapeBrowser.cpp

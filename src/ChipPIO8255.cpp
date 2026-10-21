@@ -85,9 +85,13 @@ void ChipPIO8255::ChipReset(bool clearNotifyFunc)
  * @param buffer buffer where the chip state is stored
  * @return number of bytes stored in the buffer
  */
-int ChipPIO8255::GetChipState(BYTE *buffer)
+int ChipPIO8255::GetChipState(BYTE *buffer, bool extended)
 {
+	int numOfBytes = 0;
+
 	if (buffer != NULL) {
+		numOfBytes = 5;
+
 		*buffer = CWR;
 		*(buffer + 1) = OutLatchC;
 		*(buffer + 2) = OutLatchB;
@@ -97,9 +101,19 @@ int ChipPIO8255::GetChipState(BYTE *buffer)
 			(InteAout ? 2 : 0) |
 			(InteB ? 4 : 0)
 		);
+
+		if (extended) {
+			numOfBytes = 10;
+
+			*(buffer + 5) = InBufferC;
+			*(buffer + 6) = InBufferB;
+			*(buffer + 7) = InLatchB;
+			*(buffer + 8) = InBufferA;
+			*(buffer + 9) = InLatchA;
+		}
 	}
 
-	return 5;
+	return numOfBytes;
 }
 //---------------------------------------------------------------------------
 /**

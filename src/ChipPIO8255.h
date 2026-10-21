@@ -95,7 +95,7 @@ public:
 	// constructor
 	ChipPIO8255(bool reset);
 
-	int GetChipState(BYTE *buffer);
+	int GetChipState(BYTE *buffer, bool extended);
 	void SetChipState(BYTE *buffer);
 
 	// notification functions
