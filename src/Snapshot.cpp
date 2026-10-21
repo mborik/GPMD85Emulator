@@ -53,6 +53,8 @@ void TEmulator::SaveSnapshot(const char *fileName) {
 	if (!cpu || !memory)
 		return;
 
+	ActionPlayPause(false, false);
+
 	// Remember the current memory mapping/paging
 	bool allRAM = memory->IsAllRAM();
 	bool remapped = memory->IsRemapped();
@@ -209,6 +211,8 @@ void TEmulator::SaveSnapshot(const char *fileName) {
 		Settings->Snapshot->fileName = new char[(strlen(fileName) + 1)];
 		strcpy(Settings->Snapshot->fileName, fileName);
 	}
+
+	ActionPlayPause(!Settings->isPaused, false);
 }
 //---------------------------------------------------------------------------
 bool TEmulator::LoadSnapshot(const char *fileName) {
@@ -221,6 +225,8 @@ bool TEmulator::LoadSnapshot(const char *fileName) {
 	bool oldMem256k = Settings->CurrentModel->ramExpansion256k;
 	bool oldVideoIntVGA = Settings->Screen->videoInterrupt;
 	bool oldMif85 = Settings->Sound->ifMIF85;
+
+	ActionPlayPause(false, false);
 
 	do {
 		// read Snapshot header signature
@@ -305,8 +311,7 @@ bool TEmulator::LoadSnapshot(const char *fileName) {
 				Settings->CurrentModel->ramExpansion256k = (snap->memMap != 0xff);
 			Settings->Screen->videoInterrupt =
 				(model <= CM_V3) ? (snap->videoIntVGA != 0xff) : false;
-			if (snap->mif85Int != 0xff)
-				Settings->Sound->ifMIF85 = true;
+			Settings->Sound->ifMIF85 = (snap->mif85Int != 0xff);
 		}
 		else {
 			Settings->CurrentModel->ramExpansion256k = false;
@@ -315,6 +320,7 @@ bool TEmulator::LoadSnapshot(const char *fileName) {
 
 		// set the computer model, cpu state
 		SetComputerModel((lenX > 0), lenX, dest);
+		ConnectMIF85(true);
 
 		if (!memory || !cpu) {
 			err = SNAP_INTERNAL_ERROR;
@@ -351,9 +357,6 @@ bool TEmulator::LoadSnapshot(const char *fileName) {
 */
 		}
 
-		if (model != CM_V3)
-			memory->ResetOn();
-
 		// preparation of individual blocks
 		int ramBlocks = (snap->version > 1 && memory->IsMem256()) ? 16 : 4;
 
@@ -374,7 +377,7 @@ bool TEmulator::LoadSnapshot(const char *fileName) {
 			if (i == 2 && !(model == CM_V2A || model == CM_V3 || model == CM_C2717))
 				continue;
 
-			len = (WORD) (*blockLengthsPtrs[i]);
+			len = static_cast<int>(*blockLengthsPtrs[i]);
 			if (len == 0)
 				continue;
 
@@ -411,6 +414,11 @@ bool TEmulator::LoadSnapshot(const char *fileName) {
 			}
 		}
 
+		if (model == CM_V2A || model == CM_V3)
+			Settings->CurrentModel->ramExpansion256k = oldMem256k;
+		Settings->Screen->videoInterrupt = oldVideoIntVGA;
+		Settings->Sound->ifMIF85 = oldMif85;
+
 		model = oldModel;
 		SetComputerModel();
 		Debugger->SetParams(cpu, memory, model);
@@ -429,6 +437,7 @@ bool TEmulator::LoadSnapshot(const char *fileName) {
 	if (dest)
 		delete [] dest;
 
+	ActionPlayPause(!Settings->isPaused, false);
 	return (err == SNAP_OK);
 }
 //---------------------------------------------------------------------------
