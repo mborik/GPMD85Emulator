@@ -262,7 +262,7 @@ bool ScreenPMD85::SaveScreenshot(const char *fileName, BYTE *videoRam)
 			delete[] data;
 		}
 
-		return result != 0;
+		return result > 0;
 	}
 
 	return false;
