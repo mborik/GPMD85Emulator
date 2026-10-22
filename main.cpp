@@ -136,8 +136,7 @@ int main(int argc, char** argv)
 	gdc.freq = desktop.refresh_rate;
 	gdc.format = desktop.format;
 	gdc.window = SDL_CreateWindow(PACKAGE_NAME,
-			SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 256, 256,
-			window_flags);
+		SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 640, window_flags);
 
 	if (!gdc.window)
 		error("", "Couldn't initialize window:\n\t%s", SDL_GetError());
