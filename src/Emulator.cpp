@@ -210,10 +210,10 @@ void TEmulator::ProcessArgvOptions(bool memModifiers)
 			Settings->PMD32->driveA.writeProtect = argv_config.p32_drvA_wp;
 		}
 		if (argv_config.p32_drvB) {
-			if (Settings->PMD32->driveD.image)
-				delete [] Settings->PMD32->driveD.image;
-			Settings->PMD32->driveD.image = ComposeFilePath(argv_config.p32_drvB);
-			Settings->PMD32->driveD.writeProtect = argv_config.p32_drvB_wp;
+			if (Settings->PMD32->driveB.image)
+				delete [] Settings->PMD32->driveB.image;
+			Settings->PMD32->driveB.image = ComposeFilePath(argv_config.p32_drvB);
+			Settings->PMD32->driveB.writeProtect = argv_config.p32_drvB_wp;
 		}
 		if (argv_config.p32_drvC) {
 			if (Settings->PMD32->driveC.image)
