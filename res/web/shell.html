@@ -44,8 +44,36 @@
 			});
 			reader.readAsArrayBuffer(file);
 		}
+		// Map URL query parameters (long command-line switches without dashes) to Module.arguments
+		const buildArguments = (query) => {
+			const valueParams = ['machine', 'megarom', 'scaler', 'border', 'halfpass', 'profile', 'volume',
+				'drive-a', 'drive-b', 'drive-c', 'drive-d', 'tape', 'snap', 'memblock', 'memblock-address', 'memblock-autorun'];
+			const flagParams = ['rmm', 'mif85', 'pmd32'];
+			const negFlagParams = ['drive-a-write', 'drive-b-write', 'drive-c-write', 'drive-d-write', 'tape-real'];
+			const isFalse = (v) => ['0', 'false', 'no', 'off'].includes(v.trim().toLowerCase());
+			const args = [];
+			const params = new URLSearchParams(query);
+			params.forEach((value, key) => {
+				if (valueParams.includes(key)) {
+					if (value !== '') { args.push('--' + key, value); }
+				}
+				else if (flagParams.includes(key)) {
+					if (!isFalse(value)) { args.push('--' + key); }
+				}
+				else if (negFlagParams.includes(key)) {
+					if (isFalse(value)) { args.push('--' + key); }
+				}
+			});
+			// presetting emulator by query overrides user's configuration by default
+			if (args.length) {
+				const over = params.get('over-cfg');
+				if (over === null || !isFalse(over)) { args.push('--over-cfg'); }
+			}
+			return args;
+		};
 		var Module = {
 			canvas: document.getElementById('canvas'),
+			arguments: buildArguments(window.location.search),
 			print: function (t) { console.log(t); },
 			printErr: function (t) { console.error(t); },
 			setStatus: function (t) {
