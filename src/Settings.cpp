@@ -240,6 +240,7 @@ TSettings::TSettings(bool userCfg)
 	n = cfgFindSection(cfgRoot, "Snapshot");
 
 	Snapshot = new SetSnapshot;
+	Snapshot->saveOldVersion = cfgGetBoolValue(n, "save-old-version", false, &(Snapshot->saveOldVersion));
 	Snapshot->saveWithMonitor = cfgGetBoolValue(n, "save-snapshot-with-monitor", false, &(Snapshot->saveWithMonitor));
 	Snapshot->saveCompressed = cfgGetBoolValue(n, "save-snapshot-compressed", true, &(Snapshot->saveCompressed));
 	Snapshot->dontRunOnLoad = cfgGetBoolValue(n, "dont-run-snapshot-on-load", false, &(Snapshot->dontRunOnLoad));
@@ -454,6 +455,7 @@ TSettings::TSettings(bool userCfg)
 	Screen->attr11 = cfgGetColorValue(n, "attr11", YELLOW, &(Screen->attr11));
 
 	Screen->videoInterrupt = cfgGetBoolValue(n, "video-interrupt", false, &(Screen->videoInterrupt));
+	Screen->fileName = cfgGetStringValue(n, "recent-file", &(Screen->fileName));
 
 //# Sound settings
 	n = cfgFindSection(cfgRoot, "Sound");
@@ -688,9 +690,15 @@ TSettings::~TSettings()
 		delete GUI;
 	GUI = NULL;
 
-	if (Screen)
+	if (Screen) {
+		if (Screen->fileName) {
+			delete [] Screen->fileName;
+			Screen->fileName = NULL;
+		}
+
 		delete Screen;
-	Screen = NULL;
+		Screen = NULL;
+	}
 
 	if (Sound)
 		delete Sound;

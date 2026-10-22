@@ -81,6 +81,7 @@ public:
 
 	void RefreshDisplay();
 	void FillBuffer(BYTE *videoRam, bool needRedraw = true);
+	bool SaveScreenshot(const char *fileName, BYTE *videoRam = NULL);
 
 	ImVec2 GetBorderOffset() { return ImVec2((float) borderSize, (float) borderSize); }
 	ImVec2 GetWindowSize() { return ImVec2((float) windowWidth, (float) windowHeight); }

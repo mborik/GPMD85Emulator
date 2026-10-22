@@ -132,6 +132,10 @@ class UserInterface
 		bool isAnyPopupWindowFocused;
 		bool isEmulatorWindowFocused;
 		bool triggerMachineMenuOpen;
+
+		bool joyConfigDialogShouldOpen;
+		BYTE joyConfigDialogForGPIO;
+
 		bool dialogAboutOpened;
 		bool dialogMemDumpOpened;
 		bool dialogDebugOpened;
@@ -180,6 +184,10 @@ class UserInterface
 		void DrawMenu();
 		void MachineMenuItem(const char *name, TComputerModel model);
 		void AttributeMenuItems(bool enabled = false);
+
+		void DrawJoystickMenuItems(bool enabled = false);
+		void DrawJoystickConfigDialog();
+
 		void DiskImagesMenuItems(bool inMenu = false);
 		void DrawDiskImagesDialog();
 

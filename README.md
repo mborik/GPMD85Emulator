@@ -23,7 +23,9 @@ an 8-bit personal microcomputer produced in 1980s in former Czechoslovakia
 - **Dear ImGui** by Omar Cornut,
   [see license](https://github.com/ocornut/imgui/blob/master/LICENSE.txt)
 - **sigslot** by Pierre-Antoine Lacaze,
-  [see source](https://github.com/palacaze/sigslot/blob/master/LICENSE)
+  [see license](https://github.com/palacaze/sigslot/blob/master/LICENSE)
+- **stb_image_write** by Sean Barrett,
+  [see license](https://github.com/nothings/stb/blob/master/LICENSE)
 
 ## HOTKEYS:
 - function `[f]` keys are any of Alt, Win, Mac or Meta keys

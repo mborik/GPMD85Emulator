@@ -54,6 +54,7 @@ class TSettings
 			char *mrmFile;
 		};
 		struct SetSnapshot {
+			bool saveOldVersion;
 			bool saveCompressed;
 			bool saveWithMonitor;
 			bool dontRunOnLoad;
@@ -91,6 +92,7 @@ class TSettings
 			TColor attr10;
 			TColor attr11;
 			bool videoInterrupt;
+			char *fileName;
 		};
 		struct SetSound {
 			int  volume;

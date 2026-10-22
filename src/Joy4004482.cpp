@@ -26,11 +26,7 @@
 Joy4004482::Joy4004482(IifGPIO *pio, TSettings::SetJoystick* settings) :
 	pio(pio),
 	settings(settings),
-	joy{{ NULL, NULL, false, 0 }, { NULL, NULL, false, 0 }},
-	joyCnt(0),
-	sameDev(false)
-{
-}
+	joy{{ NULL, NULL, false, 0 }, { NULL, NULL, false, 0 }} {}
 //---------------------------------------------------------------------------
 Joy4004482::~Joy4004482()
 {
@@ -89,6 +85,7 @@ int Joy4004482::GetControllers(SDL_GameController ***controllers, bool refresh)
 					SDL_GameControllerClose(deviceList[ii]);
 			}
 			free(deviceList);
+			deviceNames.clear();
 
 			for (int ii = 0; ii < joyCnt; ii++) {
 				joy[ii].initialized = false;
@@ -103,10 +100,26 @@ int Joy4004482::GetControllers(SDL_GameController ***controllers, bool refresh)
 			if (SDL_IsGameController(ii)) {
 				SDL_GameController *controller = SDL_GameControllerOpen(ii);
 				deviceList = (SDL_GameController **) realloc(deviceList, (deviceCount + 1) * sizeof(SDL_GameController *));
-				deviceList[deviceCount++] = controller;
+				deviceList[deviceCount] = controller;
 
-				debug("Joystick", "Detected controller %d: %s [%s]", deviceCount,
-					SDL_GameControllerName(controller), SDL_GameControllerGetSerial(controller));
+				const char *deviceName = SDL_GameControllerName(controller);
+				const char *guid = GetControllerGUID(controller);
+
+				BYTE guidCRC = 0;
+				for (int i = 0; i < strlen(guid); i++)
+					guidCRC ^= guid[i];
+
+				if (!deviceName || guidCRC == 0 || deviceNames.find(guid) != deviceNames.end()) {
+					SDL_GameControllerClose(controller);
+					warning("Joystick", "Duplicate or invalid controller: %s [%s]", deviceName ? deviceName : "Undefined", guid);
+					continue;
+				}
+
+				deviceNames[guid] = deviceName;
+				debug("Joystick", "Detected controller %d: %s [%s]",
+					deviceCount + 1, deviceName, guid);
+
+				deviceCount++;
 			}
 		}
 	}
@@ -166,7 +179,8 @@ void Joy4004482::ScanJoy(BYTE *KeyBuffer)
 
 			if (joy[ii].map->guid && joy[ii].map->guid[0] != '\0') {
 				for (int jj = 0; jj < devCount; jj++) {
-					if (CompareNoCase(joy[ii].map->guid, SDL_GameControllerGetSerial(controllers[jj])) == 0) {
+					const char *guid = GetControllerGUID(controllers[jj]);
+					if (CompareNoCase(joy[ii].map->guid, guid) == 0) {
 						joy[ii].controller = controllers[jj];
 						break;
 					}
@@ -174,9 +188,10 @@ void Joy4004482::ScanJoy(BYTE *KeyBuffer)
 			}
 			if (!joy[ii].controller) {
 				joy[ii].controller = controllers[0];
-				const char *guid = SDL_GameControllerGetSerial(joy[ii].controller);
-				joy[ii].map->guid = new char[strlen(guid) + 1];
-				strcpy(joy[ii].map->guid, guid);
+				const char *guid = GetControllerGUID(joy[ii].controller);
+				size_t guidlen = strlen(guid) + 1;
+				joy[ii].map->guid = (char *) realloc(joy[ii].map->guid, guidlen * sizeof(char));
+				std::strncpy(joy[ii].map->guid, guid, guidlen);
 			}
 
 			joy[ii].initialized = (SDL_GameControllerEventState(SDL_ENABLE) == SDL_ENABLE);
@@ -190,6 +205,15 @@ void Joy4004482::ScanJoy(BYTE *KeyBuffer)
 		ScanJoyAxis(&joy[ii]);
 		ScanJoyButtons(&joy[ii], true);
 	}
+}
+//---------------------------------------------------------------------------
+const char *Joy4004482::GetControllerGUID(SDL_GameController *controller)
+{
+	static char guidStr[65];
+	SDL_Joystick *joy = SDL_GameControllerGetJoystick(controller);
+	SDL_JoystickGUID guid = SDL_JoystickGetGUID(joy);
+	SDL_JoystickGetGUIDString(guid, guidStr, sizeof(guidStr));
+	return (const char *) guidStr;
 }
 //---------------------------------------------------------------------------
 void Joy4004482::ScanJoyKey(JOY *joy, BYTE *keyBuffer)
@@ -214,10 +238,17 @@ void Joy4004482::ScanJoyButtons(JOY *joy, bool onlyFire)
 {
 	BYTE value;
 
-	static const SDL_GameControllerButton mapping[2][4] = {
-		{ SDL_CONTROLLER_BUTTON_DPAD_UP, SDL_CONTROLLER_BUTTON_DPAD_DOWN, SDL_CONTROLLER_BUTTON_DPAD_LEFT, SDL_CONTROLLER_BUTTON_DPAD_RIGHT },
-		{ SDL_CONTROLLER_BUTTON_Y, SDL_CONTROLLER_BUTTON_A, SDL_CONTROLLER_BUTTON_X, SDL_CONTROLLER_BUTTON_B }
-	};
+	static const SDL_GameControllerButton mapping[2][4] = {{
+		SDL_CONTROLLER_BUTTON_DPAD_UP,
+		SDL_CONTROLLER_BUTTON_DPAD_DOWN,
+		SDL_CONTROLLER_BUTTON_DPAD_LEFT,
+		SDL_CONTROLLER_BUTTON_DPAD_RIGHT
+	}, {
+		SDL_CONTROLLER_BUTTON_Y,
+		SDL_CONTROLLER_BUTTON_A,
+		SDL_CONTROLLER_BUTTON_X,
+		SDL_CONTROLLER_BUTTON_B
+	}};
 
 	if (onlyFire)
 		value = (BYTE) (joy->value | ~JOY_MASK_FIRE);
@@ -237,9 +268,9 @@ void Joy4004482::ScanJoyButtons(JOY *joy, bool onlyFire)
 
 	if (joy->map->type == JT_BUTTONS) {
 		if (SDL_GameControllerGetButton(joy->controller, SDL_CONTROLLER_BUTTON_LEFTSHOULDER)
-			|| SDL_GameControllerGetButton(joy->controller, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER)
-			|| SDL_GameControllerGetButton(joy->controller, SDL_CONTROLLER_BUTTON_LEFTSTICK)
-			|| SDL_GameControllerGetButton(joy->controller, SDL_CONTROLLER_BUTTON_RIGHTSTICK))
+		 || SDL_GameControllerGetButton(joy->controller, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER)
+		 || SDL_GameControllerGetButton(joy->controller, SDL_CONTROLLER_BUTTON_LEFTSTICK)
+		 || SDL_GameControllerGetButton(joy->controller, SDL_CONTROLLER_BUTTON_RIGHTSTICK))
 				value &= JOY_MASK_FIRE;
 	}
 	else {

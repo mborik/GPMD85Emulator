@@ -57,7 +57,7 @@ namespace ImGui
         void SetWindowPos(int posX, int posY) noexcept;
 
         // set the window size (in pixels)
-        // default is (700, 450)
+        // default is (600, 400)
         void SetWindowSize(int width, int height) noexcept;
 
         // set the window title text
@@ -220,8 +220,8 @@ namespace ImGui
 } // namespace ImGui
 
 inline ImGui::FileBrowser::FileBrowser(ImGuiFileBrowserFlags flags, std::filesystem::path defaultDirectory)
-    : width_(700)
-    , height_(450)
+    : width_(600)
+    , height_(400)
     , posX_(0)
     , posY_(0)
     , flags_(flags)

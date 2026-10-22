@@ -287,6 +287,7 @@ add_library(gpmd85emu_core STATIC
 	src/RomMegaModule.cpp
 	src/Settings.cpp
 	src/ScreenPMD85.cpp
+	src/Snapshot.cpp
 	src/SoundDriver.cpp
 	src/SystemPIO.cpp
 	src/TapeBrowser.cpp
@@ -332,6 +333,7 @@ add_library(gpmd85emu_gui STATIC
 	gui/DebugDialog.cpp
 	gui/DiskImagesDialog.cpp
 	gui/FileSelector.cpp
+	gui/JoystickConfig.cpp
 	gui/MemDumpDialog.cpp
 	gui/MemEditDialog.cpp
 	gui/MemMapDialog.cpp

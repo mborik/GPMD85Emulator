@@ -45,16 +45,42 @@ ChipUSART8251::ChipUSART8251()
  * @param buffer buffer where the chip state is stored
  * @return number of bytes stored in the buffer
  */
-int ChipUSART8251::GetChipState(BYTE *buffer)
+int ChipUSART8251::GetChipState(BYTE *buffer, bool extended)
 {
+	int numOfBytes = 0;
+
 	if (buffer != NULL) {
+		numOfBytes = 4;
+
 		*buffer = CWR;
 		*(buffer + 1) = SyncChar1;
 		*(buffer + 2) = SyncChar2;
 		*(buffer + 3) = Command;
+
+		if (extended) {
+			numOfBytes = 12;
+
+			*(buffer + 4) = (BYTE) (
+				(StatusTxR ? TXRDY_EMPTY : TXRDY_FULL)
+					| (StatusRxR ? RXRDY_YES : RXRDY_NO)
+					| (StatusTxE ? TXE_EMPTY : TXE_FULL)
+					| (ParityError ? PE_YES : PE_NO)
+					| (OverrunError ? OE_YES : OE_NO)
+					| (FrameError ? FE_YES : FE_NO)
+					| (SynDetState ? SYNDET_YES : SYNDET_NO)
+					| (_DSR ? DSR_OFF : DSR_ON));
+
+			*(buffer + 5) = _CTS ? 1 : 0;
+			*(buffer + 6) = TxChar;
+			*(buffer + 7) = TxShift;
+			*(buffer + 8) = TxBitCounter;
+			*(buffer + 9) = RxShift;
+			*(buffer + 10) = RxShift;
+			*(buffer + 11) = RxBitCounter;
+		}
 	}
 
-	return 4;
+	return numOfBytes;
 }
 //---------------------------------------------------------------------------
 /**

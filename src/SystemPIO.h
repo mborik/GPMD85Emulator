@@ -28,7 +28,9 @@
 #include "ChipPIO8255.h"
 #include "ChipMemory.h"
 //---------------------------------------------------------------------------
-#define BEEP_FREQ_SEPARATED
+#define LED_YELLOW        1
+#define LED_RED           2
+#define LED_BLUE          4
 
 #define SYSTEM_PIO_MASK   0x8C
 #define SYSTEM_PIO_ADR    0x84
@@ -39,7 +41,8 @@
 #define SYSTEM_REG_C      0x86
 #define SYSTEM_REG_CWR    0x87
 
-#ifdef BEEP_FREQ_SEPARATED
+#define BEEP_FREQ_SEPARATED
+#ifdef  BEEP_FREQ_SEPARATED
 #define HALF_PERIOD_1KH   ((CPU_FREQ / 1000) / 2) // 1 kHz  (R9 from horizontal synchronization)
 #define HALF_PERIOD_4KH   ((CPU_FREQ / 4000) / 2) // 4 kHz  (R7 from horizontal synchronization)
 #else

@@ -97,7 +97,7 @@ public:
 	void CpuWrite(TPITCounter dest, BYTE val);
 	BYTE CpuRead(TPITCounter src);
 
-	int GetChipState(BYTE *buffer);
+	int GetChipState(BYTE *buffer, int bufLen);
 	void SetChipState(BYTE *buffer);
 
 	COUNTER Counters[3];

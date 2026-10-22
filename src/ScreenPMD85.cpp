@@ -30,6 +30,9 @@
 #  include "SDL_opengl.h"
 #endif
 //-----------------------------------------------------------------------------
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
+//-----------------------------------------------------------------------------
 ScreenPMD85::ScreenPMD85(TDisplayMode dispMode, int border)
 {
 	screenPixelBuffer = NULL;
@@ -238,6 +241,31 @@ void ScreenPMD85::FillBuffer(BYTE *videoRam, bool needRedraw)
 	}
 
 	SDL_UnlockMutex(displayModeMutex);
+}
+//---------------------------------------------------------------------------
+bool ScreenPMD85::SaveScreenshot(const char *fileName, BYTE *videoRam)
+{
+	const char *ext = strrchr(fileName, '.');
+	if (ext) {
+		int result = 0;
+		if (CompareNoCase(ext, ".png") == 0)
+			result = stbi_write_png(fileName, bufferWidth, bufferHeight, 4, screenPixelBuffer, bufferWidth * 4);
+		else if (CompareNoCase(ext, ".bmp") == 0)
+			result = stbi_write_bmp(fileName, bufferWidth, bufferHeight, 4, screenPixelBuffer);
+		else {
+			BYTE *data = new BYTE[16384];
+			memcpy(data, videoRam, 16384);
+			for (BYTE *ptr = data + 48; ptr < data + 16384; ptr += 64)
+				memset(ptr, 0, 16);
+
+			result = WriteToFile(fileName, 0, 16384, data, true);
+			delete[] data;
+		}
+
+		return result > 0;
+	}
+
+	return false;
 }
 //---------------------------------------------------------------------------
 void ScreenPMD85::InitVideoMode(TDisplayMode reqDispMode, bool reqWidth384)

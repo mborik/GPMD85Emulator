@@ -41,7 +41,9 @@ UserInterface::UserInterface()
 
 	isMenuHovered = false;
 	isEmulatorWindowFocused = false;
+	isAnyPopupWindowFocused = false;
 	triggerMachineMenuOpen = false;
+
 	dialogAboutOpened = false;
 	dialogDebugOpened = false;
 	dialogDebugFocused = false;
@@ -50,6 +52,9 @@ UserInterface::UserInterface()
 	queryDialogMessage = NULL;
 	queryDialogSaveType = false;
 	queryDialogShouldOpen = false;
+
+	joyConfigDialogShouldOpen = false;
+	joyConfigDialogForGPIO = GP_GPIO_0;
 
 	memDumpDialogSaveType = false;
 	memDumpDialogShouldOpen = false;
@@ -144,6 +149,7 @@ void UserInterface::Draw()
 	DrawAboutDialog();
 	DrawQueryDialog();
 	DrawFileSelector();
+	DrawJoystickConfigDialog();
 	DrawDiskImagesDialog();
 	DrawMemDumpDialog();
 	DrawMemEditDialog();
@@ -164,6 +170,7 @@ void UserInterface::DrawEmulatorWindow()
 	if (!screenInstance)
 		return;
 
+	ImVec2 center = ImGui::GetMainViewport()->GetCenter() + ImVec2(0.0f, GetTextLineHeight(0.5, 0.0f));
 	ImVec2 screen_size = screenInstance->GetScreenSize();
 	ImVec2 window_size = screenInstance->GetWindowSize();
 	ImVec2 border_offset = screenInstance->GetBorderOffset();
@@ -172,6 +179,7 @@ void UserInterface::DrawEmulatorWindow()
 	window_size.y += ImGui::GetTextLineHeightWithSpacing() + STATUSBAR_HEIGHT;
 
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+	ImGui::SetNextWindowPos(center, ImGuiCond_FirstUseEver, ImVec2(0.5f, 0.5f));
 	ImGui::SetNextWindowSize(window_size, ImGuiCond_Always);
 	ImGui::Begin(PACKAGE_NAME, NULL, window_flags);
 

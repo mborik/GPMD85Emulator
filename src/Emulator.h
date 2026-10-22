@@ -82,10 +82,10 @@ class TEmulator
 		void ActionPMD32Update();
 		void ActionSnapLoad();
 		void ActionSnapSave();
-		void ActionRawFile(bool save);
 		void ActionROMLoad();
 		void ActionMegaRomLoad();
-		int  ActionMegaModulePage(bool set = false, BYTE page = 0);
+		void ActionRawFile(bool save);
+		void ActionScreenshot();
 
 		void ActionReset();
 		void ActionHardReset();
@@ -93,8 +93,16 @@ class TEmulator
 		void ActionPlayPause();
 		void ActionPlayPause(bool play, bool globalChange = true);
 		void ActionSizeChange(int mode);
-		void ActionMouseState(int x, int y, int leftBtn = 0, int rightBtn = 0, int middleBtn = 0);
-		int  ActionJoyControllers(SDL_GameController ***controllers = NULL, bool refresh = false);
+		int  ActionMegaModulePage(bool set = false, BYTE page = 0);
+
+		inline void ActionMouseState(int x, int y, int leftBtn = 0, int rightBtn = 0, int middleBtn = 0)
+			{ if (mouse602) mouse602->SetMouseState(x, y, leftBtn, rightBtn, middleBtn); }
+		inline int ActionJoyControllers(SDL_GameController ***controllers = nullptr, bool refresh = false)
+			{ return joystick ? joystick->GetControllers(controllers, refresh) : 0; }
+		inline const char *GetControllerName(const char *guid)
+			{ return joystick ? joystick->GetControllerName(guid) : nullptr; }
+		inline const auto *GetControllerDeviceNames() const
+			{ return joystick ? &joystick->GetDeviceNames() : nullptr; }
 
 		sigslot::signal<> actionCallback;
 
@@ -135,19 +143,21 @@ class TEmulator
 		int  loadRawFileTimeout;
 
 		void SetComputerModel(bool fromSnap = false, int snapRomLen = 0, BYTE *snapRom = NULL);
-		void InsertRomModule(bool inserted);
-		void InsertRomMegaModule(bool inserted);
 		void ConnectMIF85(bool init);
 		void ConnectMouse602(bool init);
 		void ConnectPMD32(bool init);
-		bool ProcessSnapshot(const char *fileName);
-		void PrepareSnapshot(const char *fileName);
+		void InsertPMD32Disk(const char *fileName);
 		void InsertTape(const char *fileName, bool import);
 		void SaveTape(const char *fileName);
-		void InsertPMD32Disk(const char *fileName);
+		void InsertRomModule(bool inserted);
 		void ChangeROMFile(const char *fileName);
+		void InsertRomMegaModule(bool inserted);
 		void ChangeMegaRomFile(const char *fileName);
 		void SelectRawFile(const char *fileName, bool save = false);
+
+		// Snapshot.cpp
+		bool LoadSnapshot(const char *fileName);
+		void SaveSnapshot(const char *fileName);
 };
 //---------------------------------------------------------------------------
 extern TEmulator *Emulator;

@@ -73,6 +73,7 @@ void UserInterface::DrawMenu()
 				ImGui::Separator();
 				ImGui::MenuItem("Save Compressed", NULL, &Settings->Snapshot->saveCompressed);
 				ImGui::MenuItem("Include ROM in Snapshot", NULL, &Settings->Snapshot->saveWithMonitor);
+				ImGui::MenuItem("Save old Snapshot format", NULL, &Settings->Snapshot->saveOldVersion);
 				ImGui::EndMenu();
 			}
 
@@ -85,10 +86,12 @@ void UserInterface::DrawMenu()
 			}
 			ImGui::MenuItem("Memory Editor", NULL, &Settings->GUI->dialogMemEditOpened);
 			ImGui::MenuItem("Memory Map", NULL, &Settings->GUI->dialogMemMapOpened);
-/*
+
 			ImGui::Separator();
-			if (ImGui::MenuItem("Save Screenshot…")) { } // TODO
-*/
+			if (ImGui::MenuItem("Save Screenshot…")) {
+				Emulator->ActionScreenshot();
+			}
+
 			ImGui::Separator();
 			if (ImGui::MenuItem("About…", MOD_KEY("F1"))) {
 				Execute(GE_ABOUT);
@@ -402,14 +405,15 @@ void UserInterface::DrawMenu()
 			}
 
 			ImGui::PopItemFlag();
-
-			itemAccessible = accessibleForPMD85 || Settings->CurrentModel->type == CM_V3;
 			ImGui::SeparatorText("Peripherals");
-			if (ImGui::BeginMenu("Joystick 4004/482")) {
-				// TODO joysticks are too complex :/
-				ImGui::TextDisabled("TODO");
+
+			itemAccessible = Settings->CurrentModel->type != CM_MATO;
+			if (ImGui::BeginMenu("Joystick 4004/482", itemAccessible)) {
+				DrawJoystickMenuItems(itemAccessible);
 				ImGui::EndMenu();
 			}
+
+			itemAccessible = accessibleForPMD85 || Settings->CurrentModel->type == CM_C2717;
 			if (ImGui::BeginMenu("Mouse 602", itemAccessible)) {
 				bool state = Settings->Mouse->type == MT_M602;
 				if (ImGui::MenuItem("Connected", NULL, &state)) {

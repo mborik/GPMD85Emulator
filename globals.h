@@ -36,6 +36,7 @@
 #include <cctype>
 #include <string>
 #include <vector>
+#include <map>
 //-----------------------------------------------------------------------------
 #if defined(PATH_MAX)
 #  define MAX_PATH PATH_MAX
@@ -82,10 +83,6 @@
 #define CHNL_TAPE           1
 #define CHNL_MIF85          2
 
-#define LED_YELLOW          1
-#define LED_RED             2
-#define LED_BLUE            4
-
 #define KM_SHIFT            0x200
 #define KM_CTRL             0x400
 #define KM_ALT              0x800
@@ -93,14 +90,11 @@
 #define KB                  1024
 #define CHUNK               128
 #define TAPE_BLOCK_SIZE     65535
-#define SNAP_BLOCK_LEN      16384
-#define SNAP_HEADER_LEN     56
 //-----------------------------------------------------------------------------
 enum TComputerModel { CM_UNKNOWN = -1, CM_V1 = 0, CM_V2, CM_V2A, CM_V3, CM_MATO, CM_ALFA, CM_ALFA2, CM_C2717, CM_LAST = CM_C2717 };
 enum TAutoStopType { AS_OFF = 0, AS_NEXTHEAD, AS_CURSOR };
 enum TGpioPort { GP_GPIO_0 = 0, GP_GPIO_1 };
 enum TJoyType { JT_NONE = -1, JT_KEYS = 0, JT_POV, JT_AXES, JT_BUTTONS };
-enum TJoyKeyMap { JKM_NUMPAD, JKM_CURSORS, JKM_QAOP, JKM_WASD };
 enum TMouseType { MT_NONE = -1, MT_M602 = 0 };
 enum TDisplayMode { DM_NORMAL = 1, DM_DOUBLESIZE, DM_TRIPLESIZE, DM_QUADRUPLESIZE, DM_QUINTUPLESIZE,  DM_FULLSCREEN = 0 };
 enum TColorProfile { CP_MONO, CP_STANDARD, CP_COLOR, CP_COLORACE };

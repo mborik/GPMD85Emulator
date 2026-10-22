@@ -65,36 +65,73 @@ ChipPIT8253::ChipPIT8253()
  * @param buffer buffer where chip status will be saved
  * @return number of bytes saved into buffer
  */
-int ChipPIT8253::GetChipState(BYTE *buffer)
+int ChipPIT8253::GetChipState(BYTE *buffer, int bufLen)
 {
-	if (buffer != NULL) {
-		*(buffer + 0) = Counters[0].CWR;
-		*(buffer + 1) = (BYTE)(Counters[0].InitValue & 0xFF);
-		*(buffer + 2) = (BYTE)((Counters[0].InitValue >> 8) & 0xFF);
-		*(buffer + 3) = Counters[1].CWR;
-		*(buffer + 4) = (BYTE)(Counters[1].InitValue & 0xFF);
-		*(buffer + 5) = (BYTE)((Counters[1].InitValue >> 8) & 0xFF);
-		*(buffer + 6) = Counters[2].CWR;
-		*(buffer + 7) = (BYTE)(Counters[2].InitValue & 0xFF);
-		*(buffer + 8) = (BYTE)((Counters[2].InitValue >> 8) & 0xFF);
+	if (!buffer || bufLen == 0)
+		return 0;
 
-		*(buffer + 9) = (BYTE)(Counters[0].CounterValue & 0xFF);
-		*(buffer + 10) = (BYTE)((Counters[0].CounterValue >> 8) & 0xFF);
-		*(buffer + 11) = (BYTE)(Counters[1].CounterValue & 0xFF);
-		*(buffer + 12) = (BYTE)((Counters[1].CounterValue >> 8) & 0xFF);
-		*(buffer + 13) = (BYTE)(Counters[2].CounterValue & 0xFF);
-		*(buffer + 14) = (BYTE)((Counters[2].CounterValue >> 8) & 0xFF);
+	*(buffer + 0) = Counters[0].CWR;
+	if (bufLen == 1)
+		return 1;
+	*(buffer + 1) = (BYTE)(Counters[0].InitValue & 0xFF);
+	if (bufLen == 2)
+		return 2;
+	*(buffer + 2) = (BYTE)((Counters[0].InitValue >> 8) & 0xFF);
+	if (bufLen == 3)
+		return 3;
+	*(buffer + 3) = Counters[1].CWR;
+	if (bufLen == 4)
+		return 4;
+	*(buffer + 4) = (BYTE)(Counters[1].InitValue & 0xFF);
+	if (bufLen == 5)
+		return 5;
+	*(buffer + 5) = (BYTE)((Counters[1].InitValue >> 8) & 0xFF);
+	if (bufLen == 6)
+		return 6;
+	*(buffer + 6) = Counters[2].CWR;
+	if (bufLen == 7)
+		return 7;
+	*(buffer + 7) = (BYTE)(Counters[2].InitValue & 0xFF);
+	if (bufLen == 8)
+		return 8;
+	*(buffer + 8) = (BYTE)((Counters[2].InitValue >> 8) & 0xFF);
+	if (bufLen == 9)
+		return 9;
 
-		*(buffer + 15) = (BYTE)(((Counters[0].Out) ? STAT_OUT  : 0)
-		                    |  ((Counters[0].Gate) ? STAT_GATE : 0)
-		                    | ((Counters[0].Clock) ? STAT_CLK  : 0));
-		*(buffer + 16) = (BYTE)(((Counters[1].Out) ? STAT_OUT  : 0)
-		                    |  ((Counters[1].Gate) ? STAT_GATE : 0)
-		                    | ((Counters[1].Clock) ? STAT_CLK  : 0));
-		*(buffer + 17) = (BYTE)(((Counters[2].Out) ? STAT_OUT  : 0)
-		                    |  ((Counters[2].Gate) ? STAT_GATE : 0)
-		                    | ((Counters[2].Clock) ? STAT_CLK  : 0));
-	}
+	*(buffer + 9) = (BYTE)(Counters[0].CounterValue & 0xFF);
+	if (bufLen == 10)
+		return 10;
+	*(buffer + 10) = (BYTE)((Counters[0].CounterValue >> 8) & 0xFF);
+	if (bufLen == 11)
+		return 11;
+	*(buffer + 11) = (BYTE)(Counters[1].CounterValue & 0xFF);
+	if (bufLen == 12)
+		return 12;
+	*(buffer + 12) = (BYTE)((Counters[1].CounterValue >> 8) & 0xFF);
+	if (bufLen == 13)
+		return 13;
+	*(buffer + 13) = (BYTE)(Counters[2].CounterValue & 0xFF);
+	if (bufLen == 14)
+		return 14;
+	*(buffer + 14) = (BYTE)((Counters[2].CounterValue >> 8) & 0xFF);
+	if (bufLen == 15)
+		return 15;
+
+	*(buffer + 15) = (BYTE)(((Counters[0].Out) ? STAT_OUT  : 0)
+	                    |  ((Counters[0].Gate) ? STAT_GATE : 0)
+	                    | ((Counters[0].Clock) ? STAT_CLK  : 0));
+	if (bufLen == 16)
+		return 16;
+
+	*(buffer + 16) = (BYTE)(((Counters[1].Out) ? STAT_OUT  : 0)
+	                    |  ((Counters[1].Gate) ? STAT_GATE : 0)
+	                    | ((Counters[1].Clock) ? STAT_CLK  : 0));
+	if (bufLen == 17)
+		return 17;
+
+	*(buffer + 17) = (BYTE)(((Counters[2].Out) ? STAT_OUT  : 0)
+	                    |  ((Counters[2].Gate) ? STAT_GATE : 0)
+	                    | ((Counters[2].Clock) ? STAT_CLK  : 0));
 
 	return 18;
 }
