@@ -24,6 +24,9 @@
 #include "ArgvParser.h"
 #include "CommonUtils.h"
 #include "Emulator.h"
+#ifdef __EMSCRIPTEN__
+#include "imgui-mods/emscripten_stubs.h"
+#endif
 //-----------------------------------------------------------------------------
 TEmulator *Emulator;
 //-----------------------------------------------------------------------------
@@ -1246,6 +1249,16 @@ void TEmulator::ActionScreenshot()
 	if (!video || !memory)
 		return;
 
+#ifdef __EMSCRIPTEN__
+	// no file dialog in browser: save to MEMFS and offer it as a download
+	const char *path = "/tmp/screenshot.png";
+	if (!video->SaveScreenshot(path, memory->GetVramPointer())) {
+		GUI->MessageBox("Failed to save screenshot!");
+		return;
+	}
+
+	InvokeFileDownload(path, "image/png");
+#else
 	ActionPlayPause(false, false);
 
 	GUI->FileSelectorCallback.connect(
@@ -1265,6 +1278,7 @@ void TEmulator::ActionScreenshot()
 		Settings->Screen->fileName,
 		{".png", ".bmp", ".bin", ".scr"}
 	);
+#endif
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionReset()
