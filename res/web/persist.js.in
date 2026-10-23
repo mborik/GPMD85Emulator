@@ -8,6 +8,16 @@ Module.preRun.push(function () {
 	addRunDependency('idbfs-sync');
 	FS.syncfs(true, function (err) {
 		if (err) console.error('IDBFS load failed:', err);
+		else {
+			// build changed: drop the stale user config so the bundled default.conf is used
+			var verFile = dir + '/.version', stored = '';
+			try { stored = FS.readFile(verFile, { encoding: 'utf8' }); } catch (e) {}
+			if (stored !== '@PACKAGE_VERSION@') {
+				try { FS.unlink(dir + '/default.conf'); } catch (e) {}
+				FS.writeFile(verFile, '@PACKAGE_VERSION@');
+				FS.syncfs(false, function (e) { if (e) console.error('IDBFS save failed:', e); });
+			}
+		}
 		removeRunDependency('idbfs-sync');
 	});
 

@@ -42,7 +42,7 @@
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #include <emscripten/html5.h>
-#include "imgui-mods/emscripten_mainloop_stub.h"
+#include "imgui-mods/emscripten_stubs.h"
 #endif
 //-----------------------------------------------------------------------------
 int main(int argc, char** argv)

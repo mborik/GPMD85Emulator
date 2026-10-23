@@ -403,6 +403,7 @@ if(EMSCRIPTEN)
 			"${CMAKE_CURRENT_SOURCE_DIR}/res/icon.png"
 			"${TARGET_OUTPUT_DIR}/icon.png"
 	)
+	configure_file("${CMAKE_CURRENT_SOURCE_DIR}/res/web/persist.js.in" "${CMAKE_CURRENT_BINARY_DIR}/generated/persist.js" @ONLY)
 	target_link_options(GPMD85emu PRIVATE
 		-sUSE_SDL=2
 		-sMIN_WEBGL_VERSION=2
@@ -412,7 +413,7 @@ if(EMSCRIPTEN)
 		-sFORCE_FILESYSTEM=1
 		-lidbfs.js
 		"--preload-file=${CMAKE_CURRENT_SOURCE_DIR}/storage@/storage"
-		"--pre-js=${CMAKE_CURRENT_SOURCE_DIR}/res/web/persist.js"
+		"--pre-js=${CMAKE_CURRENT_BINARY_DIR}/generated/persist.js"
 		"--shell-file=${CMAKE_CURRENT_SOURCE_DIR}/res/web/shell.html"
 	)
 	set_target_properties(GPMD85emu PROPERTIES LINK_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/res/web/shell.html")
