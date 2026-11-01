@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 project(GPMD85emulator
-	VERSION 1.0.2610
+	VERSION 1.0.2611
 	DESCRIPTION "Open-source, multi-platform emulator of the Tesla PMD 85"
 	HOMEPAGE_URL "https://github.com/mborik/GPMD85Emulator"
 	LANGUAGES C CXX
