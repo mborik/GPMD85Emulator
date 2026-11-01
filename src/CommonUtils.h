@@ -57,6 +57,8 @@ bool CreateDirIfNotExist(const char *path);
 char *CreateTempFileName(const char *basePath = NULL);
 bool RemoveFile(const char *path);
 int CompareNoCase(const char *a, const char *b, size_t maxLen = 0);
+std::filesystem::path ToPath(const char *str);
+std::filesystem::path FindWithNoCase(const std::filesystem::path &file, bool isDir = false);
 int PackBlock(BYTE *dest, BYTE *src, int len);
 int UnpackBlock(BYTE *dest, int destlen, BYTE *src, int srclen);
 

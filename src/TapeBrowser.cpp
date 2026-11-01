@@ -42,7 +42,7 @@ TTapeBrowser::TTapeBrowser()
 	if (Settings->TapeBrowser->fileName) {
 		char *file = ComposeFilePath(Settings->TapeBrowser->fileName);
 
-		if (SetTapeFileName(file) == 0xFF) {
+		if (SetTapeFileName(file) < 0) {
 			delete [] Settings->TapeBrowser->fileName;
 			Settings->TapeBrowser->fileName = NULL;
 		}
