@@ -1659,23 +1659,19 @@ void TEmulator::InsertPMD32Disk(const char *fileName)
 	switch (pmd32workdrive) {
 		case 1:
 			delete [] Settings->PMD32->driveA.image;
-			Settings->PMD32->driveA.image = new char[strlen(fileName) + 1];
-			strcpy(Settings->PMD32->driveA.image, fileName);
+			Settings->PMD32->driveA.image = ComposeFilePath(fileName);
 			break;
 		case 2:
 			delete [] Settings->PMD32->driveB.image;
-			Settings->PMD32->driveB.image = new char[strlen(fileName) + 1];
-			strcpy(Settings->PMD32->driveB.image, fileName);
+			Settings->PMD32->driveB.image = ComposeFilePath(fileName);
 			break;
 		case 3:
 			delete [] Settings->PMD32->driveC.image;
-			Settings->PMD32->driveC.image = new char[strlen(fileName) + 1];
-			strcpy(Settings->PMD32->driveC.image, fileName);
+			Settings->PMD32->driveC.image = ComposeFilePath(fileName);
 			break;
 		case 4:
 			delete [] Settings->PMD32->driveD.image;
-			Settings->PMD32->driveD.image = new char[strlen(fileName) + 1];
-			strcpy(Settings->PMD32->driveD.image, fileName);
+			Settings->PMD32->driveD.image = ComposeFilePath(fileName);
 			break;
 		default:
 			return;

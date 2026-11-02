@@ -718,10 +718,17 @@ int Pmd32::InsertDisk(int drive, const char *file, bool WP)
 {
 	RemoveDisk(drive);
 
+	debug("PMD32", "Inserting disk into drive %c%c %s", 'A' + drive, WP ? '!' : ':', file);
+
 	fs::path path = FindWithNoCase(ToPath(file));
-	const std::string fileName = fs::absolute(path).string();
+	char *composedPath = ComposeFilePath(path.string().c_str());
+	std::string fileName = composedPath;
+	delete [] composedPath;
+
 	if (!FileExists(fileName.c_str()))
 		return RESULT_NF;
+
+	debug("PMD32", "Resolved disk path: %s", fileName.c_str());
 
 	if (extraCommands) {
 		int ret = CheckImageType(path, &drives[drive].tracks, &drives[drive].sectors, &drives[drive].sectorSize);
