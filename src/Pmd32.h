@@ -27,6 +27,8 @@
 #include "CommonUtils.h"
 #include "ChipMemory.h"
 #include "IifGPIO.h"
+#include <memory>
+#include <string>
 //---------------------------------------------------------------------------
 #define OPER_FREQ               20000
 #define CLOCK_PERIOD            (CPU_FREQ / OPER_FREQ)
@@ -90,6 +92,8 @@
 #define DRIVE_C                 2
 #define DRIVE_D                 3
 
+// max length of a path (relative to SD root) addressable by PMD 32 protocol
+#define MAX_SD_PATH_LEN         63
 #define SDROOT_IMAGES_DEF_FILE  "images.cfg"
 //---------------------------------------------------------------------------
 class Pmd32
@@ -98,14 +102,14 @@ class Pmd32
 		Pmd32(IifGPIO *pio);
 		virtual ~Pmd32();
 
-		void SetExtraCommands(bool extraCommands, char *sdPath);
+		void SetExtraCommands(bool extraCommands, const char *sdRoot);
 		void BeforeReset();
 		void AfterReset();
 		void OnSetMode2(BYTE CWR);
 		void OnHandshake();
 
 		void Disk32Service(int ticks, int dur);
-		int  InsertDisk(int drive, char *file, bool WP);
+		int  InsertDisk(int drive, const char *file, bool WP);
 		void RemoveDisk(int drive);
 		inline void SetWpDisk(int drv, bool wp) { drives[drv].wp = wp; }
 
@@ -113,7 +117,7 @@ class Pmd32
 
 	private:
 		typedef struct {
-			char *filePath;
+			std::filesystem::path filePath;
 			FILE *handle;
 			bool  wp;
 			BYTE  tracks;     // total tracks count
@@ -151,11 +155,10 @@ class Pmd32
 		int   tickCounter;
 
 		bool  extraCommands;
-		char *sdRoot;
-		char *sdPath;
-		char *sdFile;
-		std::filesystem::directory_iterator *hFind;
-		char *hFindDir;
+		std::filesystem::path sdRoot; // root directory of the SD card
+		std::filesystem::path sdPath; // actual directory relative to sdRoot
+		std::string sdFile;           // last found catalog item
+		std::unique_ptr<std::filesystem::directory_iterator> hFind;
 
 		void  Disk32ServiceStateCheck();
 		void  Disk32ServiceSendResultCommand();
@@ -163,8 +166,7 @@ class Pmd32
 		bool  FindFile();
 		bool  PrepareSector();
 		bool  WriteSector();
-		int   CheckImageType(char *fn, BYTE *trk, BYTE *sec, BYTE *phys);
-		bool  LocateFileInPathCaseInsensitive(char *filePath);
+		int   CheckImageType(const std::filesystem::path &fn, BYTE *trk, BYTE *sec, BYTE *phys);
 };
 //---------------------------------------------------------------------------
 #endif

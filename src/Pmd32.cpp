@@ -22,6 +22,11 @@
 */
 //---------------------------------------------------------------------------
 #include "Pmd32.h"
+#include <algorithm>
+#include <fstream>
+#include <sstream>
+
+namespace fs = std::filesystem;
 //---------------------------------------------------------------------------
 Pmd32::Pmd32(IifGPIO *pio)
 {
@@ -30,19 +35,11 @@ Pmd32::Pmd32(IifGPIO *pio)
 	pio->OnAfterResetA.connect(&Pmd32::AfterReset, this);
 
 	for (int ii = 0; ii < NUM_DRIVES; ii++) {
-		drives[ii].filePath = NULL;
 		drives[ii].handle = NULL;
 		drives[ii].wp = true;
 	}
 
 	extraCommands = false;
-
-	sdRoot = NULL;
-	sdPath = NULL;
-	sdFile = NULL;
-
-	hFind = NULL;
-	hFindDir = NULL;
 
 	drvnum = 0;
 	diskIcon = 0;
@@ -60,42 +57,16 @@ Pmd32::~Pmd32()
 	RemoveDisk(DRIVE_B);
 	RemoveDisk(DRIVE_C);
 	RemoveDisk(DRIVE_D);
-
-	if (sdRoot)
-		delete [] sdRoot;
-	sdRoot = NULL;
-
-	if (sdPath)
-		delete [] sdPath;
-	sdPath = NULL;
-
-	if (sdFile)
-		delete [] sdFile;
-	sdFile = NULL;
-
-	delete hFind;
-	hFind = NULL;
 }
 //---------------------------------------------------------------------------
-void Pmd32::SetExtraCommands(bool extraCommands, char *sdRoot)
+void Pmd32::SetExtraCommands(bool extraCommands, const char *sdRoot)
 {
 	if (sdRoot == NULL)
 		return;
 
 	this->extraCommands = extraCommands;
-
-	int l, i;
-	for (l = strlen(sdRoot), i = 0; i < l; i++)
-		if (sdRoot[i] == '\\')
-			sdRoot[i] = '/';
-
-	this->sdRoot = new char[l + 2];
-	strcpy(this->sdRoot, sdRoot);
-
-	if (sdRoot[l - 1] != '/') {
-		this->sdRoot[l++] = '/';
-		this->sdRoot[l] = '\0';
-	}
+	this->sdRoot = ToPath(sdRoot);
+	this->sdPath.clear();
 }
 //---------------------------------------------------------------------------
 void Pmd32::BeforeReset()
@@ -510,34 +481,18 @@ void Pmd32::Disk32ServiceSendResultCommand()
 					byteCounter = 2;
 				}
 				else {
-					char *path = NULL, *ptr;
+					const fs::path &image = drives[drvnum].filePath;
+					std::string name = image.lexically_relative(sdRoot / sdPath).generic_string();
+					if (name.empty())
+						name = image.generic_string().substr(1);
+					else if (name.find("..") == 0)
+						name = image.generic_string();
 
-					if (sdPath) {
-						path = new char[strlen(sdRoot) + strlen(sdPath) + 1];
-						strcpy(path, sdRoot);
-						strcat(path, sdPath);
-					}
-					else {
-						path = new char[strlen(sdRoot) + 1];
-						strcpy(path, sdRoot);
-					}
-
-					ptr = strstr(drives[drvnum].filePath, path);
-
-					if (ptr == drives[drvnum].filePath) {
-						ptr = drives[drvnum].filePath + strlen(path);
-						if (*ptr == '/')
-							ptr++;
-					}
-					else
-						ptr = drives[drvnum].filePath;
-
+					name = name.substr(0, MAX_SD_PATH_LEN);
 					buffer[0] = (BYTE) (drives[drvnum].wp ? 1 : 0);
-					buffer[1] = (BYTE) strlen(ptr);
-					memcpy(buffer + 2, ptr, strlen(ptr));
-					byteCounter = 2 + strlen(ptr);
-
-					delete [] path;
+					buffer[1] = (BYTE) name.length();
+					memcpy(buffer + 2, name.data(), name.length());
+					byteCounter = 2 + name.length();
 				}
 			}
 			break;
@@ -555,56 +510,34 @@ void Pmd32::Disk32ServiceSendResultCommand()
 					toSend = RESULT_OK;
 				}
 				else {
-					char *file, *input = ((char *) (buffer + 1));
-					if (sdPath == NULL || strlen(sdPath) == 0) {
-						file = new char[strlen(input) + 1];
-						strcpy(file, input);
-					}
-					else {
-						file = new char[strlen(sdPath) + strlen(input) + 2];
-						sprintf(file, "%s/%s", sdPath, input);
-					}
-
-					if (strlen(file) > 63)
+					const fs::path file = sdPath / ToPath((const char *) (buffer + 1));
+					if (file.generic_string().length() > MAX_SD_PATH_LEN)
 						toSend = RESULT_TL;
-					else {
-						char *path = new char[strlen(sdRoot) + strlen(file) + 1];
-						strcpy(path, sdRoot);
-						strcat(path, file);
-						toSend = (BYTE) InsertDisk(drvnum, path, (wp != 0));
-						delete [] path;
-					}
-
-					delete [] file;
+					else
+						toSend = (BYTE) InsertDisk(drvnum, (sdRoot / file).string().c_str(), (wp != 0));
 				}
 			}
 			diskState = WAIT_COMMAND;
 			break;
 
-		case 'K': // get actual SD card path
-			byteCounter = 0;
-			if (sdPath)
-				byteCounter = strlen(sdPath);
-
-			if (byteCounter > 0)
-				memcpy(buffer, sdPath, byteCounter + 1);
-
-			*buffer = (BYTE) byteCounter;
+		case 'K': { // get actual SD card path
+			const std::string path = sdPath.generic_string();
+			*buffer = (BYTE) path.length();
+			memcpy(buffer + 1, path.c_str(), path.length() + 1);
 			point = buffer;
-			byteCounter++;
+			byteCounter = path.length() + 1;
 			CRC = 0;
 			diskState = SEND_DATA;
 			noSend = true;
 			break;
+		}
 
 		case 'L': // get catalog of actual SD card path
-			if (FindFile() == true) {
-				byteCounter = strlen(sdFile);
-				if (byteCounter > 0)
-					memcpy(buffer + 1, sdFile, byteCounter + 1);
+			byteCounter = 0;
+			if (FindFile()) {
+				byteCounter = sdFile.length();
+				memcpy(buffer + 1, sdFile.c_str(), byteCounter + 1);
 			}
-			else
-				byteCounter = 0;
 
 			*buffer = (BYTE) byteCounter;
 			point = buffer;
@@ -620,52 +553,29 @@ void Pmd32::Disk32ServiceSendResultCommand()
 			else if (strcmp((char *) (buffer + 1), ".") == 0)
 				toSend = RESULT_OK;
 			else if (strcmp((char *) (buffer + 1), "..") == 0) {
-				if (sdPath == NULL)
-					toSend = RESULT_NF;
-				else if (strlen(sdPath) == 0)
+				if (sdPath.empty())
 					toSend = RESULT_NF;
 				else {
-					char *ptr = strrchr(sdPath, '/');
-					if (ptr)
-						*ptr = '\0';
-					else
-						*sdPath = '\0';
+					sdPath = sdPath.parent_path();
 					toSend = RESULT_OK;
 				}
 			}
 			else {
-				char *dir, *input = ((char *) (buffer + 1));
-				if (sdPath == NULL || strlen(sdPath) == 0) {
-					dir = new char[strlen(sdRoot) + strlen(input) + 1];
-					strcpy(dir, sdRoot);
-					strcat(dir, input);
-				}
+				const fs::path dir = sdRoot / sdPath / ToPath((const char *) (buffer + 1));
+				const fs::path found = FindWithNoCase(dir, true);
+				if (!DirExists(found.string().c_str()))
+					toSend = RESULT_NF;
 				else {
-					dir = new char[strlen(sdRoot) + strlen(sdPath) + strlen(input) + 2];
-					sprintf(dir, "%s%s/%s", sdRoot, sdPath, input);
-				}
-
-				if (DirExists(dir)) {
-					dir += strlen(sdRoot);
-					if (strlen(dir) > 63) {
-						if (sdPath)
-							*sdPath = '\0';
-
+					const fs::path relative = found.lexically_relative(sdRoot);
+					if (relative.generic_string().length() > MAX_SD_PATH_LEN) {
+						sdPath.clear();
 						toSend = RESULT_TL;
 					}
 					else {
-						if (sdPath)
-							delete [] sdPath;
-
-						sdPath = new char[strlen(dir) + 1];
-						strcpy(sdPath, dir);
+						sdPath = relative;
 						toSend = RESULT_OK;
 					}
 				}
-				else
-					toSend = RESULT_NF;
-
-				delete [] dir;
 			}
 			diskState = WAIT_COMMAND;
 			break;
@@ -674,37 +584,23 @@ void Pmd32::Disk32ServiceSendResultCommand()
 			if (*buffer == 0)
 				toSend = RESULT_CE;
 			else {
-				char *file, *input = ((char *) (buffer + 1));
-				for (unsigned i = 0; i < strlen(input); i++)
-					input[i] = (char) std::tolower((unsigned char) input[i]);
+				std::string input((char *) (buffer + 1), (size_t) *buffer);
+				std::transform(input.begin(), input.end(), input.begin(),
+					[](unsigned char c) { return (char) std::tolower(c); });
 
-				if (sdPath == NULL || strlen(sdPath) == 0) {
-					file = new char[strlen(input) + 1];
-					strcpy(file, input);
-				}
-				else {
-					file = new char[strlen(sdPath) + strlen(input) + 2];
-					sprintf(file, "%s/%s", sdPath, input);
-				}
-
-				if (strlen(file) > 63)
+				const fs::path file = sdPath / ToPath(input.c_str());
+				if (file.generic_string().length() > MAX_SD_PATH_LEN)
 					toSend = RESULT_TL;
 				else {
 					BYTE trk, sec, phys;
-					char *path = new char[strlen(sdRoot) + strlen(file) + 1];
-					strcpy(path, sdRoot);
-					strcat(path, file);
+					const std::string path = (sdRoot / file).string();
 
-					toSend = (BYTE) CheckImageType(path, &trk, &sec, &phys);
+					toSend = (BYTE) CheckImageType(file, &trk, &sec, &phys);
 					if (toSend == RESULT_OK) {
-						if (!CreateMedium(path, ((trk) ? trk : 256) * sec * SECTOR_SIZE, 0xE5))
+						if (!CreateMedium(path.c_str(), ((trk) ? trk : 256) * sec * SECTOR_SIZE, 0xE5))
 							toSend = RESULT_CE;
 					}
-
-					delete [] path;
 				}
-
-				delete [] file;
 			}
 			diskState = WAIT_COMMAND;
 			break;
@@ -737,44 +633,28 @@ void Pmd32::Disk32ServiceSendResultCommand()
 //---------------------------------------------------------------------------
 bool Pmd32::FindFile()
 {
-	if (findType == 0 && hFind != NULL) {
-		delete hFind;
-		hFind = NULL;
-	}
+	std::error_code ec;
 
-	if (hFind == NULL) {
-		if (hFindDir)
-			delete [] hFindDir;
+	if (findType == 0)
+		hFind.reset();
 
-		if (sdPath) {
-			hFindDir = new char[(strlen(sdRoot) + strlen(sdPath) + 2)];
-			sprintf(hFindDir, "%s%s/", sdRoot, sdPath);
-		}
-		else {
-			hFindDir = new char[strlen(sdRoot) + 1];
-			strcpy(hFindDir, sdRoot);
-		}
-
-		std::error_code ec;
-		hFind = new std::filesystem::directory_iterator(hFindDir, ec);
+	if (!hFind) {
+		hFind = std::make_unique<fs::directory_iterator>(sdRoot / sdPath, ec);
 		if (ec) {
-			delete hFind;
-			hFind = NULL;
+			hFind.reset();
 			return false;
 		}
 	}
 
-	std::error_code ec;
-	const std::filesystem::directory_iterator end;
-
+	const fs::directory_iterator end;
 	while (*hFind != end) {
-		const std::filesystem::directory_entry entry = **hFind;
+		const fs::directory_entry entry = **hFind;
 		hFind->increment(ec);
 		if (ec)
 			*hFind = end;
 
 		std::error_code sec;
-		bool dir = entry.is_directory(sec);
+		const bool dir = entry.is_directory(sec);
 		if (!dir && !entry.is_regular_file(sec))
 			continue;
 
@@ -784,19 +664,11 @@ bool Pmd32::FindFile()
 		if (name.empty() || name[0] == '.')
 			continue;
 
-		if (sdFile)
-			delete [] sdFile;
-		sdFile = new char[name.length() + (dir ? 3 : 1)];
-
-		if (dir)
-			sprintf(sdFile, "[%s]", name.c_str());
-		else
-			strcpy(sdFile, name.c_str());
+		sdFile = dir ? "[" + name + "]" : name;
 		return true;
 	}
 
-	delete hFind;
-	hFind = NULL;
+	hFind.reset();
 	return false;
 }
 //---------------------------------------------------------------------------
@@ -842,51 +714,24 @@ bool Pmd32::WriteSector()
 	return false;
 }
 //---------------------------------------------------------------------------
-int Pmd32::InsertDisk(int drive, char *file, bool WP)
+int Pmd32::InsertDisk(int drive, const char *file, bool WP)
 {
 	RemoveDisk(drive);
 
-	if (!FileExists(file)) {
-		char *xName = strrchr(file, '/'), *xPath;
-		if (xName) {
-			int i = (xName - file);
-			xPath = new char[i + 1];
-			strncpy(xPath, file, i);
-			xPath[i] = '\0';
-			xName++;
-		}
-		else {
-			xPath = new char[strlen(PathApplication) + 1];
-			strcpy(xPath, PathApplication);
-			xName = file;
-		}
+	debug("PMD32", "Inserting disk into drive %c%c %s", 'A' + drive, WP ? '!' : ':', file);
 
-		std::error_code ec;
-		std::filesystem::directory_iterator it(xPath, ec), end;
+	fs::path path = FindWithNoCase(ToPath(file));
+	char *composedPath = ComposeFilePath(path.string().c_str());
+	std::string fileName = composedPath;
+	delete [] composedPath;
 
-		while (!ec && it != end) {
-			const std::filesystem::directory_entry entry = *it;
-			std::string name = entry.path().filename().string();
-
-			std::error_code sec;
-			// exclude "dot dirs" and hidden files...
-			if (!name.empty() && name[0] != '.' && entry.is_regular_file(sec)
-				&& CompareNoCase(name.c_str(), xName) == 0) {
-				strcpy(xName, name.c_str());
-				break;
-			}
-
-			it.increment(ec);
-		}
-
-		delete [] xPath;
-	}
-
-	if (!FileExists(file))
+	if (!FileExists(fileName.c_str()))
 		return RESULT_NF;
 
+	debug("PMD32", "Resolved disk path: %s", fileName.c_str());
+
 	if (extraCommands) {
-		int ret = CheckImageType(file, &drives[drive].tracks, &drives[drive].sectors, &drives[drive].sectorSize);
+		int ret = CheckImageType(path, &drives[drive].tracks, &drives[drive].sectors, &drives[drive].sectorSize);
 		if (ret != RESULT_OK)
 			return ret;
 	}
@@ -896,17 +741,8 @@ int Pmd32::InsertDisk(int drive, char *file, bool WP)
 		drives[drive].sectorSize = 2;
 	}
 
-	if (strchr(file, '\\'))
-		for (int l = strlen(file), i = 0; i < l; i++)
-			if (file[i] == '\\')
-				file[i] = '/';
-
-	if (drives[drive].filePath)
-		delete [] drives[drive].filePath;
-	drives[drive].filePath = new char[strlen(file) + 1];
-	strcpy(drives[drive].filePath, file);
-
-	drives[drive].handle = fopen(file, "rb+");
+	drives[drive].filePath = path;
+	drives[drive].handle = fopen(fileName.c_str(), "rb+");
 	drives[drive].wp = WP;
 
 	if (drives[drive].handle == NULL)
@@ -920,99 +756,46 @@ void Pmd32::RemoveDisk(int drive)
 	if (drives[drive].handle)
 		fclose(drives[drive].handle);
 	drives[drive].handle = NULL;
-
-	if (drives[drive].filePath)
-		delete [] drives[drive].filePath;
-	drives[drive].filePath = NULL;
+	drives[drive].filePath.clear();
 }
 //---------------------------------------------------------------------------
-int Pmd32::CheckImageType(char *fn, BYTE *trk, BYTE *sec, BYTE *phys)
+int Pmd32::CheckImageType(const fs::path &fn, BYTE *trk, BYTE *sec, BYTE *phys)
 {
-	int ret;
-	unsigned i, j, k;
-	char c, *ptr, *config = new char[strlen(sdRoot) + 11], buf[65];
-
-	strcpy(config, sdRoot);
-	strcat(config, SDROOT_IMAGES_DEF_FILE);
-
-	if (FileExists(config) == false)
-		return RESULT_CM;
-
-	FILE *file = fopen(config, "r");
-	if (file == NULL)
-		return RESULT_CM;
-
-	fseek(file, 0, SEEK_SET);
-
-	ptr = strrchr(fn, '.');
-	if (ptr == NULL)
+	std::string ext = fn.extension().string();
+	if (ext.length() < 2)
 		return RESULT_TL;
+	ext.erase(0, 1);
 
-	ptr++;
+	std::ifstream config(sdRoot / SDROOT_IMAGES_DEF_FILE);
+	if (!config)
+		return RESULT_CM;
 
-	c = getc(file);
-	ret = RESULT_UI;
+	// each line: <extension> <tracks> <sectors> [<physical sector size>]
+	std::string line;
+	while (std::getline(config, line)) {
+		std::istringstream in(line);
+		std::string name;
 
-	while (true) {
-		while (c == ' ' || c == '\n' || c == '\r')
-			c = getc(file);
-
-		if (c == '*') {
-			while (c != '\n')
-				c = getc(file);
+		// skip empty lines and comments
+		if (!(in >> name) || name[0] == '*')
 			continue;
-		}
+		if (CompareNoCase(name.c_str(), ext.c_str()) != 0)
+			continue;
 
-		*buf = c;
-		if (fgets(buf + 1, 63, file) == NULL) {
-			ret = RESULT_CR;
-			break;
-		}
+		unsigned tracks, sectors, size = 2;
+		if (!(in >> tracks >> sectors) || tracks < 1 || tracks > MAX_TRACKS
+			|| sectors < 1 || sectors > MAX_SECTORS_PER_TRACKS)
+			return RESULT_CC;
 
-		for (i = 0; buf[i] > ' ' || ptr[i + 1] > ' '; i++) {
-			if (std::toupper((unsigned char) buf[i]) != std::toupper((unsigned char) ptr[i])) {
-				i = 0;
-				break;
-			}
-		}
+		if ((in >> size) && size > 3)
+			return RESULT_CC;
 
-		if (i == 0) {
-			ret = RESULT_CC;
-			break;
-		}
-
-		k = (unsigned) -1;
-		sscanf(buf + i, "%u %u %u", &i, &j, &k);
-
-		if (i < 1 || i > MAX_TRACKS) {
-			ret = RESULT_CC;
-			break;
-		}
-		else
-			*trk = i;
-
-		if (j < 1 || j > MAX_SECTORS_PER_TRACKS) {
-			ret = RESULT_CC;
-			break;
-		}
-		else
-			*sec = j;
-
-		if (k == (unsigned) -1)
-			*phys = 2;
-		else if (k > 3) {
-			ret = RESULT_CC;
-			break;
-		}
-		else
-			*phys = k;
-
-		ret = RESULT_OK;
-		break;
+		*trk = tracks;
+		*sec = sectors;
+		*phys = size;
+		return RESULT_OK;
 	}
 
-	fclose(file);
-	delete [] config;
-	return ret;
+	return config.eof() ? RESULT_UI : RESULT_CR;
 }
 //---------------------------------------------------------------------------

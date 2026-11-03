@@ -21,6 +21,7 @@
 */
 //-----------------------------------------------------------------------------
 #include "CommonUtils.h"
+#include <algorithm>
 #include <cctype>
 #include <random>
 //-----------------------------------------------------------------------------
@@ -243,6 +244,52 @@ int CompareNoCase(const char *a, const char *b, size_t maxLen)
 	}
 
 	return 0;
+}
+//-----------------------------------------------------------------------------
+/*
+ * Converts a string to the path, backslashes are treated as separators.
+ *
+ * @param str path string, may be NULL
+ * @return path object (empty for NULL)
+ */
+std::filesystem::path ToPath(const char *str)
+{
+	std::string s(str ? str : "");
+	std::replace(s.begin(), s.end(), '\\', '/');
+	return std::filesystem::path(s);
+}
+//-----------------------------------------------------------------------------
+/*
+ * Finds an existing regular file or subdirectory ignoring the case of its name.
+ * Hidden files and directories are skipped.
+ * Relative path without a directory is looked up in PathApplication.
+ *
+ * @param file path of the file
+ * @param isDir whether to look for a directory instead of a regular file
+ * @return path of the found file, or unchanged `file` if there is no such file
+ */
+std::filesystem::path FindWithNoCase(const std::filesystem::path &file, bool isDir)
+{
+	namespace fs = std::filesystem;
+
+	fs::path parent = file.parent_path();
+	if (parent.empty() && !isDir)
+		parent = PathApplication;
+
+	const std::string name = file.filename().string();
+	std::error_code ec, sec;
+
+	for (fs::directory_iterator it(parent, ec), end; !ec && it != end; it.increment(ec)) {
+		const std::string entryName = it->path().filename().string();
+
+		if (!entryName.empty() && entryName[0] != '.' &&
+			((isDir && it->is_directory(sec)) || (!isDir && it->is_regular_file(sec))) &&
+			CompareNoCase(entryName.c_str(), name.c_str()) == 0)
+
+			return it->path();
+	}
+
+	return file;
 }
 //-----------------------------------------------------------------------------
 /*
