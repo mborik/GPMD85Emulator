@@ -1138,6 +1138,35 @@ void TEmulator::ActionPMD32Update()
 	ConnectPMD32(false);
 }
 //---------------------------------------------------------------------------
+void TEmulator::ActionPMD32SelectSDPath()
+{
+	GUI->FileSelectorCallback.connect(
+		[&](const char *filePath) {
+			if (filePath) {
+				const std::filesystem::path path = ToPath(filePath);
+				std::string name = path.lexically_relative(ToPath(PathApplication)).generic_string();
+				if (name.empty())
+					name = path.generic_string().substr(1);
+				else if (name.find("..") == 0)
+					name = path.generic_string();
+
+				delete [] Settings->PMD32->sdRoot;
+				Settings->PMD32->sdRoot = new char[name.size() + 1];
+				strcpy(Settings->PMD32->sdRoot, name.c_str());
+			}
+
+			GUI->InvokeSettingsChange |= PS_PERIPHERALS | PS_CLOSEALL;
+			GUI->FileSelectorCallback.disconnect_all();
+		}
+	);
+
+	GUI->FileSelector(
+		GUI_FS_DIR,
+		"Select PMD 32 Virtual SD-Card Directory",
+		Settings->PMD32->sdRoot
+	);
+}
+//---------------------------------------------------------------------------
 void TEmulator::ActionSnapLoad()
 {
 	GUI->FileSelectorCallback.connect(

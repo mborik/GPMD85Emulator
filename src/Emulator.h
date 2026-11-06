@@ -80,6 +80,7 @@ class TEmulator
 		void ActionTapeSave();
 		void ActionPMD32LoadDisk(int drive);
 		void ActionPMD32Update();
+		void ActionPMD32SelectSDPath();
 		void ActionSnapLoad();
 		void ActionSnapSave();
 		void ActionROMLoad();

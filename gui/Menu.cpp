@@ -438,7 +438,10 @@ void UserInterface::DrawMenu()
 				if (sdRoot)
 					sprintf(currentFile, "[%s]", ExtractFileName(Settings->PMD32->sdRoot));
 				if (ImGui::MenuItem("Virtual SD-Card Directory…", sdRoot, false,
-					state && Settings->PMD32->extraCommands)) { }
+					state && Settings->PMD32->extraCommands)) {
+
+					Emulator->ActionPMD32SelectSDPath();
+				}
 
 				ImGui::Separator();
 				DiskImagesMenuItems(true);

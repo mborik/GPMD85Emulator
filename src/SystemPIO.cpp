@@ -544,8 +544,9 @@ void SystemPIO::WritePaging()
 		}
 	}
 	if (oldReset != memory->IsInReset() ||
-		oldAllRAM != memory->IsAllRAM() ||
+//		oldAllRAM != memory->IsAllRAM() || // too verbose logs due to frequently changing AllRAM state
 		oldRemapped != memory->IsRemapped()) {
+
 		debug("SystemPIO", "Memory paging: portC=#%02X reset=%d->%d allRAM=%d->%d remapped=%d->%d",
 			pg, oldReset, memory->IsInReset(), oldAllRAM, memory->IsAllRAM(),
 			oldRemapped, memory->IsRemapped());
