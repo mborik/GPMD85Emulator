@@ -41,6 +41,7 @@ enum TGuiElementType {
 	GE_MEMBLOCK_WRITE,    // Memory block write dialog
 	GE_TAPEBROWSER,       // Tape-browser
 	GE_DEBUGGER,          // Debugger dialog
+	GE_VIRTUAL_KEYS,      // Virtual keyboard dialog
 };
 //-----------------------------------------------------------------------------
 enum TGuiCustomColor {
@@ -138,10 +139,6 @@ class UserInterface
 
 		bool dialogAboutOpened;
 		bool dialogAboutFocused;
-
-		bool dialogKeyboardOpened;
-		bool dialogKeyboardFocused;
-
 		bool dialogMemDumpOpened;
 		bool dialogDebugOpened;
 		bool dialogDebugFocused;

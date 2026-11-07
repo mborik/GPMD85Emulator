@@ -94,9 +94,11 @@ class TEmulator
 		void ActionSizeChange(int mode);
 		int  ActionMegaModulePage(bool set = false, BYTE page = 0);
 
-		inline void ActionMouseState(int x, int y, int leftBtn = 0, int rightBtn = 0, int middleBtn = 0)
+		inline BYTE *GetKeyState(BYTE *&shiftStopCtrl)
+			{ return systemPIO ? systemPIO->GetKeyState(shiftStopCtrl) : nullptr; }
+		inline void SetMouseState(int x, int y, int leftBtn = 0, int rightBtn = 0, int middleBtn = 0)
 			{ if (mouse602) mouse602->SetMouseState(x, y, leftBtn, rightBtn, middleBtn); }
-		inline int ActionJoyControllers(SDL_GameController ***controllers = nullptr, bool refresh = false)
+		inline int GetControllers(SDL_GameController ***controllers = nullptr, bool refresh = false)
 			{ return joystick ? joystick->GetControllers(controllers, refresh) : 0; }
 		inline const char *GetControllerName(const char *guid)
 			{ return joystick ? joystick->GetControllerName(guid) : nullptr; }

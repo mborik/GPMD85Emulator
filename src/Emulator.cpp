@@ -878,6 +878,10 @@ bool TEmulator::TestHotkeys()
 				video->FillBuffer(memory->GetVramPointer());
 				break;
 
+			case SDL_SCANCODE_K:	// VIRTUAL KEYBOARD
+				GUI->Execute(GE_VIRTUAL_KEYS);
+				return true;
+
 			case SDL_SCANCODE_P:	// PLAY/STOP TAPE
 				ActionTapePlayStop();
 				break;
