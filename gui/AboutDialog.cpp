@@ -30,19 +30,17 @@
 //-----------------------------------------------------------------------------
 void UserInterface::DrawAboutDialog()
 {
-	static bool showAboutDialog = false;
-
 	if (dialogAboutOpened) {
 		ImGui::OpenPopup("About");
 		dialogAboutOpened = false;
-		showAboutDialog = true;
+		dialogAboutFocused = true;
 	}
 
 	float button_width = 120.0f;
 	ImVec2 center = ImGui::GetMainViewport()->GetCenter();
 	ImGui::SetNextWindowPos(center, ImGuiCond_FirstUseEver, ImVec2(0.5f, 0.5f));
 
-	if (ImGui::BeginPopupModal("About", &showAboutDialog, ImGuiWindowFlags_AlwaysAutoResize)) {
+	if (ImGui::BeginPopupModal("About", &dialogAboutFocused, ImGuiWindowFlags_AlwaysAutoResize)) {
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.0f, 8.0f));
 		ImGui::Text("%s v%s © %s", PACKAGE_NAME, VERSION, PACKAGE_YEAR);
 		ImGui::Separator();
@@ -85,7 +83,7 @@ void UserInterface::DrawAboutDialog()
 		ImGui::SetItemDefaultFocus();
 		if (ImGui::Button("OK", ImVec2(button_width, 0.0f))) {
 			ImGui::CloseCurrentPopup();
-			showAboutDialog = false;
+			dialogAboutFocused = false;
 		}
 
 		ImGui::PopStyleVar();

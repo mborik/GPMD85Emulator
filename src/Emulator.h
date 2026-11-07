@@ -72,8 +72,6 @@ class TEmulator
 		bool TestHotkeys();
 
 		void ActionExit();
-		void ActionDebugger();
-		void ActionTapeBrowser();
 		void ActionTapePlayStop();
 		void ActionTapeNew();
 		void ActionTapeLoad(bool import = false);
@@ -104,8 +102,6 @@ class TEmulator
 			{ return joystick ? joystick->GetControllerName(guid) : nullptr; }
 		inline const auto *GetControllerDeviceNames() const
 			{ return joystick ? &joystick->GetDeviceNames() : nullptr; }
-
-		sigslot::signal<> actionCallback;
 
 	private:
 		bool inmenu;

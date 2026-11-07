@@ -250,8 +250,8 @@ void UserInterface::Execute(TGuiElementType type, bool forceOpen)
 			break;
 
 		case GE_ABOUT:
-			dialogAboutOpened = true;
-			ImGui::OpenPopup("About");
+			if (!dialogAboutFocused)
+				dialogAboutOpened = true;
 			break;
 
 		case GE_DISKIMAGES:
@@ -267,13 +267,17 @@ void UserInterface::Execute(TGuiElementType type, bool forceOpen)
 			break;
 
 		case GE_MEMBLOCK_READ:
-			memDumpDialogSaveType = false;
-			memDumpDialogShouldOpen = true;
+			if (!dialogMemDumpOpened) {
+				memDumpDialogSaveType = false;
+				memDumpDialogShouldOpen = true;
+			}
 			break;
 
 		case GE_MEMBLOCK_WRITE:
-			memDumpDialogSaveType = true;
-			memDumpDialogShouldOpen = true;
+			if (!dialogMemDumpOpened) {
+				memDumpDialogSaveType = true;
+				memDumpDialogShouldOpen = true;
+			}
 			break;
 
 		default:

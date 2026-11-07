@@ -137,6 +137,7 @@ class UserInterface
 		BYTE joyConfigDialogForGPIO;
 
 		bool dialogAboutOpened;
+		bool dialogAboutFocused;
 		bool dialogMemDumpOpened;
 		bool dialogDebugOpened;
 		bool dialogDebugFocused;

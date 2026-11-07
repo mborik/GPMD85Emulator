@@ -59,6 +59,8 @@ void UserInterface::DrawMemDumpDialog()
 		MemDumpDialogContent(true);
 		ImGui::EndPopup();
 	}
+
+	dialogMemDumpOpened = readDialogOpened || writeDialogOpened;
 }
 //-----------------------------------------------------------------------------
 void UserInterface::MemDumpDialogContent(bool saveType)
