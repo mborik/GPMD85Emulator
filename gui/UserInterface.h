@@ -138,6 +138,10 @@ class UserInterface
 
 		bool dialogAboutOpened;
 		bool dialogAboutFocused;
+
+		bool dialogKeyboardOpened;
+		bool dialogKeyboardFocused;
+
 		bool dialogMemDumpOpened;
 		bool dialogDebugOpened;
 		bool dialogDebugFocused;
@@ -181,6 +185,7 @@ class UserInterface
 
 		void DrawAboutDialog();
 		void DrawQueryDialog();
+		void DrawKeyboardDialog();
 
 		void DrawMenu();
 		void MachineMenuItem(const char *name, TComputerModel model);

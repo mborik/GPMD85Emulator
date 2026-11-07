@@ -286,6 +286,8 @@ void UserInterface::DrawMenu()
 
 					InvokeSettingsChange |= PS_CONTROLS;
 				}
+				ImGui::Separator();
+				ImGui::MenuItem("Virtual Keyboard…", NULL, &dialogKeyboardOpened);
 				ImGui::EndMenu();
 			}
 			ImGui::Separator();

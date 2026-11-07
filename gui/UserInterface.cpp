@@ -148,6 +148,7 @@ void UserInterface::Draw()
 	DrawTapeDialog();
 	DrawAboutDialog();
 	DrawQueryDialog();
+	DrawKeyboardDialog();
 	DrawFileSelector();
 	DrawJoystickConfigDialog();
 	DrawDiskImagesDialog();
