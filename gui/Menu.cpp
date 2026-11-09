@@ -275,6 +275,8 @@ void UserInterface::DrawMenu()
 				ImGui::EndMenu();
 			}
 			if (ImGui::BeginMenu("Keyboard")) {
+				ImGui::MenuItem("Virtual Keyboard", MOD_KEY("K"), &Settings->GUI->dialogKeyboardOpened);
+				ImGui::SeparatorText("PC Keyboard Handling");
 				if (ImGui::MenuItem("Swap Z/Y Keys", NULL, &Settings->Keyboard->changeZY)) {
 					InvokeSettingsChange |= PS_CONTROLS;
 				}

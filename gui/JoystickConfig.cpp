@@ -28,7 +28,7 @@ void UserInterface::DrawJoystickMenuItems(bool enabled)
 {
 	ImGui::BeginDisabled(!enabled);
 
-	int devCount = Emulator->ActionJoyControllers();
+	int devCount = Emulator->GetControllers();
 	auto generateString = [&](TSettings::SetJoystickGPIO *gp) -> std::string {
 		std::string result(32, 0);
 
