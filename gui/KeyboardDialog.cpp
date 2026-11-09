@@ -47,26 +47,41 @@ void UserInterface::DrawKeyboardDialog()
 		BYTE *ShiftStopCtrl;
 		BYTE *KeyColumns = Emulator->GetKeyState(ShiftStopCtrl);
 
-		const VKEY *keymap = keymapPMD85;
+		const VKEY *keymap = keymapEmpty;
 		float space_height = 4.0f;
 		BYTE modMaskShift = 0x20;
 		BYTE modMaskCtrl = 0x40;
 
-		if (Settings->CurrentModel->type == CM_C2717) {
-			keymap = keymapC2717;
-			space_height = 6.15f;
-		}
-		else if (
-			Settings->CurrentModel->type == CM_ALFA ||
-			Settings->CurrentModel->type == CM_ALFA2) {
-
-			keymap = keymapAlfa;
-			space_height = 2.0f;
-		}
-		else if (Settings->CurrentModel->type == CM_MATO) {
-			keymap = keymapMato;
-			modMaskShift = 0x20;
-			modMaskCtrl = 0x40;
+		switch (Settings->CurrentModel->type) {
+			case CM_V1:
+				keymap = keymapPMD85_1;
+				break;
+			case CM_V2:
+			case CM_V2A:
+				keymap = keymapPMD85_2;
+				break;
+			case CM_V3:
+				keymap = keymapPMD85_3;
+				break;
+			case CM_MATO:
+				keymap = keymapMato;
+				modMaskShift = 0x20;
+				modMaskCtrl = 0x40;
+				break;
+			case CM_ALFA:
+				keymap = keymapAlfa;
+				space_height = 2.0f;
+				break;
+			case CM_ALFA2:
+				keymap = keymapAlfa2;
+				space_height = 2.0f;
+				break;
+			case CM_C2717:
+				keymap = keymapC2717;
+				space_height = 6.15f;
+				break;
+			default:
+				break;
 		}
 
 		for (int i = 0; KeyColumns && keymap[i].color != KC_END; i++) {
@@ -108,14 +123,22 @@ void UserInterface::DrawKeyboardDialog()
 			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, hover);
 			ImGui::PushStyleColor(ImGuiCol_ButtonActive, hover);
 
+			float button_width = base_width *
+				(key->color == KC_SPACE ? space_height : 1.0f);
+
 			const char *label = key->label;
-			if ((*ShiftStopCtrl & modMaskCtrl) && key->ctrled)
+			if ((*ShiftStopCtrl & (modMaskCtrl | modMaskShift)) ==
+				(modMaskCtrl | modMaskShift) && key->combined) {
+					label = key->combined;
+			}
+			else if ((*ShiftStopCtrl & modMaskCtrl) && key->ctrled)
 				label = key->ctrled;
 			else if ((*ShiftStopCtrl & modMaskShift) && key->shifted)
 				label = key->shifted;
 
-			float button_width = base_width *
-				(key->color == KC_SPACE ? space_height : 1.0f);
+			int idx =
+				(key->rowmask & modMaskShift) ? 0 :
+				(key->rowmask & modMaskCtrl) ? 1 : -1;
 
 			ImGui::PushID(i);
 			ImGui::Button(label, ImVec2(button_width, 0.0f));
@@ -130,8 +153,8 @@ void UserInterface::DrawKeyboardDialog()
 				else if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
 					if (key->column == CTL) {
 						*ShiftStopCtrl &= ~key->rowmask;
-						BYTE idx = (key->rowmask & modMaskShift) ? 0 : 1;
-						if (keyMapHolder[idx]) {
+
+						if (idx >= 0 && keyMapHolder[idx]) {
 							keyMapHolder[idx] = false;
 
 							Emulator->keyBuffer[SDL_SCANCODE_LSHIFT] = keyMapHolder[0] ? 1 : 0;
@@ -141,8 +164,7 @@ void UserInterface::DrawKeyboardDialog()
 					else
 						KeyColumns[key->column] &= ~key->rowmask;
 				}
-				else if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && key->column == CTL) {
-					BYTE idx = (key->rowmask & modMaskShift) ? 0 : 1;
+				else if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && key->column == CTL && idx >= 0) {
 					keyMapHolder[idx] = !keyMapHolder[idx];
 
 					if (keyMapHolder[idx])
