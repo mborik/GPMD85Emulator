@@ -160,8 +160,8 @@ class Pmd32
 		std::string sdFile;           // last found catalog item
 		std::unique_ptr<std::filesystem::directory_iterator> hFind;
 
-		void  Disk32ServiceStateCheck();
-		void  Disk32ServiceSendResultCommand();
+		void  DiskStateCheck();
+		void  SendResultCommand();
 
 		bool  FindFile();
 		bool  PrepareSector();

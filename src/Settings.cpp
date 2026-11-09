@@ -36,7 +36,7 @@ TSettings::TSettings(bool userCfg)
 	debug("Settings", "Configuration parser initialization...");
 
 	if ((buf = LocateResource("default.conf", userCfg, userCfg)) == NULL)
-		error("Settings", "Configuration file not found!");
+		error("Settings", "Configuration file not found");
 
 	cfgReadFile(buf);
 	if (cfgRoot == NULL)
@@ -45,7 +45,7 @@ TSettings::TSettings(bool userCfg)
 	debug(NULL, "Configuration file loaded, parsing elements");
 
 	if (strcmp(cfgRoot->value, "GPMD85Emulator Configuration File") != 0)
-		warning("Settings", "Invalid header of configuration file!");
+		warning("Settings", "Invalid header of configuration file");
 
 	if (!cfgHasKeyValue(cfgRoot->next, "config-version", CONFIGURATION_VERSION)) {
 		warning("Settings", "Incompatible configuration file version (required %s)!\n\t"
@@ -66,7 +66,7 @@ TSettings::TSettings(bool userCfg)
 	GUI->dialogDiskImagesOpened = cfgGetBoolValue(n, "dialog-disk", false, &(GUI->dialogDiskImagesOpened));
 	GUI->dialogMemEditOpened = cfgGetBoolValue(n, "dialog-memedit", false, &(GUI->dialogMemEditOpened));
 	GUI->dialogMemMapOpened = cfgGetBoolValue(n, "dialog-memmap", false, &(GUI->dialogMemMapOpened));
-	GUI->dialogDebugOpened = cfgGetBoolValue(n, "dialog-debug", false, &(GUI->dialogDebugOpened));
+	GUI->dialogKeyboardOpened = cfgGetBoolValue(n, "dialog-keyboard", false, &(GUI->dialogKeyboardOpened));
 	GUI->memEditAscii = cfgGetBoolValue(n, "memedit-ascii", true, &(GUI->memEditAscii));
 	GUI->memEditColumns = cfgGetIntValue(n, "memedit-cols", 16, &(GUI->memEditColumns));
 

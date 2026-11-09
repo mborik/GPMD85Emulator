@@ -61,7 +61,9 @@ set(PACKAGE_VERSION "${PROJECT_VERSION}")
 set(PACKAGE_STRING "${PACKAGE_NAME} ${PACKAGE_VERSION}")
 set(PACKAGE_BUGREPORT "martin@borik.net")
 string(TIMESTAMP PACKAGE_YEAR "%Y")
+
 set(VERSION "${PROJECT_VERSION}")
+set(CONFIGURATION_VERSION "9")
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -251,11 +253,11 @@ if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/gui/imgui/imgui.cpp")
 	message(FATAL_ERROR "Missing gui/imgui submodule. Initialize submodules before configuring.")
 endif()
 
-set(CONFIG_H_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
-file(MAKE_DIRECTORY "${CONFIG_H_OUTPUT_DIR}")
+set(GENERATED_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
+file(MAKE_DIRECTORY "${GENERATED_OUTPUT_DIR}")
 configure_file(
 	"${CMAKE_CURRENT_SOURCE_DIR}/config.h.in"
-	"${CONFIG_H_OUTPUT_DIR}/config.h"
+	"${GENERATED_OUTPUT_DIR}/config.h"
 )
 
 add_library(gpmd85emu_core STATIC
@@ -295,13 +297,12 @@ add_library(gpmd85emu_core STATIC
 	src/Debugger.cpp
 )
 
-target_include_directories(gpmd85emu_core
-	PUBLIC
-		"${CMAKE_CURRENT_SOURCE_DIR}"
-		"${CONFIG_H_OUTPUT_DIR}"
-		"${CMAKE_CURRENT_SOURCE_DIR}/src"
-		"${CMAKE_CURRENT_SOURCE_DIR}/gui"
-		"${CMAKE_CURRENT_SOURCE_DIR}/saa"
+target_include_directories(gpmd85emu_core PUBLIC
+	"${GENERATED_OUTPUT_DIR}"
+	"${CMAKE_CURRENT_SOURCE_DIR}"
+	"${CMAKE_CURRENT_SOURCE_DIR}/src"
+	"${CMAKE_CURRENT_SOURCE_DIR}/gui"
+	"${CMAKE_CURRENT_SOURCE_DIR}/saa"
 )
 target_compile_options(gpmd85emu_core PRIVATE ${GPMD85EMU_COMMON_COMPILE_OPTIONS})
 target_link_libraries(gpmd85emu_core PUBLIC ${GPMD85EMU_SDL_TARGET})
@@ -314,7 +315,7 @@ add_library(saasound STATIC
 	saa/SAAImpl.cpp
 )
 target_include_directories(saasound PUBLIC
-	"${CONFIG_H_OUTPUT_DIR}"
+	"${GENERATED_OUTPUT_DIR}"
 	"${CMAKE_CURRENT_SOURCE_DIR}"
 	"${CMAKE_CURRENT_SOURCE_DIR}/saa"
 )
@@ -334,6 +335,7 @@ add_library(gpmd85emu_gui STATIC
 	gui/DiskImagesDialog.cpp
 	gui/FileSelector.cpp
 	gui/JoystickConfig.cpp
+	gui/KeyboardDialog.cpp
 	gui/MemDumpDialog.cpp
 	gui/MemEditDialog.cpp
 	gui/MemMapDialog.cpp
@@ -343,27 +345,24 @@ add_library(gpmd85emu_gui STATIC
 	gui/UserInterface.cpp
 )
 
-target_include_directories(gpmd85emu_gui
-	PUBLIC
-		"${CONFIG_H_OUTPUT_DIR}"
-		"${CMAKE_CURRENT_SOURCE_DIR}"
-		"${CMAKE_CURRENT_SOURCE_DIR}/saa"
-		"${CMAKE_CURRENT_SOURCE_DIR}/src"
-		"${CMAKE_CURRENT_SOURCE_DIR}/gui"
-		"${CMAKE_CURRENT_SOURCE_DIR}/gui/imgui"
-		"${CMAKE_CURRENT_SOURCE_DIR}/gui/imgui/backends"
-		"${CMAKE_CURRENT_SOURCE_DIR}/gui/imgui-mods"
+target_include_directories(gpmd85emu_gui PUBLIC
+	"${GENERATED_OUTPUT_DIR}"
+	"${CMAKE_CURRENT_SOURCE_DIR}"
+	"${CMAKE_CURRENT_SOURCE_DIR}/saa"
+	"${CMAKE_CURRENT_SOURCE_DIR}/src"
+	"${CMAKE_CURRENT_SOURCE_DIR}/gui"
+	"${CMAKE_CURRENT_SOURCE_DIR}/gui/imgui"
+	"${CMAKE_CURRENT_SOURCE_DIR}/gui/imgui/backends"
+	"${CMAKE_CURRENT_SOURCE_DIR}/gui/imgui-mods"
 )
 target_compile_definitions(gpmd85emu_gui PUBLIC IMGUI_USER_CONFIG=\"imgui-mods/imconfig_mod.h\")
 target_compile_options(gpmd85emu_gui PRIVATE ${GPMD85EMU_COMMON_COMPILE_OPTIONS})
 target_link_libraries(gpmd85emu_gui PUBLIC ${GPMD85EMU_SDL_TARGET})
 
-add_executable(GPMD85emu
-	main.cpp
-)
+add_executable(GPMD85emu main.cpp)
 
 target_include_directories(GPMD85emu PRIVATE
-	"${CONFIG_H_OUTPUT_DIR}"
+	"${GENERATED_OUTPUT_DIR}"
 	"${CMAKE_CURRENT_SOURCE_DIR}"
 	"${CMAKE_CURRENT_SOURCE_DIR}/src"
 	"${CMAKE_CURRENT_SOURCE_DIR}/gui"

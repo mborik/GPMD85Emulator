@@ -240,7 +240,7 @@ void UserInterface::DrawMenu()
 
 		if (ImGui::BeginMenu("Emulation")) {
 			if (ImGui::MenuItem("Debugger…", MOD_KEY("F12"))) {
-				Emulator->ActionDebugger();
+				Execute(GE_DEBUGGER, true);
 			}
 			if (ImGui::MenuItem("Pause", MOD_KEY("F3"), Settings->isPaused)) {
 				Emulator->ActionPlayPause();
@@ -277,6 +277,8 @@ void UserInterface::DrawMenu()
 				ImGui::EndMenu();
 			}
 			if (ImGui::BeginMenu("Keyboard")) {
+				ImGui::MenuItem("Virtual Keyboard", MOD_KEY("K"), &Settings->GUI->dialogKeyboardOpened);
+				ImGui::SeparatorText("PC Keyboard Handling");
 				if (ImGui::MenuItem("Swap Z/Y Keys", NULL, &Settings->Keyboard->changeZY)) {
 					InvokeSettingsChange |= PS_CONTROLS;
 				}
@@ -440,7 +442,10 @@ void UserInterface::DrawMenu()
 				if (sdRoot)
 					sprintf(currentFile, "[%s]", ExtractFileName(Settings->PMD32->sdRoot));
 				if (ImGui::MenuItem("Virtual SD-Card Directory…", sdRoot, false,
-					state && Settings->PMD32->extraCommands)) { }
+					state && Settings->PMD32->extraCommands)) {
+
+					Emulator->ActionPMD32SelectSDPath();
+				}
 
 				ImGui::Separator();
 				DiskImagesMenuItems(true);

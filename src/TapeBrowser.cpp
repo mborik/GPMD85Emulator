@@ -723,7 +723,7 @@ void TTapeBrowser::PrepareData(bool head)
 	}
 
 	if (fread(buffer, sizeof(BYTE), dataLen, hFile) < dataLen)
-		warning("TapeBrowser", "PrepareData: File read error!");
+		warning("TapeBrowser", "PrepareData: File read error");
 
 	fclose(hFile);
 }

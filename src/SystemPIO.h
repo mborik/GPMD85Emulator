@@ -67,6 +67,10 @@ public:
 	virtual void WriteToDevice(BYTE port, BYTE value, int ticks);
 	virtual BYTE ReadFromDevice(BYTE port, int ticks);
 
+	inline BYTE *GetKeyState(BYTE *&shiftStopCtrl) {
+		shiftStopCtrl = &ShiftStopCtrl; return KeyColumns;
+	}
+
 	void ScanKeyboard(BYTE *keybuf);
 	void SoundService(int ticks, int dur);
 	void inline SetMatoTapeIn(bool _matoTapeIn)

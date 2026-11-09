@@ -72,14 +72,13 @@ class TEmulator
 		bool TestHotkeys();
 
 		void ActionExit();
-		void ActionDebugger();
-		void ActionTapeBrowser();
 		void ActionTapePlayStop();
 		void ActionTapeNew();
 		void ActionTapeLoad(bool import = false);
 		void ActionTapeSave();
 		void ActionPMD32LoadDisk(int drive);
 		void ActionPMD32Update();
+		void ActionPMD32SelectSDPath();
 		void ActionSnapLoad();
 		void ActionSnapSave();
 		void ActionROMLoad();
@@ -95,16 +94,16 @@ class TEmulator
 		void ActionSizeChange(int mode);
 		int  ActionMegaModulePage(bool set = false, BYTE page = 0);
 
-		inline void ActionMouseState(int x, int y, int leftBtn = 0, int rightBtn = 0, int middleBtn = 0)
+		inline BYTE *GetKeyState(BYTE *&shiftStopCtrl)
+			{ return systemPIO ? systemPIO->GetKeyState(shiftStopCtrl) : nullptr; }
+		inline void SetMouseState(int x, int y, int leftBtn = 0, int rightBtn = 0, int middleBtn = 0)
 			{ if (mouse602) mouse602->SetMouseState(x, y, leftBtn, rightBtn, middleBtn); }
-		inline int ActionJoyControllers(SDL_GameController ***controllers = nullptr, bool refresh = false)
+		inline int GetControllers(SDL_GameController ***controllers = nullptr, bool refresh = false)
 			{ return joystick ? joystick->GetControllers(controllers, refresh) : 0; }
 		inline const char *GetControllerName(const char *guid)
 			{ return joystick ? joystick->GetControllerName(guid) : nullptr; }
 		inline const auto *GetControllerDeviceNames() const
 			{ return joystick ? &joystick->GetDeviceNames() : nullptr; }
-
-		sigslot::signal<> actionCallback;
 
 	private:
 		bool inmenu;

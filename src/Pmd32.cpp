@@ -25,8 +25,23 @@
 #include <algorithm>
 #include <fstream>
 #include <sstream>
-
+//---------------------------------------------------------------------------
 namespace fs = std::filesystem;
+static const char *statusMessages[] = {
+	"",
+	"Write-Protected Disk",
+	"Format Error",
+	"Read Error",
+	"Write Error",
+	"Bad Disk Number",
+	"File/Dir Not Found",
+	"File/Dir Name Too Long",
+	"Disk Image Creation Error",
+	"Configuration File Missed",
+	"Configuration File Read Error",
+	"Configuration File Corrupted",
+	"Unknown Disk Image File"
+};
 //---------------------------------------------------------------------------
 Pmd32::Pmd32(IifGPIO *pio)
 {
@@ -65,8 +80,11 @@ void Pmd32::SetExtraCommands(bool extraCommands, const char *sdRoot)
 		return;
 
 	this->extraCommands = extraCommands;
-	this->sdRoot = ToPath(sdRoot);
 	this->sdPath.clear();
+
+	char *sdRootPath = ComposeFilePath(sdRoot);
+	this->sdRoot = ToPath(sdRootPath);
+	delete[] sdRootPath;
 }
 //---------------------------------------------------------------------------
 void Pmd32::BeforeReset()
@@ -324,7 +342,7 @@ void Pmd32::Disk32Service(int ticks, int dur)
 			tickCounter = SEND_BYTE_TICKS;
 			if (pio->ReadBit(PP_PortC, IBFA) == false) {
 				noSend = false;
-				Disk32ServiceStateCheck();
+				DiskStateCheck();
 
 				if (noSend == false) {
 					pio->WriteByte(PP_PortA, toSend);
@@ -341,7 +359,7 @@ void Pmd32::Disk32Service(int ticks, int dur)
 	}
 }
 //---------------------------------------------------------------------------
-void Pmd32::Disk32ServiceStateCheck()
+void Pmd32::DiskStateCheck()
 {
 	switch (diskState) {
 		case WAIT_PRESENT:
@@ -406,7 +424,7 @@ void Pmd32::Disk32ServiceStateCheck()
 			break;
 
 		case SEND_RESULT:
-			Disk32ServiceSendResultCommand();
+			SendResultCommand();
 			break;
 
 		case SEND_NAK:
@@ -420,7 +438,7 @@ void Pmd32::Disk32ServiceStateCheck()
 	}
 }
 //---------------------------------------------------------------------------
-void Pmd32::Disk32ServiceSendResultCommand()
+void Pmd32::SendResultCommand()
 {
 	switch (command) {
 		case 'B': // BOOT
@@ -629,6 +647,9 @@ void Pmd32::Disk32ServiceSendResultCommand()
 			}
 			break;
 	}
+
+	if (toSend > RESULT_OK && toSend <= RESULT_UI)
+		debug("PMD32", "Service command %c result '%s'", command, statusMessages[toSend]);
 }
 //---------------------------------------------------------------------------
 bool Pmd32::FindFile()
@@ -674,8 +695,8 @@ bool Pmd32::FindFile()
 //---------------------------------------------------------------------------
 bool Pmd32::PrepareSector()
 {
-	if (drives[drvnum].handle != NULL && sector < drives[drvnum].sectors
-		&& (drives[drvnum].tracks == 0 || track < drives[drvnum].tracks)) {
+	if (drives[drvnum].handle != NULL && sector < drives[drvnum].sectors &&
+		(drives[drvnum].tracks == 0 || track < drives[drvnum].tracks)) {
 
 		DWORD seek = track * drives[drvnum].sectors * SECTOR_SIZE + sector * SECTOR_SIZE;
 		if (fseek(drives[drvnum].handle, seek, SEEK_SET) == 0)
@@ -702,8 +723,8 @@ bool Pmd32::WriteSector()
 		memset(buffer, 0xE5, sizeof(buffer));
 	}
 
-	if (drives[drvnum].handle != NULL && sector < drives[drvnum].sectors
-		&& (drives[drvnum].tracks == 0 || track < drives[drvnum].tracks)) {
+	if (drives[drvnum].handle != NULL && sector < drives[drvnum].sectors &&
+		(drives[drvnum].tracks == 0 || track < drives[drvnum].tracks)) {
 
 		DWORD seek = track * drives[drvnum].sectors * SECTOR_SIZE + sector * SECTOR_SIZE;
 		if (fseek(drives[drvnum].handle, seek, SEEK_SET) == 0)
@@ -730,25 +751,25 @@ int Pmd32::InsertDisk(int drive, const char *file, bool WP)
 
 	debug("PMD32", "Resolved disk path: %s", fileName.c_str());
 
-	if (extraCommands) {
-		int ret = CheckImageType(path, &drives[drive].tracks, &drives[drive].sectors, &drives[drive].sectorSize);
-		if (ret != RESULT_OK)
-			return ret;
-	}
-	else {
-		drives[drive].tracks = 80;
-		drives[drive].sectors = 36;
-		drives[drive].sectorSize = 2;
-	}
+	drives[drive].tracks = 80;
+	drives[drive].sectors = 36;
+	drives[drive].sectorSize = 2;
+
+	int ret = RESULT_OK;
+	if (extraCommands)
+		ret = CheckImageType(path, &drives[drive].tracks, &drives[drive].sectors, &drives[drive].sectorSize);
 
 	drives[drive].filePath = path;
 	drives[drive].handle = fopen(fileName.c_str(), "rb+");
 	drives[drive].wp = WP;
 
 	if (drives[drive].handle == NULL)
-		return RESULT_NF;
+		ret = RESULT_NF;
 
-	return RESULT_OK;
+	if (ret != RESULT_OK)
+		warning("PMD32", "Insert disk %c failure: '%s'", 'A' + drive, statusMessages[ret]);
+
+	return ret;
 }
 //---------------------------------------------------------------------------
 void Pmd32::RemoveDisk(int drive)
@@ -783,9 +804,10 @@ int Pmd32::CheckImageType(const fs::path &fn, BYTE *trk, BYTE *sec, BYTE *phys)
 			continue;
 
 		unsigned tracks, sectors, size = 2;
-		if (!(in >> tracks >> sectors) || tracks < 1 || tracks > MAX_TRACKS
-			|| sectors < 1 || sectors > MAX_SECTORS_PER_TRACKS)
-			return RESULT_CC;
+		if (!(in >> tracks >> sectors) ||
+			tracks < 1 || tracks > MAX_TRACKS ||
+			sectors < 1 || sectors > MAX_SECTORS_PER_TRACKS)
+				return RESULT_CC;
 
 		if ((in >> size) && size > 3)
 			return RESULT_CC;

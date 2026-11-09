@@ -56,7 +56,7 @@ void UserInterface::FileSelector(
 	bool fallbackToResourceDir)
 {
 	if (fileSelector) {
-		warning("GUI", "File selector is already allocated!");
+		warning("GUI", "File selector is already allocated");
 		return;
 	}
 
@@ -79,7 +79,7 @@ void UserInterface::FileSelector(
 				ImGuiFileBrowserFlags_HideRegularFiles;
 			break;
 		default:
-			error("GUI", "Invalid file selector type!");
+			error("GUI", "Invalid file selector type");
 			return;
 	}
 

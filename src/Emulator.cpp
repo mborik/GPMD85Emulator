@@ -583,7 +583,7 @@ void TEmulator::CpuTimerCallback()
 		// catch debugger breakpoint
 		if (Debugger->CheckBreakPoint(pc)) {
 			Debugger->Reset();
-			ActionDebugger();
+			GUI->Execute(GE_DEBUGGER, true);
 			return;
 		}
 
@@ -707,7 +707,7 @@ void TEmulator::CpuTimerCallback()
 		if (returnToDebug) {
 			if (Debugger->CheckDebugRet(&tci)) {
 				Debugger->Reset();
-				ActionDebugger();
+				GUI->Execute(GE_DEBUGGER, true);
 				return;
 			}
 		}
@@ -881,19 +881,20 @@ bool TEmulator::TestHotkeys()
 				video->FillBuffer(memory->GetVramPointer());
 				break;
 
+			case SDL_SCANCODE_K:	// VIRTUAL KEYBOARD
+				GUI->Execute(GE_VIRTUAL_KEYS);
+				return true;
+
 			case SDL_SCANCODE_P:	// PLAY/STOP TAPE
 				ActionTapePlayStop();
 				break;
 
 			case SDL_SCANCODE_T:	// TAPE BROWSER
-				ActionTapeBrowser();
+				GUI->Execute(GE_TAPEBROWSER);
 				return true;
 
 			case SDL_SCANCODE_F1:	// ABOUT
-				actionCallback.connect([&]() {
-					GUI->Execute(GE_ABOUT);
-					actionCallback.disconnect_all();
-				});
+				GUI->Execute(GE_ABOUT);
 				break;
 
 			case SDL_SCANCODE_F2:	// LOAD/SAVE TAPE
@@ -921,10 +922,7 @@ bool TEmulator::TestHotkeys()
 				break;
 
 			case SDL_SCANCODE_F6:	// DISK IMAGES
-				actionCallback.connect([&]() {
-					GUI->Execute(GE_DISKIMAGES);
-					actionCallback.disconnect_all();
-				});
+				GUI->Execute(GE_DISKIMAGES);
 				return true;
 
 			case SDL_SCANCODE_F7:	// LOAD/SAVE SNAPSHOT
@@ -939,23 +937,17 @@ bool TEmulator::TestHotkeys()
 				break;
 
 			case SDL_SCANCODE_F9:	// MACHINE MENU
-				actionCallback.connect([&]() {
-					GUI->Execute(GE_MACHINE);
-					actionCallback.disconnect_all();
-				});
+				GUI->Execute(GE_MACHINE);
 				return true;
 
 			case SDL_SCANCODE_F11: {	// MEMORY BLOCK READ/WRITE
 				bool write = (key & KM_SHIFT);
-				actionCallback.connect([&, write]() {
-					GUI->Execute(write ? GE_MEMBLOCK_WRITE : GE_MEMBLOCK_READ);
-					actionCallback.disconnect_all();
-				});
+				GUI->Execute(write ? GE_MEMBLOCK_WRITE : GE_MEMBLOCK_READ);
 				return true;
 			}
 
 			case SDL_SCANCODE_F12:	// DEBUGGER
-				ActionDebugger();
+				GUI->Execute(GE_DEBUGGER, true);
 				break;
 		}
 	}
@@ -989,16 +981,6 @@ void TEmulator::ActionExit()
 
 		GUI->QueryDialog("Exit", "Do you really want to exit?", false);
 	}
-}
-//---------------------------------------------------------------------------
-void TEmulator::ActionDebugger()
-{
-	GUI->Execute(GE_DEBUGGER, true);
-}
-//---------------------------------------------------------------------------
-void TEmulator::ActionTapeBrowser()
-{
-	GUI->Execute(GE_TAPEBROWSER);
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionTapePlayStop()
@@ -1141,6 +1123,35 @@ void TEmulator::ActionPMD32LoadDisk(int drive)
 void TEmulator::ActionPMD32Update()
 {
 	ConnectPMD32(false);
+}
+//---------------------------------------------------------------------------
+void TEmulator::ActionPMD32SelectSDPath()
+{
+	GUI->FileSelectorCallback.connect(
+		[&](const char *filePath) {
+			if (filePath) {
+				const std::filesystem::path path = ToPath(filePath);
+				std::string name = path.lexically_relative(ToPath(PathApplication)).generic_string();
+				if (name.empty())
+					name = path.generic_string().substr(1);
+				else if (name.find("..") == 0)
+					name = path.generic_string();
+
+				delete [] Settings->PMD32->sdRoot;
+				Settings->PMD32->sdRoot = new char[name.size() + 1];
+				strcpy(Settings->PMD32->sdRoot, name.c_str());
+			}
+
+			GUI->InvokeSettingsChange |= PS_PERIPHERALS | PS_CLOSEALL;
+			GUI->FileSelectorCallback.disconnect_all();
+		}
+	);
+
+	GUI->FileSelector(
+		GUI_FS_DIR,
+		"Select PMD 32 Virtual SD-Card Directory",
+		Settings->PMD32->sdRoot
+	);
 }
 //---------------------------------------------------------------------------
 void TEmulator::ActionSnapLoad()
@@ -1722,10 +1733,7 @@ void TEmulator::InsertTape(const char *fileName, bool import)
 		strcpy(Settings->TapeBrowser->fileName, fileName);
 	}
 
-	actionCallback.connect([&]() {
-		GUI->Execute(GE_TAPEBROWSER, true);
-		actionCallback.disconnect_all();
-	});
+	GUI->Execute(GE_TAPEBROWSER, true);
 }
 //---------------------------------------------------------------------------
 void TEmulator::SaveTape(const char *fileName)

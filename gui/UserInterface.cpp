@@ -44,7 +44,12 @@ UserInterface::UserInterface()
 	isAnyPopupWindowFocused = false;
 	triggerMachineMenuOpen = false;
 
+	joyConfigDialogShouldOpen = false;
+	joyConfigDialogForGPIO = GP_GPIO_0;
+
 	dialogAboutOpened = false;
+	dialogAboutFocused = false;
+	dialogMemDumpOpened = false;
 	dialogDebugOpened = false;
 	dialogDebugFocused = false;
 
@@ -52,9 +57,6 @@ UserInterface::UserInterface()
 	queryDialogMessage = NULL;
 	queryDialogSaveType = false;
 	queryDialogShouldOpen = false;
-
-	joyConfigDialogShouldOpen = false;
-	joyConfigDialogForGPIO = GP_GPIO_0;
 
 	memDumpDialogSaveType = false;
 	memDumpDialogShouldOpen = false;
@@ -148,6 +150,7 @@ void UserInterface::Draw()
 	DrawTapeDialog();
 	DrawAboutDialog();
 	DrawQueryDialog();
+	DrawKeyboardDialog();
 	DrawFileSelector();
 	DrawJoystickConfigDialog();
 	DrawDiskImagesDialog();
@@ -222,7 +225,7 @@ void UserInterface::DrawEmulatorWindow()
 		else if (ImGui::IsMouseReleased(ImGuiMouseButton_Middle))
 			middleBtn = -1;
 
-		Emulator->ActionMouseState(
+		Emulator->SetMouseState(
 			(int) mousePos.x, (int) mousePos.y,
 			leftBtn, rightBtn, middleBtn
 		);
@@ -250,8 +253,8 @@ void UserInterface::Execute(TGuiElementType type, bool forceOpen)
 			break;
 
 		case GE_ABOUT:
-			dialogAboutOpened = true;
-			ImGui::OpenPopup("About");
+			if (!dialogAboutFocused)
+				dialogAboutOpened = true;
 			break;
 
 		case GE_DISKIMAGES:
@@ -266,14 +269,22 @@ void UserInterface::Execute(TGuiElementType type, bool forceOpen)
 			dialogDebugOpened = forceOpen || !dialogDebugOpened;
 			break;
 
+		case GE_VIRTUAL_KEYS:
+			Settings->GUI->dialogKeyboardOpened = !Settings->GUI->dialogKeyboardOpened;
+			break;
+
 		case GE_MEMBLOCK_READ:
-			memDumpDialogSaveType = false;
-			memDumpDialogShouldOpen = true;
+			if (!dialogMemDumpOpened) {
+				memDumpDialogSaveType = false;
+				memDumpDialogShouldOpen = true;
+			}
 			break;
 
 		case GE_MEMBLOCK_WRITE:
-			memDumpDialogSaveType = true;
-			memDumpDialogShouldOpen = true;
+			if (!dialogMemDumpOpened) {
+				memDumpDialogSaveType = true;
+				memDumpDialogShouldOpen = true;
+			}
 			break;
 
 		default:

@@ -305,7 +305,7 @@ int main(int argc, char** argv)
 
 				case SDL_CONTROLLERDEVICEADDED:
 				case SDL_CONTROLLERDEVICEREMOVED:
-					Emulator->ActionJoyControllers(NULL, true);
+					Emulator->GetControllers(NULL, true);
 					break;
 
 				default:
@@ -335,7 +335,6 @@ int main(int argc, char** argv)
 		ImGui::NewFrame();
 
 		GUI->Draw();
-		Emulator->actionCallback();
 		ImGui::Render();
 
 		glViewport(0, 0, (int) io.DisplaySize.x, (int) io.DisplaySize.y);

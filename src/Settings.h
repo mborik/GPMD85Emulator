@@ -25,8 +25,6 @@
 //-----------------------------------------------------------------------------
 #include "globals.h"
 //-----------------------------------------------------------------------------
-#define CONFIGURATION_VERSION "8"
-//-----------------------------------------------------------------------------
 class TSettings
 {
 	public:
@@ -75,7 +73,7 @@ class TSettings
 			bool dialogDiskImagesOpened;
 			bool dialogMemEditOpened;
 			bool dialogMemMapOpened;
-			bool dialogDebugOpened;
+			bool dialogKeyboardOpened;
 			bool memEditAscii;
 			int memEditColumns;
 		};
