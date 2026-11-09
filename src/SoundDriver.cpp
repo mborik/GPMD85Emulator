@@ -53,7 +53,7 @@ SoundDriver::SoundDriver(char totalAmpl)
 
 		int frameSize = desired.size / BYTES_PER_SAMPLE;
 		if (frameSize != AUDIO_BUFF_SIZE)
-			warning("Sound", "Initialized sound buffer size different from desired! (%d vs %d)",
+			warning("Sound", "Initialized sound buffer size different from desired (%d vs %d)",
 					AUDIO_BUFF_SIZE, frameSize);
 
 		size_t len = SAMPS_PER_CPU_FRAME * BYTES_PER_SAMPLE;

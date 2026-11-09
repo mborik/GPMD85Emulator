@@ -36,6 +36,9 @@
 /* Version number of package */
 #define VERSION "@VERSION@"
 
+/* Configuration version of GPMD85Emulator */
+#define CONFIGURATION_VERSION "@CONFIGURATION_VERSION@"
+
 /* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most significant byte first. */
 #cmakedefine WORDS_BIGENDIAN 1
 

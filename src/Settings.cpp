@@ -36,7 +36,7 @@ TSettings::TSettings(bool userCfg)
 	debug("Settings", "Configuration parser initialization...");
 
 	if ((buf = LocateResource("default.conf", userCfg, userCfg)) == NULL)
-		error("Settings", "Configuration file not found!");
+		error("Settings", "Configuration file not found");
 
 	cfgReadFile(buf);
 	if (cfgRoot == NULL)
@@ -45,7 +45,7 @@ TSettings::TSettings(bool userCfg)
 	debug(NULL, "Configuration file loaded, parsing elements");
 
 	if (strcmp(cfgRoot->value, "GPMD85Emulator Configuration File") != 0)
-		warning("Settings", "Invalid header of configuration file!");
+		warning("Settings", "Invalid header of configuration file");
 
 	if (!cfgHasKeyValue(cfgRoot->next, "config-version", CONFIGURATION_VERSION)) {
 		warning("Settings", "Incompatible configuration file version (required %s)!\n\t"

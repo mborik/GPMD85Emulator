@@ -344,7 +344,7 @@ void ScreenPMD85::InitVideoMode(TDisplayMode reqDispMode, bool reqWidth384)
 
 	screenPixelBuffer = new BYTE[bufferWidth * bufferHeight * sizeof(DWORD)];
 	if (!screenPixelBuffer)
-		error("Screen", "Unable to create screen pixel buffer!");
+		error("Screen", "Unable to create screen pixel buffer");
 
 	memset(screenPixelBuffer, 0, bufferWidth * bufferHeight * sizeof(BYTE));
 
@@ -379,7 +379,7 @@ void ScreenPMD85::PrepareScanliner()
 		int scanlinerBufferSize = (screenWidth * screenHeight) * sizeof(DWORD);
 		scanlinerPixelBuffer = new BYTE[scanlinerBufferSize];
 		if (!scanlinerPixelBuffer)
-			error("Screen", "Unable to create scanliner pixel buffer!");
+			error("Screen", "Unable to create scanliner pixel buffer");
 
 		memset(scanlinerPixelBuffer, 0, scanlinerBufferSize);
 
