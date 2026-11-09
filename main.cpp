@@ -43,6 +43,7 @@
 #include <emscripten.h>
 #include <emscripten/html5.h>
 #include "imgui-mods/emscripten_stubs.h"
+EMSCRIPTEN_AUTOSAVE_SETTINGS_MODULE
 #endif
 //-----------------------------------------------------------------------------
 int main(int argc, char** argv)
@@ -240,6 +241,7 @@ int main(int argc, char** argv)
 
 	emscripten_set_resize_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, updateWindowSize);
 	updateWindowSize();
+	applyAutosaveSettingsModule();
 #else
 	if (Settings->GUI->position.x >= 0 || Settings->GUI->position.y >= 0)
 		SDL_SetWindowPosition(gdc.window, Settings->GUI->position.x, Settings->GUI->position.y);

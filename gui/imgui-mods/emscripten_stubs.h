@@ -37,6 +37,16 @@ static inline void InvokeFileDownload(const char *fileName, const char *mimeType
 		setTimeout(function () { URL.revokeObjectURL(a.href); FS.unlink(path); }, 1000);
 	}, fileName, mimeType);
 }
+
+// Apply the autosave settings to the Emscripten environment
+#define EMSCRIPTEN_AUTOSAVE_SETTINGS_MODULE \
+extern "C" EMSCRIPTEN_KEEPALIVE void autosaveSettings() { \
+	if (Settings && Settings->autosaveSettings) Settings->storeSettings(); \
+}
+static inline void applyAutosaveSettingsModule()
+{
+	EM_ASM({ Module['autosaveSettings'] = Module['_autosaveSettings']; });
+}
 #else
 #define EMSCRIPTEN_MAINLOOP_BEGIN
 #define EMSCRIPTEN_MAINLOOP_END
