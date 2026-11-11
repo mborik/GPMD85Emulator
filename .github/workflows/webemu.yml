@@ -20,9 +20,9 @@ jobs:
         submodules: recursive
 
     - name: setup Emscripten
-      uses: mymindstorm/setup-emsdk@v14
+      uses: emscripten-core/setup-emsdk@v15
       with:
-        version: 3.1.74
+        version: 7.0.0
 
     # Build products (index.*, favicon.ico, icon.png, basefont.ttf) are placed
     # by CMake into a separate "dist" directory, so intermediate CMake files
@@ -46,9 +46,7 @@ jobs:
         server: ${{ secrets.FTP_SERVER }}
         username: ${{ secrets.FTP_USERNAME }}
         password: ${{ secrets.FTP_PASSWORD }}
-        # protocol: ${{ vars.FTP_PROTOCOL }}
-        # port: ${{ vars.FTP_PORT }}
-        server-dir: ${{ vars.FTP_SERVER_DIR }}
+        server-dir: ${{ secrets.FTP_SERVER_DIR }}
         local-dir: ./dist/
         # safety net in case any CMake/Emscripten intermediates land in dist
         exclude: |
