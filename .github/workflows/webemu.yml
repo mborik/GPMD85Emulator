@@ -46,9 +46,7 @@ jobs:
         server: ${{ secrets.FTP_SERVER }}
         username: ${{ secrets.FTP_USERNAME }}
         password: ${{ secrets.FTP_PASSWORD }}
-        # protocol: ${{ vars.FTP_PROTOCOL }}
-        # port: ${{ vars.FTP_PORT }}
-        server-dir: ${{ vars.FTP_SERVER_DIR }}
+        server-dir: ${{ secrets.FTP_SERVER_DIR }}
         local-dir: ./dist/
         # safety net in case any CMake/Emscripten intermediates land in dist
         exclude: |
