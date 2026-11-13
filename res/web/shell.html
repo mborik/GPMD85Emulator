@@ -10,28 +10,89 @@
 		html, body { margin: 0; padding: 0; width: 100%; height: 100%; font-family: 'GPMD85Emulator'; font-size: 13px; vertical-align: middle; background: #000; overflow: hidden; }
 		body { display: flex; flex-direction: column; align-items: center; }
 		canvas#canvas { display: block; border: 0; outline: none; width: 100vw; height: 100vh; object-fit: contain; image-rendering: pixelated; }
-		#status { position: fixed; bottom: 2rem; left: 2rem; color: #aaa; }
+		#loader { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.5rem; background: rgba(0, 0, 0, .85); color: #aaa; pointer-events: none; transition: opacity .3s; }
+		#loader.hidden { opacity: 0; visibility: hidden; transition: opacity .3s, visibility 0s .3s; }
+		#loader .spinner { width: 56px; height: 56px; border-radius: 50%; border: 4px solid #333; border-top-color: #4af; border-right-color: #4af; box-shadow: 0 0 16px rgba(68, 170, 255, .4); animation: spin .9s cubic-bezier(.5, .15, .5, .85) infinite; }
+		#loader progress { width: 128px; height: 8px; }
+		#loader progress.hidden { display: none; }
+		#status { max-width: 80vw; text-align: center; letter-spacing: .05em; animation: pulse 1.6s ease-in-out infinite; }
+		@keyframes spin { to { transform: rotate(360deg); } }
+		@keyframes pulse { 50% { opacity: .5; } }
+		@media (prefers-reduced-motion: reduce) { #loader .spinner { animation-duration: 3s; } #status { animation: none; } }
 		header { display: flex; color: #fff; background: #222; width: 100%; max-height: 90px; }
-		header aside { flex: 1; align-content: center; padding: 2rem; }
-		header #logo { flex: 0; display: flex; align-self: center; text-align: right; margin-right: 2rem; }
-		header #logo span { display: block; font-size: 2rem; padding-top: 4px; margin-right: -4rem; text-shadow: 2px 2px 2px black; z-index: 1; }
-		header input[type="file"] { margin-top: .5rem; font-family: 'GPMD85Emulator'; }
+		header button { font: inherit; line-height: 1; color: #fff; background: #333; border: 1px solid #555; padding: .2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+		header button:hover { background: #444; }
+		header aside { flex: 1; align-content: flex-end; margin: 0 0 1.5rem -6rem; z-index: 5; }
+		header.collapsed { max-height: none; width: auto; position: fixed; top: 0; left: 0; z-index: 5; background: transparent; }
+		header.collapsed #logo, header.collapsed aside .content { display: none; }
+		header.collapsed aside { flex: 0; padding: 0; }
+		header #tools { position: absolute; top: 0; right: 0; margin: 1rem; display: flex; gap: .3rem; }
+		header #tools button { width: 2rem; height: 2rem; }
+		header #panel.content { display: flex; flex-direction: row; gap: .7rem; align-items: center; }
+		header #panel.content span { color: #acf }
+		header button#upload { width: 1.5rem; height: 1.5rem; font-size: 1.5rem; }
+		header.collapsed #tools { position: fixed; opacity: .6; }
+		header.collapsed #tools:hover { opacity: 1; }
+		header.collapsed #panel { display: none; }
+		header #logo { flex: 0; display: flex; align-self: center; margin: 1rem 1rem 1rem 3rem; }
+		header #logo span { display: block; font-size: 2rem; padding-top: 3px; margin-left: -6rem; text-shadow: 2px 2px 2px black; z-index: 1; }
+		header input[type="file"] { display: none; }
 	</style>
 </head>
 <body>
 	<header>
-		<aside>
-			Upload file(s) to virtual filesystem:<br />
-			<input type="file" id="file-selector" multiple accept=".ptp,.p32,.rmm,.mrm,.rom,.bin">
-		</aside>
 		<div id="logo">
-			<span>GPMD85Emulator</span>
 			<img src="icon.png" alt="GPMD85Emulator" width="64" height="64">
+			<span>GPMD85Emulator</span>
 		</div>
+		<aside>
+			<div id="tools">
+				<button id="toggle" type="button" aria-controls="panel" aria-expanded="true" title="Toggle panel">&#9650;</button>
+				<button id="fullscreen" type="button" title="Full screen" aria-label="Full screen"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 6V1h5M10 1h5v5M15 10v5h-5M6 15H1v-5"/></svg></button>
+			</div>
+			<div class="content" id="panel">
+				<input type="file" id="file-selector" multiple accept=".ptp,.p32,.pmd,.rmm,.mrm,.rom,.bin">
+				<button id="upload" type="button" title="Upload file(s) to virtual filesystem" aria-label="Upload files">&#9094;</button>
+				Upload file(s) to<span>/storage/upload</span>
+			</div>
+		</aside>
 	</header>
 	<canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
-	<div id="status">Downloading...</div>
+	<div id="loader">
+		<div class="spinner"></div>
+		<div id="status">Downloading...</div>
+		<progress id="progress" value="0" max="100"></progress>
+	</div>
 	<script>
+		document.getElementById('fullscreen').addEventListener('click', () => {
+			const doc = document, c = document.getElementById('canvas');
+			const active = doc.fullscreenElement || doc.webkitFullscreenElement;
+			const run = active
+				? (doc.exitFullscreen || doc.webkitExitFullscreen).call(doc)
+				: (c.requestFullscreen || c.webkitRequestFullscreen).call(c, { navigationUI: 'hide' });
+			Promise.resolve(run).catch((err) => console.error('fullscreen failed:', err));
+			c.focus();
+		});
+		(() => {
+			const header = document.querySelector('header');
+			const btn = document.getElementById('toggle');
+			const KEY = 'gpmd85emu.panelOpen';
+			const apply = (open) => {
+				header.classList.toggle('collapsed', !open);
+				btn.setAttribute('aria-expanded', String(open));
+				btn.innerHTML = open ? '&#9650;' : '&#9660;';
+			};
+			let open = true;
+			try { open = localStorage.getItem(KEY) !== '0'; } catch (e) {}
+			apply(open);
+			btn.addEventListener('click', () => {
+				open = !open; apply(open);
+				try { localStorage.setItem(KEY, open ? '1' : '0'); } catch (e) {}
+			});
+		})();
+		document.getElementById('upload').addEventListener('click', () => {
+			document.getElementById('file-selector').click();
+		});
 		document.getElementById('file-selector').addEventListener('change', (event) => {
 			const fileList = event.target.files;
 			for (let n = 0; n < fileList.length; n++) { readFile(fileList[n]); }
@@ -77,8 +138,26 @@
 			print: function (t) { console.log(t); },
 			printErr: function (t) { console.error(t); },
 			setStatus: function (t) {
-				const statusEl = document.getElementById('status');
-				statusEl.textContent = t; statusEl.style.display = t ? 'block' : 'none';
+				const progressElement = document.getElementById('progress');
+				let text = t;
+				const time = Date.now();
+				if (!Module.setStatus.last) Module.setStatus.last = { time, text: '' };
+				if (t === Module.setStatus.last.text) return;
+				const m = t.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
+				// if this is a progress update, skip it if too soon
+				if (time - Module.setStatus.last.time < 30) return;
+				if (m) {
+					text = m[1];
+					progressElement.value = parseInt(m[2]);
+					progressElement.max = parseInt(m[4]);
+					progressElement.classList.toggle('hidden', false);
+				} else {
+					progressElement.value = null;
+					progressElement.max = null;
+					progressElement.classList.toggle('hidden', true);
+				}
+				document.getElementById('status').textContent = text;
+				document.getElementById('loader').classList.toggle('hidden', !m);
 			}
 		};
 	</script>
