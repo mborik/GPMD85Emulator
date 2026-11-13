@@ -10,9 +10,23 @@
 		html, body { margin: 0; padding: 0; width: 100%; height: 100%; font-family: 'GPMD85Emulator'; font-size: 13px; vertical-align: middle; background: #000; overflow: hidden; }
 		body { display: flex; flex-direction: column; align-items: center; }
 		canvas#canvas { display: block; border: 0; outline: none; width: 100vw; height: 100vh; object-fit: contain; image-rendering: pixelated; }
-		#status { position: fixed; bottom: 2rem; left: 2rem; color: #aaa; }
+		#loader { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.5rem; background: rgba(0, 0, 0, .85); color: #aaa; pointer-events: none; transition: opacity .3s; }
+		#loader.hidden { opacity: 0; visibility: hidden; transition: opacity .3s, visibility 0s .3s; }
+		#loader .spinner { width: 56px; height: 56px; border-radius: 50%; border: 4px solid #333; border-top-color: #4af; border-right-color: #4af; box-shadow: 0 0 16px rgba(68, 170, 255, .4); animation: spin .9s cubic-bezier(.5, .15, .5, .85) infinite; }
+		#status { max-width: 80vw; text-align: center; letter-spacing: .05em; animation: pulse 1.6s ease-in-out infinite; }
+		@keyframes spin { to { transform: rotate(360deg); } }
+		@keyframes pulse { 50% { opacity: .5; } }
+		@media (prefers-reduced-motion: reduce) { #loader .spinner { animation-duration: 3s; } #status { animation: none; } }
 		header { display: flex; color: #fff; background: #222; width: 100%; max-height: 90px; }
-		header aside { flex: 1; align-content: center; padding: 2rem; }
+		header aside { flex: 1; align-content: center; padding: 2rem; position: relative; }
+		header.collapsed { max-height: none; width: auto; position: fixed; top: 0; left: 0; z-index: 5; background: transparent; }
+		header.collapsed #logo, header.collapsed aside .content { display: none; }
+		header.collapsed aside { flex: 0; padding: 0; }
+		header #tools { position: absolute; top: .5rem; left: .5rem; display: flex; gap: .4rem; }
+		header.collapsed #tools { position: static; margin: .5rem; opacity: .6; }
+		header.collapsed #tools:hover { opacity: 1; }
+		header #tools button { font: inherit; line-height: 1; color: #fff; background: #333; border: 1px solid #555; border-radius: 4px; cursor: pointer; width: 2rem; height: 2rem; padding: 0; display: flex; align-items: center; justify-content: center; }
+		header #tools button:hover { background: #444; }
 		header #logo { flex: 0; display: flex; align-self: center; text-align: right; margin-right: 2rem; }
 		header #logo span { display: block; font-size: 2rem; padding-top: 4px; margin-right: -4rem; text-shadow: 2px 2px 2px black; z-index: 1; }
 		header input[type="file"] { margin-top: .5rem; font-family: 'GPMD85Emulator'; }
@@ -21,8 +35,14 @@
 <body>
 	<header>
 		<aside>
-			Upload file(s) to virtual filesystem:<br />
-			<input type="file" id="file-selector" multiple accept=".ptp,.p32,.rmm,.mrm,.rom,.bin">
+			<div id="tools">
+				<button id="toggle" type="button" aria-controls="panel" aria-expanded="true" title="Toggle panel">&#9650;</button>
+				<button id="fullscreen" type="button" title="Full screen" aria-label="Full screen">&#9974;</button>
+			</div>
+			<div class="content" id="panel">
+				Upload file(s) to virtual filesystem:<br />
+				<input type="file" id="file-selector" multiple accept=".ptp,.p32,.rmm,.mrm,.rom,.bin">
+			</div>
 		</aside>
 		<div id="logo">
 			<span>GPMD85Emulator</span>
@@ -30,8 +50,30 @@
 		</div>
 	</header>
 	<canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
-	<div id="status">Downloading...</div>
+	<div id="loader"><div class="spinner"></div><div id="status">Downloading...</div></div>
 	<script>
+		document.getElementById('fullscreen').addEventListener('click', () => {
+			const c = document.getElementById('canvas');
+			(c.requestFullscreen || c.webkitRequestFullscreen || (() => {})).call(c);
+			c.focus();
+		});
+		(() => {
+			const header = document.querySelector('header');
+			const btn = document.getElementById('toggle');
+			const KEY = 'gpmd85emu.panelOpen';
+			const apply = (open) => {
+				header.classList.toggle('collapsed', !open);
+				btn.setAttribute('aria-expanded', String(open));
+				btn.innerHTML = open ? '&#9650;' : '&#9660;';
+			};
+			let open = true;
+			try { open = localStorage.getItem(KEY) !== '0'; } catch (e) {}
+			apply(open);
+			btn.addEventListener('click', () => {
+				open = !open; apply(open);
+				try { localStorage.setItem(KEY, open ? '1' : '0'); } catch (e) {}
+			});
+		})();
 		document.getElementById('file-selector').addEventListener('change', (event) => {
 			const fileList = event.target.files;
 			for (let n = 0; n < fileList.length; n++) { readFile(fileList[n]); }
@@ -77,8 +119,8 @@
 			print: function (t) { console.log(t); },
 			printErr: function (t) { console.error(t); },
 			setStatus: function (t) {
-				const statusEl = document.getElementById('status');
-				statusEl.textContent = t; statusEl.style.display = t ? 'block' : 'none';
+				document.getElementById('status').textContent = t;
+				document.getElementById('loader').classList.toggle('hidden', !t);
 			}
 		};
 	</script>
