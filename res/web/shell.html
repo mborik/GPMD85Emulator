@@ -37,7 +37,7 @@
 		<aside>
 			<div id="tools">
 				<button id="toggle" type="button" aria-controls="panel" aria-expanded="true" title="Toggle panel">&#9650;</button>
-				<button id="fullscreen" type="button" title="Full screen" aria-label="Full screen">&#9974;</button>
+				<button id="fullscreen" type="button" title="Full screen" aria-label="Full screen"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 6V1h5M10 1h5v5M15 10v5h-5M6 15H1v-5"/></svg></button>
 			</div>
 			<div class="content" id="panel">
 				Upload file(s) to virtual filesystem:<br />
@@ -53,8 +53,12 @@
 	<div id="loader"><div class="spinner"></div><div id="status">Downloading...</div></div>
 	<script>
 		document.getElementById('fullscreen').addEventListener('click', () => {
-			const c = document.getElementById('canvas');
-			(c.requestFullscreen || c.webkitRequestFullscreen || (() => {})).call(c);
+			const doc = document, c = document.getElementById('canvas');
+			const active = doc.fullscreenElement || doc.webkitFullscreenElement;
+			const run = active
+				? (doc.exitFullscreen || doc.webkitExitFullscreen).call(doc)
+				: (c.requestFullscreen || c.webkitRequestFullscreen).call(c, { navigationUI: 'hide' });
+			Promise.resolve(run).catch((err) => console.error('Fullscreen failed:', err));
 			c.focus();
 		});
 		(() => {
